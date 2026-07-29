@@ -35,9 +35,26 @@ hub-idle
 
 ### 控制器契约
 
-新增的 `transition.js` 对外提供 `requestEnter(subjectId)`、`requestReturn()` 和 `requestTheme(themeId)`，并发出 `pageOpaque`、`labReady`、`pageCleared`、`settled` 阶段事件。
+分成两个新模块：
 
-控制器是唯一允许写入 `data-shell`、`hidden`、`aria-hidden` 和交互状态（`pointer-events` / inert）的拥有者；`main.js`、`hub.js`、`stage.js` 和 `enter-fx.js` 只请求或响应阶段事件。
+- `transition-machine.js`：纯状态机、令牌、时间线和事件顺序；不读写 DOM 或 Three.js。
+- `transition-controller.js`：唯一的 DOM 壳层适配器，对外提供 `requestEnter(subjectId)`、`requestReturn()` 和 `requestTheme(themeId)`；它消费 machine 事件，并且是唯一允许写入 `data-shell`、`hidden`、`aria-hidden`、`inert` 与交互状态的模块。
+
+`main.js`、`hub.js`、`stage.js` 和 `enter-fx.js` 只请求或响应控制器事件，不直接切换壳层。
+
+### 阶段事件协议
+
+所有报告 API 都携带 `transitionId`，每个事件至多接受一次；id 不匹配或所处阶段不允许时忽略：
+
+| 事件 / API | 生产者 | 有效阶段 | 含义 |
+| --- | --- | --- | --- |
+| `reportPageOpaque(id)` | `enter-fx.js` | `entering-page` / `exiting-cover` | 已绘制跨页完整覆盖 viewport。 |
+| `reportLabReady(id)` | `main.js` | `entering-page` | 目标实验室已挂载，可显示但仍 inert。 |
+| `reportPageCleared(id)` | `enter-fx.js` | `exiting-book` | 返回页已离开前景，可露出大厅。 |
+| `reportSettled(id)` | stage / page FX | 任何非 idle 结束阶段 | 动画资源和临时类均已清理。 |
+| `reportFailed(id, reason)` | 任意异步拥有者 | 非 idle | 进入失败，保留已绘制遮罩并显示“返回大厅”恢复操作。 |
+
+进入时 `pageOpaque → labReady → lab-visible → lab-interactive → settled`；返回时 `pageOpaque → hub-prepared → pageCleared → hub-visible → hub-interactive → settled`。`pageCleared` 仅用于返回。
 
 | 当前阶段 | 新进入请求 | 新返回请求 | 新主题请求 |
 | --- | --- | --- | --- |
@@ -48,6 +65,8 @@ hub-idle
 
 每个请求增加 `transitionId`。所有 timer、rAF、Promise 和事件回调必须携带并比较该 id；取消时必须清理临时类名、取消后续回调，并保证恰有一个壳层可交互。
 
+若在任一非 idle 阶段收到反向请求，控制器先撤销旧令牌并立即展示一张已绘制的中性跨页遮罩；遮罩完整覆盖后才开始新方向的时间线。不中途暴露另一壳层，也不复用旧方向尚未完成的回调。
+
 ## 进入化学（目标约 2.2 秒）
 
 1. **Focus，0–0.38 秒**：化学书从书架轻微前移，其他书柔和退场；保持大厅标题和环境可见。
@@ -56,6 +75,8 @@ hub-idle
 4. **Reveal，1.72–2.2 秒**：实验室先在覆盖层下就绪；页面翻开并淡出后才显示教室。完成后清理过场层及临时类名。
 
 页面在 1.72 秒前必须触发 `pageOpaque`；实验室在页面遮住期间预热并触发 `labReady`。只有两者均完成才能显示教室；若实验室加载超时，则继续保持已绘制页面，而不是露出空白或未就绪的教室。
+
+实验室预热上限为 8 秒；超过后触发 `reportFailed`，遮罩显示可读错误和“返回大厅”按钮。失败或取消均不会让实验室可交互。
 
 ## 返回大厅（目标约 2.2 秒）
 
@@ -70,18 +91,23 @@ hub-idle
 
 覆盖层是**一张预先绘制完成的双页合成画面**，不是多张居中的单页。其不透明视觉边界在 `pageOpaque` 到显露阶段之间必须覆盖整个 viewport：不允许透明缝隙、背面剔除的空白状态或露出的画布边缘。减少动画模式仍需先展示一帧完整的已绘制页面，再立即交换壳层。
 
+在过场中发生 resize 或 DPR 变化时，覆盖层必须用新尺寸重新绘制；完成前继续显示上一张已覆盖的页面，随后原子替换，不能出现透明帧。
+
 ## 主题更新
 
 - 主题刷新维护 `requestedThemeId` 与 `committedThemeId`；连续点击采用最后一次请求优先。
-- 将书封面、封底、书脊和页面资产先离屏绘制，旧纹理始终可见；仅在同一动画帧原子替换全部纹理和大厅 CSS 主题，再处置旧纹理。
+- 在 `hub-idle` 时，主题任务管理大厅背景、英雄标题、四本书的封面/封底/书脊、过场双页和大厅设置按钮；在 `lab-idle` 时只先准备大厅资产，实验室现有主题保持其既有机制。
+- 将上述大厅资产先离屏绘制，旧纹理始终可见；在同一动画帧按“新纹理绑定 → renderer 渲染确认 → `data-theme` / CSS 提交 → 旧纹理处置”完成原子提交。
 - 主题刷新不改变过场状态；若正在进出场，则仅保留最后一次请求并在 `settled` 后提交。陈旧任务不得提交。
+- 若任一主题资产绘制或上传失败，保留 `committedThemeId` 与旧纹理，发出可测试失败事件，不允许只提交 CSS 或部分书本。
 - 不重新创建 Three.js renderer、场景或书架对象。
 
 ## 模块边界
 
 | 模块 | 责任 |
 | --- | --- |
-| `src/subjects/bookshelf/transition.js` | 可测试的过场状态、令牌和阶段调度；不依赖 DOM 或 Three.js。 |
+| `src/subjects/bookshelf/transition-machine.js` | 纯状态、令牌、阶段事件和超时；不依赖 DOM 或 Three.js。 |
+| `src/subjects/bookshelf/transition-controller.js` | machine 的 DOM 壳层适配器；唯一壳层/交互状态写入者。 |
 | `src/subjects/bookshelf/enter-fx.js` | 只渲染并汇报覆盖页动画阶段，不决定壳层切换。 |
 | `src/subjects/bookshelf/stage.js` | Three.js 书架镜头和书本姿态；接受过场状态，不再保有相互竞争的硬编码时间线。 |
 | `src/subjects/hub.js` / `src/main.js` | 只响应“可显示实验室”与“可显示大厅”的明确阶段事件。 |
@@ -93,6 +119,18 @@ hub-idle
 - 浏览器桌面验收：化学进入、顶栏返回、设置入口返回、快速重复请求与连续主题切换。
 - 在 focus、`pageOpaque`、reveal、return-cover、`pageCleared` 阶段取名保存截图，并断言恰有一个壳层可交互且页面完整覆盖 viewport。
 - 录制或逐帧截图验证：无白页空镜、无翻页层/书架交叠、无主题切换空白大厅。
+
+| 输入 / 事件 | 预期阶段结果 | 可交互壳层 | 可观察断言 |
+| --- | --- | --- | --- |
+| 化学进入，`labReady` 早到 | 等待 `pageOpaque` 后显露 | 仅 lab | 页面完整覆盖至显露。 |
+| 化学进入，`labReady` 晚到 | 页面保持，至 ready 或 8 秒失败 | 无 | 无空白壳层。 |
+| 进入中请求返回 / 返回中请求进入 | 先中性遮罩，再以新 id 重启 | 最多一个 | 旧 id 不再产生事件。 |
+| 连续主题请求 / 主题资产失败 | 只提交最后成功主题 | 当前稳定壳层 | 不出现部分换肤或空大厅。 |
+| 减少动画 / resize / DPR 变化 | 保留完整遮罩后完成交换 | 最多一个 | 页面持续覆盖 viewport。 |
+
+浏览器视觉基准为桌面 1280×720、DPR 2、默认与文具主题；逐帧截图以完整覆盖、无灰白空镜、无双壳层前景和每阶段仅一套可交互控件为通过条件。
+
+过场开始时焦点从被选书转至隐藏的过场状态；`lab-interactive` 后移至教室第一个可用控件；返回 `hub-interactive` 后回到对应的化学书的语义化备用控件。大厅需要保留可聚焦的学科备用入口，canvas 仅作视觉交互层。
 
 ## 非目标
 
