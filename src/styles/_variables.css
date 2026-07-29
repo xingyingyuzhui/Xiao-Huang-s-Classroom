@@ -1,0 +1,5 @@
+/**
+ * 兼容入口：布局共享 token
+ * 色板见 styles/themes/<id>/tokens.css
+ */
+@import './tokens/_shared.css';

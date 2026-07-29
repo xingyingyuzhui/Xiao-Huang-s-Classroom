@@ -1,0 +1,952 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="default" class="app-booting">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>小黄的教室</title>
+    <style>
+      /* 首屏：资源与脚本就绪前不展示，避免闪一下 */
+      html.app-booting,
+      html.app-booting body {
+        background: #f4f0e8;
+      }
+      html.app-booting #app {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      html.app-ready #app {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.22s ease;
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Quicksand:wght@500;600;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <img
+            class="brand-mark"
+            id="appBrandIcon"
+            src="/brand-avatar.png"
+            width="42"
+            height="42"
+            alt=""
+            draggable="false"
+          />
+          <div class="brand-text">
+            <p class="brand-eyebrow">兴趣小组 · 第 1 期</p>
+            <h1 id="appBrandTitle">小黄的教室</h1>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <nav class="tabs" role="tablist">
+            <button class="tab active" data-tab="table" role="tab" aria-selected="true">
+              元素周期表
+            </button>
+            <button class="tab" data-tab="molecule" role="tab" aria-selected="false">
+              3D 分子
+            </button>
+            <button class="tab" data-tab="molar" role="tab" aria-selected="false">
+              计算
+            </button>
+            <button class="tab" data-tab="electron" role="tab" aria-selected="false">
+              电子排布
+            </button>
+            <button class="tab" data-tab="battle" role="tab" aria-selected="false">
+              元素乱斗
+            </button>
+            <button class="tab" data-tab="ai" role="tab" aria-selected="false">
+              课堂
+            </button>
+          </nav>
+          <button
+            type="button"
+            class="btn-settings"
+            id="btnSettings"
+            title="设置"
+            aria-label="打开设置"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <path
+                d="M19.4 13a7.7 7.7 0 0 0 .05-2l2.05-1.6-2-3.46-2.45.95a7.6 7.6 0 0 0-1.73-1L15 3h-6l-.32 2.89a7.6 7.6 0 0 0-1.73 1L4.5 5.94l-2 3.46L4.55 11a7.7 7.7 0 0 0 0 2l-2.05 1.6 2 3.46 2.45-.95a7.6 7.6 0 0 0 1.73 1L9 21h6l.32-2.89a7.6 7.6 0 0 0 1.73-1l2.45.95 2-3.46L19.4 13Z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 设置：右侧抽屉 -->
+      <div class="settings-backdrop" id="settingsBackdrop" aria-hidden="true"></div>
+      <aside
+        class="settings-drawer"
+        id="settingsDrawer"
+        aria-hidden="true"
+        aria-labelledby="settingsTitle"
+        role="dialog"
+      >
+        <div class="settings-drawer-head">
+          <h2 id="settingsTitle">设置</h2>
+          <button type="button" class="settings-close" id="btnSettingsClose" aria-label="关闭设置">
+            ×
+          </button>
+        </div>
+        <div class="settings-drawer-body">
+          <section class="settings-section">
+            <h3 class="settings-section-title">系统</h3>
+
+            <div class="settings-block">
+              <h4>标识</h4>
+              <p class="settings-hint">图片不超过 500KB（PNG / JPG / WebP / GIF）。</p>
+              <div class="brand-settings-row">
+                <div class="brand-icon-preview-wrap">
+                  <img
+                    id="brandIconPreview"
+                    class="brand-icon-preview"
+                    src="/brand-avatar.png"
+                    alt="图标预览"
+                  />
+                  <label class="btn ghost brand-upload-label">
+                    选择图片
+                    <input
+                      type="file"
+                      id="brandIconInput"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      hidden
+                    />
+                  </label>
+                </div>
+                <label class="field brand-title-field">
+                  <span>标题文字</span>
+                  <input
+                    type="text"
+                    id="brandTitleInput"
+                    maxlength="32"
+                    value="小黄的教室"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </label>
+              </div>
+              <div class="settings-actions">
+                <button type="button" class="btn primary" id="btnSaveBrand">保存标识</button>
+                <button type="button" class="btn ghost" id="btnResetBrand">恢复默认</button>
+              </div>
+              <p class="settings-status" id="brandStatus" aria-live="polite"></p>
+            </div>
+
+            <div class="settings-block">
+              <h4>主题</h4>
+              <p class="settings-hint">整套界面风格切换。后续可继续增加主题，无需改业务代码。</p>
+              <div class="theme-picker" id="themePicker" role="radiogroup" aria-label="界面主题">
+                <!-- 由 settings.js 根据 theme/catalog 填充 -->
+              </div>
+              <p class="settings-status" id="themeStatus" aria-live="polite"></p>
+            </div>
+
+            <div class="settings-block settings-block-compact">
+              <h4>默认页</h4>
+              <label class="field field-compact">
+                <select id="settingDefaultPage">
+                  <option value="table">元素周期表</option>
+                  <option value="molecule">3D 分子</option>
+                  <option value="molar">计算</option>
+                  <option value="electron">电子排布</option>
+                  <option value="battle">元素乱斗</option>
+                  <option value="ai">课堂</option>
+                </select>
+              </label>
+              <p class="settings-status" id="defaultPageStatus" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <section class="settings-section">
+            <h3 class="settings-section-title">AI</h3>
+            <div class="settings-block">
+              <h4>模型 API</h4>
+              <label class="field">
+                <span>API Base URL</span>
+                <input
+                  type="url"
+                  id="aiApiBase"
+                  placeholder="https://api.deepseek.com"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+              <label class="field">
+                <span>API Key</span>
+                <input
+                  type="text"
+                  id="aiApiKey"
+                  placeholder="sk-…"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+              <label class="field">
+                <span>模型</span>
+                <select id="aiModel">
+                  <option value="deepseek-v4-flash">deepseek-v4-flash（默认）</option>
+                  <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+                </select>
+              </label>
+              <div class="settings-actions">
+                <button type="button" class="btn primary" id="btnSaveAi">保存 AI 设置</button>
+              </div>
+              <p class="settings-status" id="aiStatus" aria-live="polite"></p>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <!-- AI 生成分子弹层 -->
+      <div class="modal-backdrop" id="genMolBackdrop" aria-hidden="true"></div>
+      <div
+        class="modal-panel"
+        id="genMolModal"
+        role="dialog"
+        aria-labelledby="genMolTitle"
+        aria-hidden="true"
+      >
+        <div class="modal-head">
+          <h2 id="genMolTitle">AI 生成分子</h2>
+          <button type="button" class="settings-close" id="btnGenMolClose" aria-label="关闭">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="settings-hint">
+            输入<strong>高中常见小分子</strong>的名称或化学式，将生成示意用 3D 球棍模型。
+            原子数建议在 20 以内（如乙醇、苯、葡萄糖、乙酸）。
+            <strong>紫杉醇、阿莫西林</strong>等复杂药物无法可靠生成完整 3D，请勿使用。
+          </p>
+          <label class="field">
+            <span>描述</span>
+            <textarea
+              id="genMolPrompt"
+              rows="4"
+              placeholder="例如：乙酸、葡萄糖、臭氧、氨、苯……"
+            ></textarea>
+          </label>
+          <p class="settings-status" id="genMolStatus" aria-live="polite"></p>
+          <div class="settings-actions">
+            <button type="button" class="btn primary" id="btnGenMolSubmit">生成并保存</button>
+            <button type="button" class="btn ghost" id="btnGenMolCancel">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI 生成实验弹层 -->
+      <div class="modal-backdrop" id="genLabBackdrop" aria-hidden="true"></div>
+      <div
+        class="modal-panel"
+        id="genLabModal"
+        role="dialog"
+        aria-labelledby="genLabTitle"
+        aria-hidden="true"
+      >
+        <div class="modal-head">
+          <h2 id="genLabTitle">AI 生成实验</h2>
+          <button type="button" class="settings-close" id="btnGenLabClose" aria-label="关闭">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="settings-hint">
+            描述一个<strong>高中化学实验</strong>，将生成可编辑的脚本步骤与预习选择题草稿。
+            生成后请在脚本页检查，再点「保存脚本」写入本地。
+          </p>
+          <label class="field">
+            <span>实验描述</span>
+            <textarea
+              id="genLabPrompt"
+              rows="4"
+              placeholder="例如：高锰酸钾制氧气、实验室制二氧化碳、乙酸乙酯的制备……"
+            ></textarea>
+          </label>
+          <p class="settings-status" id="genLabStatus" aria-live="polite"></p>
+          <div class="settings-actions">
+            <button type="button" class="btn primary" id="btnGenLabSubmit">生成草稿</button>
+            <button type="button" class="btn ghost" id="btnGenLabCancel">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AI 生成配平脚本弹层（对齐实验探究 genLab） -->
+      <div class="modal-backdrop" id="genBalanceBackdrop" aria-hidden="true"></div>
+      <div
+        class="modal-panel"
+        id="genBalanceModal"
+        role="dialog"
+        aria-labelledby="genBalanceTitle"
+        aria-hidden="true"
+      >
+        <div class="modal-head">
+          <h2 id="genBalanceTitle">AI 生成配平脚本</h2>
+          <button type="button" class="settings-close" id="btnGenBalanceClose" aria-label="关闭">
+            ×
+          </button>
+        </div>
+        <div class="modal-body">
+          <p class="settings-hint">
+            输入<strong>未配平</strong>的化学方程式，将生成可编辑的配平脚本草稿（起式、目标式与步骤）。
+            生成后请在脚本页检查，再点「保存脚本」写入本地。
+          </p>
+          <label class="field lab-equation-field" id="genBalanceEqField">
+            <span>未配平方程式</span>
+            <textarea
+              id="genBalancePrompt"
+              rows="3"
+              placeholder="例如：Fe + O2 = Fe2O3、C2H5OH + O2 = CO2 + H2O……"
+            ></textarea>
+          </label>
+          <p class="settings-status" id="genBalanceStatus" aria-live="polite"></p>
+          <div class="settings-actions">
+            <button type="button" class="btn primary" id="btnGenBalanceSubmit">生成草稿</button>
+            <button type="button" class="btn ghost" id="btnGenBalanceCancel">取消</button>
+          </div>
+        </div>
+      </div>
+
+      <main>
+        <!-- Periodic table：左详情（可收窄条）+ 右周期表 -->
+        <section id="panel-table" class="panel active" role="tabpanel">
+          <aside class="detail-card side-drawer" data-drawer-key="table">
+            <div class="side-drawer-head">
+              <h2>元素详情</h2>
+              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+            </div>
+            <div class="side-drawer-body" id="elementDetail">
+              <div class="detail-empty">点击元素查看详情</div>
+            </div>
+          </aside>
+
+          <div class="table-shell">
+            <div class="table-toolbar">
+              <div class="toolbar-left">
+                <div class="legend" id="blockLegend"></div>
+                <div class="view-toggles">
+                  <button type="button" class="chip active" data-toggle="zones" title="s/p/d/ds/f 分区色">
+                    分区
+                  </button>
+                  <button type="button" class="chip" data-toggle="stair" title="金属与非金属分界">
+                    分界
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="ptable-scroll">
+              <div class="ptable-frame" id="ptableFrame">
+                <div class="period-labels" id="periodLabels" aria-hidden="true"></div>
+                <div class="table-stack">
+                  <div class="group-labels" id="groupLabels"></div>
+                  <div class="periodic-table show-zones" id="periodicTable" aria-label="元素周期表"></div>
+                </div>
+                <div class="side-column" id="sideColumn">
+                  <div class="side-headers">
+                    <div class="side-header">电子层</div>
+                    <div class="side-header">0族电子数</div>
+                  </div>
+                  <div class="side-labels" id="sideLabels"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Molecules -->
+        <section id="panel-molecule" class="panel" role="tabpanel" hidden>
+          <aside class="sidebar side-drawer" data-drawer-key="molecule">
+            <div class="side-drawer-head">
+              <h2>常见分子</h2>
+              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+            </div>
+            <div class="side-drawer-body">
+              <div class="mol-toolbar">
+                <button type="button" class="mol-btn mol-btn-add" id="btnAddMolecule" title="AI 生成分子">
+                  <strong class="mol-add-plus">＋</strong>
+                </button>
+                <button type="button" class="mol-btn mol-btn-edit" id="btnEditMolecules" title="编辑列表">
+                  编辑
+                </button>
+              </div>
+              <div id="moleculeList" class="molecule-list"></div>
+            </div>
+          </aside>
+          <div class="stage stage-3d">
+            <div id="mol-root"></div>
+            <div class="mol-info-card" id="moleculeInfoCard">
+              <h3>当前分子</h3>
+              <p class="mol-info-title" id="moleculeTitle">—</p>
+              <p class="mol-info-desc" id="moleculeDesc">选择左侧分子查看说明</p>
+            </div>
+            <div class="mol-props-card" id="moleculePropsCard">
+              <div id="moleculeProps"></div>
+            </div>
+            <!-- 点选化学键说明 -->
+            <div class="mol-bond-card" id="molBondCard" hidden>
+              <h3 id="molSelectHeading">化学键</h3>
+              <p class="mol-bond-title" id="molBondTitle">—</p>
+              <p class="mol-bond-kind" id="molBondKind"></p>
+              <p class="mol-bond-tip" id="molBondTip">点击 3D 中的原子或化学键查看说明</p>
+              <button type="button" class="btn ghost btn-sm" id="molBondClose">关闭</button>
+            </div>
+
+            <!-- 常见反应：右上角入口 -->
+            <button
+              type="button"
+              class="mol-rxn-toggle"
+              id="btnMolReactions"
+              aria-expanded="false"
+              aria-controls="molReactionPanel"
+              title="查看与当前分子相关的反应"
+            >
+              反应
+              <span id="molReactionBadge" class="mol-rxn-badge" hidden>0</span>
+            </button>
+
+            <aside
+              id="molReactionPanel"
+              class="mol-rxn-panel"
+              aria-label="常见反应列表"
+            >
+              <header class="mol-rxn-panel-head">
+                <h3>常见反应</h3>
+                <button type="button" class="mol-rxn-icon-btn" id="molReactionClose" aria-label="关闭">×</button>
+              </header>
+              <div id="molReactionList" class="mol-rxn-list">
+                <p class="rxn-muted">选择分子后显示关联反应</p>
+              </div>
+              <footer class="mol-rxn-panel-foot">
+                <button type="button" class="btn primary btn-sm" id="btnAiAddReaction">AI 添加反应</button>
+                <div class="rxn-export-row">
+                  <button type="button" class="btn ghost btn-sm" id="btnExportReactions">导出反应包</button>
+                  <label class="btn ghost btn-sm rxn-import-label">
+                    导入反应包
+                    <input type="file" id="btnImportReactions" accept="application/json,.json" hidden />
+                  </label>
+                </div>
+              </footer>
+
+              <div id="rxnAiBox" class="rxn-ai-box" aria-label="AI 添加反应">
+                <h4>AI 添加反应</h4>
+                <p class="rxn-muted" style="margin:0 0 0.45rem">
+                  描述一条高中常见反应，生成后请核对再保存到本地。
+                </p>
+                <textarea
+                  id="rxnAiPrompt"
+                  rows="3"
+                  placeholder="例如：乙烯与溴的加成反应"
+                  autocomplete="off"
+                ></textarea>
+                <label class="rxn-ai-stepcount">
+                  <span>示意步数</span>
+                  <select id="rxnAiStepCount" aria-label="示意动画步数">
+                    <option value="4">4 步</option>
+                    <option value="5" selected>5 步</option>
+                    <option value="6">6 步</option>
+                  </select>
+                </label>
+                <div class="rxn-ai-actions">
+                  <button type="button" class="btn primary btn-sm" id="rxnAiGenerate">生成预览</button>
+                  <button type="button" class="btn ghost btn-sm" id="rxnAiCancel">取消</button>
+                </div>
+                <p class="rxn-ai-status" id="rxnAiStatus"></p>
+                <div id="rxnAiPreview" class="rxn-ai-preview is-hidden"></div>
+                <div class="rxn-ai-preview-actions" id="rxnAiSaveRow" hidden>
+                  <button type="button" class="btn primary btn-sm" id="rxnAiSave">确认保存</button>
+                  <button type="button" class="btn ghost btn-sm" id="rxnAiDiscard">丢弃</button>
+                </div>
+              </div>
+            </aside>
+
+            <!-- 反应示意播放：底部 dock（剧院模式） -->
+            <div id="molReactionPlayer" class="mol-rxn-player" data-focus="reactant">
+              <div class="rxn-player-main">
+                <div class="rxn-player-copy">
+                  <p class="rxn-player-step" id="rxnPlayerStepLabel">—</p>
+                  <p class="rxn-player-eq" id="rxnPlayerEquation">—</p>
+                  <p class="rxn-player-tip" id="rxnPlayerTip"></p>
+                </div>
+                <div class="rxn-player-actions">
+                  <button type="button" class="btn ghost btn-sm" id="molReactionPause">暂停</button>
+                  <button type="button" class="btn primary btn-sm" id="molReactionReplay">重播</button>
+                  <button type="button" class="mol-rxn-icon-btn" id="molReactionPlayerClose" aria-label="关闭播放" title="关闭">×</button>
+                </div>
+              </div>
+              <div class="rxn-player-bar-track">
+                <div class="rxn-player-bar" id="rxnPlayerBar"></div>
+                <input
+                  type="range"
+                  class="rxn-player-scrub"
+                  id="rxnPlayerScrub"
+                  min="0"
+                  max="1000"
+                  value="0"
+                  aria-label="拖动回顾进度"
+                />
+              </div>
+              <div class="rxn-player-meta" id="rxnPlayerMeta"></div>
+              <div class="rxn-player-history-wrap">
+                <div class="rxn-player-history-label">
+                  变化历程
+                  <span class="rxn-player-history-hint">点击回顾</span>
+                </div>
+                <ol id="rxnPlayerHistory" class="rxn-player-history" aria-label="反应变化历程"></ol>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              class="mol-label-toggle"
+              id="molLabelToggle"
+              data-act="toggle-labels"
+              title="显示/隐藏原子标签"
+              aria-pressed="true"
+            >
+              标签
+            </button>
+            <div class="mol-controls" id="molControls" aria-label="视角控制">
+              <!-- 第1行：左右转 + 放大 -->
+              <button type="button" class="mol-ctrl" data-act="left" title="左转">←</button>
+              <button type="button" class="mol-ctrl" data-act="right" title="右转">→</button>
+              <button type="button" class="mol-ctrl" data-act="zoom-in" title="放大">＋</button>
+              <!-- 第2行：上仰下俯 + 缩小 -->
+              <button type="button" class="mol-ctrl" data-act="up" title="上仰">↑</button>
+              <button type="button" class="mol-ctrl" data-act="down" title="下俯">↓</button>
+              <button type="button" class="mol-ctrl" data-act="zoom-out" title="缩小">－</button>
+              <!-- 第3行：慢转 + 复位 -->
+              <button type="button" class="mol-ctrl mol-ctrl-auto" data-act="auto" title="自动慢转" aria-pressed="false">
+                慢转
+              </button>
+              <button type="button" class="mol-ctrl" data-act="reset" title="复位">⌂</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 计算：摩尔 / 配平 / 分步计量 -->
+        <section id="panel-molar" class="panel" role="tabpanel" hidden>
+          <aside class="sidebar ai-sidebar side-drawer" data-drawer-key="molar">
+            <div class="side-drawer-head">
+              <h2>计算</h2>
+              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+            </div>
+            <div class="side-drawer-body">
+              <div id="molarNavList" class="ai-nav-list" role="list"></div>
+            </div>
+          </aside>
+          <div class="stage molar-stage stage-ai">
+            <!-- 摩尔质量 -->
+            <div id="molarSectionMass" class="molar-section">
+              <header class="quiz-section-head">
+                <h3>摩尔质量</h3>
+              </header>
+              <div class="molar-section-body">
+                <div class="molar-form">
+                  <label class="field">
+                    <span>化学式</span>
+                    <input
+                      id="formulaInput"
+                      type="text"
+                      value="C6H12O6"
+                      autocomplete="off"
+                      spellcheck="false"
+                    />
+                  </label>
+                  <div class="actions">
+                    <button id="btnCalcMolar" class="btn primary" type="button">计算</button>
+                    <button id="btnClearMolar" class="btn ghost" type="button">清空</button>
+                  </div>
+                  <div class="presets" id="molarPresets">
+                    <span>示例</span>
+                  </div>
+                </div>
+                <div id="molarResult" class="molar-result">
+                  <div class="molar-empty">输入化学式后点击计算</div>
+                </div>
+              </div>
+            </div>
+            <!-- 配平方程 -->
+            <div id="molarSectionBalance" class="molar-section" hidden>
+              <header class="quiz-section-head">
+                <h3>配平方程</h3>
+              </header>
+              <div class="molar-section-body">
+                <div class="molar-form">
+                  <label class="field">
+                    <span>未配平方程式</span>
+                    <input id="balanceInput" type="text" placeholder="如：H2+O2=H2O" autocomplete="off" />
+                  </label>
+                  <div class="actions">
+                    <button type="button" class="btn primary" id="btnBalance">本地配平</button>
+                    <button type="button" class="btn ghost" id="btnBalanceAi">AI 建议</button>
+                  </div>
+                  <p class="quiz-status" id="balanceStatus"></p>
+                </div>
+                <div id="balanceResult" class="molar-tool-panel">
+                  <div class="molar-empty">输入方程式后点击配平</div>
+                </div>
+              </div>
+            </div>
+            <!-- 分步计量 -->
+            <div id="molarSectionStoich" class="molar-section" hidden>
+              <header class="quiz-section-head">
+                <h3>分步计量</h3>
+              </header>
+              <div class="molar-section-body">
+                <div class="molar-form">
+                  <label class="field">
+                    <span>题目（需 API Key）</span>
+                    <textarea id="stoichInput" rows="4" placeholder="例：2.5 g 氢气完全燃烧需要多少克氧气？"></textarea>
+                  </label>
+                  <div class="actions">
+                    <button type="button" class="btn primary" id="btnStoich">AI 分步解答</button>
+                  </div>
+                  <p class="quiz-status" id="stoichStatus"></p>
+                </div>
+                <div id="stoichResult" class="molar-tool-panel">
+                  <div class="molar-empty">输入题目后生成分步解答</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Electron configuration -->
+        <section id="panel-electron" class="panel" role="tabpanel" hidden>
+          <aside class="sidebar side-drawer" data-drawer-key="electron">
+            <div class="side-drawer-head">
+              <h2>元素列表</h2>
+              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+            </div>
+            <div class="side-drawer-body">
+              <div class="electron-toolbar">
+                <button type="button" class="mol-btn mol-btn-edit" id="btnEditElectrons" title="编辑排序">
+                  编辑
+                </button>
+              </div>
+              <div id="electronList" class="electron-list"></div>
+            </div>
+          </aside>
+          <div class="stage stage-electron">
+            <div id="electron-root"></div>
+            <div class="electron-info-card" id="electronInfoCard">
+              <h3>元素信息</h3>
+              <p class="electron-info-symbol" id="electronSymbol">—</p>
+              <p class="electron-info-name" id="electronName">选择左侧元素查看</p>
+              <div class="electron-info-config" id="electronConfig"></div>
+            </div>
+            <div class="mol-controls" id="electronControls" aria-label="视角控制">
+              <button type="button" class="mol-ctrl" data-act="left" title="左转">←</button>
+              <button type="button" class="mol-ctrl" data-act="right" title="右转">→</button>
+              <button type="button" class="mol-ctrl" data-act="zoom-in" title="放大">＋</button>
+              <button type="button" class="mol-ctrl" data-act="up" title="上仰">↑</button>
+              <button type="button" class="mol-ctrl" data-act="down" title="下俯">↓</button>
+              <button type="button" class="mol-ctrl" data-act="zoom-out" title="缩小">－</button>
+              <button type="button" class="mol-ctrl mol-ctrl-auto" data-act="auto" title="自动慢转" aria-pressed="false">
+                慢转
+              </button>
+              <button type="button" class="mol-ctrl" data-act="reset" title="复位">⌂</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- 元素乱斗 -->
+        <section id="panel-battle" class="panel" role="tabpanel" hidden>
+          <!-- 由 element-battle.js 渲染大厅 / 对局 -->
+        </section>
+
+        <!-- 课堂 -->
+        <section id="panel-ai" class="panel" role="tabpanel" hidden>
+          <aside class="sidebar ai-sidebar side-drawer" data-drawer-key="ai">
+            <div class="side-drawer-head">
+              <h2>课堂</h2>
+              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+            </div>
+            <div class="side-drawer-body">
+              <div id="aiNavList" class="ai-nav-list" role="list"></div>
+            </div>
+          </aside>
+          <div class="stage stage-ai">
+            <!-- 随机点名 -->
+            <div id="aiSectionRollcall" class="ai-section" hidden>
+              <header class="quiz-section-head">
+                <h3>随机点名</h3>
+              </header>
+              <div class="rollcall-layout">
+                <div class="rollcall-stage">
+                  <div class="rollcall-deck" id="rollcallDeck" aria-live="polite">
+                    <div class="rollcall-card" id="rollcallCard">
+                      <span class="rollcall-card-label">准备就绪</span>
+                      <strong class="rollcall-card-name" id="rollcallCardName">点名</strong>
+                    </div>
+                  </div>
+                  <div class="rollcall-actions">
+                    <button type="button" class="btn primary" id="btnRollcallSpin">开始点名</button>
+                    <button type="button" class="btn ghost" id="btnRollcallAgain" hidden>再来一次</button>
+                  </div>
+                  <p class="quiz-status" id="rollcallStatus" aria-live="polite"></p>
+                </div>
+                <div class="rollcall-manage">
+                  <h4>班级名单</h4>
+                  <div class="rollcall-add-row">
+                    <input type="text" id="rollcallNameInput" placeholder="输入姓名" autocomplete="off" />
+                    <button type="button" class="btn primary btn-sm" id="btnRollcallAdd">添加</button>
+                  </div>
+                  <label class="rollcall-import-label">
+                    <span>批量导入（一行一个名字，或 CSV 姓名列）</span>
+                    <textarea id="rollcallImportText" rows="4" placeholder="张三&#10;李四&#10;王五"></textarea>
+                  </label>
+                  <div class="rollcall-import-actions">
+                    <button type="button" class="btn ghost btn-sm" id="btnRollcallImportAppend">追加导入</button>
+                    <button type="button" class="btn ghost btn-sm" id="btnRollcallImportReplace">清空后导入</button>
+                  </div>
+                  <ul id="rollcallStudentList" class="rollcall-student-list"></ul>
+                </div>
+              </div>
+            </div>
+
+            <!-- 实验探究：抽屉（标题/新建/列表）+ 详情（预习 | 脚本=编辑） -->
+            <div id="aiSectionLab" class="ai-section ai-section-lab" hidden>
+              <div class="lab-layout lab-layout-drawer">
+                <aside class="lab-nav-rail" id="labNavRail" aria-label="实验目录"></aside>
+                <article id="labDetail" class="lab-drawer" aria-live="polite">
+                  <div class="molar-empty">加载中…</div>
+                </article>
+              </div>
+            </div>
+
+            <div id="aiSectionMastery" class="ai-section" hidden>
+              <header class="quiz-section-head">
+                <h3>知识掌握地图</h3>
+              </header>
+              <div id="masteryStatus" class="quiz-status"></div>
+              <div id="masterySummary"></div>
+              <div class="mastery-section">
+                <h4>薄弱知识点</h4>
+                <div id="masteryWeak"></div>
+              </div>
+              <div class="mastery-section">
+                <h4>复习建议</h4>
+                <div id="masterySuggestions"></div>
+              </div>
+              <div class="mastery-section">
+                <h4>全部知识点</h4>
+                <div id="masteryTopics"></div>
+              </div>
+            </div>
+
+            <div id="aiSectionLessonPack" class="ai-section" hidden>
+              <header class="quiz-section-head">
+                <h3>备课包</h3>
+                <div class="lesson-pack-toolbar">
+                  <button type="button" class="btn btn-sm" id="btnLessonPackNew">新建备课包</button>
+                  <button type="button" class="btn btn-sm ghost" id="btnLessonPackImport">导入备课包/实验包</button>
+                  <button type="button" class="btn btn-sm ghost" id="btnLabPackExport">导出实验包</button>
+                  <input type="file" id="lessonPackImportInput" accept=".json" hidden />
+                </div>
+              </header>
+              <div class="lesson-pack-layout">
+                <div id="lessonPackList" class="lesson-pack-list"></div>
+                <div class="lesson-pack-right">
+                  <div id="lessonPackDetail"></div>
+                  <div id="lessonPackEditor" hidden></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 分步配平：同实验探究 — 左列表抽屉 / 右详情（练习|脚本） -->
+            <div id="aiSectionBalance" class="ai-section ai-section-balance" hidden>
+              <div class="lab-layout lab-layout-drawer" id="balanceLayout">
+                <aside class="lab-nav-rail" id="balanceNavRail" aria-label="配平脚本目录"></aside>
+                <article id="balanceDetail" class="lab-drawer" aria-live="polite">
+                  <div class="molar-empty">加载中…</div>
+                </article>
+              </div>
+            </div>
+
+            <div id="aiSectionQuiz" class="ai-section">
+              <!-- 配置 -->
+              <div id="quizConfig" class="quiz-config">
+                <header class="quiz-section-head">
+                  <h3>智能出题</h3>
+                </header>
+
+                <div class="quiz-field">
+                  <span class="quiz-label">年级范围</span>
+                  <div class="quiz-chips" id="quizGrades" role="group" aria-label="年级"></div>
+                </div>
+
+                <div class="quiz-field">
+                  <span class="quiz-label">章节 / 主题 <em>（可多选）</em></span>
+                  <div class="quiz-topics" id="quizTopics" role="group" aria-label="主题"></div>
+                </div>
+
+                <div class="quiz-field quiz-field-toolbar">
+                  <div class="quiz-toolbar-diff">
+                    <span class="quiz-label">难度</span>
+                    <div class="quiz-chips" id="quizDifficulty" role="group" aria-label="难度"></div>
+                  </div>
+                  <div class="quiz-toolbar-count">
+                    <span class="quiz-label">题量</span>
+                    <div class="quiz-count-row quiz-count-row-compact">
+                      <input type="range" id="quizCount" min="1" max="10" value="5" />
+                      <strong id="quizCountLabel">5</strong>
+                    </div>
+                  </div>
+                  <div class="quiz-toolbar-reveal">
+                    <span class="quiz-label">对错显示</span>
+                    <div class="quiz-chips" id="quizReveal" role="group" aria-label="对错显示"></div>
+                  </div>
+                </div>
+
+                <div class="quiz-actions">
+                  <button type="button" class="btn primary" id="btnQuizGenerate">生成题目</button>
+                  <p class="quiz-status" id="quizConfigStatus" aria-live="polite"></p>
+                </div>
+
+                <!-- 历史做题总结 -->
+                <div class="quiz-history-panel quiz-history-panel-single">
+                  <div class="quiz-history-card quiz-history-card-wide">
+                    <div class="quiz-history-card-head">
+                      <h4>历史做题总结</h4>
+                      <button type="button" class="btn ghost btn-sm" id="btnQuizStatsRefresh">刷新</button>
+                    </div>
+                    <div id="quizStatsBody" class="quiz-stats-body">加载中…</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 答题 -->
+              <div id="quizPaper" class="quiz-paper" hidden>
+                <header class="quiz-paper-head">
+                  <div>
+                    <h3 id="quizPaperTitle">练习中</h3>
+                    <p id="quizPaperMeta" class="quiz-paper-meta"></p>
+                  </div>
+                  <div class="quiz-paper-actions">
+                    <button type="button" class="btn ghost btn-quiz-export">导出 Markdown</button>
+                    <button type="button" class="btn ghost" id="btnQuizBackConfig">重新出题</button>
+                    <button type="button" class="btn primary" id="btnQuizSubmit">交卷</button>
+                  </div>
+                </header>
+                <div id="quizQuestions" class="quiz-questions"></div>
+              </div>
+
+              <!-- 本场结果 -->
+              <div id="quizResult" class="quiz-result" hidden>
+                <header class="quiz-paper-head">
+                  <div>
+                    <h3>本场结果</h3>
+                    <p id="quizScoreLine" class="quiz-paper-meta"></p>
+                  </div>
+                  <div class="quiz-paper-actions">
+                    <button type="button" class="btn ghost btn-quiz-export">导出 Markdown</button>
+                    <button type="button" class="btn ghost" id="btnQuizAgain">再出一套</button>
+                    <button type="button" class="btn primary" id="btnQuizSummary">AI 分析总结</button>
+                  </div>
+                </header>
+                <div id="quizResultList" class="quiz-result-list"></div>
+                <div id="quizReport" class="quiz-report" hidden>
+                  <h4>AI 分析报告</h4>
+                  <div id="quizReportBody" class="quiz-report-body"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 离线题库 -->
+            <div id="aiSectionOffline" class="ai-section" hidden>
+              <div id="offlineQuizConfig" class="quiz-config">
+                <header class="quiz-section-head">
+                  <h3>离线题库</h3>
+                </header>
+                <p class="quiz-muted">历年高考化学选择题（AGIEval）</p>
+                <div class="quiz-field">
+                  <span class="quiz-label">年份筛选</span>
+                  <div class="quiz-chips" id="offlineQuizYears" role="group" aria-label="年份"></div>
+                </div>
+                <div class="quiz-field">
+                  <span class="quiz-label">题量</span>
+                  <div class="quiz-count-row quiz-count-row-compact">
+                    <input type="range" id="offlineQuizCount" min="1" max="20" value="5" />
+                    <strong id="offlineQuizCountLabel">5</strong>
+                  </div>
+                </div>
+                <div class="quiz-actions">
+                  <button type="button" class="btn primary" id="btnOfflineQuizStart">开始练习</button>
+                  <p class="quiz-status" id="offlineQuizStatus" aria-live="polite"></p>
+                </div>
+                <div class="quiz-history-panel quiz-history-panel-single">
+                  <div class="quiz-history-card quiz-history-card-wide">
+                    <div class="quiz-history-card-head">
+                      <h4>题库预览</h4>
+                    </div>
+                    <div id="offlineQuizBankBody" class="quiz-stats-body offline-quiz-bank-list">加载中…</div>
+                  </div>
+                </div>
+              </div>
+              <div id="offlineQuizPaper" class="quiz-paper" hidden>
+                <header class="quiz-paper-head">
+                  <div>
+                    <h3>离线练习</h3>
+                    <p id="offlinePaperMeta" class="quiz-paper-meta"></p>
+                  </div>
+                  <div class="quiz-paper-actions">
+                    <button type="button" class="btn ghost" id="btnOfflineQuizBackConfig">重新选题</button>
+                    <button type="button" class="btn primary" id="btnOfflineQuizSubmit">交卷</button>
+                  </div>
+                </header>
+                <div id="offlineQuizQuestions" class="quiz-questions"></div>
+              </div>
+              <div id="offlineQuizResult" class="quiz-result" hidden>
+                <header class="quiz-paper-head">
+                  <div>
+                    <h3>本场结果</h3>
+                    <p id="offlineScoreLine" class="quiz-paper-meta"></p>
+                  </div>
+                  <div class="quiz-paper-actions">
+                    <button type="button" class="btn ghost" id="btnOfflineQuizAgain">再练一套</button>
+                  </div>
+                </header>
+                <div id="offlineResultList" class="quiz-result-list"></div>
+              </div>
+            </div>
+
+            <!-- 错题本二级页（风格对齐「本场结果」） -->
+            <div id="aiSectionWrong" class="ai-section" hidden>
+              <header class="quiz-paper-head">
+                <div>
+                  <h3>错题本</h3>
+                  <p class="quiz-paper-meta" id="wbListMeta">做对后自动移出 · 共 0 题</p>
+                </div>
+                <div class="quiz-paper-actions">
+                  <button type="button" class="btn ghost" id="btnWrongRefresh">刷新</button>
+                </div>
+              </header>
+              <div id="wrongBookList" class="quiz-result-list"></div>
+            </div>
+          </div>
+        </section>
+      </main>
+
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

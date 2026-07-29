@@ -1,0 +1,87 @@
+/**
+ * 主题：试剂架
+ * 与另两套刻意错开：
+ * - 默认 = 浅灰蓝 + 科技蓝
+ * - 文具 = 暖纸 + 章红 + 青绿
+ * - 试剂架 = 中性石灰柜 + 紫铜瓶盖 + 奶油标签（不靠蓝、不靠章红墨绿）
+ */
+html[data-theme='reagent'] {
+  /* 石灰货架：中性偏暖一点，去掉蓝调 */
+  --paper: #e9e6e0;
+  --paper-deep: #d9d4cb;
+  --bg-body: #e9e6e0;
+  --bg-body-deep: #cdc7bc;
+  --card-bg: #faf7f2;
+  --card-elevated: #fffcf7;
+
+  /* 瓶签炭黑 */
+  --ink: #2a2420;
+  --ink-soft: #5c534c;
+  --ink-lab: #1f1b18;
+  --text-primary: #2a2420;
+  --text-secondary: #7a7168;
+  --text-muted: #5e564e;
+
+  --border: #c4bdb2;
+  --border-soft: #e5dfd6;
+  --border-ink: #3d3630;
+
+  /* 紫铜 / 瓶盖铜 — 主色（非蓝、非章红） */
+  --stamp: #b45309;
+  --stamp-soft: #f8ead8;
+  /* 深炭作结构辅色，避免再引入绿/蓝 */
+  --diagram: #4a4038;
+  --diagram-soft: #f0ebe4;
+  /* 标签米黄 */
+  --note: #c9a227;
+  --note-soft: #faf3d6;
+
+  --accent: var(--stamp);
+  --accent-hover: #93370a;
+  --accent-soft: var(--stamp-soft);
+  --flame: var(--note);
+  --flame-soft: var(--note-soft);
+
+  --btn-primary: var(--stamp);
+  --btn-primary-hover: var(--accent-hover);
+  --btn-primary-border: #7c2d12;
+
+  --shadow-sm: 0 1px 2px rgba(42, 36, 32, 0.07);
+  --shadow-md: 0 3px 12px rgba(42, 36, 32, 0.09);
+  --shadow-float: 0 8px 22px rgba(42, 36, 32, 0.1), 0 1px 0 rgba(255, 255, 255, 0.7);
+  --shadow-print: var(--shadow-float);
+  --shadow-print-sm: var(--shadow-sm);
+  --shadow-inset-glass: inset 0 1px 0 rgba(255, 255, 255, 0.75);
+
+  /* 分区：哑光塑料模型色，整体偏暖中性 */
+  --zone-s: #efd5c0;
+  --zone-p: #d5dce6;
+  --zone-d: #ebe2b8;
+  --zone-ds: #d0e2d4;
+  --zone-f: #e6d2dc;
+  --zone-noble: #d4d0e0;
+
+  --radius-box: 6px;
+  --radius-card: 10px;
+  --radius-control: 8px;
+  --gap-size: 4px;
+  --f-gap-size: 6px;
+
+  --ui-stroke: 1px;
+  --ui-stroke-strong: 1.5px;
+
+  --font-display: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-latin: 'IBM Plex Mono', ui-monospace, monospace;
+  --font-cjk: 'Noto Sans SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  --font-serif-cjk: var(--font-cjk);
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, monospace;
+  --font-main: var(--font-cjk);
+
+  --topbar-bg: color-mix(in srgb, var(--card-elevated) 94%, transparent);
+  --topbar-border: 1px solid var(--border);
+  --topbar-shadow: 0 1px 0 rgba(255, 255, 255, 0.55);
+  --bg-image: none;
+  --body-noise-opacity: 0;
+  --brand-eyebrow-display: block;
+  --stage-3d-bg: #ebe8e2;
+}

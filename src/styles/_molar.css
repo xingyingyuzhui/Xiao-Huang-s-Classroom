@@ -1,0 +1,259 @@
+.molar-stage {
+  display: grid;
+  padding: 1rem;
+  background: var(--paper);
+}
+
+.molar-result {
+  min-height: 100%;
+}
+
+.molar-total {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.85rem;
+  margin-bottom: 0.9rem;
+  padding: 1.05rem 1.15rem;
+  border-radius: 12px;
+  background: var(--note-soft);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  box-shadow: var(--shadow-print);
+}
+
+.molar-total-left {
+  min-width: 0;
+  flex: 1;
+}
+
+.molar-total-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+  font-family: var(--font-serif-cjk);
+}
+
+.molar-total-formula {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.3;
+  word-break: break-all;
+  font-family: var(--font-mono);
+}
+
+.molar-total-right {
+  flex-shrink: 0;
+}
+
+.molar-total .value {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: var(--stamp);
+  font-family: var(--font-mono);
+}
+
+.molar-total .unit {
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  margin-left: 0.25rem;
+  font-weight: 600;
+}
+
+.molar-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 1.02rem;
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--card-elevated);
+  box-shadow: var(--shadow-print-sm);
+}
+
+.molar-table th,
+.molar-table td {
+  padding: 0.7rem 0.65rem;
+  border-bottom: 1.5px solid var(--border);
+  text-align: left;
+}
+
+.molar-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.molar-table th {
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.84rem;
+  letter-spacing: 0.02em;
+  background: var(--diagram-soft);
+  border-bottom: var(--ui-stroke) solid var(--border-ink);
+  font-family: var(--font-serif-cjk);
+}
+
+.molar-table td {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1.02rem;
+  font-family: var(--font-mono), var(--font-cjk);
+}
+
+.molar-table td.name {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-family: var(--font-cjk);
+}
+
+.molar-error {
+  color: var(--stamp);
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  background: var(--stamp-soft);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  box-shadow: var(--shadow-print-sm);
+}
+
+.molar-error-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  margin-bottom: 0.4rem;
+  color: var(--stamp);
+  font-family: var(--font-serif-cjk);
+}
+
+.molar-error-msg {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.molar-error-tips {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+  font-weight: 500;
+  line-height: 1.55;
+}
+
+.molar-error-tips code {
+  font-family: var(--font-mono);
+  background: var(--card-elevated);
+  border: 1px solid var(--border-ink);
+  padding: 0.05rem 0.3rem;
+  border-radius: 4px;
+  font-size: 0.84em;
+}
+
+.molar-empty {
+  color: var(--text-muted);
+  font-weight: 500;
+  font-size: 0.9rem;
+  padding: 0.5rem 0;
+}
+
+/* Classroom-stage molar layout (moved from classroom-extra; owner: molar-ui) */
+.molar-stage.stage-ai {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.85rem 1rem 1.1rem;
+}
+
+.molar-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: 0;
+}
+
+.molar-section[hidden] {
+  display: none !important;
+}
+
+.molar-section-body {
+  display: grid;
+  grid-template-columns: minmax(220px, 340px) minmax(0, 1fr);
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .molar-section-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.molar-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.molar-form .field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.molar-form .field span {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+}
+
+.molar-form input,
+.molar-form textarea {
+  width: 100%;
+  box-sizing: border-box;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 8px;
+  padding: 0.5rem 0.6rem;
+  font: inherit;
+  font-size: 0.9rem;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.molar-form textarea {
+  resize: vertical;
+  min-height: 96px;
+}
+
+.molar-tool-panel {
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  box-shadow: var(--shadow-print-sm);
+  min-height: 120px;
+}
+
+.molar-tool-panel h4 {
+  margin: 0 0 0.45rem;
+  font-family: var(--font-serif-cjk), inherit;
+}
+
+.molar-balance-eq {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0.25rem 0 0.5rem;
+  color: var(--diagram, var(--ink));
+}
+
+.molar-balance-steps {
+  margin: 0.35rem 0 0;
+  padding-left: 1.15rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+

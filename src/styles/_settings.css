@@ -1,0 +1,356 @@
+/* —— 设置抽屉：校刊侧栏手账 —— */
+.settings-backdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 42%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s var(--ease-out);
+  z-index: 80;
+}
+
+.settings-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.settings-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100%;
+  width: min(400px, 92vw);
+  background: var(--card-elevated);
+  box-shadow: -5px 0 0 color-mix(in srgb, var(--ink) 88%, transparent);
+  border-left: var(--ui-stroke-strong) solid var(--border-ink);
+  z-index: 90;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(105%);
+  transition: transform 0.32s var(--ease-out);
+}
+
+.settings-drawer.is-open {
+  transform: translateX(0);
+}
+
+.settings-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.1rem;
+  border-bottom: var(--ui-stroke-strong) solid var(--border-ink);
+  background: var(--note-soft);
+  flex-shrink: 0;
+}
+
+.settings-drawer-head h2 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: var(--font-serif-cjk);
+  letter-spacing: 0.02em;
+}
+
+.settings-close {
+  appearance: none;
+  width: 36px;
+  height: 36px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 10px;
+  background: var(--card-elevated);
+  color: var(--ink);
+  font-size: 1.35rem;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.settings-close:hover {
+  background: var(--stamp-soft);
+  color: var(--stamp);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-print);
+}
+
+.settings-drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.9rem 1.1rem 1.6rem;
+  background: var(--paper);
+}
+
+.settings-section {
+  margin-bottom: 1.35rem;
+}
+
+.settings-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--stamp);
+  font-family: var(--font-serif-cjk);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.settings-section-title::before {
+  content: '';
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 2px;
+  background: var(--stamp);
+  border: var(--ui-stroke) solid var(--border-ink);
+  box-shadow: 1px 1px 0 var(--border-ink);
+}
+
+.settings-block {
+  background: var(--card-elevated);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  border-radius: 12px;
+  padding: 0.85rem 0.95rem;
+  margin-bottom: 0.75rem;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.settings-block h4 {
+  margin: 0 0 0.25rem;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.settings-block-compact {
+  padding: 0.7rem 0.95rem;
+}
+
+.settings-block-compact h4 {
+  margin: 0 0 0.45rem;
+}
+
+.settings-block-compact .field-compact {
+  margin-bottom: 0 !important;
+  gap: 0;
+}
+
+.settings-block-compact .field-compact select {
+  padding: 0.5rem 0.7rem;
+}
+
+.settings-block-compact .settings-status {
+  min-height: 0;
+  margin: 0.45rem 0 0;
+}
+
+.settings-block-compact .settings-status:empty {
+  display: none;
+  margin: 0;
+}
+
+.brand-settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 0.85rem;
+}
+
+.brand-icon-preview-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-icon-preview {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: var(--paper);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  box-shadow: var(--shadow-print-sm);
+  flex-shrink: 0;
+}
+
+.brand-upload-label {
+  cursor: pointer;
+  margin: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.brand-title-field {
+  margin-bottom: 0 !important;
+}
+
+.settings-hint {
+  margin: 0 0 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  font-weight: 500;
+}
+
+.theme-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.55rem;
+  margin-bottom: 0.35rem;
+}
+
+/* 主题 ≥3 时卡片略紧凑，仍两列排布 */
+.theme-picker .theme-card {
+  min-width: 0;
+}
+
+.theme-card {
+  appearance: none;
+  text-align: left;
+  cursor: pointer;
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  border-radius: 12px;
+  background: var(--card-elevated);
+  padding: 0.7rem 0.75rem 0.75rem;
+  box-shadow: var(--shadow-print-sm);
+  font: inherit;
+  color: var(--text-primary);
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) ease,
+    background var(--dur-fast) ease;
+}
+
+.theme-card:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-print);
+}
+
+.theme-card.is-active {
+  background: var(--accent-soft);
+  box-shadow: var(--shadow-print);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.theme-card-swatch {
+  display: flex;
+  gap: 0.28rem;
+  margin-bottom: 0.5rem;
+}
+
+.theme-card-swatch i {
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 4px;
+  border: 1.5px solid var(--border-ink);
+  display: block;
+}
+
+.theme-card-name {
+  display: block;
+  font-weight: 800;
+  font-size: 0.92rem;
+  margin-bottom: 0.15rem;
+  font-family: var(--font-serif-cjk), var(--font-cjk);
+}
+
+.theme-card-desc {
+  display: block;
+  font-size: 0.74rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+.settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.settings-status {
+  min-height: 0;
+  margin: 0.55rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.settings-status:empty {
+  display: none;
+  margin: 0;
+}
+
+.settings-status.is-ok {
+  color: var(--diagram);
+}
+
+.settings-status.is-err {
+  color: var(--stamp);
+}
+
+.secret-row {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.secret-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+.secret-toggle {
+  flex-shrink: 0;
+  padding: 0.45rem 0.7rem !important;
+  font-size: 0.8rem !important;
+}
+
+.field select {
+  width: 100%;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.field select:focus {
+  box-shadow: var(--shadow-print);
+  transform: translate(-1px, -1px);
+}
+
+/* 抽屉内表单与全局表单统一为校刊描边 */
+.settings-drawer .field input[type='url'],
+.settings-drawer .field input[type='password'],
+.settings-drawer .field input[type='text'] {
+  width: 100%;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 600;
+  outline: none;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.settings-drawer .field input[type='url']:focus,
+.settings-drawer .field input[type='password']:focus,
+.settings-drawer .field input[type='text']:focus {
+  box-shadow: var(--shadow-print);
+  transform: translate(-1px, -1px);
+  border-color: var(--border-ink);
+}
+
+body.settings-open {
+  overflow: hidden;
+}

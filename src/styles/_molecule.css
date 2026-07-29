@@ -1,0 +1,291 @@
+.molecule-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  margin-bottom: 0.75rem;
+  /* 与 electron-list 一致：留白防 hover 裁切 */
+  padding: 4px 4px 6px 4px;
+}
+
+.molecule-list .mol-card {
+  z-index: 0;
+}
+
+.molecule-list .mol-card:hover,
+.molecule-list .mol-card:focus-within {
+  z-index: 1;
+}
+
+.mol-info-props {
+  margin-top: 0.5rem;
+  border-top: 1.5px dashed color-mix(in srgb, var(--ink) 16%, transparent);
+  padding-top: 0.5rem;
+}
+
+.mol-info-section {
+  margin-bottom: 0.5rem;
+}
+
+.mol-info-section h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--diagram);
+  letter-spacing: 0.02em;
+  font-family: var(--font-serif-cjk);
+}
+
+.mol-info-section ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.mol-info-section ul li {
+  padding: 0.1rem 0;
+}
+
+.mol-btn {
+  appearance: none;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 0.38rem 0.45rem;
+  text-align: center;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: var(--shadow-print-sm);
+  display: grid;
+  gap: 0.06rem;
+  min-width: 0;
+}
+
+.mol-btn:hover {
+  background: var(--diagram-soft);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-print);
+}
+
+.mol-btn.active {
+  border-color: var(--border-ink);
+  background: var(--stamp-soft);
+  box-shadow: var(--shadow-print);
+}
+
+.mol-btn strong {
+  font-size: 0.82rem;
+  font-weight: 800;
+  font-family: var(--font-mono), var(--font-latin);
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.mol-btn span {
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mol-toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin: 0 0 0.55rem;
+}
+
+.mol-btn-add {
+  min-height: 44px;
+  border-style: dashed;
+  border-width: 2px;
+  border-color: var(--border-ink);
+  background: var(--paper);
+  grid-template-columns: 1fr;
+  align-content: center;
+  gap: 0;
+  margin: 0;
+  width: 100%;
+  box-shadow: none;
+}
+
+.mol-btn-add .mol-add-plus {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink-soft);
+  letter-spacing: 0;
+}
+
+.mol-btn-add:hover {
+  border-style: solid;
+  background: var(--diagram-soft);
+}
+
+.mol-btn-add:hover .mol-add-plus {
+  color: var(--diagram);
+}
+
+.mol-btn-edit {
+  min-height: 44px;
+  margin: 0;
+  width: 100%;
+  font-weight: 800;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  display: grid;
+  place-items: center;
+  align-content: center;
+  text-align: center;
+  line-height: 1;
+  padding: 0;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.mol-btn-edit.is-active {
+  border-color: var(--border-ink);
+  background: var(--note-soft);
+  color: var(--ink);
+  box-shadow: var(--shadow-print);
+}
+
+.mol-card {
+  position: relative;
+  min-width: 0;
+}
+
+.mol-card-main {
+  width: 100%;
+}
+
+.mol-card-del {
+  display: none;
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--stamp);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  place-items: center;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.molecule-list.is-edit-mode .mol-card-del {
+  display: grid;
+}
+
+.mol-card.is-editing {
+  cursor: grab;
+}
+
+.mol-card.is-dragging {
+  opacity: 0.45;
+}
+
+.mol-card.drag-over {
+  outline: 2px dashed var(--stamp);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+.mol-card.is-active .mol-card-main {
+  border-color: var(--border-ink);
+  background: var(--stamp-soft);
+  box-shadow: var(--shadow-print);
+}
+
+/* 弹窗 */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--ink) 45%, transparent);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s var(--ease-out);
+  z-index: 100;
+}
+
+.modal-backdrop.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal-panel {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -48%) scale(0.96);
+  width: min(440px, 92vw);
+  background: var(--card-elevated);
+  border-radius: 14px;
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  box-shadow: 6px 6px 0 color-mix(in srgb, var(--ink) 88%, transparent);
+  z-index: 110;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.22s var(--ease-out), transform 0.28s var(--ease-spring);
+}
+
+.modal-panel.is-open {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.9rem 1rem;
+  border-bottom: var(--ui-stroke) solid var(--border-ink);
+  background: var(--note-soft);
+}
+
+.modal-head h2 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  font-family: var(--font-serif-cjk);
+}
+
+.modal-body {
+  padding: 0.95rem 1rem 1.15rem;
+  background: var(--paper);
+}
+
+.modal-body textarea {
+  width: 100%;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--card-elevated);
+  resize: vertical;
+  min-height: 96px;
+  outline: none;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.modal-body textarea:focus {
+  box-shadow: var(--shadow-print);
+  transform: translate(-1px, -1px);
+}

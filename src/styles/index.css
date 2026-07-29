@@ -1,0 +1,39 @@
+/* —— 分层 ——
+ * 1. tokens（shared + themes 下各主题 tokens）
+ * 2. 组件（消费变量，少写死色）
+ * 3. themes 下各主题 skin（氛围/结构，覆盖组件）
+ */
+@import './tokens/_shared.css';
+@import './themes/default/tokens.css';
+@import './themes/stationery/tokens.css';
+@import './themes/reagent/tokens.css';
+@import './themes/blackboard/tokens.css';
+@import './themes/pixel/tokens.css';
+
+@import './_base.css';
+@import './_motion.css';
+@import './_topbar.css';
+@import './_layout.css';
+@import './_side-drawer.css';
+@import './_periodic-table.css';
+@import './_detail-card.css';
+@import './_molecule.css';
+@import './_molecule-3d.css';
+@import './_molecule-reactions.css';
+@import './_electron.css';
+@import './_element-battle.css';
+@import './_forms.css';
+@import './_settings.css';
+@import './_molar.css';
+@import './_ai-classroom.css';
+@import './_classroom-extra.css';
+@import './_balance-script.css';
+@import './_app-dialog.css';
+@import './_responsive.css';
+
+/* 主题 skin 最后加载，保证 Tab/顶栏等结构差异生效 */
+@import './themes/default/skin.css';
+@import './themes/stationery/skin.css';
+@import './themes/reagent/skin.css';
+@import './themes/blackboard/skin.css';
+@import './themes/pixel/skin.css';

@@ -1,0 +1,479 @@
+/* 黑板：板面纹理、粉笔边、黄粉笔选中 */
+html[data-theme='blackboard'] body {
+  background-color: var(--bg-body);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(255, 255, 255, 0.04), transparent 55%),
+    linear-gradient(165deg, #1c4236 0%, var(--paper) 45%, var(--paper-deep) 100%);
+  color: var(--text-primary);
+}
+
+/* 粉笔灰微粒 */
+html[data-theme='blackboard'] body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--body-noise-opacity);
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.45'/%3E%3C/svg%3E");
+  background-size: 160px 160px;
+  mix-blend-mode: soft-light;
+}
+
+html[data-theme='blackboard'] .topbar {
+  background: var(--topbar-bg);
+  border-bottom: var(--topbar-border);
+  box-shadow: var(--topbar-shadow);
+  backdrop-filter: none;
+}
+
+html[data-theme='blackboard'] .tabs {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.2rem;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.25);
+  flex-wrap: wrap;
+}
+
+html[data-theme='blackboard'] .tab {
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.42rem 0.8rem;
+  box-shadow: none;
+}
+
+html[data-theme='blackboard'] .tab:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.06);
+  transform: none;
+}
+
+html[data-theme='blackboard'] .tab.active {
+  background: color-mix(in srgb, var(--stamp) 22%, transparent);
+  color: var(--stamp);
+  border-color: color-mix(in srgb, var(--stamp) 45%, transparent);
+  box-shadow: none;
+}
+
+html[data-theme='blackboard'] .brand-mark {
+  border: 1.5px solid var(--border-ink);
+  border-radius: 10px;
+  background: var(--card-elevated);
+  box-shadow: var(--shadow-sm);
+  padding: 2px;
+}
+
+html[data-theme='blackboard'] .brand-eyebrow {
+  font-family: var(--font-mono);
+  font-style: normal;
+  font-size: 0.65rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--diagram);
+}
+
+html[data-theme='blackboard'] .brand h1 {
+  font-family: var(--font-cjk);
+  font-size: 1.08rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme='blackboard'] .brand-sub {
+  color: var(--text-secondary);
+}
+
+html[data-theme='blackboard'] .btn-settings {
+  background: var(--card-elevated);
+  color: var(--text-primary);
+  border-color: var(--border-ink);
+}
+
+html[data-theme='blackboard'] .btn-settings:hover {
+  background: var(--stamp-soft);
+  color: var(--stamp);
+}
+
+/* 板书区块 */
+html[data-theme='blackboard'] .table-shell,
+html[data-theme='blackboard'] .detail-card,
+html[data-theme='blackboard'] .sidebar,
+html[data-theme='blackboard'] .stage,
+html[data-theme='blackboard'] .stage-ai,
+html[data-theme='blackboard'] .stage-electron {
+  background: var(--card-elevated);
+  border-color: var(--border-ink);
+  box-shadow: var(--shadow-float);
+}
+
+html[data-theme='blackboard'] .table-toolbar {
+  background: rgba(0, 0, 0, 0.18);
+  border-bottom: 1px solid var(--border);
+}
+
+html[data-theme='blackboard'] .legend-item {
+  background: rgba(0, 0, 0, 0.2);
+  border-color: var(--border);
+  color: var(--text-secondary);
+}
+
+html[data-theme='blackboard'] .chip {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-secondary);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+html[data-theme='blackboard'] .chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  transform: none;
+  box-shadow: none;
+}
+
+html[data-theme='blackboard'] .chip.active {
+  background: var(--stamp-soft);
+  color: var(--stamp);
+  border-color: color-mix(in srgb, var(--stamp) 50%, var(--border));
+}
+
+/* 未开分区时的格子底；开分区时由 .show-zones [data-zone] 接管 */
+html[data-theme='blackboard'] .periodic-table:not(.show-zones) .element {
+  background: color-mix(in srgb, var(--card-bg) 80%, #000);
+  border-color: var(--border);
+  color: var(--text-primary);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme='blackboard'] .periodic-table:not(.show-zones) .element:hover {
+  border-color: var(--diagram);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--diagram) 40%, transparent);
+}
+
+html[data-theme='blackboard'] .periodic-table:not(.show-zones) .element.is-selected {
+  background: var(--stamp-soft);
+  border-color: var(--stamp);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--stamp) 35%, transparent);
+}
+
+html[data-theme='blackboard'] .element {
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+
+html[data-theme='blackboard'] .element .symbol {
+  color: var(--ink);
+}
+
+html[data-theme='blackboard'] .element .hanzi {
+  color: var(--text-secondary);
+}
+
+html[data-theme='blackboard'] .kv div {
+  background: rgba(0, 0, 0, 0.22);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .mol-btn {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .mol-btn:hover,
+html[data-theme='blackboard'] .mol-btn.active,
+html[data-theme='blackboard'] .mol-card.is-active .mol-card-main {
+  background: var(--stamp-soft);
+  border-color: var(--stamp);
+  color: var(--text-primary);
+}
+
+html[data-theme='blackboard'] .btn.primary {
+  background: var(--btn-primary);
+  color: #1a2e14;
+  border-color: var(--btn-primary-border);
+}
+
+html[data-theme='blackboard'] .btn.ghost {
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .btn.ghost:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+}
+
+html[data-theme='blackboard'] .field input[type='text'],
+html[data-theme='blackboard'] .field input[type='url'],
+html[data-theme='blackboard'] .field input[type='password'],
+html[data-theme='blackboard'] .field select,
+html[data-theme='blackboard'] .modal-body textarea {
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .settings-drawer {
+  background: var(--card-elevated);
+  border-left-color: var(--border-ink);
+  box-shadow: -6px 0 0 rgba(0, 0, 0, 0.35);
+}
+
+html[data-theme='blackboard'] .settings-drawer-head {
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom-color: var(--border);
+  color: var(--text-primary);
+}
+
+html[data-theme='blackboard'] .settings-drawer-body {
+  background: var(--paper);
+}
+
+html[data-theme='blackboard'] .settings-block {
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .settings-section-title {
+  color: var(--stamp);
+}
+
+html[data-theme='blackboard'] .settings-section-title::before {
+  background: var(--stamp);
+  border-color: var(--border-ink);
+  box-shadow: none;
+}
+
+html[data-theme='blackboard'] .settings-backdrop {
+  background: rgba(8, 16, 12, 0.55);
+}
+
+html[data-theme='blackboard'] .modal-panel {
+  background: var(--card-elevated);
+  border-color: var(--border-ink);
+  box-shadow: 6px 6px 0 rgba(0, 0, 0, 0.45);
+}
+
+html[data-theme='blackboard'] .modal-head {
+  background: rgba(0, 0, 0, 0.25);
+  border-bottom-color: var(--border);
+}
+
+html[data-theme='blackboard'] .modal-body {
+  background: var(--paper);
+}
+
+html[data-theme='blackboard'] .quiz-opt,
+html[data-theme='blackboard'] .quiz-card,
+html[data-theme='blackboard'] .ai-nav-card {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .ai-nav-card.is-active,
+html[data-theme='blackboard'] .quiz-opt.is-selected {
+  background: #5a2920;
+  color: #fff6cf;
+  border-color: #ffd166;
+  outline-color: #ffd166;
+  box-shadow: 3px 3px 0 #120b08;
+}
+
+html[data-theme='blackboard'] .molar-total {
+  background: var(--stamp-soft);
+  border-color: var(--border-ink);
+}
+
+html[data-theme='blackboard'] .molar-total .value {
+  color: var(--stamp);
+}
+
+/* 3D 舞台：更深的板心 */
+html[data-theme='blackboard'] .stage-3d,
+html[data-theme='blackboard'] .stage,
+html[data-theme='blackboard'] .stage-electron {
+  background: #0c1a16;
+  background-image: radial-gradient(ellipse 70% 55% at 50% 40%, #152e27 0%, #0a1613 70%);
+  border-color: #3d6b5c;
+}
+
+/* 3D 浮层信息卡：黑青「板书便签」，与浅色卡区分 */
+html[data-theme='blackboard'] .mol-info-card,
+html[data-theme='blackboard'] .mol-props-card,
+html[data-theme='blackboard'] .electron-info-card {
+  background: linear-gradient(165deg, #14352d 0%, #0b1c18 100%);
+  border: 1.5px solid #4a8a78;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(126, 200, 192, 0.12);
+  color: #e8f4f0;
+  backdrop-filter: none;
+}
+
+html[data-theme='blackboard'] .mol-info-card h3,
+html[data-theme='blackboard'] .mol-props-section h4,
+html[data-theme='blackboard'] .electron-info-card h3 {
+  color: var(--diagram);
+  font-family: var(--font-mono);
+  letter-spacing: 0.06em;
+}
+
+html[data-theme='blackboard'] .mol-info-card .mol-info-title,
+html[data-theme='blackboard'] .electron-info-symbol {
+  color: #f2faf6;
+}
+
+html[data-theme='blackboard'] .mol-info-card .mol-info-desc,
+html[data-theme='blackboard'] .electron-info-name,
+html[data-theme='blackboard'] .mol-props-section ul,
+html[data-theme='blackboard'] .mol-props-section ul li {
+  color: #a8c4b8;
+}
+
+html[data-theme='blackboard'] .electron-info-config {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid #3d6b5c;
+  color: var(--stamp);
+}
+
+html[data-theme='blackboard'] .hud {
+  background: rgba(10, 22, 19, 0.88);
+  border-color: #4a8a78;
+  color: #a8c4b8;
+}
+
+html[data-theme='blackboard'] .mol-controls,
+html[data-theme='blackboard'] .mol-label-toggle {
+  background: linear-gradient(165deg, #14352d 0%, #0b1c18 100%);
+  border-color: #4a8a78;
+  color: #e8f4f0;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+html[data-theme='blackboard'] .mol-ctrl {
+  background: #0f2420;
+  border-color: #3d6b5c;
+  color: #e8f4f0;
+  box-shadow: none;
+}
+
+html[data-theme='blackboard'] .mol-ctrl:hover {
+  background: #1a3d34;
+  color: var(--diagram);
+}
+
+html[data-theme='blackboard'] .mol-ctrl.is-on {
+  background: var(--stamp);
+  color: #1a2e14;
+  border-color: var(--btn-primary-border);
+}
+
+html[data-theme='blackboard'] .mol-label-toggle:hover {
+  background: #1a3d34;
+  color: var(--diagram);
+}
+
+html[data-theme='blackboard'] .atom-label {
+  background: #0f2420;
+  border-color: #4a8a78;
+  color: #e8f4f0;
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.45);
+}
+
+/* 摩尔示例标签：黑板下可读 */
+html[data-theme='blackboard'] .presets button,
+html[data-theme='blackboard'] .presets .preset-chip {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .presets button:hover,
+html[data-theme='blackboard'] .presets .preset-chip:hover {
+  background: var(--stamp-soft);
+  color: var(--stamp);
+  border-color: color-mix(in srgb, var(--stamp) 50%, var(--border));
+}
+
+html[data-theme='blackboard'] .presets button.is-active,
+html[data-theme='blackboard'] .presets .preset-chip.is-active {
+  background: var(--stamp);
+  color: #1a2e14;
+  border-color: var(--btn-primary-border);
+}
+
+html[data-theme='blackboard'] .theme-card {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .theme-card.is-active {
+  background: var(--stamp-soft);
+  outline-color: var(--stamp);
+}
+
+html[data-theme='blackboard'] ::selection {
+  background: color-mix(in srgb, var(--stamp) 45%, transparent);
+  color: #fff;
+}
+
+/* 元素乱斗 · 黑板粉笔感 */
+html[data-theme='blackboard'] #panel-battle.active {
+  background: color-mix(in srgb, var(--card-bg) 88%, #0a2018);
+  border-color: var(--border);
+  --b-dim-z: color-mix(in srgb, var(--accent) 70%, #e2e8f0);
+  --b-dim-en: color-mix(in srgb, var(--note) 75%, #fde68a);
+  --b-dim-radius: color-mix(in srgb, var(--accent) 45%, #86efac);
+  --b-glow-accent: 0 0 14px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+html[data-theme='blackboard'] .battle-table {
+  background: rgba(0, 0, 0, 0.18);
+  border-color: var(--border);
+}
+
+html[data-theme='blackboard'] .battle-card {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='blackboard'] .battle-status {
+  color: var(--note);
+}
+
+/* 回合横幅 / 中央 toast：黑板下 ink-lab 为粉笔白，作底会导致白底浅字 */
+html[data-theme='blackboard'] .battle-turn-banner {
+  background: color-mix(in srgb, #0a1613 92%, #000);
+  color: #f7faf8;
+  border: 1px solid color-mix(in srgb, var(--stamp) 55%, var(--border));
+  box-shadow:
+    0 8px 28px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+html[data-theme='blackboard'] .battle-turn-banner span {
+  /* 取消白→强调色渐变字（在浅底上几乎看不见） */
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+  color: var(--stamp);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+}
+
+html[data-theme='blackboard'] .battle-toast {
+  background: color-mix(in srgb, #0a1613 92%, #000);
+  color: #f7faf8;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 36px rgba(0, 0, 0, 0.5);
+}

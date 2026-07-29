@@ -1,0 +1,36 @@
+{
+  "name": "xiaohuang-classroom",
+  "private": true,
+  "version": "3.0.6",
+  "description": "小黄的教室",
+  "author": "小黄的教室",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "build:frontend": "npm --prefix server run build:frontend",
+    "build:exe": "npm --prefix server run build:exe",
+    "sync:offline-bank": "node scripts/sync-offline-quiz-bank.mjs",
+    "sync:labs-seed": "node scripts/sync-labs-seed.mjs",
+    "electron:dev": "npm run build:frontend && electron .",
+    "electron:dev:skip-build": "electron .",
+    "stage:electron": "node scripts/stage-electron-server.js",
+    "pack:electron": "npm run build:frontend && npm run stage:electron && electron-builder --dir -c.electronDist=node_modules/electron/dist",
+    "dist:win": "npm run build:frontend && npm run stage:electron && electron-builder --win nsis --x64",
+    "dist:mac": "npm run build:frontend && npm run stage:electron && electron-builder --mac dmg --arm64 -c.electronDist=node_modules/electron/dist",
+    "dist:electron": "npm run build:frontend && npm run stage:electron && electron-builder -c.electronDist=node_modules/electron/dist"
+  },
+  "dependencies": {
+    "animejs": "^4.5.0",
+    "canvas-confetti": "^1.9.4"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "three": "^0.172.0",
+    "vite": "^6.0.7"
+  }
+}

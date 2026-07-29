@@ -1,0 +1,168 @@
+/* —— 侧栏：手账卡片 —— */
+.detail-card,
+.sidebar {
+  background: var(--card-elevated);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-print);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  padding: 0.75rem;
+  overflow: auto;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.detail-card {
+  font-size: 0.92rem;
+  padding: 0.95rem 1rem;
+}
+
+.detail-empty {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  font-weight: 500;
+  line-height: 1.55;
+  padding: 0.5rem 0;
+}
+
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-bottom: 0.9rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px dashed color-mix(in srgb, var(--ink) 16%, transparent);
+}
+
+.detail-badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 12px;
+  display: grid;
+  place-content: center;
+  font-weight: 800;
+  font-size: 1.25rem;
+  font-family: var(--font-display), var(--font-latin);
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  background-color: var(--zone-bg, var(--card-elevated));
+  flex-shrink: 0;
+  box-shadow: var(--shadow-print-sm);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+}
+
+.detail-badge[data-zone='s'] {
+  --zone-bg: var(--zone-s);
+}
+.detail-badge[data-zone='p'] {
+  --zone-bg: var(--zone-p);
+}
+.detail-badge[data-zone='d'] {
+  --zone-bg: var(--zone-d);
+}
+.detail-badge[data-zone='ds'] {
+  --zone-bg: var(--zone-ds);
+}
+.detail-badge[data-zone='f'] {
+  --zone-bg: var(--zone-f);
+}
+.detail-badge[data-zone='noble'] {
+  --zone-bg: var(--zone-noble);
+}
+
+.detail-head h2 {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 700;
+  font-family: var(--font-serif-cjk);
+  letter-spacing: 0.01em;
+  color: var(--text-primary);
+}
+
+.detail-head p {
+  margin: 0.22rem 0 0;
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  font-family: var(--font-mono);
+}
+
+.kv {
+  display: grid;
+  gap: 0.38rem;
+  margin: 0 0 0.8rem;
+}
+
+.kv div {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  padding: 0.45rem 0.6rem;
+  border-radius: 8px;
+  background: var(--paper);
+  border: 1.5px solid var(--border);
+  font-size: 0.84rem;
+}
+
+.kv span {
+  color: var(--text-muted);
+  font-weight: 600;
+  font-family: var(--font-cjk);
+}
+
+.kv strong {
+  font-weight: 700;
+  text-align: right;
+  color: var(--text-primary);
+  font-family: var(--font-mono), var(--font-cjk);
+  font-variant-numeric: tabular-nums;
+}
+
+.kv-config {
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.kv-config span {
+  flex-shrink: 0;
+}
+
+.electron-config {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--diagram);
+  word-break: break-all;
+}
+
+.detail-summary {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Teaching callout on detail card (moved from classroom-extra; owner: periodic detail) */
+.detail-teach {
+  margin-top: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: 1px dashed color-mix(in srgb, var(--stamp) 40%, transparent);
+  background: color-mix(in srgb, var(--stamp) 6%, var(--paper));
+}
+
+.detail-teach h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.78rem;
+  color: var(--stamp);
+  font-family: var(--font-serif-cjk), inherit;
+}
+
+.detail-teach p {
+  margin: 0;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  color: var(--text-muted);
+}
+

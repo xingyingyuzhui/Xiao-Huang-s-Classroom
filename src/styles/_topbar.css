@@ -1,0 +1,363 @@
+/* —— 顶栏（边框/底由 themes 下 skin 细化） —— */
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1.1rem 0.7rem;
+  background: var(--topbar-bg, var(--card-elevated));
+  border-bottom: var(--topbar-border, 1px solid var(--border-soft));
+  box-shadow: var(--topbar-shadow, none);
+  z-index: 20;
+}
+
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-shrink: 0;
+}
+
+.btn-settings {
+  appearance: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--ink);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.btn-settings:hover {
+  background: var(--note-soft);
+  color: var(--stamp);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-print);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-mark {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  object-position: center bottom;
+  border-radius: 12px;
+  background: var(--card-elevated);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  box-shadow: var(--shadow-print-sm);
+  display: block;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+  padding: 1px;
+}
+
+.brand-mark-clickable {
+  cursor: pointer;
+}
+
+.brand-mark-clickable:hover {
+  box-shadow: var(--shadow-print);
+}
+
+.brand-mark-clickable:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 3px;
+}
+
+/* 化学小知识气泡 */
+.brand-tip-bubble {
+  --tip-x: 36px;
+  position: fixed;
+  z-index: 80;
+  width: min(400px, calc(100vw - 24px));
+  padding: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  opacity: 0;
+  transform: translateY(8px) scale(0.96);
+  pointer-events: auto;
+  filter: none;
+}
+
+.brand-tip-bubble[data-place='above'] {
+  transform: translateY(-8px) scale(0.96);
+}
+
+.brand-tip-bubble.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.brand-tip-card {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--card-elevated);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  box-shadow: var(--shadow-print);
+}
+
+.brand-tip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.7rem 1.1rem 0.35rem;
+  background: var(--note-soft);
+  border-bottom: 1.5px dashed color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.brand-tip-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--stamp);
+  font-family: var(--font-serif-cjk), var(--font-cjk);
+}
+
+.brand-tip-badge::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--stamp);
+  box-shadow: none;
+}
+
+.brand-tip-source {
+  flex-shrink: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  color: var(--ink-soft);
+  background: var(--card-elevated);
+}
+
+.brand-tip-source.is-ai {
+  color: var(--diagram);
+  border-color: var(--diagram);
+  background: var(--diagram-soft);
+}
+
+.brand-tip-source.is-local {
+  color: #8a5a10;
+  border-color: #c9a227;
+  background: var(--note-soft);
+}
+
+.brand-tip-body {
+  padding: 0.45rem 1.15rem 1.05rem;
+}
+
+.brand-tip-body-loading {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 3.2rem;
+  padding-top: 0.45rem;
+  padding-bottom: 1.15rem;
+}
+
+.brand-tip-text {
+  margin: 0;
+  font-size: 1.08rem;
+  line-height: 1.7;
+  font-weight: 600;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.brand-tip-note {
+  margin: 0.55rem 0 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.brand-tip-spinner {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 2.5px solid var(--border);
+  border-top-color: var(--stamp);
+  animation: brand-tip-spin 0.7s linear infinite;
+}
+
+@keyframes brand-tip-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.brand-tip-arrow {
+  position: absolute;
+  left: var(--tip-x);
+  top: -8px;
+  width: 14px;
+  height: 14px;
+  margin-left: -7px;
+  background: var(--note-soft);
+  border-left: var(--ui-stroke-strong) solid var(--border-ink);
+  border-top: var(--ui-stroke-strong) solid var(--border-ink);
+  transform: rotate(45deg);
+  border-radius: 2px 0 0 0;
+  pointer-events: none;
+}
+
+.brand-tip-bubble[data-place='above'] .brand-tip-arrow {
+  top: auto;
+  bottom: -8px;
+  background: var(--card-elevated);
+  border-left: none;
+  border-top: none;
+  border-right: var(--ui-stroke-strong) solid var(--border-ink);
+  border-bottom: var(--ui-stroke-strong) solid var(--border-ink);
+  border-radius: 0 0 2px 0;
+}
+
+.brand-tip-bubble.is-scrollable .brand-tip-text {
+  max-height: min(42vh, 280px);
+  overflow-y: auto;
+  font-size: 0.98rem;
+}
+
+.brand-tip-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.75rem;
+  padding-top: 0.65rem;
+  border-top: 1.5px dashed color-mix(in srgb, var(--ink) 16%, transparent);
+}
+
+.brand-tip-btn {
+  appearance: none;
+  border-radius: 8px;
+  padding: 0.35rem 0.8rem;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--text-primary);
+  box-shadow: var(--shadow-print-sm);
+}
+
+.brand-tip-btn:hover {
+  background: var(--diagram-soft);
+}
+
+.brand-tip-btn-close {
+  background: var(--stamp);
+  color: #fff;
+  border-color: var(--border-ink);
+}
+
+.brand-tip-btn-close:hover {
+  filter: brightness(1.05);
+  background: var(--stamp);
+  color: #fff;
+}
+
+.brand-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.06rem;
+  min-width: 0;
+}
+
+.brand-eyebrow {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 0.78rem;
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  color: var(--diagram);
+}
+
+.brand h1 {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--ink);
+  font-family: var(--font-serif-cjk);
+  line-height: 1.25;
+}
+
+.brand-sub {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.74rem;
+  font-weight: 500;
+}
+
+/* 便签式 Tab */
+.tabs {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.tab {
+  appearance: none;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: color-mix(in srgb, var(--paper-deep) 80%, #fff);
+  color: var(--ink-soft);
+  font: inherit;
+  font-family: var(--font-cjk);
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 0.45rem 0.8rem;
+  border-radius: 8px 8px 4px 4px;
+  cursor: pointer;
+  box-shadow: none;
+}
+
+.tab:hover {
+  color: var(--ink);
+  background: var(--card-elevated);
+  transform: translateY(-2px);
+}
+
+.tab.active {
+  background: var(--stamp);
+  color: #fffaf5;
+  border-color: var(--border-ink);
+  box-shadow: var(--shadow-print-sm);
+  font-weight: 700;
+}
+
+main {
+  padding: 0.6rem 0.75rem 0.65rem;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}

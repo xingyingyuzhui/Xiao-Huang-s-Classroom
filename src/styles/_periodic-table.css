@@ -1,0 +1,419 @@
+/* —— Table shell：贴在手账上的大图 —— */
+.table-shell {
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  background: var(--card-elevated);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-print);
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0.55rem 0.85rem;
+  border-bottom: var(--ui-stroke) solid var(--border-ink);
+  background: var(--note-soft);
+  flex-shrink: 0;
+}
+
+.toolbar-left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--ink-soft);
+  padding: 0.18rem 0.5rem;
+  border-radius: 6px;
+  background: var(--card-elevated);
+  border: var(--ui-stroke) solid var(--border-ink);
+  font-family: var(--font-cjk);
+}
+
+.legend-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 3px;
+  border: 1px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  /* 与格子相同：--zone-bg（data-zone 或内联） */
+  background-color: var(--zone-bg, var(--border-soft));
+  flex-shrink: 0;
+}
+
+.legend-dot[data-zone='s'] {
+  --zone-bg: var(--zone-s);
+}
+.legend-dot[data-zone='p'] {
+  --zone-bg: var(--zone-p);
+}
+.legend-dot[data-zone='d'] {
+  --zone-bg: var(--zone-d);
+}
+.legend-dot[data-zone='ds'] {
+  --zone-bg: var(--zone-ds);
+}
+.legend-dot[data-zone='f'] {
+  --zone-bg: var(--zone-f);
+}
+.legend-dot[data-zone='noble'] {
+  --zone-bg: var(--zone-noble);
+}
+
+.view-toggles {
+  display: flex;
+  gap: 0.3rem;
+}
+
+.chip {
+  appearance: none;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--ink-soft);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.28rem 0.65rem;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.chip:hover {
+  background: var(--diagram-soft);
+  color: var(--ink);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-print);
+}
+
+.chip.active {
+  background: var(--diagram);
+  border-color: var(--border-ink);
+  color: #f5fffd;
+}
+
+.ptable-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 0.3rem 0.35rem 0.4rem 0.2rem;
+  display: flex;
+  /* 大窗铺满后居中，避免贴左上角留大片空白 */
+  justify-content: center;
+  align-items: center;
+}
+
+.ptable-frame {
+  display: grid;
+  grid-template-columns: var(--period-label-width) var(--table-width) var(--side-cols-width);
+  column-gap: var(--frame-col-gap);
+  width: fit-content;
+  margin: 0 auto;
+  align-items: start;
+}
+
+.period-labels {
+  display: grid;
+  grid-template-rows: repeat(7, var(--box-size));
+  gap: var(--gap-size);
+  margin-top: var(--label-height);
+  padding-top: 0;
+}
+
+.period-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  height: var(--box-size);
+  padding-right: 2px;
+  color: #64748b;
+  font-size: var(--font-axis, calc(var(--box-size) * 0.28));
+  font-weight: 800;
+}
+
+.table-stack {
+  position: relative;
+  width: var(--table-width);
+  padding-top: var(--label-height);
+}
+
+.group-labels {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.group-label {
+  position: absolute;
+  width: var(--box-size);
+  height: var(--label-height);
+  left: calc((var(--col) - 1) * (var(--box-size) + var(--gap-size)));
+  top: calc((var(--row) - 1) * (var(--box-size) + var(--gap-size)));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  line-height: 1.05;
+  pointer-events: none;
+}
+
+.group-num {
+  color: #475569;
+  font-size: var(--font-axis, calc(var(--box-size) * 0.28));
+  font-weight: 800;
+}
+
+.group-old {
+  font-size: var(--font-axis-old, calc(var(--box-size) * 0.18));
+  color: #94a3b8;
+  opacity: 0.95;
+  font-weight: 700;
+}
+
+.periodic-table {
+  display: grid;
+  grid-template-columns: repeat(18, var(--box-size));
+  grid-template-rows:
+    repeat(7, var(--box-size))
+    var(--f-gap-size)
+    var(--box-size)
+    var(--box-size);
+  gap: var(--gap-size);
+}
+
+.element {
+  appearance: none;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: var(--radius-box);
+  background: var(--card-elevated);
+  box-shadow: 2px 2px 0 color-mix(in srgb, var(--ink) 55%, transparent);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  height: 100%;
+  width: 100%;
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+  color: var(--text-primary);
+  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) ease,
+    border-color var(--dur-fast) ease, background var(--dur-fast) ease;
+  overflow: hidden;
+}
+
+.element:hover {
+  z-index: 10;
+  transform: translate(-2px, -3px) scale(1.06);
+  box-shadow: 4px 4px 0 color-mix(in srgb, var(--ink) 80%, transparent);
+}
+
+/* 未开分区时悬停/选中才改底色；开分区后底色只跟 data-zone */
+.periodic-table:not(.show-zones) .element:hover {
+  background: color-mix(in srgb, var(--card-elevated) 70%, var(--accent-soft));
+}
+
+.periodic-table:not(.show-zones) .element.is-selected {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  z-index: 12;
+}
+
+.element.is-selected {
+  z-index: 12;
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 40%, transparent),
+    var(--shadow-print-sm);
+}
+
+.element.dim {
+  opacity: 0.2;
+  filter: grayscale(0.4);
+}
+
+/*
+ * 分区色：图例与格子共用 --zone-bg（元素内联写入 var(--zone-f) 等）
+ * 开分区时去掉硬错位阴影，避免 f 区粉被阴影「吃掉」看起来和图例不同
+ */
+.periodic-table.show-zones .element[data-zone],
+html[data-theme] .periodic-table.show-zones .element[data-zone] {
+  background-color: var(--zone-bg) !important;
+  background-image: none !important;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.periodic-table.show-zones .element[data-zone='s'] {
+  --zone-bg: var(--zone-s);
+}
+.periodic-table.show-zones .element[data-zone='p'] {
+  --zone-bg: var(--zone-p);
+}
+.periodic-table.show-zones .element[data-zone='d'] {
+  --zone-bg: var(--zone-d);
+}
+.periodic-table.show-zones .element[data-zone='ds'] {
+  --zone-bg: var(--zone-ds);
+}
+.periodic-table.show-zones .element[data-zone='f'] {
+  --zone-bg: var(--zone-f);
+}
+.periodic-table.show-zones .element[data-zone='noble'] {
+  --zone-bg: var(--zone-noble);
+}
+
+.periodic-table.show-zones .element[data-zone]:hover {
+  filter: brightness(1.04);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 18%, transparent);
+}
+
+.periodic-table.show-zones .element[data-zone].is-selected {
+  filter: none;
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 55%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.show-stair .element[data-stair='true'] {
+  box-shadow: 3px 3px 0 var(--stamp);
+  border-bottom-right-radius: 4px;
+  outline: 2px dashed var(--stamp);
+  outline-offset: -4px;
+}
+
+.periodic-table.show-zones .element[data-stair='true'].is-selected {
+  outline: 2px dashed var(--accent);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--accent) 45%, transparent),
+    3px 3px 0 var(--stamp);
+}
+
+.element .atomic-number {
+  position: absolute;
+  top: 3px;
+  left: 4px;
+  font-size: var(--font-atomic);
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.element .atomic-mass {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  font-size: var(--font-mass);
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-variant-numeric: tabular-nums;
+}
+
+.element .symbol {
+  font-size: var(--font-symbol);
+  font-weight: 700;
+  font-family: var(--font-display), Georgia, serif;
+  letter-spacing: -0.02em;
+  margin-top: 2px;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.element .hanzi {
+  font-size: var(--font-hanzi);
+  font-weight: 600;
+  color: var(--ink-soft);
+  margin-top: 1px;
+  font-family: var(--font-cjk);
+  font-feature-settings: normal;
+}
+
+.element .atomic-number,
+.element .atomic-mass {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+}
+
+.series-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 6px;
+  font-size: calc(var(--box-size) * 0.18);
+  color: var(--text-secondary);
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+/* 右侧电子层 */
+.side-column {
+  position: relative;
+  width: var(--side-cols-width);
+}
+
+.side-headers {
+  display: grid;
+  grid-template-columns: repeat(2, var(--side-col-width));
+  gap: var(--gap-size);
+  height: var(--label-height);
+  margin-bottom: 0;
+  align-items: end;
+}
+
+.side-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: #64748b;
+  text-align: center;
+  line-height: 1.1;
+  padding-bottom: 2px;
+}
+
+.side-labels {
+  display: grid;
+  grid-template-columns: repeat(2, var(--side-col-width));
+  gap: var(--gap-size);
+  grid-auto-rows: var(--box-size);
+}
+
+.side-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--paper);
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 6px;
+  color: #64748b;
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  flex-direction: column;
+}

@@ -1,0 +1,656 @@
+/*
+ * Classroom extras — sections that left the main hub stylesheet
+ *
+ * Ownership map (feature module → selectors here):
+ *   classroom-rollcall.js → .rollcall-*, #aiSectionRollcall
+ *   lab-shell             → .lab-layout*, .lab-nav-rail*, .lab-drawer*, .lab-nav-*,
+ *                           .lab-script-*, .lab-step-*, #labMode* (drawer shell / list / detail)
+ *
+ * Content-heavy lab chrome (.lab-title-*, .lab-tool-*, .prestudy-*) remains in _ai-classroom.css.
+ * Non-classroom guests (molar / rxn / electron / detail-teach) were moved to their owner partials.
+ */
+
+.rollcall-layout {
+  display: grid;
+  /* 动画区为主，名单侧栏收窄 */
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: 1rem;
+  align-items: stretch;
+  padding: 0.25rem 0 0.5rem;
+  min-height: min(62vh, 560px);
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .rollcall-layout {
+    grid-template-columns: 1fr;
+    min-height: 0;
+  }
+}
+
+.rollcall-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.1rem;
+  padding: 1.25rem 1rem 1.5rem;
+  min-height: 100%;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--paper) 35%, transparent);
+}
+
+.rollcall-deck {
+  perspective: 1100px;
+  width: min(100%, 560px);
+  max-width: 92%;
+}
+
+.rollcall-card {
+  --flip: 0deg;
+  position: relative;
+  min-height: min(42vh, 320px);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 22px;
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  background:
+    radial-gradient(circle at 30% 20%, color-mix(in srgb, var(--stamp) 18%, transparent), transparent 50%),
+    var(--card-elevated);
+  box-shadow: var(--shadow-print);
+  transform: rotateY(var(--flip)) scale(1);
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.rollcall-card.is-spinning {
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--stamp) 40%, transparent),
+    var(--shadow-print);
+}
+
+.rollcall-card.is-winner {
+  animation: rollcall-win 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  background:
+    radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--stamp) 28%, transparent), transparent 55%),
+    var(--card-elevated);
+  box-shadow:
+    0 0 0 3px var(--stamp),
+    var(--shadow-print);
+}
+
+@keyframes rollcall-win {
+  0% {
+    transform: rotateY(18deg) scale(0.92);
+  }
+  55% {
+    transform: rotateY(-6deg) scale(1.06);
+  }
+  100% {
+    transform: rotateY(0) scale(1);
+  }
+}
+
+.rollcall-card-label {
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--stamp);
+  text-transform: uppercase;
+}
+
+.rollcall-card-name {
+  font-size: clamp(2.2rem, 6.5vw, 3.6rem);
+  font-weight: 800;
+  font-family: var(--font-serif-cjk), inherit;
+  color: var(--text-primary);
+  line-height: 1.15;
+  text-align: center;
+  padding: 0 1rem;
+  word-break: break-all;
+}
+
+.rollcall-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.rollcall-manage {
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 14px;
+  padding: 0.85rem;
+  background: var(--paper);
+  box-shadow: var(--shadow-print-sm);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: min(70vh, 620px);
+}
+
+/* 点名整页在 stage 内拉高 */
+#aiSectionRollcall {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+#aiSectionRollcall[hidden] {
+  display: none !important;
+}
+
+.rollcall-manage h4 {
+  margin: 0 0 0.55rem;
+  font-family: var(--font-serif-cjk), inherit;
+}
+
+.rollcall-add-row {
+  display: flex;
+  gap: 0.4rem;
+  margin-bottom: 0.65rem;
+}
+
+.rollcall-add-row input {
+  flex: 1;
+  min-width: 0;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 8px;
+  padding: 0.4rem 0.55rem;
+  font: inherit;
+  background: var(--card-elevated);
+}
+
+.rollcall-import-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.rollcall-import-label textarea {
+  width: 100%;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  font-size: 0.86rem;
+  resize: vertical;
+  box-sizing: border-box;
+  background: var(--card-elevated);
+}
+
+.rollcall-import-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin: 0.45rem 0 0.65rem;
+  flex-wrap: wrap;
+}
+
+.rollcall-student-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  flex: 1;
+  min-height: 120px;
+  max-height: none;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.rollcall-student {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--border-ink) 25%, transparent);
+  background: var(--card-elevated);
+}
+
+.rollcall-student-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.rollcall-student-acts {
+  display: flex;
+  gap: 0.2rem;
+}
+
+.rollcall-empty {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  padding: 0.5rem 0;
+}
+
+/* ── lab-shell：窄轨列表 + 右侧大详情抽屉 ── */
+.lab-layout {
+  display: grid;
+  grid-template-columns: minmax(148px, 176px) minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+  min-height: 0;
+  flex: 1;
+  padding-bottom: 0;
+}
+
+.lab-layout-drawer {
+  min-height: min(68vh, 640px);
+  height: 100%;
+}
+
+.lab-nav-rail {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: 0.35rem;
+  transition: width 0.2s ease, opacity 0.2s ease;
+}
+
+.lab-nav-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  padding: 0 0.1rem;
+  margin-bottom: 0.35rem;
+}
+
+.lab-nav-rail-label {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.lab-drawer-toggle {
+  appearance: none;
+  border: var(--ui-stroke) solid color-mix(in srgb, var(--border-ink) 40%, transparent);
+  background: var(--paper);
+  border-radius: 6px;
+  width: 1.6rem;
+  height: 1.6rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  color: var(--text-secondary);
+  flex-shrink: 0;
+}
+
+.lab-drawer-toggle:hover {
+  border-color: var(--border-ink);
+  color: var(--ink);
+}
+
+/* 收起左侧抽屉：只留展开按钮，详情全宽 */
+.lab-layout-drawer.is-drawer-collapsed {
+  grid-template-columns: 2.1rem minmax(0, 1fr);
+}
+
+.lab-layout-drawer.is-drawer-collapsed .lab-nav-brand,
+.lab-layout-drawer.is-drawer-collapsed .lab-nav-toolbar,
+.lab-layout-drawer.is-drawer-collapsed .lab-tool-ai,
+.lab-layout-drawer.is-drawer-collapsed .lab-nav-list,
+.lab-layout-drawer.is-drawer-collapsed .lab-nav-status,
+.lab-layout-drawer.is-drawer-collapsed #btnLabExport,
+.lab-layout-drawer.is-drawer-collapsed #btnLabImport {
+  display: none;
+}
+
+.lab-layout-drawer.is-drawer-collapsed .lab-nav-rail-head {
+  flex-direction: column;
+}
+
+/* 实验探究无顶栏大标题，抽屉+详情直接占满 */
+.stage-ai:has(#aiSectionLab:not([hidden])) .lab-section-head {
+  display: none;
+}
+
+.lab-nav-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 0;
+  flex: 1;
+  max-height: none;
+  overflow: auto;
+  /* 左侧多留边，避免卡片/叉号/hover 被裁 */
+  padding: 0.35rem 0.35rem 0.4rem 0.45rem;
+}
+
+/* 编辑态多留边，避免删除叉被滚动容器裁切 */
+.lab-nav-list.is-edit-mode {
+  padding: 0.55rem 0.45rem 0.4rem 0.65rem;
+}
+
+@media (max-width: 720px) {
+  .lab-layout,
+  .lab-layout-drawer {
+    grid-template-columns: 1fr;
+    min-height: 0;
+    height: auto;
+  }
+
+  .lab-nav-rail {
+    max-height: none;
+  }
+
+  .lab-nav-list {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 0.4rem;
+    padding-bottom: 0.25rem;
+    max-height: none;
+  }
+
+  .lab-nav-item {
+    flex: 0 0 auto;
+    width: min(200px, 72vw);
+  }
+
+  .lab-drawer {
+    min-height: min(62vh, 560px);
+  }
+}
+
+.lab-nav-item {
+  appearance: none;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  text-align: left;
+  border: var(--ui-stroke) solid color-mix(in srgb, var(--border-ink) 40%, transparent);
+  border-radius: 10px;
+  background: var(--paper);
+  padding: 0.5rem 0.55rem 0.5rem 0.6rem;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: none;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.lab-nav-item:hover {
+  background: var(--diagram-soft, var(--paper));
+  border-color: var(--border-ink);
+}
+
+.lab-nav-item.is-active {
+  background: color-mix(in srgb, var(--stamp) 10%, var(--paper));
+  border-color: var(--stamp);
+  box-shadow: inset 3px 0 0 var(--stamp);
+}
+
+.lab-nav-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.12rem;
+}
+
+.lab-nav-type {
+  display: block;
+  font-size: 0.66rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+.lab-nav-title {
+  display: block;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  font-family: var(--font-serif-cjk), inherit;
+}
+
+.lab-nav-progress {
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-secondary);
+  background: var(--diagram-soft, #f0eeea);
+  border-radius: 999px;
+  padding: 0.15rem 0.4rem;
+  line-height: 1.2;
+}
+
+.lab-nav-progress.is-done {
+  color: var(--success, #2e7d32);
+  background: var(--success-soft, #e8f5e9);
+}
+
+.lab-nav-progress.is-read {
+  font-weight: 600;
+  opacity: 0.85;
+}
+
+.lab-script-detail,
+.lab-drawer {
+  min-height: 0;
+  overflow: auto;
+  max-width: none;
+}
+
+/* 右侧详情抽屉：占满主区高度，视觉上像独立面板 */
+.lab-drawer {
+  padding: 1rem 1.2rem 1.35rem;
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  border-radius: 14px;
+  background: var(--paper, var(--card-elevated));
+  box-shadow: var(--shadow-print);
+  height: 100%;
+  max-height: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lab-drawer .lab-detail-title {
+  font-size: 1.28rem;
+}
+
+.lab-drawer .lab-eq {
+  font-size: 1.05rem;
+}
+
+.lab-drawer .lab-meta {
+  margin-bottom: 1rem;
+}
+
+.lab-drawer .prestudy-step.is-current {
+  padding: 0.85rem 0.95rem;
+}
+
+.lab-drawer .quiz-options {
+  gap: 0.45rem;
+}
+
+.lab-detail-head {
+  margin-bottom: 0.75rem;
+}
+
+.lab-type {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--stamp);
+  margin-bottom: 0.3rem;
+}
+
+.lab-detail-title {
+  margin: 0 0 0.35rem;
+  font-size: 1.2rem;
+  font-family: var(--font-serif-cjk), inherit;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.lab-eq {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--diagram, var(--ink));
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+}
+
+.lab-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin: 0 0 0.85rem;
+}
+
+@media (max-width: 560px) {
+  .lab-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+.lab-meta-item {
+  border: 1px solid color-mix(in srgb, var(--border-ink) 28%, transparent);
+  border-radius: 10px;
+  padding: 0.5rem 0.65rem;
+  background: var(--paper);
+}
+
+.lab-meta-item span {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--stamp);
+  margin-bottom: 0.2rem;
+}
+
+.lab-meta-item strong {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.lab-steps-heading {
+  margin: 0 0 0.45rem;
+  font-size: 0.9rem;
+  font-family: var(--font-serif-cjk), inherit;
+  color: var(--text-primary);
+}
+
+.lab-step-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.lab-step {
+  display: flex;
+  gap: 0.55rem;
+  align-items: flex-start;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: var(--ui-stroke) solid color-mix(in srgb, var(--border-ink) 35%, transparent);
+  background: var(--card-elevated, var(--paper));
+}
+
+.lab-step-n {
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 0.78rem;
+  font-weight: 800;
+  background: var(--stamp);
+  color: #fffaf5;
+  margin-top: 0.05rem;
+}
+
+.lab-step-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.lab-step-label {
+  display: block;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.35;
+  margin-bottom: 0.15rem;
+}
+
+.lab-step-tip {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.lab-notes {
+  margin: 0.85rem 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+/* 实验区在课堂 stage 内占满高度，详情抽屉吃掉剩余空间 */
+#aiSectionLab,
+.ai-section-lab {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  flex: 1;
+}
+
+#aiSectionLab[hidden] {
+  display: none !important;
+}
+
+/* 打开实验探究时，stage 改为 flex 填满，避免详情被裁成一小条 */
+.stage-ai:has(#aiSectionLab:not([hidden])) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: min(78vh, 820px);
+}
+
+.stage-ai:has(#aiSectionLab:not([hidden])) .ai-section-lab {
+  flex: 1;
+  min-height: 0;
+}
+
+.stage-ai:has(#aiSectionLab:not([hidden])) .lab-section-head {
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* 防止 .lab-layout 的 display:grid 盖掉 hidden（历史双面板 bug） */
+.lab-layout[hidden],
+#labModeScript[hidden],
+#labModePrestudy[hidden] {
+  display: none !important;
+}

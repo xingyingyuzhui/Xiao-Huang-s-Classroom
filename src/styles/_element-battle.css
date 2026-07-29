@@ -1,0 +1,6 @@
+/* Element Battle styles — barrel; selectors unchanged. Partials under _element-battle/ */
+@import './_element-battle/base.css';
+@import './_element-battle/hub.css';
+@import './_element-battle/board.css';
+@import './_element-battle/hand.css';
+@import './_element-battle/fx.css';
