@@ -4,4 +4,6 @@
 
 后续任务（多学科切换壳、其它学科内容）在独立计划中展开。迁移与维护约定仍可参考 `skills/xiaohuang-project-maintenance/`；涉及化学功能时按原图层边界修改。
 
+**当前壳层：** 启动进入学科大厅；仅「化学」可进入现有实验室 Tab。顶栏学科标签与设置中的「学科大厅」可返回大厅。设计见 `docs/superpowers/specs/2026-07-29-subject-hub-design.md`。
+
 Treat `server/data/` as user data. Treat `dist/`, `server/public/`, `.electron-stage/`, `dist-electron/`, `dist-exe/`, and dependency folders as generated or runtime paths unless the task explicitly targets them. Do not include them in source changes.
