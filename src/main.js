@@ -20,6 +20,10 @@ import {
   hidePanelLoading as hideLoadingOn,
   showPanelError as showErrorOn,
 } from './panel-loading.js';
+import { createSubjectHub } from './subjects/hub.js';
+import { bindSubjectChrome } from './subjects/chrome.js';
+import { setCurrentSubjectId } from './subjects/session.js';
+import { getSubject } from './subjects/catalog.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -291,8 +295,72 @@ async function init() {
     onDefaultPageChange: () => {},
   });
 
+  /** @type {'hub' | 'lab'} */
+  let shellMode = 'hub';
+  let subjectChrome;
+
+  const subjectHub = createSubjectHub({
+    select: $,
+    onEnterSubject: (id) => enterSubject(id),
+  });
+
+  subjectChrome = bindSubjectChrome({
+    select: $,
+    onBackToHub: () => {
+      settingsApi.closeDrawer?.();
+      showHub();
+    },
+  });
+
+  function hideAllLabPanels() {
+    Object.values(panels).forEach((el) => {
+      if (!el) return;
+      el.hidden = true;
+      el.classList.remove('active');
+    });
+    if (molModule) molModule.getMolViewer()?.stop();
+    if (electronViewer) electronViewer.stop();
+  }
+
+  function showHub() {
+    shellMode = 'hub';
+    setCurrentSubjectId(null);
+    hideAllLabPanels();
+    subjectHub.show();
+    subjectChrome.sync('hub', null);
+  }
+
+  async function enterSubject(id) {
+    const meta = getSubject(id);
+    if (!meta || meta.status !== 'ready') return;
+
+    shellMode = 'lab';
+    setCurrentSubjectId(id);
+    subjectHub.hide();
+    document.documentElement.dataset.shell = 'lab';
+    subjectChrome.sync('lab', id);
+
+    const defaultPage = await settingsApi.getDefaultPage();
+    if (defaultPage === 'molecule') {
+      await switchTab('molecule');
+    } else if (defaultPage === 'molar') {
+      await switchTab('molar');
+      runMolar();
+    } else if (defaultPage === 'electron') {
+      await switchTab('electron');
+    } else if (defaultPage === 'battle') {
+      await switchTab('battle');
+    } else if (defaultPage === 'ai') {
+      await switchTab('ai');
+    } else {
+      await switchTab('table');
+      runMolar();
+    }
+  }
+
   tabs.forEach((tab) => {
     tab.addEventListener('click', () => {
+      if (shellMode !== 'lab') return;
       switchTab(tab.dataset.tab);
       if (tab.dataset.tab === 'table') {
         requestAnimationFrame(() => scheduleFit());
@@ -302,22 +370,8 @@ async function init() {
 
   window.addEventListener('resize', throttledResize);
 
-  const defaultPage = await settingsApi.getDefaultPage();
-  if (defaultPage === 'molecule') {
-    switchTab('molecule');
-  } else if (defaultPage === 'molar') {
-    switchTab('molar');
-    runMolar();
-  } else if (defaultPage === 'electron') {
-    switchTab('electron');
-  } else if (defaultPage === 'battle') {
-    switchTab('battle');
-  } else if (defaultPage === 'ai') {
-    switchTab('ai');
-  } else {
-    switchTab('table');
-    runMolar();
-  }
+  // v1：始终先到学科大厅（不自动跳进上次学科）
+  showHub();
 
   await revealApp();
 }

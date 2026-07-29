@@ -1,0 +1,186 @@
+/* —— 学科大厅 + 顶栏学科标签 —— */
+
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.subject-chip {
+  appearance: none;
+  margin: 0;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--note-soft);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--font-serif-cjk);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  line-height: 1.3;
+  box-shadow: var(--shadow-print-sm);
+  flex-shrink: 0;
+}
+
+.subject-chip:hover {
+  background: var(--card-elevated);
+  color: var(--stamp);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-print);
+}
+
+.subject-chip:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+.settings-drawer-head-start {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.settings-hub-btn {
+  padding: 0.28rem 0.7rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+html[data-shell='hub'] .tabs {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+html[data-shell='hub'] .subject-hub {
+  display: flex;
+}
+
+html[data-shell='lab'] .subject-hub {
+  display: none !important;
+}
+
+.subject-hub {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  align-items: stretch;
+  justify-content: center;
+  padding: 1.5rem 1.25rem 2rem;
+  background:
+    radial-gradient(ellipse 70% 50% at 15% 10%, color-mix(in srgb, var(--stamp) 12%, transparent), transparent 55%),
+    radial-gradient(ellipse 60% 45% at 90% 80%, color-mix(in srgb, var(--diagram) 14%, transparent), transparent 50%),
+    var(--bg);
+  overflow: auto;
+}
+
+.subject-hub-inner {
+  width: min(920px, 100%);
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.35rem;
+}
+
+.subject-hub-eyebrow {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 0.95rem;
+  color: var(--diagram);
+}
+
+.subject-hub-title {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-serif-cjk);
+  font-size: clamp(1.75rem, 3vw, 2.35rem);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.subject-hub-desc {
+  margin: 0.45rem 0 0;
+  max-width: 34rem;
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.subject-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.9rem;
+}
+
+.subject-card {
+  appearance: none;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.45rem;
+  padding: 1.05rem 1.1rem 1rem;
+  border-radius: 14px;
+  border: var(--ui-stroke-strong) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--ink);
+  box-shadow: var(--shadow-print-sm);
+  cursor: pointer;
+  min-height: 8.5rem;
+}
+
+.subject-card.is-ready:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-print);
+  color: var(--stamp);
+}
+
+.subject-card.is-soon {
+  opacity: 0.55;
+  cursor: not-allowed;
+  background: color-mix(in srgb, var(--card-elevated) 80%, var(--bg));
+}
+
+.subject-card-name {
+  font-family: var(--font-serif-cjk);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.subject-card-desc {
+  font-size: 0.86rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  flex: 1;
+}
+
+.subject-card-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-ink);
+  background: var(--note-soft);
+}
+
+.subject-card.is-ready .subject-card-badge {
+  background: color-mix(in srgb, var(--stamp) 16%, var(--card-elevated));
+  color: var(--stamp);
+}
+
+@media (max-width: 640px) {
+  .subject-hub {
+    padding: 1rem 0.85rem 1.5rem;
+  }
+
+  .subject-hub-grid {
+    grid-template-columns: 1fr;
+  }
+}

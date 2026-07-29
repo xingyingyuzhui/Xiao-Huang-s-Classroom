@@ -43,7 +43,18 @@
           />
           <div class="brand-text">
             <p class="brand-eyebrow">兴趣小组 · 第 1 期</p>
-            <h1 id="appBrandTitle">小黄的教室</h1>
+            <div class="brand-title-row">
+              <h1 id="appBrandTitle">小黄的教室</h1>
+              <button
+                type="button"
+                class="subject-chip"
+                id="btnSubjectChip"
+                hidden
+                aria-label="当前学科"
+              >
+                化学
+              </button>
+            </div>
           </div>
         </div>
         <div class="topbar-right">
@@ -101,7 +112,12 @@
         role="dialog"
       >
         <div class="settings-drawer-head">
-          <h2 id="settingsTitle">设置</h2>
+          <div class="settings-drawer-head-start">
+            <h2 id="settingsTitle">设置</h2>
+            <button type="button" class="btn ghost settings-hub-btn" id="btnSettingsSubjectHub">
+              学科大厅
+            </button>
+          </div>
           <button type="button" class="settings-close" id="btnSettingsClose" aria-label="关闭设置">
             ×
           </button>
@@ -325,8 +341,25 @@
       </div>
 
       <main>
+        <!-- 学科大厅（一级导航） -->
+        <section
+          id="subjectHub"
+          class="subject-hub"
+          aria-label="学科大厅"
+          aria-hidden="false"
+        >
+          <div class="subject-hub-inner">
+            <header class="subject-hub-head">
+              <p class="subject-hub-eyebrow">小黄的教室</p>
+              <h2 class="subject-hub-title">选择学科</h2>
+              <p class="subject-hub-desc">先进入学科，再使用周期表、课堂与练习等功能。</p>
+            </header>
+            <div class="subject-hub-grid" id="subjectHubGrid" role="list"></div>
+          </div>
+        </section>
+
         <!-- Periodic table：左详情（可收窄条）+ 右周期表 -->
-        <section id="panel-table" class="panel active" role="tabpanel">
+        <section id="panel-table" class="panel active" role="tabpanel" hidden>
           <aside class="detail-card side-drawer" data-drawer-key="table">
             <div class="side-drawer-head">
               <h2>元素详情</h2>
