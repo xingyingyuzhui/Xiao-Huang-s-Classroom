@@ -21,3 +21,5 @@ dist-electron/
 
 # Third-party / agent scratch (do not publish)
 .mimocode/
+
+.tmp-ref-books/

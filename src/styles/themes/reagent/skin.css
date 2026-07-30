@@ -17,7 +17,8 @@ html[data-theme='reagent'] body::before {
   opacity: 0;
 }
 
-html[data-theme='reagent'] .topbar {
+/* 大厅壳顶栏是悬浮设置键，不要抢 position；只在教室壳用货架顶栏结构 */
+html[data-theme='reagent']:not([data-shell='hub']) .topbar {
   position: relative;
   background: var(--topbar-bg);
   border-bottom: var(--topbar-border);
@@ -26,7 +27,7 @@ html[data-theme='reagent'] .topbar {
 }
 
 /* 货架边：铜 → 炭，不用蓝 */
-html[data-theme='reagent'] .topbar::after {
+html[data-theme='reagent']:not([data-shell='hub']) .topbar::after {
   content: '';
   position: absolute;
   left: 0;

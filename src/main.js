@@ -22,7 +22,7 @@ import {
 } from './panel-loading.js';
 import { createSubjectHub } from './subjects/hub.js';
 import { bindSubjectChrome } from './subjects/chrome.js';
-import { setCurrentSubjectId } from './subjects/session.js';
+import { getCurrentSubjectId, setCurrentSubjectId } from './subjects/session.js';
 import { getSubject } from './subjects/catalog.js';
 
 const $ = (sel) => document.querySelector(sel);
@@ -295,20 +295,34 @@ async function init() {
     onDefaultPageChange: () => {},
   });
 
-  /** @type {'hub' | 'lab'} */
+  /** @type {'hub' | 'lab' | 'entering' | 'returning'} */
   let shellMode = 'hub';
   let subjectChrome;
+  /** 进入实验室异步世代：过期的 switchTab 结果不得再改壳 */
+  let labEnterSeq = 0;
 
   const subjectHub = createSubjectHub({
     select: $,
     onEnterSubject: (id) => enterSubject(id),
   });
 
+  subjectHub.setRevealHubHandler(() => {
+    /* 仅在返回转场帷幕已不透明后调用：幕下卸教室、露大厅 */
+    shellMode = 'returning';
+    setCurrentSubjectId(null);
+    hideAllLabPanels();
+    subjectChrome.sync('hub', null);
+  });
+
   subjectChrome = bindSubjectChrome({
     select: $,
     onBackToHub: () => {
       settingsApi.closeDrawer?.();
-      showHub();
+      if (shellMode === 'lab' || shellMode === 'entering') {
+        returnToHubAnimated();
+      } else if (shellMode !== 'returning') {
+        showHub();
+      }
     },
   });
 
@@ -323,6 +337,7 @@ async function init() {
   }
 
   function showHub() {
+    labEnterSeq += 1;
     shellMode = 'hub';
     setCurrentSubjectId(null);
     hideAllLabPanels();
@@ -330,31 +345,82 @@ async function init() {
     subjectChrome.sync('hub', null);
   }
 
+  function returnToHubAnimated() {
+    if (shellMode === 'returning') return;
+    const id = getCurrentSubjectId() || 'chemistry';
+    labEnterSeq += 1; // 取消进行中的 enterSubject
+    shellMode = 'returning';
+    // 帷幕不透明后 onRevealHub 再卸教室；大厅在幕下合书
+    subjectHub.playReturnFromLab({
+      subjectId: id,
+      onDone: () => {
+        shellMode = 'hub';
+        setCurrentSubjectId(null);
+        hideAllLabPanels();
+        document.documentElement.dataset.shell = 'hub';
+        // 确保大厅根节点可见（onRevealHub 应已处理；此处兜底）
+        const hubRoot = $('#subjectHub');
+        if (hubRoot) {
+          hubRoot.hidden = false;
+          hubRoot.setAttribute('aria-hidden', 'false');
+        }
+        document.body.classList.remove(
+          'transit',
+          'detail-open',
+          'bookshelf-entering',
+          'bookshelf-dive-deep',
+        );
+        subjectChrome.sync('hub', null);
+      },
+    });
+  }
+
+  /**
+   * 帷幕不透明后调用：在遮罩下挂载实验室，避免白页空镜。
+   * @param {string} id
+   */
   async function enterSubject(id) {
     const meta = getSubject(id);
     if (!meta || meta.status !== 'ready') return;
+    if (shellMode === 'returning') return;
 
-    shellMode = 'lab';
+    const seq = ++labEnterSeq;
+    shellMode = 'entering';
     setCurrentSubjectId(id);
+
+    /* 先切壳再加载 Tab：此时 enter-fx 帷幕应已不透明 */
     subjectHub.hide();
     document.documentElement.dataset.shell = 'lab';
     subjectChrome.sync('lab', id);
 
-    const defaultPage = await settingsApi.getDefaultPage();
-    if (defaultPage === 'molecule') {
-      await switchTab('molecule');
-    } else if (defaultPage === 'molar') {
-      await switchTab('molar');
-      runMolar();
-    } else if (defaultPage === 'electron') {
-      await switchTab('electron');
-    } else if (defaultPage === 'battle') {
-      await switchTab('battle');
-    } else if (defaultPage === 'ai') {
-      await switchTab('ai');
-    } else {
-      await switchTab('table');
-      runMolar();
+    try {
+      const defaultPage = await settingsApi.getDefaultPage();
+      if (seq !== labEnterSeq) return;
+
+      if (defaultPage === 'molecule') {
+        await switchTab('molecule');
+      } else if (defaultPage === 'molar') {
+        await switchTab('molar');
+        runMolar();
+      } else if (defaultPage === 'electron') {
+        await switchTab('electron');
+      } else if (defaultPage === 'battle') {
+        await switchTab('battle');
+      } else if (defaultPage === 'ai') {
+        await switchTab('ai');
+      } else {
+        await switchTab('table');
+        runMolar();
+      }
+
+      if (seq !== labEnterSeq) return;
+      shellMode = 'lab';
+    } catch (err) {
+      console.error('enterSubject failed', err);
+      if (seq === labEnterSeq) {
+        /* 失败时仍落在 lab 壳，避免卡在 entering */
+        shellMode = 'lab';
+      }
     }
   }
 
