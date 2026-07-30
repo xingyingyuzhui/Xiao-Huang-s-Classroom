@@ -1,8 +1,6 @@
 # 小黄的教室
 
-本地多学科学习壳（演进中）。**当前可运行主体**仍来自「小黄的化学实验室」：周期表、3D 分子、计算、电子排布、课堂与元素对战等。
-
-本目录由化学实验室仓库做**基础迁移**得到：表层产品名改为「小黄的教室」，化学业务代码路径暂未重排。学科切换壳尚未加入。
+本地多学科学习壳（演进中）。启动进入 **3D 学科大厅**；当前可进入 **化学** 教室（周期表、3D 分子、计算、电子排布、课堂、元素对战等）。物理 / 生物 / 数学书可见，暂未开放。
 
 **当前版本：v3.0.6** · 许可证 [MIT](./LICENSE)
 
@@ -30,21 +28,30 @@ npm test
 
 ---
 
-## 与化学实验室的关系
+## 架构要点
 
-| 项 | 说明 |
+| 层 | 说明 |
 | --- | --- |
-| 来源 | `/Users/qin/Desktop/teacher`（小黄的化学实验室）快照 |
-| Git | 新仓库，不继承原历史 |
-| 已改 | 包名、窗口/品牌默认文案、Electron `productName` / `appId` 表层 |
-| 未改 | 化学功能模块路径、学科切换、发布安装包流程 |
+| 壳层 | 学科大厅 ↔ 化学实验室；设计见 `docs/superpowers/specs/` |
+| 前端 | Vite + ES modules + Three.js |
+| 后端 | Express + SQLite（`server/`） |
+| 桌面 | Electron（Win / Mac 打包脚本见 `package.json`） |
 
-数据目录（Electron）：Windows `%AppData%\xiaohuang-classroom\data\`；macOS `~/Library/Application Support/xiaohuang-classroom/data/`（随新 `name` / `appId`）。
+数据目录（Electron）：Windows `%AppData%\xiaohuang-classroom\data\`；macOS `~/Library/Application Support/xiaohuang-classroom/data/`。
+
+`server/data/`、`dist/`、`server/public/` 等为运行/生成路径，勿当业务源码改。
 
 ---
 
-## 后续计划（未做）
+## 文档
 
-1. 顶层「学科」切换壳（化学为默认学科）
-2. 其它学科模块逐步迁入
-3. README / 发布物与多学科信息架构对齐
+- `AGENTS.md` — 协作约定与当前产品偏好
+- `docs/superpowers/specs/` — 学科大厅与电影式进出场设计
+
+---
+
+## 后续（未做）
+
+1. 其它学科内容模块
+2. 后端按学科隔离
+3. 发布物与多学科信息架构对齐

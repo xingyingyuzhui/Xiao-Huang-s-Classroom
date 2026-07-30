@@ -13,13 +13,16 @@ server/public/
 
 # Local session notes (do not publish)
 SESSION-SUMMARY.md
+progress.md
 *.log
 frontend.log
 dist-exe/
 dist-electron/
 .electron-stage/
 
-# Third-party / agent scratch (do not publish)
+# Agent / IDE scratch (do not publish)
 .mimocode/
-
+.cursor/
+.superpowers/
+.claude/
 .tmp-ref-books/
