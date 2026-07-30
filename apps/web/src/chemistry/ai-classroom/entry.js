@@ -4,7 +4,7 @@
 
 import { aiApi, quizApi, offlineQuizApi, masteryApi, lessonPackApi, labsApi, balanceScriptsApi } from '../../shared/api/client.js';
 import { showAppBubble, hideBrandTip } from '../../shared/ui/brand-tip.js';
-import { initRollcall, onRollcallSectionEnter } from '../classroom-rollcall.js';
+import { initRollcall, onRollcallSectionEnter } from './rollcall.js';
 import { createQuizConfigController } from './quiz-config.js';
 import { createQuizModel, isRateLimitedError } from './quiz-model.js';
 import { createQuizShellController } from './quiz-shell.js';

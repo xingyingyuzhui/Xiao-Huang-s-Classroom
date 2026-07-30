@@ -17,7 +17,7 @@ import {
   formatBalanceImportSummary,
   downloadJsonFile,
 } from './balance-model.js';
-import { bindChemKeypad, mountChemKeypads } from '../chem-keypad.js';
+import { bindChemKeypad, mountChemKeypads } from '../shared/chem-keypad.js';
 import { appAlert, appConfirm } from '../../shared/ui/app-dialog.js';
 import {
   htmlEmptyScripts,

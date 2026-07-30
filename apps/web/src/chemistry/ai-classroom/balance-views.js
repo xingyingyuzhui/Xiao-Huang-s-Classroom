@@ -2,7 +2,7 @@
  * 配平脚本 · HTML 视图（布局对齐实验探究）
  */
 
-import { renderChemKeypadHtml } from '../chem-keypad.js';
+import { renderChemKeypadHtml } from '../shared/chem-keypad.js';
 import { formatFormula, buildEquation } from './balance-model.js';
 
 function escape(s) {

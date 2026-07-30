@@ -2,7 +2,7 @@
  * Classroom extras — sections that left the main hub stylesheet
  *
  * Ownership map (feature module → selectors here):
- *   classroom-rollcall.js → .rollcall-*, #aiSectionRollcall
+ *   ai-classroom/rollcall.js → .rollcall-*, #aiSectionRollcall
  *   lab-shell             → .lab-layout*, .lab-nav-rail*, .lab-drawer*, .lab-nav-*,
  *                           .lab-script-*, .lab-step-*, #labMode* (drawer shell / list / detail)
  *

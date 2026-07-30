@@ -6,7 +6,13 @@
 
 **当前壳层：** 启动进入学科大厅；仅「化学」可进入现有实验室 Tab。顶栏学科标签与设置中的「学科大厅」可返回大厅。设计见 `docs/superpowers/specs/2026-07-29-subject-hub-design.md`。
 
-Treat `server/data/` as user data. Treat `dist/`, `server/public/`, `.electron-stage/`, `dist-electron/`, `dist-exe/`, and dependency folders as generated or runtime paths unless the task explicitly targets them. Do not include them in source changes.
+**Monorepo：** `apps/web`（Vite 前端）、`apps/server`（Express/SQLite）、`apps/desktop`（Electron）、`packages/*`（共享包，如 `subject-settings`）。
+
+Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `apps/web/dist/`、`apps/server/public/`、`.electron-stage/`、`dist-electron/`、`dist-exe/`、and dependency folders as generated or runtime paths unless the task explicitly targets them. Do not include them in source changes. Install from the repo root (`npm install`); do not maintain a nested `apps/server/package-lock.json`.
+
+**Tests：** `test/server`、`test/web`、`test/shared`；repo root helper at `test/helpers/repo-root.js`.
+
+**Server layout：** shared routes under `apps/server/src/routes/`（如 `settings`、`ai`）；chemistry domain under `apps/server/src/routes/chemistry/` and `apps/server/src/services/chemistry/`（HTTP prefixes stay `/api/...` for compatibility）.
 
 ## Learned User Preferences
 
@@ -25,7 +31,8 @@ Treat `server/data/` as user data. Treat `dist/`, `server/public/`, `.electron-s
 ## Learned Workspace Facts
 
 - Science-hall bookshelf UX is inspired by https://github.com/thebuggeddev/books (live demo https://books-sigma-ashen.vercel.app/); subjects map to distinct books; keep pose/lighting/intro-open choreography close to that reference.
-- Theme cover art lives under `public/assets/subject-covers/` as five ordered sets (v1–v5) mapped to the five app themes.
+- Theme cover art lives under `apps/web/public/assets/subject-covers/` as five ordered sets (v1–v5) mapped to the five app themes.
 - App shell starts at the subject hub; chemistry opens the existing laboratory tabs; hub design lives at `docs/superpowers/specs/2026-07-29-subject-hub-design.md`.
 - Classroom enter/exit from the subject intro uses cover-dissolve (etch/particles sampled from cover art), not multi-page flip or stacked 3D cover-open.
 - Chemistry lab work prioritizes a state-driven engine with chemistry logic separated from rendering; experiments should be configuration-driven rather than one-off page stacks.
+- Chemistry web modules: feature packages under `apps/web/src/chemistry/{periodic-table,molecule,molar,electron,battle,ai-classroom,chem,shared}/`; classroom mount/partials under `apps/web/src/subjects/classrooms/`.

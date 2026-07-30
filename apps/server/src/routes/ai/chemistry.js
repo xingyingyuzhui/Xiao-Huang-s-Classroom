@@ -10,7 +10,7 @@ const {
   generateLab,
   generateBalanceStepTip,
   generateBalance,
-} = require('../../services/ai/chemistry-service');
+} = require('../../services/chemistry/ai-service');
 
 function mapAiError(res, err, fallbackMessage) {
   const status = err.status || 500;

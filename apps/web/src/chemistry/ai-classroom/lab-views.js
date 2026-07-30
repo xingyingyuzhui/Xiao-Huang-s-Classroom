@@ -3,7 +3,7 @@
  * 控制器负责传参与事件。
  */
 
-import { renderChemKeypadHtml } from '../chem-keypad.js';
+import { renderChemKeypadHtml } from '../shared/chem-keypad.js';
 import { emptyStep, prestudySteps } from './lab-model.js';
 
 /**

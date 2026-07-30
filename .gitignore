@@ -10,6 +10,9 @@ apps/server/src/data/
 apps/server/server.log
 apps/server/public/
 
+# Nested lockfile — install only from repo root workspaces
+apps/server/package-lock.json
+
 # Windows portable build output
 
 # Local session notes (do not publish)

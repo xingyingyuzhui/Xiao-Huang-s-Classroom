@@ -2,7 +2,7 @@
 
 /**
  * 方程式解析 / 守恒（CJS，供 balance-script-schema 等服务端使用）
- * 与 src/equation-balance.js 中学范围约定一致。
+ * 与 apps/web/src/chemistry/chem/equation-balance.js 中学范围约定一致。
  */
 
 const SUB = '₀₁₂₃₄₅₆₇₈₉';

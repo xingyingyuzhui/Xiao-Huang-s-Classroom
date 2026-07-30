@@ -8,7 +8,7 @@ import {
   equationsEquivalent,
   checkConservation,
   parseEquationSides,
-} from '../equation-balance.js';
+} from '../chem/equation-balance.js';
 
 const PROGRESS_KEY = 'balance-script-progress';
 

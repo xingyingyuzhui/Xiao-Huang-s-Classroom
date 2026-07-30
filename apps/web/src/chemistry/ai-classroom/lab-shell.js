@@ -5,7 +5,7 @@
  * 纯数据逻辑见 lab-model.js
  */
 
-import { bindChemKeypad } from '../chem-keypad.js';
+import { bindChemKeypad } from '../shared/chem-keypad.js';
 import { appAlert, appConfirm } from '../../shared/ui/app-dialog.js';
 import {
   DRAWER_KEY,

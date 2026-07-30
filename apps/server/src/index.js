@@ -21,17 +21,17 @@ const {
 } = require('./seed/import-builtin');
 const { importBuiltinReactionsIfEmpty } = require('./seed/import-reactions');
 
-const moleculesRouter = require('./routes/molecules');
+const moleculesRouter = require('./routes/chemistry/molecules');
 const settingsRouter = require('./routes/settings');
 const aiRouter = require('./routes/ai');
-const quizRouter = require('./routes/quiz');
-const offlineQuizRouter = require('./routes/offline-quiz');
-const reactionsRouter = require('./routes/reactions');
-const studentsRouter = require('./routes/students');
-const masteryRouter = require('./routes/mastery');
-const lessonPacksRouter = require('./routes/lesson-packs');
-const labsRouter = require('./routes/labs');
-const balanceScriptsRouter = require('./routes/balance-scripts');
+const quizRouter = require('./routes/chemistry/quiz');
+const offlineQuizRouter = require('./routes/chemistry/offline-quiz');
+const reactionsRouter = require('./routes/chemistry/reactions');
+const studentsRouter = require('./routes/chemistry/students');
+const masteryRouter = require('./routes/chemistry/mastery');
+const lessonPacksRouter = require('./routes/chemistry/lesson-packs');
+const labsRouter = require('./routes/chemistry/labs');
+const balanceScriptsRouter = require('./routes/chemistry/balance-scripts');
 
 const app = express();
 const PREFERRED_PORT = Number(process.env.PORT) || 3000;

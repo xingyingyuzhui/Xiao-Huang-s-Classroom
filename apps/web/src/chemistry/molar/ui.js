@@ -4,8 +4,8 @@
 
 import { calcMolarMass, normalizeFormulaInput } from './model.js';
 import { moleculeApi, aiApi } from '../../shared/api/client.js';
-import { balanceEquation, checkConservation } from '../equation-balance.js';
-import { mountChemKeypads } from '../chem-keypad.js';
+import { balanceEquation, checkConservation } from '../chem/equation-balance.js';
+import { mountChemKeypads } from '../shared/chem-keypad.js';
 
 const $ = (sel) => document.querySelector(sel);
 
