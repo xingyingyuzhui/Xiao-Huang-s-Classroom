@@ -9,13 +9,16 @@
  */
 export function mountPartialHtml(host, html, markerAttr) {
   if (!host || !html) return false;
-  if (host.querySelector(`[${markerAttr}]`)) return true;
 
-  const wrap = document.createElement('div');
-  const [attr, value] = markerAttr.split('=');
-  wrap.setAttribute(attr, value.replace(/"/g, ''));
-  wrap.innerHTML = html;
-  host.appendChild(wrap);
+  const [attr, rawValue] = markerAttr.split('=');
+  const value = rawValue?.replace(/"/g, '') ?? '';
+  if (!attr || !value) return false;
+  if (host.getAttribute(attr) === value) return true;
+
+  const tpl = document.createElement('template');
+  tpl.innerHTML = html.trim();
+  host.setAttribute(attr, value);
+  host.appendChild(tpl.content);
   return true;
 }
 

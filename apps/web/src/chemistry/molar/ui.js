@@ -9,9 +9,17 @@ import { mountChemKeypads } from '../chem-keypad.js';
 
 const $ = (sel) => document.querySelector(sel);
 
-const formulaInput = $('#formulaInput');
-const molarResult = $('#molarResult');
-const molarPresets = $('#molarPresets');
+function formulaInputEl() {
+  return $('#formulaInput');
+}
+
+function molarResultEl() {
+  return $('#molarResult');
+}
+
+function molarPresetsEl() {
+  return $('#molarPresets');
+}
 
 const MOLAR_SECTIONS = [
   { id: 'mass', title: '摩尔质量', desc: '化学式 · 分元素明细' },
@@ -41,6 +49,8 @@ function escapeHtml(s) {
  * 执行摩尔质量计算
  */
 export function runMolar() {
+  const formulaInput = formulaInputEl();
+  const molarResult = molarResultEl();
   if (!formulaInput || !molarResult) return;
 
   const raw = formulaInput.value;
@@ -108,6 +118,7 @@ export function runMolar() {
  * @param {Array<{formula?: string}> | null} [list] 已有列表则不再请求
  */
 export async function refreshMolarPresets(list = null) {
+  const molarPresets = molarPresetsEl();
   if (!molarPresets) return;
 
   let molecules = list;
@@ -152,6 +163,7 @@ export async function refreshMolarPresets(list = null) {
     b.textContent = formula;
     b.title = formula;
     b.addEventListener('click', () => {
+      const formulaInput = formulaInputEl();
       if (!formulaInput) return;
       formulaInput.value = formula;
       // 高亮当前示例
@@ -322,14 +334,18 @@ export function initMolarUI() {
   refreshMolarPresets();
   setupMolarChemKeypads();
 
+  const formulaInput = formulaInputEl();
+
   $('#btnCalcMolar')?.addEventListener('click', runMolar);
 
   $('#btnClearMolar')?.addEventListener('click', () => {
-    if (!formulaInput || !molarResult) return;
-    formulaInput.value = '';
-    formulaInput.classList.remove('is-invalid');
-    molarResult.innerHTML = `<div class="molar-empty">输入化学式后点击计算</div>`;
-    formulaInput.focus();
+    const input = formulaInputEl();
+    const result = molarResultEl();
+    if (!input || !result) return;
+    input.value = '';
+    input.classList.remove('is-invalid');
+    result.innerHTML = `<div class="molar-empty">输入化学式后点击计算</div>`;
+    input.focus();
   });
 
   formulaInput?.addEventListener('keydown', (e) => {

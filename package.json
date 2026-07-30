@@ -13,6 +13,7 @@
     "test": "node --test 'test/**/*.cjs'",
     "dev": "npm run dev -w @xiaohuang/web",
     "dev:server": "npm run dev -w @xiaohuang/server",
+    "dev:all": "npm run dev:server & npm run dev",
     "build": "npm run build -w @xiaohuang/web",
     "preview": "npm run preview -w @xiaohuang/web",
     "build:frontend": "npm run build:frontend -w @xiaohuang/server",

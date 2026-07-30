@@ -58,8 +58,8 @@ test('index.html has subject hub bookshelf and chrome hooks', () => {
   assert.doesNotMatch(html, /id="bookshelfOpenPill"/);
   assert.match(html, /id="bookshelfPageFx"/);
   assert.match(html, /id="panel-subject-home"/);
-  assert.match(html, /id="lab-panels-root"/);
   assert.match(html, /id="lab-chemistry-chrome"/);
+  assert.match(html, /id="lab-panels-root"/);
   assert.doesNotMatch(html, /id="panel-table"/);
   assert.ok(
     fs.existsSync(
@@ -96,6 +96,18 @@ test('index.html has subject hub bookshelf and chrome hooks', () => {
   assert.match(html, /data-dp-en/);
   assert.match(html, /id="bookshelfPeek"/);
   assert.match(html, /bookshelf-detail-actions/);
+});
+
+test('hub shell keeps a main grid row for the named main area', () => {
+  const css = fs.readFileSync(
+    path.join(root, 'apps/web/src/shared/styles/_subject-hub.css'),
+    'utf8',
+  );
+  assert.doesNotMatch(
+    css,
+    /html\[data-shell='hub'\]\s+#app\s*\{[^}]*grid-template-rows\s*:\s*minmax\(0\s*,\s*1fr\)/,
+    'the hub must not remove the main row defined by the app grid',
+  );
 });
 
 test('bookshelf stage module is wired from hub', () => {

@@ -30,7 +30,32 @@ body::before {
   height: 100dvh;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas:
+    'topbar'
+    'main';
   overflow: hidden;
+}
+
+/* 钉死顶栏 / 主区；否则 settings、lab-chemistry-chrome 等兄弟会按 auto-placement
+   占掉 1fr 行，把 main 挤到隐式行，表现为 Tab 与内容之间一大块空白 */
+#app > .topbar {
+  grid-area: topbar;
+}
+
+#app > main {
+  grid-area: main;
+  min-height: 0;
+}
+
+#app > .settings-backdrop,
+#app > .settings-drawer,
+#app > .lab-chemistry-chrome {
+  grid-area: 1 / 1 / -1 / -1;
+}
+
+/* 铺满格子但不挡点击；子节点（modal）各自控制 pointer-events */
+#app > .lab-chemistry-chrome {
+  pointer-events: none;
 }
 
 :focus-visible {

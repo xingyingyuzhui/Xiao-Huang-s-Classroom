@@ -52,10 +52,6 @@
 }
 
 /* —— hub shell：真全屏书场，设置键悬浮右上 —— */
-html[data-shell='hub'] #app {
-  grid-template-rows: minmax(0, 1fr);
-}
-
 html[data-shell='hub'] .brand,
 html[data-shell='hub'] .tabs {
   display: none !important;
@@ -106,6 +102,11 @@ html[data-shell='hub'] main {
 
 html[data-shell='hub'] .subject-hub {
   display: flex;
+}
+
+html[data-shell='hub'] #lab-chemistry-chrome,
+html[data-shell='hub'] #lab-panels-root {
+  display: none !important;
 }
 
 /* 返回合书：在 lab 壳下预热书场画布（盖在教室上但透明，翻页层 z=80 盖住） */

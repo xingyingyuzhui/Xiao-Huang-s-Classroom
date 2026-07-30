@@ -75,3 +75,21 @@
 .panel-loading[hidden] {
   display: none !important;
 }
+
+html[data-shell='lab'] main {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* 化学面板宿主：占满 main 剩余高度，子 .panel 才能 height:100% */
+.lab-panels-root {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: none;
+  flex-direction: column;
+}
+
+.lab-panels-root:not([hidden]) {
+  display: flex;
+}

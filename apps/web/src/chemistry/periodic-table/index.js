@@ -17,15 +17,25 @@ import { getElectronConfigHtml } from '../data/electronConfigs.js';
 
 const $ = (sel) => document.querySelector(sel);
 
-// DOM 元素
-const tableEl = $('#periodicTable');
-const detailEl = $('#elementDetail');
-const legendEl = $('#blockLegend');
-const groupLabelsEl = $('#groupLabels');
-const periodLabelsEl = $('#periodLabels');
-const sideLabelsEl = $('#sideLabels');
-const ptableScroll = $('.ptable-scroll');
-const tableShell = $('.table-shell');
+let tableEl;
+let detailEl;
+let legendEl;
+let groupLabelsEl;
+let periodLabelsEl;
+let sideLabelsEl;
+let ptableScroll;
+let tableShell;
+
+function bindPeriodicTableDom() {
+  tableEl = $('#periodicTable');
+  detailEl = $('#elementDetail');
+  legendEl = $('#blockLegend');
+  groupLabelsEl = $('#groupLabels');
+  periodLabelsEl = $('#periodLabels');
+  sideLabelsEl = $('#sideLabels');
+  ptableScroll = $('.ptable-scroll');
+  tableShell = $('.table-shell');
+}
 
 // 状态
 let selectedZ = null;
@@ -46,6 +56,7 @@ const SIDE_SHELLS = [
  * 渲染分区图例
  */
 export function renderLegend() {
+  if (!legendEl) return;
   const items = [BLOCKS.s, BLOCKS.p, BLOCKS.d, BLOCKS.ds, BLOCKS.f, BLOCKS.noble];
   legendEl.innerHTML = items
     .map(
@@ -59,6 +70,7 @@ export function renderLegend() {
  * 渲染周期号、族标、电子层侧栏
  */
 export function renderChrome() {
+  if (!periodLabelsEl || !groupLabelsEl || !sideLabelsEl) return;
   periodLabelsEl.innerHTML = [1, 2, 3, 4, 5, 6, 7]
     .map((n) => `<div class="period-label">${n}</div>`)
     .join('');
@@ -83,6 +95,7 @@ export function renderChrome() {
  * 渲染周期表
  */
 export function renderTable() {
+  if (!tableEl) return;
   tableEl.innerHTML = '';
 
   // 系列标签
@@ -150,6 +163,7 @@ export function selectElement(z) {
 
   const configHtml = getElectronConfigHtml(el.z);
   const tip = buildElementTip(el);
+  if (!detailEl) return;
   detailEl.innerHTML = `
     <div class="detail-head">
       <div class="detail-badge" data-zone="${zone}" style="--zone-bg:${color}">${el.symbol}</div>
@@ -205,6 +219,7 @@ function buildElementTip(el) {
  * 按容器可用宽高尽量「铺满」；上限随窗口增大（4K 大窗不再卡在 100px）
  */
 export function fitPeriodicTable() {
+  if (!ptableScroll) bindPeriodicTableDom();
   if (!ptableScroll) return;
   const cs = getComputedStyle(ptableScroll);
   const padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
@@ -272,6 +287,8 @@ export function fitPeriodicTable() {
  * 防抖调度缩放
  */
 export function scheduleFit() {
+  if (!tableEl) bindPeriodicTableDom();
+  if (!tableEl) return;
   cancelAnimationFrame(fitRaf);
   fitRaf = requestAnimationFrame(() => {
     fitPeriodicTable();
@@ -282,6 +299,11 @@ export function scheduleFit() {
  * 初始化周期表
  */
 export function initPeriodicTable() {
+  bindPeriodicTableDom();
+  if (!tableEl || !legendEl) {
+    console.warn('[periodic-table] DOM not ready, skip init');
+    return;
+  }
   renderLegend();
   renderChrome();
   renderTable();

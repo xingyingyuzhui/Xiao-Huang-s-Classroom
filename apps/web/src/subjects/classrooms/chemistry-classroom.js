@@ -18,9 +18,19 @@ function ensureChemistryPanelsMounted() {
   const panelsHost = document.getElementById('lab-panels-root');
   mountPartialHtml(chromeHost, modalsHtml, 'data-mounted=chemistry-modals');
   mountPartialHtml(panelsHost, panelsHtml, 'data-mounted=chemistry-panels');
+  panelsMounted = true;
+}
+
+function showChemistryLabHosts() {
   unhidePanelHost('#lab-chemistry-chrome');
   unhidePanelHost('#lab-panels-root');
-  panelsMounted = true;
+}
+
+function hideChemistryLabHosts() {
+  const chromeHost = document.getElementById('lab-chemistry-chrome');
+  const panelsHost = document.getElementById('lab-panels-root');
+  if (chromeHost) chromeHost.hidden = true;
+  if (panelsHost) panelsHost.hidden = true;
 }
 
 /**
@@ -252,6 +262,15 @@ export function createChemistryClassroom({ select }) {
 
   return {
     ...classroom,
+    async enter(ctx) {
+      ensureChemistryPanelsMounted();
+      showChemistryLabHosts();
+      return classroom.enter(ctx);
+    },
+    leave() {
+      classroom.leave();
+      hideChemistryLabHosts();
+    },
     onAppRevealed() {
       scheduleFit();
     },
