@@ -24,7 +24,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=Noto+Sans+SC:wght@400;500;600;700&family=Noto+Serif+SC:wght@600;700&family=Quicksand:wght@500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;500;600;700;900&family=Noto+Serif+SC:wght@600;700&family=Quicksand:wght@500;600;700&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&display=swap"
       rel="stylesheet"
     />
   </head>
@@ -341,22 +341,44 @@
       </div>
 
       <main>
-        <!-- 学科大厅（一级导航） -->
+        <!-- 学科大厅（一级导航 · 3D 书场） -->
         <section
           id="subjectHub"
           class="subject-hub"
           aria-label="学科大厅"
           aria-hidden="false"
         >
-          <div class="subject-hub-inner">
-            <header class="subject-hub-head">
-              <p class="subject-hub-eyebrow">小黄的教室</p>
-              <h2 class="subject-hub-title">选择学科</h2>
-              <p class="subject-hub-desc">先进入学科，再使用周期表、课堂与练习等功能。</p>
-            </header>
-            <div class="subject-hub-grid" id="subjectHubGrid" role="list"></div>
+          <div class="bookshelf-stage" id="bookshelfStage">
+            <div class="bookshelf-hero-word" aria-hidden="true"><span>小黄的教室</span></div>
+            <canvas id="bookshelfGl" class="bookshelf-gl" aria-label="学科书场"></canvas>
+
+            <button type="button" id="bookshelfClose" class="bookshelf-close" aria-label="关闭学科详情">
+              ✕
+            </button>
+
+            <aside class="bookshelf-detail" id="bookshelfDetail" aria-live="polite">
+              <p class="bookshelf-detail-en" data-dp-en></p>
+              <h2 class="bookshelf-detail-title" data-dp-title></h2>
+              <p class="bookshelf-detail-desc" data-dp-desc></p>
+              <div class="bookshelf-detail-meta">
+                <span class="bookshelf-detail-status" data-dp-status></span>
+                <span class="bookshelf-detail-sep" aria-hidden="true"></span>
+                <span data-dp-modules></span>
+                <span class="bookshelf-detail-sep" aria-hidden="true"></span>
+                <span class="bookshelf-detail-tagline" data-dp-tagline></span>
+              </div>
+              <div class="bookshelf-detail-rule" aria-hidden="true"></div>
+              <div class="bookshelf-detail-actions">
+                <button type="button" class="bookshelf-enter" id="bookshelfEnter" hidden>进入教室</button>
+                <button type="button" class="bookshelf-peek" id="bookshelfPeek">返回大厅</button>
+              </div>
+              <p class="bookshelf-lock" id="bookshelfLock" hidden>该学科教室还在装修，先逛逛化学吧。</p>
+            </aside>
           </div>
         </section>
+
+        <!-- 进教室翻页层（独立于大厅，切 lab 后仍盖住直至淡出） -->
+        <div id="bookshelfPageFx" class="bookshelf-page-fx" aria-hidden="true"></div>
 
         <!-- Periodic table：左详情（可收窄条）+ 右周期表 -->
         <section id="panel-table" class="panel active" role="tabpanel" hidden>
