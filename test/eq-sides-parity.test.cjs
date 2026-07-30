@@ -4,7 +4,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const serverEq = require('../server/utils/eq-sides');
+const serverEq = require('../apps/server/src/utils/eq-sides');
 
 const FIXTURES = [
   'H2 + O2 = H2O',
@@ -17,7 +17,7 @@ const FIXTURES = [
 ];
 
 test('client speciesFromEquation matches server for fixtures', async () => {
-  const client = await import('../src/equation-balance.js');
+  const client = await import('../apps/web/src/chemistry/equation-balance.js');
   for (const eq of FIXTURES) {
     const a = client.speciesFromEquation(eq);
     const b = serverEq.speciesFromEquation(eq);
@@ -26,7 +26,7 @@ test('client speciesFromEquation matches server for fixtures', async () => {
 });
 
 test('client checkConservation ok matches server isEquationConserved', async () => {
-  const client = await import('../src/equation-balance.js');
+  const client = await import('../apps/web/src/chemistry/equation-balance.js');
   const pairs = [
     ['2H2 + O2 = 2H2O', true],
     ['H2 + O2 = H2O', false],

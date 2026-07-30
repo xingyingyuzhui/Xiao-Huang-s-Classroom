@@ -4,13 +4,13 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { app } = require('../server');
+const { app } = require('../apps/server/src');
 const {
   initDatabase,
   closeDatabase,
   queryOne,
   run,
-} = require('../server/db/sqlite');
+} = require('../apps/server/src/db/sqlite');
 
 async function withApiServer(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-mastery-'));

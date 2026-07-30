@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="default" class="app-booting">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>小黄的教室</title>
+    <style>
+      /* 首屏：资源与脚本就绪前不展示，避免闪一下 */
+      html.app-booting,
+      html.app-booting body {
+        background: #f4f0e8;
+      }
+      html.app-booting #app {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+      html.app-ready #app {
+        opacity: 1;
+        visibility: visible;
+        transition: opacity 0.22s ease;
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=Instrument+Serif:ital@0;1&family=Ma+Shan+Zheng&family=Noto+Sans+SC:wght@400;500;600;700;900&family=Noto+Serif+SC:wght@600;700&family=Quicksand:wght@500;600;700&family=ZCOOL+QingKe+HuangYou&family=ZCOOL+XiaoWei&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <div id="app">
+      <header class="topbar">
+        <div class="brand">
+          <img
+            class="brand-mark"
+            id="appBrandIcon"
+            src="/brand-avatar.png"
+            width="42"
+            height="42"
+            alt=""
+            draggable="false"
+          />
+          <div class="brand-text">
+            <p class="brand-eyebrow">兴趣小组 · 第 1 期</p>
+            <div class="brand-title-row">
+              <h1 id="appBrandTitle">小黄的教室</h1>
+              <button
+                type="button"
+                class="subject-chip"
+                id="btnSubjectChip"
+                hidden
+                aria-label="当前学科"
+              >
+                化学
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="topbar-right">
+          <nav class="tabs" role="tablist">
+            <button class="tab active" data-tab="table" data-classroom="chemistry" role="tab" aria-selected="true">
+              元素周期表
+            </button>
+            <button class="tab" data-tab="molecule" data-classroom="chemistry" role="tab" aria-selected="false">
+              3D 分子
+            </button>
+            <button class="tab" data-tab="molar" data-classroom="chemistry" role="tab" aria-selected="false">
+              计算
+            </button>
+            <button class="tab" data-tab="electron" data-classroom="chemistry" role="tab" aria-selected="false">
+              电子排布
+            </button>
+            <button class="tab" data-tab="battle" data-classroom="chemistry" role="tab" aria-selected="false">
+              元素乱斗
+            </button>
+            <button class="tab" data-tab="ai" data-classroom="chemistry" role="tab" aria-selected="false">
+              课堂
+            </button>
+          </nav>
+          <button
+            type="button"
+            class="btn-settings"
+            id="btnSettings"
+            title="设置"
+            aria-label="打开设置"
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path
+                d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"
+                stroke="currentColor"
+                stroke-width="1.8"
+              />
+              <path
+                d="M19.4 13a7.7 7.7 0 0 0 .05-2l2.05-1.6-2-3.46-2.45.95a7.6 7.6 0 0 0-1.73-1L15 3h-6l-.32 2.89a7.6 7.6 0 0 0-1.73 1L4.5 5.94l-2 3.46L4.55 11a7.7 7.7 0 0 0 0 2l-2.05 1.6 2 3.46 2.45-.95a7.6 7.6 0 0 0 1.73 1L9 21h6l.32-2.89a7.6 7.6 0 0 0 1.73-1l2.45.95 2-3.46L19.4 13Z"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+              />
+            </svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- 设置：右侧抽屉 -->
+      <div class="settings-backdrop" id="settingsBackdrop" aria-hidden="true"></div>
+      <aside
+        class="settings-drawer"
+        id="settingsDrawer"
+        aria-hidden="true"
+        aria-labelledby="settingsTitle"
+        role="dialog"
+      >
+        <div class="settings-drawer-head">
+          <div class="settings-drawer-head-start">
+            <h2 id="settingsTitle">设置</h2>
+            <button type="button" class="btn ghost settings-hub-btn" id="btnSettingsSubjectHub">
+              学科大厅
+            </button>
+          </div>
+          <button type="button" class="settings-close" id="btnSettingsClose" aria-label="关闭设置">
+            ×
+          </button>
+        </div>
+        <div class="settings-drawer-body">
+          <section class="settings-section" id="settingsThemeSection">
+            <h3 class="settings-section-title">外观</h3>
+            <div class="settings-block">
+              <h4>主题</h4>
+              <p class="settings-hint">全应用统一风格；在大厅与各学科教室中同步生效。</p>
+              <div class="theme-picker" id="themePicker" role="radiogroup" aria-label="界面主题">
+                <!-- 由 settings.js 根据 theme/catalog 填充 -->
+              </div>
+              <p class="settings-status" id="themeStatus" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <section class="settings-section" id="settingsSubjectSection" hidden>
+            <h3 class="settings-section-title">本学科</h3>
+
+            <div class="settings-block" id="settingsBrandBlock">
+              <h4>标识</h4>
+              <p class="settings-hint">图片不超过 500KB（PNG / JPG / WebP / GIF）。</p>
+              <div class="brand-settings-row">
+                <div class="brand-icon-preview-wrap">
+                  <img
+                    id="brandIconPreview"
+                    class="brand-icon-preview"
+                    src="/brand-avatar.png"
+                    alt="图标预览"
+                  />
+                  <label class="btn ghost brand-upload-label">
+                    选择图片
+                    <input
+                      type="file"
+                      id="brandIconInput"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      hidden
+                    />
+                  </label>
+                </div>
+                <label class="field brand-title-field">
+                  <span>标题文字</span>
+                  <input
+                    type="text"
+                    id="brandTitleInput"
+                    maxlength="32"
+                    autocomplete="off"
+                    spellcheck="false"
+                  />
+                </label>
+              </div>
+              <div class="settings-actions">
+                <button type="button" class="btn primary" id="btnSaveBrand">保存标识</button>
+                <button type="button" class="btn ghost" id="btnResetBrand">恢复默认</button>
+              </div>
+              <p class="settings-status" id="brandStatus" aria-live="polite"></p>
+            </div>
+
+            <div class="settings-block settings-block-compact" id="settingsDefaultPageBlock" hidden>
+              <h4>默认页</h4>
+              <p class="settings-hint">进入本学科教室时首先打开的 Tab。</p>
+              <label class="field field-compact">
+                <select id="settingDefaultPage" aria-label="默认页"></select>
+              </label>
+              <p class="settings-status" id="defaultPageStatus" aria-live="polite"></p>
+            </div>
+          </section>
+
+          <section class="settings-section" id="settingsAiSection" hidden>
+            <h3 class="settings-section-title">AI</h3>
+            <div class="settings-block">
+              <h4>模型 API</h4>
+              <label class="field">
+                <span>API Base URL</span>
+                <input
+                  type="url"
+                  id="aiApiBase"
+                  placeholder="https://api.deepseek.com"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+              <label class="field">
+                <span>API Key</span>
+                <input
+                  type="text"
+                  id="aiApiKey"
+                  placeholder="sk-…"
+                  autocomplete="off"
+                  spellcheck="false"
+                />
+              </label>
+              <label class="field">
+                <span>模型</span>
+                <select id="aiModel">
+                  <option value="deepseek-v4-flash">deepseek-v4-flash（默认）</option>
+                  <option value="deepseek-v4-pro">deepseek-v4-pro</option>
+                </select>
+              </label>
+              <div class="settings-actions">
+                <button type="button" class="btn primary" id="btnSaveAi">保存 AI 设置</button>
+              </div>
+              <p class="settings-status" id="aiStatus" aria-live="polite"></p>
+            </div>
+          </section>
+        </div>
+      </aside>
+
+      <div id="lab-chemistry-chrome" class="lab-chemistry-chrome" hidden></div>
+
+      <main>
+        <!-- 学科大厅（一级导航 · 3D 书场） -->
+        <section
+          id="subjectHub"
+          class="subject-hub"
+          aria-label="学科大厅"
+          aria-hidden="false"
+        >
+          <div class="bookshelf-stage" id="bookshelfStage">
+            <div class="bookshelf-hero-word" aria-hidden="true"><span>小黄的教室</span></div>
+            <canvas id="bookshelfGl" class="bookshelf-gl" aria-label="学科书场"></canvas>
+
+            <button type="button" id="bookshelfClose" class="bookshelf-close" aria-label="关闭学科详情">
+              ✕
+            </button>
+
+            <aside class="bookshelf-detail" id="bookshelfDetail" aria-live="polite">
+              <p class="bookshelf-detail-en" data-dp-en></p>
+              <h2 class="bookshelf-detail-title" data-dp-title></h2>
+              <p class="bookshelf-detail-desc" data-dp-desc></p>
+              <div class="bookshelf-detail-meta">
+                <span class="bookshelf-detail-status" data-dp-status></span>
+                <span class="bookshelf-detail-sep" aria-hidden="true"></span>
+                <span data-dp-modules></span>
+                <span class="bookshelf-detail-sep" aria-hidden="true"></span>
+                <span class="bookshelf-detail-tagline" data-dp-tagline></span>
+              </div>
+              <div class="bookshelf-detail-rule" aria-hidden="true"></div>
+              <div class="bookshelf-detail-actions">
+                <button type="button" class="bookshelf-enter" id="bookshelfEnter" hidden>进入教室</button>
+                <button type="button" class="bookshelf-peek" id="bookshelfPeek">返回大厅</button>
+              </div>
+              <p class="bookshelf-lock" id="bookshelfLock" hidden>该学科教室还在装修，先逛逛化学吧。</p>
+            </aside>
+          </div>
+        </section>
+
+        <!-- 进教室翻页层（独立于大厅，切 lab 后仍盖住直至淡出） -->
+        <div id="bookshelfPageFx" class="bookshelf-page-fx" aria-hidden="true"></div>
+
+        <!-- 非化学学科：教室首页壳（无 Tab） -->
+        <section id="panel-subject-home" class="panel subject-classroom-panel" role="tabpanel" hidden>
+          <div class="subject-home">
+            <p class="subject-home-en" data-subject-home-en></p>
+            <h2 class="subject-home-title" data-subject-home-title>教室</h2>
+            <p class="subject-home-desc" data-subject-home-desc></p>
+            <p class="subject-home-modules">
+              <strong>规划模块</strong>
+              <span data-subject-home-modules></span>
+            </p>
+            <span class="subject-home-badge">首页已开放 · 内容筹备中</span>
+          </div>
+        </section>
+
+        <div id="lab-panels-root" class="lab-panels-root" hidden></div>
+      </main>
+
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

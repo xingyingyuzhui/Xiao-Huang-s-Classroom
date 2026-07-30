@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { BUILTIN_MOLECULES } = require('../server/seed/builtin-molecules');
+const { BUILTIN_MOLECULES } = require('../apps/server/src/seed/builtin-molecules');
 
 test('every built-in molecule includes physical and chemical property data', () => {
   for (const molecule of BUILTIN_MOLECULES) {

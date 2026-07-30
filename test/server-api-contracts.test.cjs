@@ -4,14 +4,14 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { app } = require('../server');
+const { app } = require('../apps/server/src');
 const {
   initDatabase,
   closeDatabase,
   queryOne,
   run,
-} = require('../server/db/sqlite');
-const { storeQuizPaper } = require('../server/utils/quiz-paper-store');
+} = require('../apps/server/src/db/sqlite');
+const { storeQuizPaper } = require('../apps/server/src/utils/quiz-paper-store');
 
 async function withApiServer(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-api-test-'));
@@ -72,16 +72,20 @@ test('quiz session uses the server paper answer instead of a tampered client ans
   });
 });
 
-test('settings API masks a stored AI key', async () => {
+test('settings API masks a stored AI key per subject', async () => {
   await withApiServer(async (baseUrl) => {
     run(
       'INSERT INTO settings (key, value) VALUES (?, ?)',
       [
-        'ai',
+        'subjectSettings',
         JSON.stringify({
-          apiBase: 'https://api.deepseek.com',
-          apiKey: 'sk-secret-value',
-          model: 'deepseek-v4-flash',
+          chemistry: {
+            ai: {
+              apiBase: 'https://api.deepseek.com',
+              apiKey: 'sk-secret-value',
+              model: 'deepseek-v4-flash',
+            },
+          },
         }),
       ],
     );
@@ -90,7 +94,7 @@ test('settings API masks a stored AI key', async () => {
     const payload = await response.json();
 
     assert.equal(payload.success, true);
-    assert.equal(payload.data.ai.apiKey, 'sk-s***ue');
-    assert.notEqual(payload.data.ai.apiKey, 'sk-secret-value');
+    assert.equal(payload.data.subjectSettings.chemistry.ai.apiKey, 'sk-s***ue');
+    assert.notEqual(payload.data.subjectSettings.chemistry.ai.apiKey, 'sk-secret-value');
   });
 });

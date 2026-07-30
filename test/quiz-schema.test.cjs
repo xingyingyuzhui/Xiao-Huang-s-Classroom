@@ -10,8 +10,8 @@ const {
   initDatabase,
   closeDatabase,
   query,
-} = require('../server/db/sqlite');
-const { ensureQuizSchema } = require('../server/db/ensure-quiz-schema');
+} = require('../apps/server/src/db/sqlite');
+const { ensureQuizSchema } = require('../apps/server/src/db/ensure-quiz-schema');
 
 async function withTempDb(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-quiz-schema-'));

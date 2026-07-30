@@ -4,9 +4,9 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { app } = require('../server');
-const { initDatabase, closeDatabase } = require('../server/db/sqlite');
-const { BALANCE_BUILTIN } = require('../server/seed/balance-builtin');
+const { app } = require('../apps/server/src');
+const { initDatabase, closeDatabase } = require('../apps/server/src/db/sqlite');
+const { BALANCE_BUILTIN } = require('../apps/server/src/seed/balance-builtin');
 
 async function withApiServer(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-balance-'));
@@ -326,7 +326,7 @@ test('builtin methane step 2 is set_coef with valid focus (not pure explain)', a
 test('builtin seed resyncs source=builtin content on load', async () => {
   await withApiServer(async (baseUrl) => {
     // 直接改库里的 builtin 步骤为错误 explain-only 第二步，再 list 触发 seed 同步
-    const { initDatabase, closeDatabase, run, queryOne } = require('../server/db/sqlite');
+    const { initDatabase, closeDatabase, run, queryOne } = require('../apps/server/src/db/sqlite');
     // API server already has DB; mutate via SQL through a second connection is hard.
     // Instead: reset then verify structure; and put marks custom not overwritten is covered above.
     const ch4 = await (await fetch(`${baseUrl}/api/balance-scripts/bal-ch4`)).json();

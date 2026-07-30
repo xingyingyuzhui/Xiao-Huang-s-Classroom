@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 const {
   requestChatCompletion,
-} = require('../server/services/ai/chat-client');
+} = require('../apps/server/src/services/ai/chat-client');
 
 test('AI client aborts an unresponsive provider request with a timeout error', async () => {
   await assert.rejects(

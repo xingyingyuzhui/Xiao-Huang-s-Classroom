@@ -4,7 +4,7 @@ const { pathToFileURL } = require('node:url');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const battleRoot = path.join(__dirname, '..', 'src', 'battle');
+const battleRoot = path.join(__dirname, '..', 'apps/web/src/chemistry/battle');
 
 test('UI layer receives battle actions through the entry point instead of importing them', () => {
   const uiSource = fs.readFileSync(path.join(battleRoot, 'ui.js'), 'utf8');

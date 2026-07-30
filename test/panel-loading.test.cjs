@@ -60,7 +60,7 @@ function createMockPanel() {
 }
 
 test('layout CSS: panel-loading is absolute overlay (does not steal grid rows)', () => {
-  const css = source('src/styles/_layout.css');
+  const css = source('apps/web/src/shared/styles/_layout.css');
   // 取出 .panel-loading { ... } 主体（不含 [hidden] 规则）
   const block = css.match(/\.panel-loading\s*\{([^}]+)\}/);
   assert.ok(block, '.panel-loading rule must exist');
@@ -72,7 +72,7 @@ test('layout CSS: panel-loading is absolute overlay (does not steal grid rows)',
 });
 
 test('layout CSS: panel-loading[hidden] forces display none !important', () => {
-  const css = source('src/styles/_layout.css');
+  const css = source('apps/web/src/shared/styles/_layout.css');
   // 作者 display:flex 会压过 UA [hidden]；必须有配套规则
   assert.match(
     css,
@@ -86,7 +86,7 @@ test('layout CSS: panel-loading[hidden] forces display none !important', () => {
 });
 
 test('layout CSS is imported into styles entry', () => {
-  const index = source('src/styles/index.css');
+  const index = source('apps/web/src/shared/styles/index.css');
   assert.match(index, /@import\s+['"]\.\/_layout\.css['"]/);
 });
 
@@ -96,7 +96,7 @@ test('panel-loading helpers: show then hide sets hidden and keeps one node', asy
     hidePanelLoading,
     PANEL_LOADING_CLASS,
     PANEL_LOADING_ATTR,
-  } = await import('../src/panel-loading.js');
+  } = await import('../apps/web/src/app/panel-loading.js');
 
   const panel = createMockPanel();
   const a = showPanelLoading(panel);
@@ -117,7 +117,7 @@ test('panel-loading helpers: show then hide sets hidden and keeps one node', asy
 
 test('panel-loading helpers: error shows message; hide after error keeps failure text until next show', async () => {
   const { showPanelLoading, hidePanelLoading, showPanelError } = await import(
-    '../src/panel-loading.js'
+    '../apps/web/src/app/panel-loading.js'
   );
   const panel = createMockPanel();
   showPanelError(panel, '网络错误');
@@ -138,40 +138,66 @@ test('panel-loading helpers: error shows message; hide after error keeps failure
 
 test('panel-loading helpers: null panel is no-op', async () => {
   const { showPanelLoading, hidePanelLoading, showPanelError } = await import(
-    '../src/panel-loading.js'
+    '../apps/web/src/app/panel-loading.js'
   );
   assert.equal(showPanelLoading(null), null);
   assert.doesNotThrow(() => hidePanelLoading(null));
   assert.equal(showPanelError(undefined, 'x'), null);
 });
 
-test('main.js wires panel-loading module and always hides after successful load', () => {
-  const main = source('src/main.js');
-  assert.match(main, /from ['"]\.\/panel-loading\.js['"]/);
+test('chemistry classroom wires panel-loading and always hides after successful load', () => {
+  const main = source('apps/web/src/subjects/classrooms/tabbed-classroom.js');
+  assert.match(main, /panel-loading\.js/);
   assert.match(main, /showPanelLoading/);
   assert.match(main, /hidePanelLoading/);
   assert.match(main, /showPanelError/);
-  // 成功路径与过期取消路径都必须 hide（防占位残留）
-  const runFeature = main.match(/async function runFeatureLoad[\s\S]*?(?=\n\/\/ ──|\nasync function|\nfunction ensure)/);
+  const runFeature = main.match(/async function runFeatureLoad[\s\S]*?(?=\n  async function|\n  function)/);
   assert.ok(runFeature, 'runFeatureLoad must exist');
   const body = runFeature[0];
   const hideCount = (body.match(/hidePanelLoading/g) || []).length;
   assert.ok(hideCount >= 3, `runFeatureLoad should call hide on success/stale/stale-error (got ${hideCount})`);
-  // 过期保护用 switchSeq，不用 loader 全局 isStale
   assert.doesNotMatch(main, /loader\.isStale/);
   assert.match(main, /mySeq\s*!==\s*switchSeq/);
 });
 
-test('main.js lazy features go through runFeatureLoad (loading lifecycle)', () => {
-  const main = source('src/main.js');
+test('chemistry classroom lazy features go through runFeatureLoad (loading lifecycle)', () => {
+  const main = source('apps/web/src/subjects/classrooms/chemistry-classroom.js');
+  const tabbed = source('apps/web/src/subjects/classrooms/tabbed-classroom.js');
+  assert.match(tabbed, /async function runFeatureLoad/);
   for (const name of ['molecule', 'electron', 'ai', 'battle']) {
-    // 对应 panel key 会进 runFeatureLoad
     assert.match(
       main,
       new RegExp(`runFeatureLoad\\(\\s*['"]${name === 'ai' ? 'ai' : name}['"]`),
       `${name} tab should use runFeatureLoad`,
     );
   }
+});
+
+test('settings drawer splits hub vs lab sections', () => {
+  const html = fs.readFileSync(path.join(root, 'apps/web/index.html'), 'utf8');
+  assert.match(html, /id="settingsDefaultPageBlock"/);
+  assert.match(html, /id="settingsAiSection"/);
+  const settings = fs.readFileSync(
+    path.join(root, 'apps/web/src/shared/ui/settings.js'),
+    'utf8',
+  );
+  assert.match(settings, /setContext/);
+  assert.match(settings, /syncSettingsSections/);
+  assert.match(settings, /subjectSettings/);
+  assert.match(settings, /applyHubBrand/);
+  assert.match(settings, /applySubjectBrand/);
+});
+
+test('tabbed classroom factory exists for multi-tab subjects', () => {
+  assert.ok(
+    fs.existsSync(path.join(root, 'apps/web/src/subjects/classrooms/tabbed-classroom.js')),
+  );
+  const tabbed = fs.readFileSync(
+    path.join(root, 'apps/web/src/subjects/classrooms/tabbed-classroom.js'),
+    'utf8',
+  );
+  assert.match(tabbed, /export function createTabbedClassroom/);
+  assert.match(tabbed, /defaultPageOptions/);
 });
 
 /**
@@ -191,7 +217,7 @@ test('CSS contract detector rejects flex-only loading without hidden override', 
   assert.equal(hasHiddenOverride, false);
   assert.equal(usesGridSteal, true);
 
-  const good = source('src/styles/_layout.css');
+  const good = source('apps/web/src/shared/styles/_layout.css');
   assert.equal(
     /\.panel-loading\[hidden\]\s*\{[^}]*display\s*:\s*none\s*!important/i.test(good),
     true,

@@ -4,13 +4,13 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { app } = require('../server');
+const { app } = require('../apps/server/src');
 const {
   initDatabase,
   closeDatabase,
   query,
   queryOne,
-} = require('../server/db/sqlite');
+} = require('../apps/server/src/db/sqlite');
 
 async function withApiServer(fn) {
   const dir = fs.mkdtempSync(
@@ -37,7 +37,7 @@ async function withApiServer(fn) {
 
 // T1: bank schema — every question has the required source metadata fields
 test('offline quiz bank has source metadata on every question', () => {
-  const { OFFLINE_QUESTIONS } = require('../server/seed/offline-quiz-bank');
+  const { OFFLINE_QUESTIONS } = require('../apps/server/src/seed/offline-quiz-bank');
   assert.ok(
     OFFLINE_QUESTIONS.length >= 200,
     'bank must contain at least 200 questions',
@@ -57,7 +57,7 @@ test('offline quiz bank has source metadata on every question', () => {
 
 // T1b: bank contains questions with HTML table stems (tabular conversion)
 test('offline quiz bank contains HTML table stems for tabular questions', () => {
-  const { OFFLINE_QUESTIONS } = require('../server/seed/offline-quiz-bank');
+  const { OFFLINE_QUESTIONS } = require('../apps/server/src/seed/offline-quiz-bank');
   const withTable = OFFLINE_QUESTIONS.filter(q => q.stem.includes('<table'));
   assert.ok(withTable.length >= 20, 'should have at least 20 table questions');
   for (const q of withTable) {
@@ -69,8 +69,8 @@ test('offline quiz bank contains HTML table stems for tabular questions', () => 
 
 // T1c: ESM source and CJS seed have identical question data
 test('offline quiz ESM source and CJS seed are in sync', async () => {
-  const { OFFLINE_QUESTIONS: esmQuestions } = await import('../src/data/offline-quiz-bank.js');
-  const { OFFLINE_QUESTIONS: cjsQuestions } = require('../server/seed/offline-quiz-bank');
+  const { OFFLINE_QUESTIONS: esmQuestions } = await import('../apps/web/src/chemistry/data/offline-quiz-bank.js');
+  const { OFFLINE_QUESTIONS: cjsQuestions } = require('../apps/server/src/seed/offline-quiz-bank');
 
   assert.equal(esmQuestions.length, cjsQuestions.length, 'ESM and CJS must have same question count');
 

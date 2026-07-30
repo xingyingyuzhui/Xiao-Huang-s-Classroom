@@ -10,25 +10,25 @@ const {
   query,
   queryOne,
   run,
-} = require('../server/db/sqlite');
+} = require('../apps/server/src/db/sqlite');
 const {
   BUILTIN_MOLECULES,
-} = require('../server/seed/builtin-molecules');
+} = require('../apps/server/src/seed/builtin-molecules');
 const {
   syncBuiltinMolecules,
-} = require('../server/seed/import-builtin');
+} = require('../apps/server/src/seed/import-builtin');
 const {
   reserveGlobalAiCall,
   releaseGlobalAiCall,
-} = require('../server/utils/ai-rate-limit');
+} = require('../apps/server/src/utils/ai-rate-limit');
 const {
   tryReserveAiCall,
   releaseAiCall,
-} = require('../server/utils/chem-tips');
+} = require('../apps/server/src/utils/chem-tips');
 const {
   reserveCall: reserveQuizAssistCall,
   releaseCall: releaseQuizAssistCall,
-} = require('../server/utils/quiz-assist-limit');
+} = require('../apps/server/src/utils/quiz-assist-limit');
 
 async function withTempDatabase(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-test-'));

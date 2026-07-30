@@ -31,20 +31,19 @@ test('stage-electron-server COPY_DIRS includes services (Win 秒退根因)', () 
 });
 
 test('server AI routes require services that exist on disk', () => {
-  const servicesRoot = path.join(root, 'server', 'services');
-  assert.ok(fs.existsSync(servicesRoot), 'server/services must exist');
+  const servicesRoot = path.join(root, 'apps', 'server', 'src', 'services');
+  assert.ok(fs.existsSync(servicesRoot), 'apps/server/src/services must exist');
 
   const required = [
-    'server/services/ai/chat-service.js',
-    'server/services/ai/response-parser.js',
-    'server/services/ai/chat-client.js',
+    'apps/server/src/services/ai/chat-service.js',
+    'apps/server/src/services/ai/response-parser.js',
+    'apps/server/src/services/ai/chat-client.js',
   ];
   for (const rel of required) {
     assert.ok(fs.existsSync(path.join(root, rel)), `missing ${rel}`);
   }
 
-  // 路由里引用 services 时，路径必须落在 COPY_DIRS 会拷贝的目录
-  const routesDir = path.join(root, 'server', 'routes');
+  const routesDir = path.join(root, 'apps', 'server', 'src', 'routes');
   /** @type {string[]} */
   const hits = [];
   function walk(dir) {
@@ -83,7 +82,7 @@ test('stage script runs require smoke check after copy', () => {
 });
 
 test('electron main shows dialog on bootstrap failure (no silent quit only)', () => {
-  const main = source('electron/main.cjs');
+  const main = source('apps/desktop/main.cjs');
   assert.match(main, /dialog/);
   assert.match(main, /showMessageBox|showErrorBox/);
   assert.match(main, /启动失败/);

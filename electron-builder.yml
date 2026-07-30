@@ -10,11 +10,11 @@ artifactName: XiaoHuang-Classroom-${version}-${os}-${arch}.${ext}
 
 directories:
   output: dist-electron
-  buildResources: electron/build
+  buildResources: apps/desktop/resources
 
 files:
-  - electron/main.cjs
-  - electron/build/icon.png
+  - apps/desktop/main.cjs
+  - apps/desktop/package.json
   - package.json
 
 extraResources:
@@ -30,20 +30,17 @@ electronLanguages:
 
 npmRebuild: false
 
-# 安装包 / exe / 快捷方式图标（electron/build 下 icon.ico / icon.icns / icon.png）
-icon: icon.png
+icon: icons/icon.png
 
 win:
-  icon: icon.ico
+  icon: icons/icon.ico
   target:
-    # NSIS 安装包（在 mac 上打包通常需要 Wine）
-    - target: nsis
-      arch:
-        - x64
-    # 免安装便携包（mac 上更稳，可直接拷给 Windows 试用）
-    - target: portable
-      arch:
-        - x64
+  - target: nsis
+    arch:
+      - x64
+  - target: portable
+    arch:
+      - x64
 
 nsis:
   oneClick: true
@@ -63,7 +60,7 @@ portable:
   artifactName: XiaoHuang-ChemLab-Portable-${version}.${ext}
 
 mac:
-  icon: icon.icns
+  icon: icons/icon.icns
   target:
     - target: dmg
       arch:

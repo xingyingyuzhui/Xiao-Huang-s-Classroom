@@ -5,7 +5,7 @@ const { pathToFileURL } = require('node:url');
 
 const root = path.join(__dirname, '..');
 const controllerUrl = pathToFileURL(
-  path.join(root, 'src/subjects/bookshelf/transition-controller.js'),
+  path.join(root, 'apps/web/src/subjects/bookshelf/transition-controller.js'),
 ).href;
 
 function createFakeClock() {

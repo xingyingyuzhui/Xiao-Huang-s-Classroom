@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 test('feature loader: same feature only loads factory once', async () => {
-  const { createFeatureLoader } = await import('../src/feature-loader.js');
+  const { createFeatureLoader } = await import('../apps/web/src/app/feature-loader.js');
   const loader = createFeatureLoader();
   let callCount = 0;
 
@@ -22,7 +22,7 @@ test('feature loader: same feature only loads factory once', async () => {
 });
 
 test('feature loader: different features load independently', async () => {
-  const { createFeatureLoader } = await import('../src/feature-loader.js');
+  const { createFeatureLoader } = await import('../apps/web/src/app/feature-loader.js');
   const loader = createFeatureLoader();
   let molCount = 0;
   let elecCount = 0;
@@ -37,7 +37,7 @@ test('feature loader: different features load independently', async () => {
 });
 
 test('feature loader: re-enter after other feature still returns cache (not false-stale)', async () => {
-  const { createFeatureLoader } = await import('../src/feature-loader.js');
+  const { createFeatureLoader } = await import('../apps/web/src/app/feature-loader.js');
   const loader = createFeatureLoader();
   let molFactory = 0;
   let classFactory = 0;
@@ -82,7 +82,7 @@ test('feature loader: re-enter after other feature still returns cache (not fals
 });
 
 test('feature loader: rapid tab switch discards stale activation via switchSeq', async () => {
-  const { createFeatureLoader } = await import('../src/feature-loader.js');
+  const { createFeatureLoader } = await import('../apps/web/src/app/feature-loader.js');
   const loader = createFeatureLoader();
   let switchSeq = 0;
   const started = [];
@@ -109,7 +109,7 @@ test('feature loader: rapid tab switch discards stale activation via switchSeq',
 });
 
 test('feature loader: failed load allows retry', async () => {
-  const { createFeatureLoader } = await import('../src/feature-loader.js');
+  const { createFeatureLoader } = await import('../apps/web/src/app/feature-loader.js');
   const loader = createFeatureLoader();
   let attempts = 0;
 
@@ -133,7 +133,7 @@ test('feature loader: failed load allows retry', async () => {
 });
 
 test('feature loader: concurrent loads for same feature share promise', async () => {
-  const { createFeatureLoader } = await import('../src/feature-loader.js');
+  const { createFeatureLoader } = await import('../apps/web/src/app/feature-loader.js');
   const loader = createFeatureLoader();
   let callCount = 0;
 
@@ -158,12 +158,12 @@ test('feature loader: concurrent loads for same feature share promise', async ()
  * （对应课堂交卷后仍见「加载中」的根因：加载结束未真正 hide）
  */
 test('runFeatureLoad-like lifecycle always hides overlay after success or cancel', async () => {
-  const { createFeatureLoader } = await import('../src/feature-loader.js');
+  const { createFeatureLoader } = await import('../apps/web/src/app/feature-loader.js');
   const {
     showPanelLoading,
     hidePanelLoading,
     showPanelError,
-  } = await import('../src/panel-loading.js');
+  } = await import('../apps/web/src/app/panel-loading.js');
 
   function createMockPanel() {
     const nodes = [];

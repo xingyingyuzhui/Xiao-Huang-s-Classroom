@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { app } = require('../server');
+const { app } = require('../apps/server/src');
 
 test('HTTP responses do not expose Express and include baseline browser protections', async () => {
   const server = app.listen(0, '127.0.0.1');

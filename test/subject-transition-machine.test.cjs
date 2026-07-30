@@ -5,7 +5,7 @@ const { pathToFileURL } = require('node:url');
 
 const root = path.join(__dirname, '..');
 const machineUrl = pathToFileURL(
-  path.join(root, 'src/subjects/bookshelf/transition-machine.js'),
+  path.join(root, 'apps/web/src/subjects/bookshelf/transition-machine.js'),
 ).href;
 
 /**

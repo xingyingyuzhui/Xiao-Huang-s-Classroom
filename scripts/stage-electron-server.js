@@ -1,7 +1,5 @@
 /**
  * 为 Electron 打包准备精简版 server 目录（.electron-stage/server）
- * - 只装 production 依赖（不含 pkg）
- * - sql.js 只保留 sql-asm.js（我们实际加载的那一个）
  */
 import { cpSync, mkdirSync, rmSync, readdirSync, statSync, existsSync, writeFileSync, readFileSync } from 'fs';
 import { join, dirname } from 'path';
@@ -11,9 +9,9 @@ import { execSync } from 'child_process';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 const stageRoot = join(root, '.electron-stage');
 const stageServer = join(stageRoot, 'server');
-const srcServer = join(root, 'server');
+const srcServer = join(root, 'apps', 'server');
+const srcCode = join(srcServer, 'src');
 
-// services：AI 路由顶层 require，漏拷会导致 Electron 安装后进程秒退
 const COPY_DIRS = ['db', 'routes', 'seed', 'utils', 'services', 'public'];
 const COPY_FILES = ['index.js', 'paths.js'];
 
@@ -31,18 +29,28 @@ rimraf(stageRoot);
 mkdirSync(stageServer, { recursive: true });
 
 for (const f of COPY_FILES) {
-  copyFile(join(srcServer, f), join(stageServer, f));
+  copyFile(join(srcCode, f), join(stageServer, f));
 }
 for (const d of COPY_DIRS) {
-  const from = join(srcServer, d);
+  const from = join(srcCode, d);
   if (!existsSync(from)) {
+    const fromPublic = join(srcServer, d);
+    if (existsSync(fromPublic)) {
+      cpSync(fromPublic, join(stageServer, d), { recursive: true });
+      continue;
+    }
     console.warn('skip missing', d);
     continue;
   }
   cpSync(from, join(stageServer, d), { recursive: true });
 }
 
-// 精简 package.json：仅 production 依赖
+// public 在 apps/server 根目录
+const publicSrc = join(srcServer, 'public');
+if (existsSync(publicSrc)) {
+  cpSync(publicSrc, join(stageServer, 'public'), { recursive: true });
+}
+
 const pkg = JSON.parse(readFileSync(join(srcServer, 'package.json'), 'utf8'));
 const slim = {
   name: pkg.name,
@@ -59,7 +67,6 @@ execSync('npm install --omit=dev --no-audit --no-fund', {
   stdio: 'inherit',
 });
 
-// 砍掉 sql.js 无用产物
 const sqlDist = join(stageServer, 'node_modules', 'sql.js', 'dist');
 if (existsSync(sqlDist)) {
   for (const name of readdirSync(sqlDist)) {
@@ -69,7 +76,6 @@ if (existsSync(sqlDist)) {
   console.log('sql.js dist kept: sql-asm.js only');
 }
 
-// 去掉常见文档/测试（二次保险）
 function pruneJunk(dir, depth = 0) {
   if (depth > 8 || !existsSync(dir)) return;
   let entries;
@@ -115,7 +121,6 @@ function du(p) {
   }
 }
 
-// 冒烟：能 require 入口（捕获漏拷 services 等导致 Electron 秒退）
 try {
   const entry = join(stageServer, 'index.js');
   const smoke = [

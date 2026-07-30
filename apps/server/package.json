@@ -1,0 +1,41 @@
+{
+  "name": "@xiaohuang/server",
+  "version": "0.0.1",
+  "description": "小黄的教室后端",
+  "main": "src/index.js",
+  "bin": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "build:frontend": "npm run build -w @xiaohuang/web && node scripts/copy-frontend.js",
+    "build:exe": "npm run build:frontend && node scripts/pkg-win.js",
+    "pkg:win": "pkg . --targets node18-win-x64 --output ../dist-exe/XiaoHuang-ChemLab.exe"
+  },
+  "dependencies": {
+    "@xiaohuang/subject-settings": "0.0.1",
+    "sql.js": "^1.10.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "scripts": [
+      "src/routes/**/*.js",
+      "src/services/**/*.js",
+      "src/utils/**/*.js",
+      "src/db/**/*.js",
+      "src/seed/**/*.js",
+      "src/paths.js"
+    ],
+    "assets": [
+      "src/db/init.sql",
+      "public/**/*"
+    ],
+    "targets": [
+      "node18-win-x64"
+    ],
+    "outputPath": "../dist-exe"
+  }
+}

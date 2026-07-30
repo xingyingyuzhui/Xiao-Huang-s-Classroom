@@ -1,10 +1,8 @@
 /**
  * Sync offline quiz bank: ESM source → CJS seed
  *
- * Source of truth: src/data/offline-quiz-bank.js (ESM)
- * Generated target: server/seed/offline-quiz-bank.js (CJS)
- *
- * Run: node scripts/sync-offline-quiz-bank.mjs
+ * Source of truth: apps/web/src/chemistry/data/offline-quiz-bank.js (ESM)
+ * Generated target: apps/server/src/seed/offline-quiz-bank.js (CJS)
  */
 
 import { writeFileSync, readFileSync } from 'node:fs';
@@ -14,16 +12,14 @@ import { fileURLToPath } from 'node:url';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
 
-const SRC_PATH = resolve(ROOT, 'src/data/offline-quiz-bank.js');
-const SEED_PATH = resolve(ROOT, 'server/seed/offline-quiz-bank.js');
+const SRC_PATH = resolve(ROOT, 'apps/web/src/chemistry/data/offline-quiz-bank.js');
+const SEED_PATH = resolve(ROOT, 'apps/server/src/seed/offline-quiz-bank.js');
 
-// Dynamic import the ESM source
 const src = await import(SRC_PATH);
 const questions = src.OFFLINE_QUESTIONS;
 
-// Build CJS content
 const lines = [
-  '/** CJS seed data — auto-generated from src/data/offline-quiz-bank.js, do not hand-edit */',
+  '/** CJS seed data — auto-generated from chemistry/data/offline-quiz-bank.js, do not hand-edit */',
   '',
   'const OFFLINE_QUESTIONS = ' + JSON.stringify(questions, null, 2) + ';',
   '',
@@ -33,7 +29,6 @@ const lines = [
 
 const cjsContent = lines.join('\n');
 
-// Check if seed already matches
 let existing = '';
 try {
   existing = readFileSync(SEED_PATH, 'utf-8');

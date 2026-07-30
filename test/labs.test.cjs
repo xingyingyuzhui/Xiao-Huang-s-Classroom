@@ -4,9 +4,9 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { app } = require('../server');
-const { initDatabase, closeDatabase } = require('../server/db/sqlite');
-const { LABS_BUILTIN } = require('../server/seed/labs-builtin');
+const { app } = require('../apps/server/src');
+const { initDatabase, closeDatabase } = require('../apps/server/src/db/sqlite');
+const { LABS_BUILTIN } = require('../apps/server/src/seed/labs-builtin');
 
 async function withApiServer(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-labs-'));
@@ -256,7 +256,7 @@ test('labs seed fills missing builtins without overwriting custom', async () => 
 });
 
 test('lab-schema unit rejects empty predict placeholders', () => {
-  const { validateLab, validatePredict } = require('../server/utils/lab-schema');
+  const { validateLab, validatePredict } = require('../apps/server/src/utils/lab-schema');
   assert.equal(validatePredict({ question: '', options: ['a', 'b', 'c', 'd'], answer: 0 }).ok, false);
   assert.equal(
     validatePredict({ question: 'q', options: ['a', 'b', 'c', ''], answer: 0 }).ok,

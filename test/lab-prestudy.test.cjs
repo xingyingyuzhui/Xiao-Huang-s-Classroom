@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 test('lab prestudy config has valid structure for configured experiments', async () => {
   // Dynamic import for ESM module
   const { getPrestudyConfig, LAB_PRESTUDY_CONFIGS } = await import(
-    '../src/data/lab-prestudy-config.js'
+    '../apps/web/src/chemistry/data/lab-prestudy-config.js'
   );
 
   // At least 2 experiments should be configured
@@ -34,7 +34,7 @@ test('lab prestudy config has valid structure for configured experiments', async
 });
 
 test('getPrestudyConfig returns null for unconfigured experiments', async () => {
-  const { getPrestudyConfig } = await import('../src/data/lab-prestudy-config.js');
+  const { getPrestudyConfig } = await import('../apps/web/src/chemistry/data/lab-prestudy-config.js');
 
   assert.equal(getPrestudyConfig('nonexistent-lab'), null);
   assert.equal(getPrestudyConfig(''), null);
@@ -42,7 +42,7 @@ test('getPrestudyConfig returns null for unconfigured experiments', async () => 
 });
 
 test('getPrestudyConfig returns config for configured experiments', async () => {
-  const { getPrestudyConfig } = await import('../src/data/lab-prestudy-config.js');
+  const { getPrestudyConfig } = await import('../apps/web/src/chemistry/data/lab-prestudy-config.js');
 
   const o2Config = getPrestudyConfig('lab-o2');
   assert.ok(o2Config, 'lab-o2 should have config');
@@ -55,8 +55,8 @@ test('getPrestudyConfig returns config for configured experiments', async () => 
 });
 
 test('every lab script has a matching prestudy config', async () => {
-  const { LAB_PRESTUDY_CONFIGS } = await import('../src/data/lab-prestudy-config.js');
-  const { LAB_SCRIPTS } = await import('../src/data/lab-scripts.js');
+  const { LAB_PRESTUDY_CONFIGS } = await import('../apps/web/src/chemistry/data/lab-prestudy-config.js');
+  const { LAB_SCRIPTS } = await import('../apps/web/src/chemistry/data/lab-scripts.js');
 
   const configIds = Object.keys(LAB_PRESTUDY_CONFIGS);
   assert.equal(configIds.length, LAB_SCRIPTS.length, `expected all ${LAB_SCRIPTS.length} lab scripts to have configs, got ${configIds.length}`);
@@ -67,8 +67,8 @@ test('every lab script has a matching prestudy config', async () => {
 });
 
 test('all prestudy configs reference existing lab script IDs', async () => {
-  const { LAB_PRESTUDY_CONFIGS } = await import('../src/data/lab-prestudy-config.js');
-  const { LAB_SCRIPTS } = await import('../src/data/lab-scripts.js');
+  const { LAB_PRESTUDY_CONFIGS } = await import('../apps/web/src/chemistry/data/lab-prestudy-config.js');
+  const { LAB_SCRIPTS } = await import('../apps/web/src/chemistry/data/lab-scripts.js');
 
   const labIds = new Set(LAB_SCRIPTS.map((l) => l.id));
   for (const id of Object.keys(LAB_PRESTUDY_CONFIGS)) {

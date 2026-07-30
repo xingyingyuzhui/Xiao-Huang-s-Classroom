@@ -1,7 +1,7 @@
 /**
  * Sync lab seed: ESM data → CJS seed
- * Source: src/data/lab-scripts.js + lab-prestudy-config.js
- * Target: server/seed/labs-builtin.js
+ * Source: apps/web chemistry data modules
+ * Target: apps/server/src/seed/labs-builtin.js
  */
 import { writeFileSync, readFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
@@ -9,10 +9,11 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(__dirname, '..');
-const SEED_PATH = resolve(ROOT, 'server/seed/labs-builtin.js');
+const SEED_PATH = resolve(ROOT, 'apps/server/src/seed/labs-builtin.js');
+const DATA = resolve(ROOT, 'apps/web/src/chemistry/data');
 
-const { LAB_SCRIPTS } = await import(resolve(ROOT, 'src/data/lab-scripts.js'));
-const { LAB_PRESTUDY_CONFIGS } = await import(resolve(ROOT, 'src/data/lab-prestudy-config.js'));
+const { LAB_SCRIPTS } = await import(resolve(DATA, 'lab-scripts.js'));
+const { LAB_PRESTUDY_CONFIGS } = await import(resolve(DATA, 'lab-prestudy-config.js'));
 
 const labs = LAB_SCRIPTS.map((lab, i) => ({
   id: lab.id,
@@ -28,7 +29,7 @@ const labs = LAB_SCRIPTS.map((lab, i) => ({
 }));
 
 const cjsContent = [
-  '/** CJS seed — auto-generated from src/data/lab-scripts.js + lab-prestudy-config.js, do not hand-edit */',
+  '/** CJS seed — auto-generated from chemistry/data, do not hand-edit */',
   '',
   `const LABS_BUILTIN = ${JSON.stringify(labs, null, 2)};`,
   '',
@@ -47,4 +48,4 @@ if (existing === cjsContent) {
 }
 
 writeFileSync(SEED_PATH, cjsContent, 'utf-8');
-console.log(`✓ synced ${labs.length} labs → server/seed/labs-builtin.js`);
+console.log(`✓ synced ${labs.length} labs → apps/server/src/seed/labs-builtin.js`);

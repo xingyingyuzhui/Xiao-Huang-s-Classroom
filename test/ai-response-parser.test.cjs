@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const {
   parseModelJson,
   normalizeQuizQuestions,
-} = require('../server/services/ai/response-parser');
+} = require('../apps/server/src/services/ai/response-parser');
 
 test('AI response parser accepts fenced JSON with a trailing comma', () => {
   assert.deepEqual(

@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 test('chem text formatter renders source LaTex as safe chemical subscripts', async () => {
-  const { formatChemOption, formatChemPreview, formatChemText, formatChemStem } = await import('../src/ai-classroom/chem-text.js');
+  const { formatChemOption, formatChemPreview, formatChemText, formatChemStem } = await import('../apps/web/src/chemistry/ai-classroom/chem-text.js');
   assert.equal(formatChemText('设 $\\mathrm{H}_{3}\\mathrm{PO}_{4}$ 溶液'), '设 <span class="chem-math">H<sub>3</sub>PO<sub>4</sub></span> 溶液');
   assert.equal(formatChemOption('(A)$\\mathrm{OH}^{-}$'), '<span class="chem-math">OH<sup>-</sup></span>');
   assert.equal(formatChemText('$\\mathrm{A}\\rightleftharpoons\\mathrm{B}$'), '<span class="chem-math">A⇌B</span>');
@@ -38,8 +38,8 @@ test('chem text formatter renders source LaTex as safe chemical subscripts', asy
 });
 
 test('all offline question previews and question bodies contain no raw LaTex syntax', async () => {
-  const { OFFLINE_QUESTIONS } = await import('../src/data/offline-quiz-bank.js');
-  const { formatChemOption, formatChemPreview, formatChemStem } = await import('../src/ai-classroom/chem-text.js');
+  const { OFFLINE_QUESTIONS } = await import('../apps/web/src/chemistry/data/offline-quiz-bank.js');
+  const { formatChemOption, formatChemPreview, formatChemStem } = await import('../apps/web/src/chemistry/ai-classroom/chem-text.js');
   const rawSyntax = /\\|\$|(?:mathrm|text|frac|stackrel)\{|[_^]\{/;
 
   for (const question of OFFLINE_QUESTIONS) {

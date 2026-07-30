@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { validateBalanceScript, validateStep } = require('../server/utils/balance-script-schema');
+const { validateBalanceScript, validateStep } = require('../apps/server/src/utils/balance-script-schema');
 
 test('rejects missing title', () => {
   const r = validateBalanceScript({

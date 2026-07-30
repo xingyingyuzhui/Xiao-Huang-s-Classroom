@@ -3,7 +3,7 @@ const assert = require('node:assert/strict');
 
 test('lab draftToPayload rejects incomplete predict without placeholders', async () => {
   const { draftToPayload, emptyStep, labToDraft, formatLabsImportSummary } = await import(
-    '../src/ai-classroom/lab-model.js'
+    '../apps/web/src/chemistry/ai-classroom/lab-model.js'
   );
 
   assert.equal(draftToPayload({ title: '', steps: [emptyStep()] }).ok, false);
@@ -80,18 +80,18 @@ test('AI classroom lab modules: shell uses model + views', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const root = path.join(__dirname, '..');
-  const shell = fs.readFileSync(path.join(root, 'src/ai-classroom/lab-shell.js'), 'utf8');
+  const shell = fs.readFileSync(path.join(root, 'apps/web/src/chemistry/ai-classroom/lab-shell.js'), 'utf8');
   assert.match(shell, /from '\.\/lab-model\.js'/);
   assert.match(shell, /from '\.\/lab-views\.js'/);
-  assert.ok(fs.existsSync(path.join(root, 'src/ai-classroom/lab-model.js')));
-  assert.ok(fs.existsSync(path.join(root, 'src/ai-classroom/lab-views.js')));
+  assert.ok(fs.existsSync(path.join(root, 'apps/web/src/chemistry/ai-classroom/lab-model.js')));
+  assert.ok(fs.existsSync(path.join(root, 'apps/web/src/chemistry/ai-classroom/lab-views.js')));
   assert.ok(!shell.includes('function draftToPayload'));
   assert.ok(!shell.includes('function renderPredict'));
 });
 
 test('lab-views prestudy and script HTML keep key hooks', async () => {
   const { htmlPrestudyBody, htmlScriptBody, htmlTitleRow } = await import(
-    '../src/ai-classroom/lab-views.js'
+    '../apps/web/src/chemistry/ai-classroom/lab-views.js'
   );
   const escapeHtml = (s) => String(s)
     .replace(/&/g, '&amp;')

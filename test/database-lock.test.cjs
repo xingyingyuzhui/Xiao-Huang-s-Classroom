@@ -7,7 +7,7 @@ const assert = require('node:assert/strict');
 const {
   acquireDatabaseLock,
   releaseDatabaseLock,
-} = require('../server/db/sqlite');
+} = require('../apps/server/src/db/sqlite');
 
 test('database lock prevents a second writer and is released cleanly', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-lock-test-'));

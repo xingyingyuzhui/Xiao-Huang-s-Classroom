@@ -1,0 +1,725 @@
+/* —— 学科大厅（书场）+ 顶栏学科标签 —— */
+
+.brand-title-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.subject-chip {
+  appearance: none;
+  margin: 0;
+  padding: 0.18rem 0.55rem;
+  border-radius: 999px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--note-soft);
+  color: var(--ink);
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: var(--font-serif-cjk);
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  line-height: 1.3;
+  box-shadow: var(--shadow-print-sm);
+  flex-shrink: 0;
+}
+
+.subject-chip:hover {
+  background: var(--card-elevated);
+  color: var(--stamp);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-print);
+}
+
+.subject-chip:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+.settings-drawer-head-start {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.settings-hub-btn {
+  padding: 0.28rem 0.7rem;
+  font-size: 0.82rem;
+  white-space: nowrap;
+}
+
+/* —— hub shell：真全屏书场，设置键悬浮右上 —— */
+html[data-shell='hub'] #app {
+  grid-template-rows: minmax(0, 1fr);
+}
+
+html[data-shell='hub'] .brand,
+html[data-shell='hub'] .tabs {
+  display: none !important;
+}
+
+html[data-shell='hub'] .topbar {
+  /* !important：主题 skin 后加载，避免试剂架等把 position 改回 relative 挤垮全屏书场 */
+  position: fixed !important;
+  top: 0.85rem;
+  right: 0.9rem;
+  left: auto;
+  width: auto;
+  height: auto;
+  min-height: 0;
+  z-index: 50;
+  margin: 0;
+  padding: 0;
+  justify-content: flex-end;
+  align-items: center;
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 0 !important;
+  border-bottom: 0 !important;
+  backdrop-filter: none !important;
+  pointer-events: none;
+}
+
+html[data-shell='hub'] .topbar::after {
+  display: none !important;
+}
+
+html[data-shell='hub'] .topbar-right {
+  pointer-events: auto;
+}
+
+html[data-shell='hub'] .btn-settings {
+  background: color-mix(in srgb, var(--card-elevated) 78%, transparent);
+  border-color: color-mix(in srgb, var(--border-ink) 45%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+html[data-shell='hub'] main {
+  padding: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+html[data-shell='hub'] .subject-hub {
+  display: flex;
+}
+
+/* 返回合书：在 lab 壳下预热书场画布（盖在教室上但透明，翻页层 z=80 盖住） */
+html[data-shell='lab'] body.bookshelf-entering .subject-hub {
+  display: flex !important;
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  opacity: 0;
+  pointer-events: none;
+}
+
+html[data-shell='lab'] .subject-hub {
+  display: none !important;
+}
+
+.subject-hub {
+  /* 主题色驱动；各 data-theme 再叠专属氛围 */
+  --bookshelf-hero: var(--stamp);
+  --bookshelf-cream: var(--card-elevated);
+  --bookshelf-ink: var(--ink);
+  display: none;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  position: relative;
+  padding: 0;
+  overflow: hidden;
+  /* 默认：教材夜空 · 科技蓝柔光 */
+  background:
+    radial-gradient(
+      68% 58% at 50% 46%,
+      color-mix(in srgb, var(--stamp) 34%, #1e3a5f) 0%,
+      #0f1b33 48%,
+      #060b18 100%
+    );
+  color: var(--bookshelf-cream);
+}
+
+.bookshelf-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.bookshelf-gl {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  z-index: 2;
+  touch-action: none;
+}
+
+.bookshelf-hero-word {
+  position: absolute;
+  top: max(6.2rem, 15.5vh);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  user-select: none;
+  pointer-events: none;
+  transition:
+    opacity 0.55s ease,
+    transform 0.55s ease;
+  max-width: 96vw;
+}
+
+.bookshelf-hero-word span {
+  display: block;
+  white-space: nowrap;
+  font-size: min(17.9vw, 26.4vh);
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  line-height: 0.95;
+  color: #93c5fd;
+  /* 默认：软刊头 · 清爽蓝 · 无高光 */
+  font-family: 'ZCOOL XiaoWei', 'Quicksand', 'PingFang SC', 'Noto Sans SC', sans-serif;
+  animation: bookshelf-hero-in 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.12s both;
+  text-align: center;
+  text-shadow: none;
+  filter: none;
+  -webkit-text-stroke: 0;
+}
+
+@keyframes bookshelf-hero-in {
+  from {
+    opacity: 0;
+    transform: translateY(56px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+body.detail-open .bookshelf-hero-word,
+body.transit .bookshelf-hero-word {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-40px);
+}
+
+.bookshelf-hint {
+  display: none !important;
+}
+
+.bookshelf-close {
+  display: none !important;
+}
+
+.bookshelf-detail {
+  position: absolute;
+  right: clamp(1.2rem, 5vw, 4.5rem);
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6;
+  width: min(520px, 40vw);
+  pointer-events: none;
+  visibility: hidden;
+  transition: visibility 0s 0.45s;
+}
+
+body.detail-open .bookshelf-detail {
+  visibility: visible;
+  transition: visibility 0s 0s;
+  pointer-events: none; /* 仅操作条可点 */
+}
+
+body.bookshelf-entering .bookshelf-detail {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.bookshelf-detail > * {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.28s ease,
+    transform 0.28s ease;
+}
+
+body.detail-open .bookshelf-detail > * {
+  opacity: 1;
+  transform: none;
+  transition:
+    opacity 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+body.detail-open .bookshelf-detail > *:nth-child(1) {
+  transition-delay: 0.04s;
+}
+body.detail-open .bookshelf-detail > *:nth-child(2) {
+  transition-delay: 0.1s;
+}
+body.detail-open .bookshelf-detail > *:nth-child(3) {
+  transition-delay: 0.16s;
+}
+body.detail-open .bookshelf-detail > *:nth-child(4) {
+  transition-delay: 0.22s;
+}
+body.detail-open .bookshelf-detail > *:nth-child(5) {
+  transition-delay: 0.26s;
+}
+body.detail-open .bookshelf-detail > *:nth-child(6) {
+  transition-delay: 0.3s;
+}
+body.detail-open .bookshelf-detail > *:nth-child(7) {
+  transition-delay: 0.34s;
+}
+
+.bookshelf-detail-en {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-latin), var(--font-mono), ui-monospace, monospace;
+  font-size: clamp(0.72rem, 1.1vw, 0.85rem);
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--bookshelf-cream) 55%, transparent);
+}
+
+.bookshelf-detail-title {
+  margin: 0;
+  font-size: clamp(3rem, 6.2vw, 5.4rem);
+  font-weight: 800;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  color: var(--bookshelf-hero);
+  font-family: var(--font-display), 'PingFang SC', 'Noto Sans SC', sans-serif;
+}
+
+.bookshelf-detail-desc {
+  margin: 1.35rem 0 0;
+  color: color-mix(in srgb, var(--bookshelf-cream) 88%, transparent);
+  font-size: clamp(0.95rem, 1.2vw, 1.12rem);
+  line-height: 1.7;
+  font-weight: 400;
+  max-width: 36em;
+}
+
+.bookshelf-detail-meta {
+  margin-top: 1.65rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 0.9rem;
+  color: color-mix(in srgb, var(--bookshelf-cream) 62%, transparent);
+  font-size: clamp(0.88rem, 1.05vw, 1rem);
+  font-style: italic;
+  letter-spacing: 0.02em;
+}
+
+.bookshelf-detail-status {
+  margin: 0;
+  font-style: normal;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  color: color-mix(in srgb, var(--stamp) 70%, var(--bookshelf-cream));
+}
+
+.bookshelf-detail-sep {
+  width: 1px;
+  height: 1em;
+  background: color-mix(in srgb, var(--bookshelf-cream) 22%, transparent);
+  flex-shrink: 0;
+}
+
+.bookshelf-detail-tagline {
+  margin-left: auto;
+  font-style: normal;
+  opacity: 0.9;
+}
+
+.bookshelf-detail-rule {
+  margin-top: 1.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--bookshelf-cream) 16%, transparent);
+}
+
+.bookshelf-detail-actions {
+  margin-top: 1.45rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ink-lab) 55%, transparent);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+
+.bookshelf-enter,
+.bookshelf-peek {
+  appearance: none;
+  border: 0;
+  height: 3.05rem;
+  padding: 0 1.35rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition:
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1),
+    filter 0.2s;
+}
+
+.bookshelf-enter:hover,
+.bookshelf-peek:hover {
+  transform: scale(1.04);
+  filter: brightness(1.05);
+}
+
+.bookshelf-enter {
+  background: var(--bookshelf-cream);
+  color: var(--bookshelf-ink);
+}
+
+.bookshelf-enter:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  filter: none;
+}
+
+.bookshelf-peek {
+  background: color-mix(in srgb, var(--stamp) 55%, #1a2140);
+  color: #f8fafc;
+}
+
+.bookshelf-lock {
+  margin: 0.9rem 0 0;
+  color: color-mix(in srgb, var(--bookshelf-cream) 68%, transparent);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  max-width: 32em;
+}
+
+/* 主题：详情标题跟大厅主色走 */
+html[data-theme='stationery'] .bookshelf-detail-title {
+  color: #fff6e8;
+}
+html[data-theme='reagent'] .bookshelf-detail-title {
+  color: #fffcf7;
+}
+html[data-theme='blackboard'] .bookshelf-detail-title {
+  color: #f0d060;
+}
+html[data-theme='blackboard'] .bookshelf-detail-en {
+  color: color-mix(in srgb, var(--diagram) 78%, var(--text-primary));
+}
+html[data-theme='blackboard'] .bookshelf-detail-desc {
+  color: color-mix(in srgb, var(--text-primary) 96%, transparent);
+}
+html[data-theme='blackboard'] .bookshelf-detail-meta,
+html[data-theme='blackboard'] .bookshelf-detail-tagline {
+  color: color-mix(in srgb, var(--ink-soft) 94%, transparent);
+}
+html[data-theme='blackboard'] .bookshelf-detail-status {
+  color: var(--stamp);
+}
+html[data-theme='blackboard'] .bookshelf-detail-sep {
+  background: color-mix(in srgb, var(--text-primary) 38%, transparent);
+}
+html[data-theme='blackboard'] .bookshelf-detail-rule {
+  border-top-color: color-mix(in srgb, var(--text-primary) 28%, transparent);
+}
+html[data-theme='blackboard'] .bookshelf-lock {
+  color: color-mix(in srgb, var(--ink-soft) 92%, transparent);
+}
+html[data-theme='pixel'] .bookshelf-detail-title {
+  color: #ff6b81;
+}
+html[data-theme='pixel'] .bookshelf-detail-actions {
+  border-radius: 0;
+  box-shadow: 5px 5px 0 #2f3542;
+}
+html[data-theme='pixel'] .bookshelf-enter,
+html[data-theme='pixel'] .bookshelf-peek {
+  border-radius: 0;
+}
+
+body.bookshelf-entering .bookshelf-gl {
+  transition:
+    filter 0.55s ease,
+    opacity 0.7s ease;
+  filter: brightness(1.2) contrast(1.05);
+}
+
+body.bookshelf-entering.bookshelf-dive-deep .bookshelf-gl {
+  opacity: 0.35;
+  filter: brightness(1.45) blur(1.5px);
+}
+
+/* —— 进 / 退教室：封面溶解 —— */
+.bookshelf-page-fx {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  pointer-events: none;
+  display: none;
+  background: transparent;
+  --ox: 50%;
+  --oy: 55%;
+}
+
+.bookshelf-page-fx.is-on {
+  display: block;
+}
+
+/* 帷幕已不透明：壳层可在幕下切换，仍不接收指针 */
+.bookshelf-page-fx.is-opaque {
+  pointer-events: none;
+}
+
+.bookshelf-page-fx.is-out {
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.bookshelf-dissolve-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* —— 主题书场：背景 + 标题气质对齐各主题主色 —— */
+
+/* 文具：暖木刊场 · 章红主色 / 金点缀 */
+html[data-theme='stationery'] .subject-hub {
+  background:
+    radial-gradient(
+      90% 70% at 50% 18%,
+      color-mix(in srgb, #c23b22 42%, #5c2a1c) 0%,
+      #3a2218 38%,
+      #1a120e 100%
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 55px,
+      rgba(242, 233, 220, 0.035) 56px
+    );
+}
+
+html[data-theme='stationery'] .bookshelf-hero-word span {
+  font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
+  font-weight: 700;
+  font-size: min(17.2vw, 25.2vh);
+  letter-spacing: 0.16em;
+  color: #fff6e8;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  filter: none;
+}
+
+/* 试剂架：石灰柜夜场 · 紫铜主色 / 标签米黄 */
+html[data-theme='reagent'] .subject-hub {
+  background:
+    radial-gradient(
+      85% 65% at 50% 22%,
+      color-mix(in srgb, #b45309 38%, #4a4038) 0%,
+      #2e2924 42%,
+      #161310 100%
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0,
+      transparent 47px,
+      rgba(201, 162, 39, 0.045) 47px,
+      rgba(201, 162, 39, 0.045) 48px
+    );
+}
+
+html[data-theme='reagent'] .bookshelf-hero-word span {
+  font-family: 'Noto Sans SC', 'IBM Plex Mono', 'PingFang SC', sans-serif;
+  font-weight: 700;
+  font-size: min(16.4vw, 24vh);
+  letter-spacing: 0.28em;
+  color: #fffcf7;
+  -webkit-text-stroke: 1px color-mix(in srgb, #b45309 70%, #7c2d12);
+  text-shadow: none;
+  filter: none;
+}
+
+/* 黑板：墨绿板面 · 粉笔黄主色 */
+html[data-theme='blackboard'] .subject-hub {
+  /* card-elevated 是深绿卡面，不能当正文色；用粉笔白/墨底 */
+  --bookshelf-cream: var(--text-primary);
+  --bookshelf-ink: var(--paper-deep);
+  background:
+    radial-gradient(
+      100% 80% at 50% 12%,
+      color-mix(in srgb, #2f6a58 70%, #1a3d32) 0%,
+      #16352c 46%,
+      #0a1713 100%
+    ),
+    radial-gradient(
+      40% 30% at 70% 60%,
+      rgba(240, 208, 96, 0.06),
+      transparent 70%
+    );
+}
+
+html[data-theme='blackboard'] .bookshelf-hero-word span {
+  font-family: 'Ma Shan Zheng', 'Noto Sans SC', cursive;
+  font-weight: 400;
+  font-size: min(19vw, 27.5vh);
+  letter-spacing: 0.1em;
+  color: #f0d060;
+  -webkit-text-stroke: 0;
+  text-shadow: none;
+  filter: none;
+}
+
+/* 像素：炭黑棋盘 · 珊瑚街机铭牌 */
+html[data-theme='pixel'] .subject-hub {
+  background:
+    radial-gradient(
+      80% 70% at 50% 28%,
+      color-mix(in srgb, #ff6b81 32%, #3d4450) 0%,
+      #2d3436 48%,
+      #1e272e 100%
+    ),
+    linear-gradient(color-mix(in srgb, #2f3542 18%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, #2f3542 18%, transparent) 1px, transparent 1px);
+  background-size:
+    auto,
+    18px 18px,
+    18px 18px;
+  image-rendering: pixelated;
+}
+
+html[data-theme='pixel'] .bookshelf-hero-word::after {
+  content: none;
+  display: none;
+}
+
+html[data-theme='pixel'] .bookshelf-hero-word span {
+  /* 无底色：粗黑体 + 炭黑八向硬描边 + 青绿硬落影（无光晕） */
+  display: block;
+  font-family: 'Noto Sans SC', 'IBM Plex Mono', sans-serif;
+  font-weight: 900;
+  font-size: min(17.9vw, 26.4vh);
+  letter-spacing: 0.14em;
+  line-height: 0.95;
+  color: #ff6b81;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  -webkit-text-stroke: 0;
+  text-shadow:
+    -3px 0 0 #2f3542,
+    3px 0 0 #2f3542,
+    0 -3px 0 #2f3542,
+    0 3px 0 #2f3542,
+    -3px -3px 0 #2f3542,
+    3px -3px 0 #2f3542,
+    -3px 3px 0 #2f3542,
+    3px 3px 0 #2f3542,
+    6px 6px 0 #1dd1a1;
+  box-shadow: none;
+  image-rendering: pixelated;
+  filter: none;
+}
+
+@media (max-width: 900px) {
+  .bookshelf-detail {
+    right: 0;
+    left: 0;
+    top: auto;
+    bottom: 0;
+    width: 100%;
+    max-width: none;
+    padding: 1.35rem 1.25rem 1.75rem;
+    background: linear-gradient(
+      180deg,
+      transparent,
+      color-mix(in srgb, var(--ink-lab) 94%, transparent) 22%
+    );
+  }
+
+  .bookshelf-detail-title {
+    font-size: clamp(2.4rem, 12vw, 3.2rem);
+  }
+
+  .bookshelf-detail-tagline {
+    margin-left: 0;
+  }
+
+  .bookshelf-detail-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  .bookshelf-enter,
+  .bookshelf-peek {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .bookshelf-hero-word {
+    top: max(4.8rem, 12vh);
+  }
+
+  .bookshelf-hero-word span {
+    font-size: min(18.7vw, 21.8vh);
+  }
+
+  html[data-theme='stationery'] .bookshelf-hero-word span {
+    font-size: min(17.6vw, 20.5vh);
+    letter-spacing: 0.12em;
+  }
+
+  html[data-theme='reagent'] .bookshelf-hero-word span {
+    font-size: min(16.2vw, 19.2vh);
+    letter-spacing: 0.18em;
+  }
+
+  html[data-theme='blackboard'] .bookshelf-hero-word span {
+    font-size: min(19.5vw, 22.5vh);
+  }
+
+  html[data-theme='pixel'] .bookshelf-hero-word span {
+    font-size: min(18.7vw, 21.8vh);
+    letter-spacing: 0.1em;
+    padding: 0;
+    border: 0;
+    background: none;
+    box-shadow: none;
+    text-shadow:
+      -2px 0 0 #2f3542,
+      2px 0 0 #2f3542,
+      0 -2px 0 #2f3542,
+      0 2px 0 #2f3542,
+      -2px -2px 0 #2f3542,
+      2px -2px 0 #2f3542,
+      -2px 2px 0 #2f3542,
+      2px 2px 0 #2f3542,
+      4px 4px 0 #1dd1a1;
+  }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bookshelf-hero-word span {
+    animation: none !important;
+    transition: opacity 0.2s ease;
+  }
+
+  .bookshelf-page-fx.is-out {
+    transition: opacity 0.2s ease;
+  }
+}

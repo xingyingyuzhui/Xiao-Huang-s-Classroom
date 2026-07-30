@@ -1,0 +1,74 @@
+/* —— 学科教室首页壳（物理 / 生物 / 数学等占位首页）—— */
+
+/* Tab 显隐由 syncClassroomTabChrome + data-classroom 控制；无 Tab 的学科隐藏整条 nav */
+
+.subject-classroom-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: clamp(1.5rem, 4vw, 3rem);
+  background: var(--paper);
+}
+
+.subject-home {
+  width: min(640px, 100%);
+  padding: clamp(1.75rem, 4vw, 2.75rem);
+  border-radius: var(--radius-card, 12px);
+  border: var(--ui-stroke) solid var(--border-soft);
+  background: color-mix(in srgb, var(--card-elevated) 92%, transparent);
+  box-shadow: var(--shadow-md);
+}
+
+.subject-home-en {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-latin), var(--font-mono), ui-monospace, monospace;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.subject-home-title {
+  margin: 0;
+  font-family: var(--font-display), 'PingFang SC', 'Noto Sans SC', sans-serif;
+  font-size: clamp(2rem, 4.5vw, 2.75rem);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.subject-home-desc {
+  margin: 1.1rem 0 0;
+  font-size: 1.02rem;
+  line-height: 1.75;
+  color: var(--text-secondary);
+}
+
+.subject-home-modules {
+  margin: 1.35rem 0 0;
+  padding: 0.65rem 0.85rem;
+  border-radius: var(--radius-control, 8px);
+  background: color-mix(in srgb, var(--stamp-soft) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--stamp) 22%, transparent);
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+
+.subject-home-modules strong {
+  color: var(--stamp);
+  font-weight: 650;
+}
+
+.subject-home-badge {
+  display: inline-block;
+  margin-top: 1.25rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--diagram-soft) 70%, transparent);
+  color: var(--diagram);
+  border: 1px solid color-mix(in srgb, var(--diagram) 28%, transparent);
+}
