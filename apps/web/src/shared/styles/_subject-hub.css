@@ -105,7 +105,8 @@ html[data-shell='hub'] .subject-hub {
 }
 
 html[data-shell='hub'] #lab-chemistry-chrome,
-html[data-shell='hub'] #lab-panels-root {
+html[data-shell='hub'] #lab-panels-root,
+html[data-shell='hub'] #lab-math-root {
   display: none !important;
 }
 

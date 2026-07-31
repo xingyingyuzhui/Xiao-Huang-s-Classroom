@@ -8,6 +8,8 @@ const express = require('express');
 const router = express.Router();
 router.use(require('./ai/molecules'));
 router.use(require('./ai/quiz'));
+router.use(require('./ai/lesson'));
 router.use(require('./ai/chemistry'));
+router.use(require('./ai/math'));
 
 module.exports = router;

@@ -14,10 +14,10 @@ import { buildPaperHtml, buildResultListHtml } from './quiz-views.js';
  * @param {() => { grades: number[], difficulty: string, topics: string[], count: number, reveal: string }} deps.getConfig
  * @param {object} deps.aiApi
  * @param {object} deps.quizApi
- * @param {typeof import('../brand-tip.js').showAppBubble} deps.showAppBubble
- * @param {typeof import('../brand-tip.js').hideBrandTip} deps.hideBrandTip
- * @param {typeof import('../app-dialog.js').appAlert} deps.appAlert
- * @param {typeof import('../app-dialog.js').appConfirm} deps.appConfirm
+ * @param {typeof import('../../shared/ui/brand-tip.js').showAppBubble} deps.showAppBubble
+ * @param {typeof import('../../shared/ui/brand-tip.js').hideBrandTip} deps.hideBrandTip
+ * @param {typeof import('../../shared/ui/app-dialog.js').appAlert} deps.appAlert
+ * @param {typeof import('../../shared/ui/app-dialog.js').appConfirm} deps.appConfirm
  * @param {(err: any) => boolean} deps.isRateLimitedError
  * @param {(count: number) => void} deps.onBadgeChange
  */

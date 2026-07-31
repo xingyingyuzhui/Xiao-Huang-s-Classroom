@@ -11,6 +11,15 @@ const CHEMISTRY_TABS = [
   { id: 'ai', label: '课堂', panelId: 'panel-ai' },
 ];
 
+const MATH_TABS = [
+  { id: 'graph', label: '函数画布', panelId: 'panel-math-graph' },
+  { id: 'plane', label: '直线与圆', panelId: 'panel-math-plane' },
+  { id: 'trig', label: '三角函数', panelId: 'panel-math-trig' },
+  { id: 'sequence', label: '数列', panelId: 'panel-math-sequence' },
+  { id: 'solid', label: '立体几何', panelId: 'panel-math-solid' },
+  { id: 'ai', label: '课堂', panelId: 'panel-math-ai' },
+];
+
 const HOME_TAB = [{ id: 'home', label: '首页', panelId: 'panel-subject-home' }];
 
 /** @type {Record<string, { name: string, defaultTabId: string, showTabBar: boolean, hasElectronOrder?: boolean, ai: boolean, tabs: Array<{ id: string, label: string, panelId: string }> }>} */
@@ -39,10 +48,10 @@ export const SUBJECT_TAB_CATALOG = {
   },
   math: {
     name: '数学',
-    defaultTabId: 'home',
-    showTabBar: false,
+    defaultTabId: 'graph',
+    showTabBar: true,
     ai: true,
-    tabs: HOME_TAB,
+    tabs: MATH_TABS,
   },
 };
 

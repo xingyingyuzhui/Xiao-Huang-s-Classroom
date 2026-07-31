@@ -135,14 +135,23 @@ function resolveSubjectId(subjectId) {
   return READY_SUBJECT_IDS.includes(subjectId) ? subjectId : 'chemistry';
 }
 
+function subjectQuizDomain(sid) {
+  if (sid === 'math') return { name: '数学', teacher: '高中数学命题老师' };
+  if (sid === 'physics') return { name: '物理', teacher: '高中物理命题老师' };
+  if (sid === 'biology') return { name: '生物', teacher: '高中生物命题老师' };
+  return { name: '化学', teacher: '高中化学命题老师' };
+}
+
 async function generateQuiz({
   grades = [],
   difficulty = 'medium',
   topics = [],
   count = 5,
   subjectId = 'chemistry',
+  labContext = '',
 } = {}) {
   const sid = resolveSubjectId(subjectId);
+  const domain = subjectQuizDomain(sid);
   const n = Math.min(10, Math.max(1, parseInt(count, 10) || 5));
   const gradeLabels = Array.isArray(grades)
     ? grades.map((g) => String(g)).filter(Boolean)
@@ -150,10 +159,11 @@ async function generateQuiz({
   const topicLabels = Array.isArray(topics)
     ? topics.map((t) => String(t)).filter(Boolean)
     : [];
+  const labText = String(labContext || '').trim();
 
   const diffText = DIFF_MAP[difficulty] || DIFF_MAP.medium;
 
-  const system = `你是高中化学命题老师。只输出一个 JSON 对象，不要 Markdown，不要其它说明。
+  const system = `你是${domain.teacher}。只输出一个 JSON 对象，不要 Markdown，不要其它说明。
 格式：
 {
   "questions": [
@@ -171,13 +181,16 @@ async function generateQuiz({
 硬性要求：
 1. 仅单选题，options 必须恰好 4 项；answer 为 0～3 的整数下标
 2. 干扰项要有迷惑性，对应学生常见错误
-3. 中文命题，科学准确
-4. 题目数量必须为 ${n} 道`;
+3. 中文命题，科学准确；数学题可在题干与选项中使用简单 LaTeX（如 $x^2$）
+4. 题目数量必须为 ${n} 道
+5. 学科必须是${domain.name}，不要出其它学科题
+6. 若提供了「实验台当前状态」，至少一半题目要紧密围绕该状态（同一函数/角度/数列参数），可问性质、计算、判断`;
 
-  const user = `请出 ${n} 道化学单选题。
+  const user = `请出 ${n} 道${domain.name}单选题。
 年级范围：${gradeLabels.length ? gradeLabels.join('、') : '高中不限'}
 难度：${diffText}
 章节/主题：${topicLabels.length ? topicLabels.join('、') : '从上述年级常见章节中合理选取'}
+${labText ? `\n【实验台当前状态——请结合出题】\n${labText}\n` : ''}
 请覆盖所选主题，难度符合要求。`;
 
   const { content } = await callDeepSeekChat({
@@ -186,7 +199,7 @@ async function generateQuiz({
     temperature: 0.55,
     max_tokens: 4096,
     kind: 'quiz-generate',
-    subjectId,
+    subjectId: sid,
   });
 
   const parsed = parseModelJson(content);
@@ -209,7 +222,8 @@ async function generateQuiz({
 
 async function generateHint({ stem, options, knowledge, subjectId = 'chemistry' } = {}) {
   const sid = resolveSubjectId(subjectId);
-  const system = `你是高中化学老师。学生卡关了，只给提示、不给最终答案、不指出正确选项字母。
+  const domain = subjectQuizDomain(sid);
+  const system = `你是${domain.teacher.replace('命题', '')}。学生卡关了，只给提示、不给最终答案、不指出正确选项字母。
 只输出 1～3 句中文提示，不要标题、不要列表编号。`;
 
   const user = `题干：${stem}
@@ -240,7 +254,8 @@ async function generateExplain({
   subjectId = 'chemistry',
 } = {}) {
   const sid = resolveSubjectId(subjectId);
-  const system = `你是高中化学老师，讲解单选题。
+  const domain = subjectQuizDomain(sid);
+  const system = `你是${domain.teacher.replace('命题', '')}，讲解单选题。
 要求：先给出正确选项（如 B），再分步说明理由，最后一句点出其它选项常见误区。
 用简洁中文，控制在 120～220 字。不要 Markdown 标题。`;
 

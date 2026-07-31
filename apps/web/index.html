@@ -77,6 +77,24 @@
             <button class="tab" data-tab="ai" data-classroom="chemistry" role="tab" aria-selected="false">
               课堂
             </button>
+            <button class="tab" data-tab="graph" data-classroom="math" role="tab" aria-selected="false" hidden>
+              函数画布
+            </button>
+            <button class="tab" data-tab="plane" data-classroom="math" role="tab" aria-selected="false" hidden>
+              直线与圆
+            </button>
+            <button class="tab" data-tab="trig" data-classroom="math" role="tab" aria-selected="false" hidden>
+              三角函数
+            </button>
+            <button class="tab" data-tab="sequence" data-classroom="math" role="tab" aria-selected="false" hidden>
+              数列
+            </button>
+            <button class="tab" data-tab="solid" data-classroom="math" role="tab" aria-selected="false" hidden>
+              立体几何
+            </button>
+            <button class="tab" data-tab="ai" data-classroom="math" role="tab" aria-selected="false" hidden>
+              课堂
+            </button>
           </nav>
           <button
             type="button"
@@ -285,6 +303,9 @@
 
         <!-- 化学教室面板：由 classrooms/partials 按需挂载 -->
         <div id="lab-panels-root" class="lab-panels-root" hidden></div>
+
+        <!-- 数学教室面板：由 classrooms/partials 按需挂载 -->
+        <div id="lab-math-root" class="lab-math-root" hidden></div>
       </main>
 
     </div>

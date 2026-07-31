@@ -265,6 +265,25 @@ export const aiApi = {
       body: JSON.stringify(withAiSubject(payload)),
     });
   },
+
+  /** 课堂概念讲解 */
+  async lessonExplain(payload) {
+    return request('/ai/lesson/explain', {
+      method: 'POST',
+      body: JSON.stringify(withAiSubject(payload)),
+    });
+  },
+
+  /**
+   * 函数画布：AI 生成函数（preset / custom）
+   * @param {string} prompt
+   */
+  async mathFnGenerate(prompt) {
+    return request('/ai/math/function', {
+      method: 'POST',
+      body: JSON.stringify(withAiSubject({ prompt })),
+    });
+  },
 };
 
 /**

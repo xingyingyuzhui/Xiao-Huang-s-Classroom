@@ -27,7 +27,7 @@ router.post('/tip', async (req, res) => {
   } catch (err) {
     console.error('AI 小知识失败:', err);
     try {
-      return success(res, tipLocalFallback());
+      return success(res, tipLocalFallback(resolveAiSubjectId(req)));
     } catch {
       error(res, err.message || 'AI 生成失败');
     }

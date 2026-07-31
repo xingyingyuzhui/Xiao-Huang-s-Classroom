@@ -3,9 +3,8 @@
  * 本地名单 + 卡牌轮转动画
  */
 
-import { studentApi } from '../shared/api/client.js';
-import { appConfirm, appPrompt } from '../shared/ui/app-dialog.js';
-
+import { studentApi } from '../../shared/api/client.js';
+import { appConfirm, appPrompt } from '../../shared/ui/app-dialog.js';
 const $ = (sel) => document.querySelector(sel);
 
 /** @type {Array<{id:string,name:string}>} */

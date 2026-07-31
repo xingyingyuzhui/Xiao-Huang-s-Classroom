@@ -1,0 +1,79 @@
+# 数学模块工程约定
+
+本目录是「小黄的教室」数学学科实现。加功能前请遵守下列契约，避免主题脏色、镜头重置、幽灵曲线等问题。
+
+## 分层
+
+| 路径 | 职责 |
+|------|------|
+| `math/shared/` | 画板工厂、主题契约、生命周期、罗盘/笔记/样式气泡、安全表达式 |
+| `math/graph/` 等 lab | 单 Tab 业务状态与 UI 接线 |
+| `math/classroom/` | 课堂讲解/出题/点名 |
+| `subjects/classrooms/math-classroom.js` | Tab 壳、feature 加载、overlay 收起 |
+| `apps/server/.../ai/math*` | 数学 AI（函数生成等），校验与前端 expr 白名单对齐 |
+
+## 主题契约（必读）
+
+**唯一读色入口：** `shared/math-theme.js`
+
+每个主题 `apps/web/src/shared/styles/themes/*/tokens.css` 必须定义：
+
+- `--math-fn-1` … `--math-fn-8`（多曲线色板）
+- `--math-grid`（网格线，**禁止**用过浅的 `--border-soft`）
+- `--math-point-ring`（特征点/用户点描边）
+
+画板 chrome（底/轴/字）用 `--paper` / `--ink` / `--stamp` / `--diagram`。
+
+黑板等深色主题可在 `skin.css` 补浮层/列表，但**色板与网格必须在 tokens**。
+
+契约测试：`test/web/math-board-contract.test.cjs`。
+
+## 画板生命周期（硬规则）
+
+实现见 `shared/board-lifecycle.js`、`shared/jsx-board.js`。
+
+1. **删除对象**  
+   先 `detachBoardObject(board, el)`（或业务封装的 detach），再从 `state` 数组 `filter` 掉。  
+   禁止：先 filter 再靠 `removeAll` 遍历 state（会幽灵残留）。
+
+2. **重建曲线 / 刷特征点**  
+   用 `withPreservedViewport(board, () => { ... })` 包住。  
+   禁止：图例 `refresh` / 业务 rebuild 里把 bbox 设回设置面板初值。
+
+3. **图例设置**  
+   `axis-legend-settings` 的 `refresh()` 必须 `skipViewport: true`。  
+   仅用户改视窗数值时才 `setBoundingBox`。
+
+4. **换肤**  
+   监听 `chem-theme-change`（`bindMathThemeRestyle`）：  
+   - `restyleMathBoard(board)`  
+   - 多曲线 lab：`remintFunctionColors(state.functions)` + 必要 rebuild  
+   禁止：各 lab 私自读一堆 CSS 变量拼色。
+
+5. **网格色**  
+   只通过 `getMathGridColor()` / `restyleMathBoard` 写入；网格元素是 curve，设 `strokeColor`。
+
+## 新增 lab / 功能清单
+
+- [ ] 创建 board：`createMathBoard`（内部已 restyle）
+- [ ] dispose：卸 theme 监听、compass/notes、`freeMathBoard`
+- [ ] 换肤：`bindMathThemeRestyle(() => state.board, { onAfterRestyle })`
+- [ ] 多曲线：颜色只用 `colorForFnIndex` / `remintFunctionColors`
+- [ ] 删除几何对象：先 detach
+- [ ] 全量重建：包 `withPreservedViewport`
+- [ ] 需要主题 token：改**全部**主题 `tokens.css`，并跑契约测试
+
+## AI
+
+- 请求带 `subjectId`（`withAiSubject` / 当前学科 session）
+- 服务端 Key 按学科设置
+- **表达式唯一实现：** 包 `@xiaohuang/math-expr`  
+  - 前端：`math/shared/expr-safe.js` 再导出  
+  - 后端：`math-fn-service` `require('@xiaohuang/math-expr')`  
+  - 禁止再复制一份白名单
+
+## 测试
+
+- 契约：`test/web/math-board-contract.test.cjs`（主题 token + 模块接线）
+- 行为：`test/web/math-lifecycle-unit.test.cjs`（expr / remint / detach 顺序 / 视窗语义）
+- 改主题 token 或生命周期规则后必跑：`math-board-contract`、`math-lifecycle-unit`、`math-axis-legend`

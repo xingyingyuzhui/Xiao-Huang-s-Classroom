@@ -16,7 +16,7 @@ const LEGACY_ORDER_KEY = 'xh-chem-lab-electron-order-v1';
 let elementOrder = defaultOrder();
 let editMode = false;
 let currentElementZ = null;
-/** @type {ReturnType<import('./electron-renderer.js').createElectronViewer> | null} */
+/** @type {ReturnType<import('./renderer.js').createElectronViewer> | null} */
 let viewerRef = null;
 
 function defaultOrder() {

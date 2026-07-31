@@ -77,4 +77,16 @@ html[data-theme='stationery'] {
   --body-noise-opacity: 0.35;
   --brand-eyebrow-display: block;
   --stage-3d-bg: #f7f0e6;
+
+  /* 函数画布：章红 / 青绿 / 墨 / 金 等，贴文具校刊风 */
+  --math-fn-1: #c23b22;
+  --math-fn-2: #1f6f6a;
+  --math-fn-3: #2563eb;
+  --math-fn-4: #7c3aed;
+  --math-fn-5: #b45309;
+  --math-fn-6: #ca8a04;
+  --math-fn-7: #0f766e;
+  --math-fn-8: #be123c;
+  --math-point-ring: var(--card-elevated);
+  --math-grid: #d4c4b0;
 }

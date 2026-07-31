@@ -17,12 +17,15 @@
 #panel-molecule.active,
 #panel-molar.active,
 #panel-electron.active,
-#panel-ai.active {
+#panel-ai.active,
+#panel-math-ai.active {
   grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
   grid-template-rows: minmax(0, 1fr);
   align-items: stretch;
   overflow: hidden;
 }
+
+/* 数学五面板与化学同构：左栏右舞台（细则见 _math-classroom.css） */
 
 /* 元素乱斗：整页画布，禁止内容溢出到别的条上 */
 #panel-battle.active {
@@ -91,5 +94,18 @@ html[data-shell='lab'] main {
 }
 
 .lab-panels-root:not([hidden]) {
+  display: flex;
+}
+
+/* 数学面板宿主：与化学 lab-panels-root 同级占满 */
+.lab-math-root {
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  display: none;
+  flex-direction: column;
+}
+
+.lab-math-root:not([hidden]) {
   display: flex;
 }

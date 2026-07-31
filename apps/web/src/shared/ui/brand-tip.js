@@ -4,11 +4,12 @@
  */
 
 import { aiApi } from '../api/client.js';
+import { getCurrentSubjectId } from '../../subjects/session.js';
 
 const AUTO_HIDE_MS = 7000;
 const MIN_LOADING_MS = 900;
 
-const FALLBACK_TIPS = [
+const FALLBACK_TIPS_CHEM = [
   '可乐能除水垢，是因为其中的磷酸能与碳酸钙反应，把壶底的水垢慢慢溶解掉。',
   '不锈钢不易生锈，主要靠表面一层极薄的铬氧化物膜，把铁和空气、水隔开。',
   '切完洋葱爱流泪，是因为洋葱破损后释放的含硫气体刺激了眼睛。',
@@ -21,6 +22,19 @@ const FALLBACK_TIPS = [
   '柠檬能让茶水变浅，是因为酸性会改变茶中色素分子的颜色表现。',
 ];
 
+const FALLBACK_TIPS_MATH = [
+  '二次函数顶点公式 x=-b/(2a)，对称轴和最值常常一起出现。',
+  '判别式 Δ=b²-4ac：大于 0 两个实根，等于 0 重根，小于 0 没有实根。',
+  '单位圆上 cos 是 x、sin 是 y，所以 sin²θ+cos²θ 恒等于 1。',
+  '对数和指数互为反函数，就像加减、乘除是一对逆运算。',
+  '等差数列求和像首尾配对：Sₙ = n(a₁+aₙ)/2。',
+  '反比例 y=k/x 的图象是双曲线，k 的符号决定落在哪两个象限。',
+  '绝对值 |x-a| 表示数轴上到 a 的距离，图象常是 V 字平移。',
+  '正弦型函数 y=A sin(ωx+φ) 里，A 振幅、ω 管周期、φ 是初相。',
+  '指数底数大于 1 时增长很快，这和复利、传播模型是同一类味道。',
+  '函数奇偶性：f(-x)=f(x) 偶函数对称 y 轴；f(-x)=-f(x) 奇函数对称原点。',
+];
+
 let bubbleEl = null;
 let hideTimer = 0;
 let loading = false;
@@ -31,12 +45,35 @@ let seq = 0;
 let regenerateHandler = null;
 let currentAnchor = null;
 
+function subjectTipMeta() {
+  const sid = getCurrentSubjectId() || 'chemistry';
+  if (sid === 'math') {
+    return {
+      subjectId: 'math',
+      tips: FALLBACK_TIPS_MATH,
+      badge: '课间一句话',
+      title: '点我听一条数学小知识',
+      aria: '点击获取数学小知识',
+      failLog: '数学小知识请求失败，使用前端本地兜底',
+    };
+  }
+  return {
+    subjectId: 'chemistry',
+    tips: FALLBACK_TIPS_CHEM,
+    badge: '课间一句话',
+    title: '点我听一条化学小知识',
+    aria: '点击获取化学小知识',
+    failLog: '化学小知识请求失败，使用前端本地兜底',
+  };
+}
+
 function pickFallback() {
-  if (FALLBACK_TIPS.length === 1) return FALLBACK_TIPS[0];
-  let i = Math.floor(Math.random() * FALLBACK_TIPS.length);
-  if (i === lastFallbackIdx) i = (i + 1) % FALLBACK_TIPS.length;
+  const { tips } = subjectTipMeta();
+  if (tips.length === 1) return tips[0];
+  let i = Math.floor(Math.random() * tips.length);
+  if (i === lastFallbackIdx) i = (i + 1) % tips.length;
   lastFallbackIdx = i;
-  return FALLBACK_TIPS[i];
+  return tips[i];
 }
 
 function sleep(ms) {
@@ -283,18 +320,28 @@ export function showAppBubble(opts = {}) {
   });
 }
 
+function syncBrandTipA11y(icon) {
+  if (!icon) return;
+  const meta = subjectTipMeta();
+  icon.setAttribute('title', meta.title);
+  icon.setAttribute('aria-label', meta.aria);
+}
+
 async function onBrandClick(anchor) {
   if (loading) return;
   loading = true;
   const mySeq = ++seq;
+  const meta = subjectTipMeta();
+  syncBrandTipA11y(anchor);
 
-  showBubble(anchor, { mode: 'loading', duration: 0 });
+  showBubble(anchor, { mode: 'loading', badge: meta.badge, duration: 0 });
   const t0 = performance.now();
 
   let tip = '';
   let source = 'ai';
 
   try {
+    // withAiSubject 会带上当前学科；数学教室 → subjectId=math
     const data = await aiApi.tip();
     tip = (data?.tip || '').trim();
     source = data?.source === 'local' ? 'local' : 'ai';
@@ -303,7 +350,7 @@ async function onBrandClick(anchor) {
       source = 'local';
     }
   } catch (err) {
-    console.warn('化学小知识请求失败，使用前端本地兜底:', err?.message || err);
+    console.warn(`${meta.failLog}:`, err?.message || err);
     tip = pickFallback();
     source = 'local';
   }
@@ -319,6 +366,7 @@ async function onBrandClick(anchor) {
   // 课间小知识：可自动消失，无重新生成按钮
   showBubble(anchor, {
     mode: 'ready',
+    badge: meta.badge,
     text: tip,
     source,
     duration: AUTO_HIDE_MS,
@@ -334,10 +382,12 @@ export function initBrandTip() {
   icon.classList.add('brand-mark-clickable');
   icon.setAttribute('role', 'button');
   icon.setAttribute('tabindex', '0');
-  icon.setAttribute('title', '点我听一条化学小知识');
-  icon.setAttribute('aria-label', '点击获取化学小知识');
+  syncBrandTipA11y(icon);
 
-  const trigger = () => onBrandClick(icon);
+  const trigger = () => {
+    syncBrandTipA11y(icon);
+    onBrandClick(icon);
+  };
 
   icon.addEventListener('click', (e) => {
     e.preventDefault();

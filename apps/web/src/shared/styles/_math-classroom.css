@@ -1,0 +1,2073 @@
+/* —— 函数画布：侧栏函数列表（对标 3D 分子列表） —— */
+
+.math-fn-toolbar {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.4rem;
+  margin: 0 0 0.55rem;
+}
+
+.math-fn-btn {
+  appearance: none;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--text-primary);
+  border-radius: 10px;
+  padding: 0.38rem 0.45rem;
+  text-align: center;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: var(--shadow-print-sm);
+  min-height: 44px;
+}
+
+.math-fn-btn:hover {
+  background: var(--diagram-soft);
+}
+
+.math-fn-btn-add {
+  border-style: dashed;
+  border-width: 2px;
+  background: var(--paper);
+  box-shadow: none;
+}
+
+.math-fn-add-plus {
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--stamp, #b45309);
+}
+
+.math-fn-btn-edit.is-on {
+  background: var(--stamp-soft);
+  border-color: var(--stamp);
+  font-weight: 750;
+}
+
+.math-fn-btn-ai {
+  border-style: solid;
+  background: color-mix(in srgb, var(--diagram-soft, var(--note-soft)) 55%, var(--card-elevated));
+  font-weight: 800;
+  color: var(--diagram, #0f766e);
+}
+
+.math-fn-btn-ai:hover {
+  border-color: var(--diagram, #0f766e);
+  background: color-mix(in srgb, var(--diagram-soft, var(--note-soft)) 80%, var(--card-elevated));
+}
+
+.math-fn-ai-label {
+  font-size: 0.95rem;
+  letter-spacing: 0.04em;
+  font-weight: 800;
+}
+
+.math-fn-ai-modal {
+  width: min(420px, 94vw);
+}
+
+.math-fn-ai-modal .field {
+  display: grid;
+  gap: 0.35rem;
+  margin: 0.65rem 0 0.5rem;
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+
+.math-fn-ai-modal .field textarea {
+  width: 100%;
+  min-height: 96px;
+  resize: vertical;
+  box-sizing: border-box;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 10px;
+  padding: 0.65rem 0.75rem;
+  font: inherit;
+  font-weight: 500;
+  color: var(--text-primary);
+  background: var(--card-elevated);
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-fn-ai-modal .settings-status.is-ok {
+  color: var(--diagram, #0f766e);
+}
+
+.math-fn-ai-modal .settings-status.is-err {
+  color: #b91c1c;
+}
+
+.math-fn-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.4rem;
+  margin: 0 0 0.75rem;
+  padding: 2px;
+}
+
+.math-fn-empty {
+  margin: 0.25rem 0 0.5rem;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+/* 对标 .mol-card：外层卡片 + 左上角删除 × */
+.math-fn-card {
+  position: relative;
+  min-width: 0;
+}
+
+.math-fn-card-main {
+  appearance: none;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  width: 100%;
+  margin: 0;
+  padding: 0.5rem 0.55rem;
+  border-radius: 10px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-fn-card-main:hover {
+  background: color-mix(in srgb, var(--stamp-soft) 35%, var(--card-elevated));
+}
+
+.math-fn-card.is-active .math-fn-card-main {
+  border-color: var(--stamp, #b45309);
+  background: color-mix(in srgb, var(--stamp-soft) 55%, var(--card-elevated));
+  box-shadow: var(--shadow-print);
+}
+
+.math-fn-card-swatch {
+  flex: 0 0 auto;
+  width: 0.35rem;
+  align-self: stretch;
+  min-height: 2rem;
+  border-radius: 99px;
+  background: var(--fn-color, var(--stamp));
+}
+
+.math-fn-card-body {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: grid;
+  gap: 0.15rem;
+}
+
+.math-fn-card-title {
+  font-size: 0.86rem;
+  font-weight: 800;
+  line-height: 1.25;
+  /* 函数式为主：允许换行，过长仍截断 */
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.math-fn-card-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 对标 .mol-card-del：编辑态左上角红叉 */
+.math-fn-card-del {
+  display: none;
+  position: absolute;
+  top: -6px;
+  left: -6px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--stamp, #b45309);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  place-items: center;
+  box-shadow: var(--shadow-print-sm);
+  appearance: none;
+}
+
+.math-fn-list.is-edit-mode .math-fn-card-del {
+  display: grid;
+}
+
+.math-fn-expr-row {
+  display: flex;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.math-fn-expr-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  width: 100%;
+  padding: 0.55rem 0.65rem;
+  border-radius: 10px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-fn-expr-input:focus {
+  outline: none;
+  box-shadow: var(--shadow-print);
+}
+
+.math-fn-expr-status {
+  margin: 0.35rem 0 0.45rem;
+  min-height: 1.1em;
+  font-size: 0.75rem;
+  color: #b91c1c;
+}
+
+.math-fn-param-panel {
+  margin-top: 0.35rem;
+  padding-top: 0.55rem;
+  border-top: 1px dashed color-mix(in srgb, var(--border-ink) 50%, transparent);
+}
+
+/* 添加函数弹窗 */
+.math-fn-add-modal {
+  width: min(420px, 94vw);
+  max-height: min(92vh, 720px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.math-fn-add-modal .modal-body {
+  overflow-y: auto;
+  max-height: calc(92vh - 3.5rem);
+}
+
+.math-fn-add-or {
+  margin-top: 0.85rem;
+}
+
+.math-fn-add-actions {
+  margin-top: 0.75rem;
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+/* 表达式专属键盘（嵌在弹窗内） */
+.math-expr-keypad {
+  margin-top: 0.55rem;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.55rem;
+  border-radius: 12px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: color-mix(in srgb, var(--note-soft) 55%, var(--paper));
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-expr-keypad-row {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.3rem;
+}
+
+.math-expr-key {
+  appearance: none;
+  min-height: 2.45rem;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 9px;
+  background: var(--card-elevated);
+  font: inherit;
+  font-size: 0.92rem;
+  font-weight: 750;
+  cursor: pointer;
+  color: var(--ink);
+  box-shadow: var(--shadow-print-sm);
+  padding: 0.2rem 0.15rem;
+}
+
+.math-expr-key:hover {
+  background: var(--diagram-soft, var(--bg-hover));
+}
+
+.math-expr-key:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.math-expr-key.is-var {
+  background: color-mix(in srgb, var(--stamp-soft) 70%, var(--card-elevated));
+  color: var(--stamp, #b45309);
+  font-weight: 800;
+}
+
+.math-expr-key.is-action {
+  font-size: 0.82rem;
+  font-weight: 700;
+  background: color-mix(in srgb, var(--note-soft) 80%, var(--card-elevated));
+}
+
+.math-expr-key.is-wide {
+  grid-column: span 2;
+}
+
+.math-expr-keypad-row:last-child {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+/* —— 数学教室：侧栏 + 舞台（对齐化学实验室） —— */
+
+#panel-math-graph.active,
+#panel-math-plane.active,
+#panel-math-trig.active,
+#panel-math-sequence.active,
+#panel-math-solid.active,
+#panel-math-ai.active {
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  align-items: stretch;
+  overflow: hidden;
+}
+
+@media (min-width: 1600px) {
+  #panel-math-graph.active,
+  #panel-math-plane.active,
+  #panel-math-trig.active,
+  #panel-math-sequence.active,
+  #panel-math-solid.active,
+  #panel-math-ai.active {
+    grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  }
+
+  /* 收起态优先于宽屏侧栏加宽 */
+  #panel-math-graph.active.has-drawer-collapsed,
+  #panel-math-plane.active.has-drawer-collapsed,
+  #panel-math-trig.active.has-drawer-collapsed,
+  #panel-math-sequence.active.has-drawer-collapsed,
+  #panel-math-solid.active.has-drawer-collapsed,
+  #panel-math-ai.active.has-drawer-collapsed {
+    grid-template-columns: 2.35rem minmax(0, 1fr);
+  }
+}
+
+/* 侧栏文案与控件 */
+
+.math-side-lead {
+  margin: 0 0 0.85rem;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.math-field {
+  margin: 0 0 0.85rem;
+}
+
+.math-field-label {
+  display: block;
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft, var(--ink));
+}
+
+.math-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.math-slider-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: 0 0 0.3rem;
+  font-size: 0.84rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.math-slider-name {
+  min-width: 0;
+}
+
+.math-slider-val {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 700;
+  color: var(--diagram);
+  font-variant-numeric: tabular-nums;
+}
+
+.math-field input[type='range'] {
+  width: 100%;
+  accent-color: var(--stamp);
+}
+
+.math-param-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.6rem;
+  gap: 0.45rem;
+  align-items: center;
+}
+
+.math-num-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 0.28rem 0.35rem;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-size: 0.86rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-num-input:focus {
+  outline: 2px solid color-mix(in srgb, var(--diagram) 55%, transparent);
+  outline-offset: 1px;
+}
+
+/* 隐藏仅作无障碍兼容的辅助节点 */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 数值气泡键盘（对标分步配平 balance-coef-keypad）
+ * z-index 须高于坐标轴设置 / 对象样式气泡（200），避免被挡住 */
+.math-num-keypad-bubble {
+  z-index: 260 !important;
+  width: min(280px, calc(100vw - 24px));
+}
+
+.math-num-keypad-bubble .brand-tip-head {
+  align-items: center;
+}
+
+.math-num-keypad-bubble .brand-tip-btn-close {
+  flex-shrink: 0;
+  padding: 0.28rem 0.7rem;
+  font-size: 0.78rem;
+}
+
+.math-num-keypad-body {
+  padding: 0.55rem 0.85rem 0.95rem !important;
+}
+
+.math-num-keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.4rem;
+}
+
+.math-num-key {
+  appearance: none;
+  min-height: 2.7rem;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 10px;
+  background: var(--paper);
+  font: inherit;
+  font-size: 1.22rem;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--ink);
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-num-key:hover {
+  background: var(--diagram-soft, var(--bg-hover));
+}
+
+.math-num-key:active {
+  transform: translate(1px, 1px);
+  box-shadow: none;
+}
+
+.math-num-key.is-action {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+
+.math-num-input {
+  cursor: pointer;
+}
+
+.math-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0 0 0.85rem;
+  font-size: 0.86rem;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.math-check input {
+  accent-color: var(--stamp);
+}
+
+.math-side-card {
+  margin: 0 0 0.75rem;
+  padding: 0.65rem 0.7rem;
+  border-radius: 12px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: color-mix(in srgb, var(--card-elevated) 88%, transparent);
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-side-card-title {
+  margin: 0 0 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.03em;
+  color: var(--text-secondary);
+}
+
+.math-side-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.math-side-action {
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+/* 探究任务 + 步骤板（P0） */
+
+.math-task-host {
+  margin: 0 0 0.85rem;
+}
+
+.math-task-shell {
+  padding: 0.7rem 0.75rem 0.8rem;
+  border-radius: 12px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: color-mix(in srgb, var(--stamp-soft) 40%, var(--card-elevated));
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-task-kicker {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  color: var(--stamp);
+  text-transform: uppercase;
+}
+
+.math-task-title {
+  margin: 0.2rem 0 0.25rem;
+  font-size: 0.98rem;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.math-task-blurb {
+  margin: 0 0 0.55rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.math-task-steps {
+  list-style: none;
+  margin: 0 0 0.65rem;
+  padding: 0;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.math-task-step {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.35rem 0.45rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  border: 1px solid transparent;
+  color: var(--ink-soft, var(--ink));
+}
+
+.math-task-step.is-current {
+  background: color-mix(in srgb, var(--diagram-soft, #ccfbf1) 70%, transparent);
+  border-color: color-mix(in srgb, var(--diagram) 35%, transparent);
+  font-weight: 700;
+}
+
+.math-task-step.is-done {
+  opacity: 0.75;
+}
+
+.math-task-step.is-done .math-task-step-idx {
+  background: var(--diagram);
+  color: #fff;
+}
+
+.math-task-step-idx {
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: color-mix(in srgb, var(--ink) 12%, transparent);
+  flex-shrink: 0;
+}
+
+.math-task-goal {
+  margin: 0 0 0.35rem;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.math-task-guide {
+  margin: 0 0 0.4rem;
+  padding-left: 1.1rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--ink-soft, var(--ink));
+}
+
+.math-task-hint {
+  margin: 0 0 0.45rem;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.math-task-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.math-stepboard {
+  position: absolute;
+  left: 0.65rem;
+  bottom: 0.65rem;
+  z-index: 4;
+  width: min(280px, calc(100% - 1.3rem));
+  max-height: min(36vh, 240px);
+  overflow: auto;
+  padding: 0.55rem 0.65rem 0.6rem;
+  border-radius: 12px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: color-mix(in srgb, var(--card-elevated) 92%, transparent);
+  box-shadow: var(--shadow-print);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+.math-stepboard-kicker {
+  margin: 0;
+  font-size: 0.7rem;
+  font-weight: 750;
+  letter-spacing: 0.05em;
+  color: var(--diagram);
+}
+
+.math-stepboard-goal {
+  margin: 0.25rem 0 0.35rem;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.math-stepboard-list {
+  margin: 0 0 0.35rem;
+  padding-left: 1.1rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--ink-soft, var(--ink));
+}
+
+.math-stepboard-hint,
+.math-stepboard-detail {
+  margin: 0;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.math-value-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.math-value-table th,
+.math-value-table td {
+  padding: 0.25rem 0.35rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ink) 35%, transparent);
+  text-align: right;
+}
+
+.math-value-table th:first-child,
+.math-value-table td:first-child {
+  text-align: left;
+}
+
+/* 舞台 */
+
+.stage-math {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+  border-radius: 14px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--paper);
+  box-shadow: var(--shadow-print-sm);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 读数卡叠在舞台上（对标 .mol-info-card / .mol-props-card） */
+.stage-math-graph,
+.stage-math-overlay {
+  display: block;
+}
+
+.stage-math-graph .math-board-host,
+.stage-math-overlay:not(.stage-math-split) .math-board-host {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* 三角：双画板网格 + 浮层卡片 */
+.stage-math-split.stage-math-overlay {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.stage-math-split.stage-math-overlay .math-board-host {
+  position: relative;
+  inset: auto;
+  height: 100%;
+}
+
+.math-float-card {
+  position: absolute;
+  z-index: 5;
+  max-width: min(320px, calc(100% - 1.5rem));
+  max-height: min(42vh, 320px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  border-radius: 12px;
+  border: var(--ui-stroke-strong, 2px) solid var(--border-ink);
+  background: color-mix(in srgb, var(--card-elevated) 94%, transparent);
+  box-shadow: var(--shadow-print);
+  backdrop-filter: blur(8px);
+  /* 默认不抢画板拖拽；按钮自行开启 */
+  pointer-events: none;
+}
+
+.math-float-card-formula {
+  top: 0.75rem;
+  left: 0.75rem;
+}
+
+.math-float-card-features {
+  top: 0.75rem;
+  right: 0.75rem;
+}
+
+.math-float-card-table {
+  bottom: 0.75rem;
+  left: 0.75rem;
+  max-width: min(260px, calc(100% - 1.5rem));
+  max-height: min(36vh, 260px);
+}
+
+.math-float-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  flex-shrink: 0;
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ink) 35%, transparent);
+  background: color-mix(in srgb, var(--stamp-soft) 32%, transparent);
+  pointer-events: auto;
+}
+
+.math-float-card[data-collapsed='true'] .math-float-card-head {
+  border-bottom: none;
+}
+
+.math-float-card-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+  font-family: var(--font-serif-cjk, inherit);
+}
+
+.math-float-card-toggle {
+  appearance: none;
+  flex-shrink: 0;
+  width: 1.7rem;
+  height: 1.7rem;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  box-shadow: var(--shadow-print-sm);
+  pointer-events: auto;
+}
+
+.math-float-card-toggle:hover {
+  background: color-mix(in srgb, var(--diagram-soft, #ccfbf1) 70%, var(--paper));
+}
+
+.math-float-card-body {
+  padding: 0.65rem 0.75rem 0.75rem;
+  overflow: auto;
+  min-height: 0;
+  pointer-events: auto;
+}
+
+.math-float-card[data-collapsed='true'] {
+  max-height: none;
+}
+
+.math-float-card[data-collapsed='true'] .math-float-card-body {
+  display: none;
+}
+
+.math-tex-lg {
+  font-size: 1.15rem;
+  line-height: 1.55;
+}
+
+.math-tex-lg .katex {
+  font-size: 1.2em;
+}
+
+.math-float-hint {
+  margin: 0.45rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+.math-float-features {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.math-float-feat-row {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.5rem 0.55rem;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--note-soft) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.math-float-feat-row strong {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+
+/* 浮层内沿用 stat-row 时略放大 */
+.math-float-card .math-stat-row {
+  font-size: 0.95rem;
+}
+
+.math-float-card .math-tex {
+  font-size: 1.05rem;
+}
+
+.math-float-table-wrap {
+  overflow: auto;
+}
+
+.math-value-table-lg {
+  font-size: 0.95rem;
+}
+
+.math-value-table-lg th,
+.math-value-table-lg td {
+  padding: 0.4rem 0.45rem;
+}
+
+@media (max-width: 720px) {
+  .math-float-card-features {
+    top: auto;
+    bottom: 0.65rem;
+    right: 0.65rem;
+    left: auto;
+    max-width: min(200px, calc(50% - 0.9rem));
+  }
+
+  .math-float-card-table {
+    max-width: min(200px, calc(50% - 0.9rem));
+  }
+
+  .math-float-card-formula {
+    max-width: min(280px, calc(100% - 1.3rem));
+  }
+}
+
+.stage-math-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+  gap: 0;
+}
+
+.stage-math-split .math-board-host {
+  border-right: var(--ui-stroke) solid color-mix(in srgb, var(--border-ink) 55%, transparent);
+}
+
+.stage-math-split .math-board-host:last-child {
+  border-right: none;
+}
+
+.math-board-host {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.math-board-caption {
+  flex: 0 0 auto;
+  padding: 0.4rem 0.65rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ink) 40%, transparent);
+  background: color-mix(in srgb, var(--card-elevated) 70%, transparent);
+}
+
+.math-board-host .jxgbox,
+.math-board-host .math-jxg {
+  flex: 1 1 auto;
+  min-height: 0;
+  width: 100% !important;
+  height: 100% !important;
+  border: none !important;
+  border-radius: 0;
+  background: transparent !important;
+}
+
+/*
+ * 右下角 FAB 槽：笔记 + 坐标轴设置 同一行、贴导航条上方
+ * 曲线图例（.math-board-legend）必须在其上方，用同一套变量算间距
+ */
+.math-board-host {
+  --math-fab-bottom: 2.35rem; /* 贴 JSXGraph 导航条上方 */
+  --math-fab-size: 2.15rem;
+  --math-fab-gap: 0.4rem;
+  --math-legend-gap: 0.55rem;
+}
+
+/* 右下角 FAB 共用槽：笔记 | 坐标轴设置 同一行 */
+.math-board-fab-dock {
+  position: absolute;
+  right: 10px;
+  bottom: var(--math-fab-bottom);
+  z-index: 26;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--math-fab-gap);
+  height: var(--math-fab-size);
+  min-height: var(--math-fab-size);
+  max-height: var(--math-fab-size);
+  pointer-events: none;
+  max-width: calc(100% - 1.25rem);
+}
+
+/* 右下角：坐标轴/图例设置按钮（在 dock 内，与笔记同高） */
+.math-axis-settings-btn {
+  position: static;
+  flex: 0 0 auto;
+  pointer-events: auto;
+  box-sizing: border-box;
+  width: var(--math-fab-size);
+  height: var(--math-fab-size);
+  min-width: var(--math-fab-size);
+  min-height: var(--math-fab-size);
+  max-height: var(--math-fab-size);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border-radius: 10px;
+  border: 1.5px solid color-mix(in srgb, var(--border-ink) 75%, transparent);
+  background: color-mix(in srgb, var(--card-elevated) 92%, transparent);
+  color: var(--ink);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  line-height: 0;
+}
+
+.math-axis-settings-btn:hover,
+.math-axis-settings-btn:focus-visible {
+  outline: none;
+  border-color: var(--stamp, #b45309);
+  color: var(--stamp, #b45309);
+}
+
+.math-axis-settings-btn-icon {
+  display: flex;
+  line-height: 0;
+}
+
+/* —— 画布笔记层（手写/手绘） —— */
+.math-board-notes {
+  position: absolute;
+  inset: 0;
+  z-index: 22;
+  pointer-events: none;
+}
+
+.math-board-notes-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  touch-action: none;
+  cursor: crosshair;
+}
+
+.math-board-notes.is-active .math-board-notes-canvas {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+.math-board-notes.is-active.is-eraser .math-board-notes-canvas {
+  cursor: cell;
+}
+
+/* dock 内：笔记按钮与坐标轴设置同高同行；relative 供工具条向左绝对定位 */
+.math-board-notes-chrome {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: var(--math-fab-gap, 0.4rem);
+  height: var(--math-fab-size, 2.15rem);
+  pointer-events: none;
+  max-width: min(460px, calc(100vw - 6rem));
+}
+
+.math-board-notes-toggle {
+  pointer-events: auto;
+  flex: 0 0 auto;
+  appearance: none;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.22rem;
+  width: auto;
+  min-width: var(--math-fab-size, 2.15rem);
+  height: var(--math-fab-size, 2.15rem);
+  min-height: var(--math-fab-size, 2.15rem);
+  max-height: var(--math-fab-size, 2.15rem);
+  padding: 0 0.55rem;
+  margin: 0;
+  border-radius: 10px;
+  border: 1.5px solid color-mix(in srgb, var(--border-ink) 75%, transparent);
+  background: color-mix(in srgb, var(--card-elevated) 92%, transparent);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  white-space: nowrap;
+}
+
+.math-board-notes-toggle:hover,
+.math-board-notes-toggle:focus-visible {
+  outline: none;
+  border-color: var(--stamp, #b45309);
+  color: var(--stamp, #b45309);
+}
+
+.math-board-notes-toggle.is-on {
+  border-color: var(--stamp, #b45309);
+  background: color-mix(in srgb, var(--stamp-soft) 70%, var(--card-elevated));
+  color: var(--stamp, #b45309);
+  font-weight: 800;
+}
+
+.math-board-notes-toggle-icon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+/* 向左弹出的工具条（默认收起；展开时 absolute 不撑高 dock，避免把按钮顶飞） */
+.math-board-notes-toolbar {
+  pointer-events: auto;
+  position: absolute;
+  right: 100%;
+  bottom: 0;
+  margin-right: 0.4rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: min(460px, calc(100vw - 7rem));
+  padding: 0.35rem 0.5rem;
+  border-radius: 12px;
+  border: 1.5px solid color-mix(in srgb, var(--border-ink) 70%, transparent);
+  background: color-mix(in srgb, var(--card-elevated) 96%, transparent);
+  box-shadow: var(--shadow-print-sm, 0 2px 12px rgba(0, 0, 0, 0.1));
+  backdrop-filter: blur(8px);
+  transform-origin: right center;
+  opacity: 0;
+  transform: translateX(10px) scale(0.96);
+  transition:
+    opacity 0.18s ease,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 1;
+}
+
+.math-board-notes-toolbar.is-open {
+  opacity: 1;
+  transform: translateX(0) scale(1);
+}
+
+.math-board-notes-tools,
+.math-board-notes-widths,
+.math-board-notes-colors,
+.math-board-notes-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.math-board-notes-tools,
+.math-board-notes-widths,
+.math-board-notes-colors {
+  padding-right: 0.3rem;
+  margin-right: 0.05rem;
+  border-right: 1px solid color-mix(in srgb, var(--border-ink) 28%, transparent);
+}
+
+.math-board-notes-tool,
+.math-board-notes-action {
+  appearance: none;
+  min-height: 1.85rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--border-ink) 65%, transparent);
+  background: var(--paper, var(--card-elevated));
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.math-board-notes-tool.is-on {
+  border-color: var(--stamp, #b45309);
+  background: color-mix(in srgb, var(--stamp-soft) 65%, var(--card-elevated));
+  color: var(--stamp, #b45309);
+}
+
+.math-board-notes-action.is-done {
+  border-color: var(--stamp, #b45309);
+  background: color-mix(in srgb, var(--stamp-soft) 55%, var(--card-elevated));
+  font-weight: 800;
+}
+
+.math-board-notes-width {
+  appearance: none;
+  width: 1.85rem;
+  height: 1.85rem;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--border-ink) 65%, transparent);
+  background: var(--paper, var(--card-elevated));
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+
+.math-board-notes-width i {
+  display: block;
+  width: 70%;
+  height: var(--nw, 3px);
+  border-radius: 99px;
+  background: var(--ink);
+}
+
+.math-board-notes-width.is-on {
+  border-color: var(--stamp, #b45309);
+  background: color-mix(in srgb, var(--stamp-soft) 50%, var(--card-elevated));
+}
+
+/* 色相拉开的圆点；墨黑加白环避免与背景糊在一起 */
+.math-board-notes-color {
+  appearance: none;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  border: 2px solid color-mix(in srgb, #fff 75%, var(--border-ink));
+  background: var(--nc, #1c1917);
+  cursor: pointer;
+  padding: 0;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--border-ink) 55%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, #000 18%, transparent);
+}
+
+.math-board-notes-color[data-color-name='ink'] {
+  border-color: color-mix(in srgb, #fff 55%, #a8a29e);
+}
+
+.math-board-notes-color[data-color-name='stamp'] {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #c2410c 45%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, #000 12%, transparent);
+}
+
+.math-board-notes-color[data-color-name='green'] {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #15803d 40%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, #000 12%, transparent);
+}
+
+.math-board-notes-color[data-color-name='blue'] {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #1d4ed8 40%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, #000 12%, transparent);
+}
+
+.math-board-notes-color[data-color-name='violet'] {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #7c3aed 40%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, #000 12%, transparent);
+}
+
+.math-board-notes-color[data-color-name='red'] {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #e11d48 40%, transparent),
+    inset 0 -1px 2px color-mix(in srgb, #000 12%, transparent);
+}
+
+.math-board-notes-color.is-on {
+  outline: 2.5px solid var(--stamp, #b45309);
+  outline-offset: 2px;
+  border-color: #fff;
+  transform: scale(1.08);
+}
+
+.math-axis-legend-bubble {
+  position: fixed;
+  z-index: 200;
+  width: min(300px, calc(100vw - 20px));
+}
+
+.math-axis-legend-bubble.is-visible {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  pointer-events: auto !important;
+}
+
+.math-axis-legend-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.math-axis-legend-bubble .brand-tip-btn-ghost {
+  appearance: none;
+  border: 1px solid color-mix(in srgb, var(--border-ink) 55%, transparent);
+  background: var(--paper, var(--card-elevated));
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 0.28rem 0.65rem;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-axis-legend-bubble .brand-tip-btn-ghost:hover {
+  border-color: var(--stamp, #b45309);
+  color: var(--stamp, #b45309);
+}
+
+.math-axis-legend-body {
+  display: grid;
+  gap: 0.75rem;
+  max-height: min(62vh, 480px);
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.math-axis-legend-section {
+  display: grid;
+  gap: 0.4rem;
+  padding-bottom: 0.55rem;
+  border-bottom: 1px dashed color-mix(in srgb, var(--border-ink) 45%, transparent);
+}
+
+.math-axis-legend-section:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.math-axis-legend-footer {
+  padding-top: 0.1rem;
+}
+
+.math-axis-legend-reset-btn {
+  width: 100%;
+  justify-content: center;
+}
+
+.math-axis-legend-sec-title {
+  margin: 0;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  color: var(--ink-soft, var(--ink));
+}
+
+.math-axis-legend-hint {
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.math-axis-legend-checks {
+  gap: 0.4rem 0.85rem;
+}
+
+/* 四个显示开关强制同一行（覆盖 math-check-row-inline 的 wrap） */
+.math-axis-legend-body .math-axis-legend-checks-one-row {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-items: center;
+  gap: 0.2rem 0.35rem;
+  flex-wrap: nowrap;
+}
+
+.math-axis-legend-body .math-axis-legend-checks-one-row .math-check-row {
+  display: inline-flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 0.28rem;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.78rem;
+  white-space: nowrap;
+}
+
+.math-axis-legend-body .math-axis-legend-checks-one-row .math-check-row input {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  margin: 0;
+}
+
+.math-axis-legend-body .math-check-row {
+  font-size: 0.84rem;
+}
+
+.math-axis-legend-grid2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.math-axis-num-field {
+  display: grid;
+  gap: 0.2rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+}
+
+.math-axis-num-field .math-num-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+/*
+ * 曲线图例：必须在 FAB dock（笔记+坐标轴设置）正上方，不与之同行重叠
+ * bottom = dock 底边 + 按钮高 + 间距
+ */
+.math-board-legend {
+  position: absolute;
+  top: auto;
+  left: auto;
+  right: 10px;
+  bottom: calc(
+    var(--math-fab-bottom, 2.35rem) + var(--math-fab-size, 2.15rem) +
+      var(--math-legend-gap, 0.55rem)
+  );
+  z-index: 24;
+  display: grid;
+  gap: 0.3rem;
+  max-width: min(200px, 42%);
+  padding: 0.4rem 0.5rem;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--border-ink) 55%, transparent);
+  background: color-mix(in srgb, var(--card-elevated) 92%, transparent);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  backdrop-filter: blur(6px);
+  pointer-events: none;
+}
+
+/* 图例文案过长时单行省略，避免顶到中心 */
+.math-board-legend .math-board-legend-label {
+  max-width: 11rem;
+}
+
+.math-board-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-width: 0;
+  font-size: 0.75rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.math-board-legend-swatch {
+  flex: 0 0 auto;
+  width: 0.85rem;
+  height: 0.28rem;
+  border-radius: 99px;
+  background: var(--leg, var(--stamp));
+}
+
+.math-board-legend-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* JSXGraph 右下角导航：复原 → 缩小 → 放大 → 左 → 右 → 上 → 下 */
+.stage-math .JXG_navigation {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  flex-wrap: nowrap;
+}
+
+.stage-math .JXG_navigation_button_100 {
+  order: 1;
+}
+
+.stage-math .JXG_navigation_button_out {
+  order: 2;
+}
+
+.stage-math .JXG_navigation_button_in {
+  order: 3;
+}
+
+.stage-math .JXG_navigation_button_left {
+  order: 4;
+}
+
+.stage-math .JXG_navigation_button_right {
+  order: 5;
+}
+
+.stage-math .JXG_navigation_button_up {
+  order: 6;
+}
+
+.stage-math .JXG_navigation_button_down {
+  order: 7;
+}
+
+/* —— 对象样式气泡（双击弹出，定位在指针附近） —— */
+
+.math-object-style-bubble {
+  position: fixed;
+  z-index: 200;
+  width: min(300px, calc(100vw - 20px));
+  max-height: min(70vh, 520px);
+  pointer-events: auto;
+}
+
+/* 打开时强制可见（避免被 brand-tip 默认 opacity:0 卡住） */
+.math-object-style-bubble.is-visible {
+  opacity: 1 !important;
+  transform: translateY(0) scale(1) !important;
+  pointer-events: auto !important;
+}
+
+.math-object-style-bubble .brand-tip-card {
+  max-height: min(70vh, 520px);
+  display: flex;
+  flex-direction: column;
+}
+
+.math-object-style-bubble-body {
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding-bottom: 0.35rem;
+  max-height: min(58vh, 440px);
+}
+
+.math-object-style-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.55rem;
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
+}
+
+.math-object-style-name strong {
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--stamp-soft, #fde68a) 80%, transparent);
+  color: var(--ink);
+  font-size: 0.75rem;
+  font-weight: 750;
+}
+
+.math-object-style-bubble-body .math-field {
+  margin-bottom: 0.65rem;
+}
+
+.math-object-style-bubble-body .math-field:last-child {
+  margin-bottom: 0;
+}
+
+.math-color-row {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.math-color-row input[type='color'] {
+  width: 2.25rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--border-ink) 70%, transparent);
+  border-radius: 8px;
+  background: var(--card-elevated, #fff);
+  cursor: pointer;
+}
+
+.math-color-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.math-color-swatch {
+  width: 1.15rem;
+  height: 1.15rem;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ink) 25%, transparent);
+  background: var(--swatch, #ccc);
+  cursor: pointer;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 35%, transparent);
+}
+
+.math-color-swatch:hover,
+.math-color-swatch:focus-visible {
+  outline: 2px solid var(--stamp, #b45309);
+  outline-offset: 1px;
+}
+
+.math-chip-row-tight {
+  margin-top: 0.35rem;
+}
+
+.math-chip-row-tight .chip-xs,
+.chip.chip-xs {
+  padding: 0.12rem 0.4rem;
+  font-size: 0.72rem;
+  min-height: 0;
+}
+
+.math-field-checks {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.math-check-row-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 1rem;
+}
+
+.math-check-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+}
+
+.math-point-options-row {
+  align-items: center;
+  gap: 0.55rem 0.75rem;
+}
+
+.math-point-delete-btn {
+  appearance: none;
+  flex: 0 0 auto;
+  margin: 0;
+  margin-left: auto;
+  padding: 0.28rem 0.7rem;
+  border-radius: 8px;
+  border: 1.5px solid color-mix(in srgb, #dc2626 75%, var(--border-ink));
+  background: color-mix(in srgb, #fee2e2 88%, var(--card-elevated));
+  color: #b91c1c;
+  font-size: 0.8rem;
+  font-weight: 750;
+  cursor: pointer;
+  line-height: 1.2;
+}
+
+.math-point-delete-btn:hover,
+.math-point-delete-btn:focus-visible {
+  outline: none;
+  background: #fecaca;
+  border-color: #dc2626;
+  color: #991b1b;
+}
+
+.math-check-row input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--stamp, #b45309);
+}
+
+/* —— 长按画板罗盘 —— */
+
+.math-board-compass {
+  position: fixed;
+  z-index: 190;
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.82);
+  transition:
+    opacity 0.16s ease,
+    transform 0.18s cubic-bezier(0.2, 0.9, 0.2, 1);
+}
+
+.math-board-compass.is-open {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
+}
+
+.math-board-compass-ring {
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 1.5px dashed color-mix(in srgb, var(--ink) 28%, transparent);
+  background: color-mix(in srgb, var(--card-elevated) 78%, transparent);
+  box-shadow: var(--shadow-print, 0 8px 28px rgba(0, 0, 0, 0.14));
+  backdrop-filter: blur(8px);
+}
+
+.math-board-compass-items {
+  position: absolute;
+  inset: 0;
+}
+
+.math-board-compass-item {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 3.4rem;
+  height: 3.4rem;
+  margin: -1.7rem 0 0 -1.7rem;
+  transform: translate(var(--cx, 0), var(--cy, 0));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.05rem;
+  border-radius: 999px;
+  border: 1.5px solid color-mix(in srgb, var(--border-ink) 80%, transparent);
+  background: var(--card-elevated, #fffaf5);
+  color: var(--ink);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  padding: 0;
+  font: inherit;
+}
+
+.math-board-compass-item:hover,
+.math-board-compass-item:focus-visible {
+  outline: none;
+  border-color: var(--stamp, #b45309);
+  background: color-mix(in srgb, var(--stamp-soft, #fde68a) 70%, var(--card-elevated));
+}
+
+.math-board-compass-icon {
+  font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--stamp, #b45309);
+}
+
+.math-board-compass-label {
+  font-size: 0.68rem;
+  font-weight: 750;
+  letter-spacing: 0.02em;
+}
+
+.math-solid-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.math-solid-canvas canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* 侧栏公式 / 统计 */
+
+.math-tex {
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--ink);
+  overflow-x: auto;
+}
+
+.math-stat-row {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0 0 0.55rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--note-soft) 70%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  font-size: 0.84rem;
+}
+
+.math-stat-row:last-child {
+  margin-bottom: 0;
+}
+
+.math-stat-row strong {
+  color: var(--ink);
+}
+
+.math-stat-emphasis {
+  background: color-mix(in srgb, var(--stamp-soft) 45%, transparent);
+}
+
+.math-empty {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+}
+
+.math-mono {
+  font-family: var(--font-mono), ui-monospace, monospace;
+  font-weight: 650;
+}
+
+.math-seq-terms {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.55;
+  word-break: break-word;
+}
+
+/* 数学课堂 · 讲解 */
+
+.stage-math-ai {
+  min-height: 0;
+  overflow: auto;
+}
+
+.math-lesson-layout {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) minmax(0, 1fr);
+  gap: 0.85rem;
+  min-height: 0;
+  height: 100%;
+}
+
+.math-lesson-topics {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 0.15rem;
+}
+
+.math-topic-chip {
+  appearance: none;
+  text-align: left;
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 12px;
+  background: var(--paper);
+  color: var(--ink);
+  padding: 0.65rem 0.75rem;
+  cursor: pointer;
+  display: grid;
+  gap: 0.25rem;
+  box-shadow: var(--shadow-print-sm);
+  font: inherit;
+}
+
+.math-topic-chip strong {
+  font-size: 0.9rem;
+}
+
+.math-topic-chip span {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.math-topic-chip:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: var(--shadow-print);
+}
+
+.math-topic-chip.is-on {
+  background: color-mix(in srgb, var(--stamp-soft) 55%, var(--paper));
+  border-color: color-mix(in srgb, var(--stamp) 50%, var(--border-ink));
+}
+
+.math-lesson-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.math-lesson-focus {
+  width: 100%;
+  resize: vertical;
+  min-height: 4.5rem;
+  border-radius: 10px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--paper);
+  color: var(--ink);
+  font: inherit;
+  padding: 0.55rem 0.65rem;
+  line-height: 1.45;
+}
+
+.math-lesson-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.math-lesson-body {
+  flex: 1;
+  min-height: 12rem;
+  padding: 0.85rem 1rem;
+  border-radius: 14px;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: color-mix(in srgb, var(--card-elevated) 92%, transparent);
+  box-shadow: var(--shadow-print-sm);
+  overflow: auto;
+}
+
+.math-lesson-p {
+  margin: 0 0 0.75rem;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: var(--ink);
+}
+
+.math-lesson-p:last-child {
+  margin-bottom: 0;
+}
+
+.math-lesson-body .katex {
+  font-size: 1.05em;
+}
+
+.math-empty.is-err {
+  color: var(--stamp);
+}
+
+/* P1：讲解 → 实验台 / 检查点 */
+
+.math-explain-lab-actions {
+  margin: 0 0 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border-radius: 12px;
+  border: var(--ui-stroke) solid color-mix(in srgb, var(--diagram) 35%, var(--border-ink));
+  background: color-mix(in srgb, var(--diagram-soft, #ccfbf1) 45%, var(--card-elevated));
+}
+
+.math-lab-action-row {
+  margin-top: 0.35rem;
+}
+
+.math-checkpoint-banner {
+  margin: 0 0 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  border: var(--ui-stroke) solid color-mix(in srgb, var(--stamp) 40%, var(--border-ink));
+  background: color-mix(in srgb, var(--stamp-soft) 55%, var(--paper));
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.math-quiz-lab-card {
+  margin-bottom: 0.75rem;
+}
+
+.math-global-checkpoint-tip {
+  position: absolute;
+  left: 50%;
+  bottom: 1rem;
+  transform: translateX(-50%);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.85rem;
+  border-radius: 999px;
+  border: var(--ui-stroke-strong, 2px) solid var(--border-ink);
+  background: var(--card-elevated);
+  box-shadow: var(--shadow-print);
+  font-size: 0.88rem;
+  font-weight: 650;
+  color: var(--ink);
+  max-width: min(520px, 92vw);
+}
+
+.lab-math-root {
+  position: relative;
+}
+
+@media (max-width: 900px) {
+  #panel-math-graph.active,
+  #panel-math-plane.active,
+  #panel-math-trig.active,
+  #panel-math-sequence.active,
+  #panel-math-solid.active,
+  #panel-math-ai.active {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+
+  #panel-math-graph .side-drawer,
+  #panel-math-plane .side-drawer,
+  #panel-math-trig .side-drawer,
+  #panel-math-sequence .side-drawer,
+  #panel-math-solid .side-drawer,
+  #panel-math-ai .side-drawer {
+    max-height: 38vh;
+  }
+
+  .math-lesson-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .stage-math-split {
+    grid-template-columns: 1fr;
+    grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .stage-math-split .math-board-host {
+    border-right: none;
+    border-bottom: var(--ui-stroke) solid color-mix(in srgb, var(--border-ink) 55%, transparent);
+  }
+
+  .stage-math-split .math-board-host:last-child {
+    border-bottom: none;
+  }
+}

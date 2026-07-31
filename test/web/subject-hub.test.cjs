@@ -60,7 +60,15 @@ test('index.html has subject hub bookshelf and chrome hooks', () => {
   assert.match(html, /id="panel-subject-home"/);
   assert.match(html, /id="lab-chemistry-chrome"/);
   assert.match(html, /id="lab-panels-root"/);
+  assert.match(html, /id="lab-math-root"/);
   assert.doesNotMatch(html, /id="panel-table"/);
+  assert.doesNotMatch(html, /id="panel-math-plane"/);
+  assert.match(html, /data-tab="graph"[^>]*data-classroom="math"/);
+  assert.match(html, /data-tab="plane"[^>]*data-classroom="math"/);
+  assert.match(html, /data-tab="trig"[^>]*data-classroom="math"/);
+  assert.match(html, /data-tab="sequence"[^>]*data-classroom="math"/);
+  assert.match(html, /data-tab="solid"[^>]*data-classroom="math"/);
+  assert.match(html, /data-tab="ai"[^>]*data-classroom="math"/);
   assert.ok(
     fs.existsSync(
       path.join(root, 'apps/web/src/subjects/classrooms/partials/chemistry-panels.partial.html'),
@@ -69,6 +77,11 @@ test('index.html has subject hub bookshelf and chrome hooks', () => {
   assert.ok(
     fs.existsSync(
       path.join(root, 'apps/web/src/subjects/classrooms/partials/chemistry-modals.partial.html'),
+    ),
+  );
+  assert.ok(
+    fs.existsSync(
+      path.join(root, 'apps/web/src/subjects/classrooms/partials/math-panels.partial.html'),
     ),
   );
   const enterFxSrc = fs.readFileSync(

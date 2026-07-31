@@ -106,12 +106,18 @@
   display: none !important;
 }
 
-/* 收起时主栏加宽：覆盖 layout 里的双列宽 */
+/* 收起时主栏加宽：覆盖 layout / 数学教室里的双列宽 */
 #panel-table.active.has-drawer-collapsed,
 #panel-molecule.active.has-drawer-collapsed,
 #panel-molar.active.has-drawer-collapsed,
 #panel-electron.active.has-drawer-collapsed,
-#panel-ai.active.has-drawer-collapsed {
+#panel-ai.active.has-drawer-collapsed,
+#panel-math-graph.active.has-drawer-collapsed,
+#panel-math-plane.active.has-drawer-collapsed,
+#panel-math-trig.active.has-drawer-collapsed,
+#panel-math-sequence.active.has-drawer-collapsed,
+#panel-math-solid.active.has-drawer-collapsed,
+#panel-math-ai.active.has-drawer-collapsed {
   grid-template-columns: 2.35rem minmax(0, 1fr);
   gap: 0.55rem;
 }
@@ -137,7 +143,13 @@
   #panel-molecule.active.has-drawer-collapsed .side-drawer,
   #panel-molar.active.has-drawer-collapsed .side-drawer,
   #panel-electron.active.has-drawer-collapsed .side-drawer,
-  #panel-ai.active.has-drawer-collapsed .side-drawer {
+  #panel-ai.active.has-drawer-collapsed .side-drawer,
+  #panel-math-graph.active.has-drawer-collapsed .side-drawer,
+  #panel-math-plane.active.has-drawer-collapsed .side-drawer,
+  #panel-math-trig.active.has-drawer-collapsed .side-drawer,
+  #panel-math-sequence.active.has-drawer-collapsed .side-drawer,
+  #panel-math-solid.active.has-drawer-collapsed .side-drawer,
+  #panel-math-ai.active.has-drawer-collapsed .side-drawer {
     max-height: 2.5rem;
   }
 }

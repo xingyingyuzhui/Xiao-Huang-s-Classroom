@@ -46,6 +46,20 @@ html[data-theme='default'] {
   --shadow-print-sm: var(--shadow-sm);
   --shadow-inset-glass: inset 0 1px 0 rgba(255, 255, 255, 0.7);
 
+  /* 函数画布多曲线色（浅底高对比） */
+  --math-fn-1: #b45309;
+  --math-fn-2: #0f766e;
+  --math-fn-3: #2563eb;
+  --math-fn-4: #7c3aed;
+  --math-fn-5: #dc2626;
+  --math-fn-6: #ca8a04;
+  --math-fn-7: #059669;
+  --math-fn-8: #e11d48;
+  /* 特征点描边：浅底用纸色 */
+  --math-point-ring: var(--card-elevated);
+  /* 坐标网格：勿用 border-soft（过浅会「看不见」） */
+  --math-grid: #c5cdd8;
+
   --zone-s: #ffedd5;
   --zone-p: #e0f2fe;
   --zone-d: #fef3c7;

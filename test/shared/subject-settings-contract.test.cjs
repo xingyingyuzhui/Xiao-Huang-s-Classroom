@@ -45,6 +45,18 @@ test('getSubjectCapabilities reflects tab catalog', () => {
   assert.equal(physics.defaultPage, false);
   assert.equal(physics.ai, true);
 
+  const math = getSubjectCapabilities('math');
+  assert.equal(math.brand, true);
+  assert.equal(math.defaultPage, true);
+  assert.equal(math.ai, true);
+  assert.equal(SUBJECT_TAB_CATALOG.math.showTabBar, true);
+  assert.equal(SUBJECT_TAB_CATALOG.math.defaultTabId, 'graph');
+  assert.deepEqual(
+    getDefaultPageOptions('math').map((t) => t.id),
+    ['graph', 'plane', 'trig', 'sequence', 'solid', 'ai'],
+  );
+  assert.ok(getDefaultPageOptions('math').some((t) => t.label === '课堂'));
+
   const unknown = getSubjectCapabilities('astronomy');
   assert.deepEqual(unknown, { brand: false, defaultPage: false, ai: false });
 });

@@ -21,6 +21,60 @@ function resolveSubjectId(subjectId) {
   return READY_SUBJECT_IDS.includes(subjectId) ? subjectId : 'chemistry';
 }
 
+const MATH_TIP_SEEDS = [
+  '二次函数顶点公式 x=-b/(2a)，把对称轴算出来，开口方向和最值就都好找了。',
+  '判别式 Δ=b²-4ac：大于 0 两个实根，等于 0 重根，小于 0 没有实根。',
+  '正弦、余弦在单位圆上就是坐标：cos 是 x，sin 是 y，所以 sin²+cos²=1。',
+  '对数 ln 和指数 e 是一对互逆运算，就像加减、乘除是一对。',
+  '等差数列通项 aₙ=a₁+(n-1)d，前 n 项和像「首尾配对」：n(a₁+aₙ)/2。',
+  '函数单调性看导数正负：f\'>0 递增，f\'<0 递减；极值点常在导数变号处。',
+  '反比例函数 y=k/x 的图象是双曲线，k 的正负决定在哪两个象限。',
+  '绝对值 |x-a| 的几何意义是数轴上 x 到 a 的距离，图象像 V 字平移。',
+  '指数爆炸：底数大于 1 时，x 稍大 y 就冲得很快，这就是复利增长的样子。',
+  '椭圆是到两焦点距离之和为定值的点的轨迹；圆是到定点距离为定值。',
+];
+
+let lastMathTipIdx = -1;
+
+function pickMathLocalTip() {
+  if (!MATH_TIP_SEEDS.length) return '数学里很多公式其实是在讲对称和变化。';
+  let i = Math.floor(Math.random() * MATH_TIP_SEEDS.length);
+  if (i === lastMathTipIdx && MATH_TIP_SEEDS.length > 1) {
+    i = (i + 1) % MATH_TIP_SEEDS.length;
+  }
+  lastMathTipIdx = i;
+  return MATH_TIP_SEEDS[i];
+}
+
+function tipPromptForSubject(sid) {
+  if (sid === 'math') {
+    return {
+      system: `你是一位亲切的高中数学老师，正在课间随口跟同学分享数学小知识。
+要求：
+1. 只输出 1～2 句中文，总共不超过 60 个汉字（可略超但尽量短）
+2. 内容要真实有用，可联系图象、公式口诀或生活中的数量关系
+3. 不要标题、不要列表、不要 emoji、不要引号包裹全文
+4. 不要提问、不要布置作业
+5. 每次换不同的知识点，语气自然像老师说话`,
+      user: '请随机分享一条高中数学小知识（函数、三角、数列、几何等均可）。只输出那一两句话。',
+    };
+  }
+  return {
+    system: `你是一位亲切的高中化学老师，正在课间随口跟同学分享化学小知识。
+要求：
+1. 只输出 1～2 句中文，总共不超过 60 个汉字（可略超但尽量短）
+2. 内容要真实、有趣，最好联系日常生活或生活常识
+3. 不要标题、不要列表、不要 emoji、不要引号包裹全文
+4. 不要提问、不要让同学回答
+5. 每次换不同的知识点，语气自然像老师说话`,
+    user: '请随机分享一条高中化学小知识（可涉及生活中的化学现象）。只输出那一两句话。',
+  };
+}
+
+function pickTipLocal(sid) {
+  return sid === 'math' ? pickMathLocalTip() : pickLocalTip();
+}
+
 async function generateTip({ subjectId = 'chemistry' } = {}) {
   const sid = resolveSubjectId(subjectId);
   ensureTablesAndSeed();
@@ -28,19 +82,10 @@ async function generateTip({ subjectId = 'chemistry' } = {}) {
   // 先占位计次，避免并发打穿限额；失败/无效则 release
   const tipReservation = tryReserveAiCall();
   if (!tipReservation.allowed) {
-    return { tip: pickLocalTip(), source: 'local' };
+    return { tip: pickTipLocal(sid), source: 'local' };
   }
 
-  const system = `你是一位亲切的高中化学老师，正在课间随口跟同学分享化学小知识。
-要求：
-1. 只输出 1～2 句中文，总共不超过 60 个汉字（可略超但尽量短）
-2. 内容要真实、有趣，最好联系日常生活或生活常识
-3. 不要标题、不要列表、不要 emoji、不要引号包裹全文
-4. 不要提问、不要让同学回答
-5. 每次换不同的知识点，语气自然像老师说话`;
-
-  const user =
-    '请随机分享一条高中化学小知识（可涉及生活中的化学现象）。只输出那一两句话。';
+  const { system, user } = tipPromptForSubject(sid);
 
   try {
     const { content } = await callDeepSeekChat({
@@ -49,14 +94,16 @@ async function generateTip({ subjectId = 'chemistry' } = {}) {
       temperature: 0.95,
       max_tokens: 120,
       subjectId: sid,
+      kind: 'tip',
     });
 
     let tip = normalizeTip(content);
     if (!tip) {
       releaseAiCall(tipReservation.reservationId);
-      return { tip: pickLocalTip(), source: 'local' };
+      return { tip: pickTipLocal(sid), source: 'local' };
     }
 
+    // 化学侧可入库积累；数学小知识同样入库（共用 tips 表）
     const saved = saveAiTip(tip);
     tip = saved || tip;
 
@@ -64,13 +111,14 @@ async function generateTip({ subjectId = 'chemistry' } = {}) {
   } catch (aiErr) {
     releaseAiCall(tipReservation.reservationId);
     console.warn('AI 小知识调模型失败，回落本地:', aiErr.message || aiErr);
-    return { tip: pickLocalTip(), source: 'local' };
+    return { tip: pickTipLocal(sid), source: 'local' };
   }
 }
 
 /** tip 路由最外层失败时再回落本地，与原先一致 */
-function tipLocalFallback() {
-  return { tip: pickLocalTip(), source: 'local' };
+function tipLocalFallback(subjectId = 'chemistry') {
+  const sid = resolveSubjectId(subjectId);
+  return { tip: pickTipLocal(sid), source: 'local' };
 }
 
 async function generateReaction({

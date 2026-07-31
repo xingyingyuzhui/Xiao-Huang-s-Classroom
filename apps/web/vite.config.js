@@ -17,6 +17,9 @@ export default defineConfig({
       '@xiaohuang/subject-settings': fileURLToPath(
         new URL('../../packages/subject-settings/index.js', import.meta.url),
       ),
+      'jsxgraph/distrib/jsxgraph.css': fileURLToPath(
+        new URL('../../node_modules/jsxgraph/distrib/jsxgraph.css', import.meta.url),
+      ),
       '@app': fileURLToPath(new URL('./src/app', import.meta.url)),
       '@subjects': fileURLToPath(new URL('./src/subjects', import.meta.url)),
       '@chemistry': fileURLToPath(new URL('./src/chemistry', import.meta.url)),
@@ -24,7 +27,7 @@ export default defineConfig({
     },
   },
   optimizeDeps: {
-    include: ['@xiaohuang/subject-settings'],
+    include: ['@xiaohuang/subject-settings', 'jsxgraph', 'katex', 'three'],
   },
   build: {
     outDir: 'dist',
@@ -32,6 +35,7 @@ export default defineConfig({
       output: {
         manualChunks: {
           three: ['three'],
+          mathviz: ['jsxgraph', 'katex'],
           animation: ['animejs', 'canvas-confetti'],
         },
       },

@@ -1,0 +1,76 @@
+/**
+ * 坐标轴/图例设置：按钮 + 气泡
+ */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const root = require('../helpers/repo-root.js');
+
+test('axis-legend-settings module exports attach and dismiss', () => {
+  const src = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/shared/axis-legend-settings.js'),
+    'utf8',
+  );
+  assert.match(src, /export function attachAxisLegendSettings/);
+  assert.match(src, /export function dismissAxisLegendBubble/);
+  assert.match(src, /showAxisX/);
+  assert.match(src, /showGrid/);
+  assert.match(src, /showLegend/);
+  assert.match(src, /axisStrokeWidth/);
+  assert.match(src, /tickStepX/);
+  assert.match(src, /tickStepY/);
+  assert.match(src, /ticksDistance/);
+  assert.match(src, /insertTicks:\s*false/);
+  assert.match(src, /fXMin/);
+  assert.match(src, /fXMax/);
+  assert.match(src, /xMin/);
+  assert.match(src, /board\.grids/);
+  assert.match(src, /setBoundingBox/);
+  assert.match(src, /skipViewport/);
+  assert.match(src, /refresh\(\)\s*\{[\s\S]*skipViewport:\s*true/);
+  assert.match(src, /math-axis-settings-btn/);
+  assert.match(src, /mathAxisLegendBubble/);
+  // 重置：头栏 + 底部按钮，恢复 factoryDefaults
+  assert.match(src, /data-role="reset"/);
+  assert.match(src, /resetToDefaults/);
+  assert.match(src, /factoryDefaults|DEFAULT_AXIS_LEGEND_STATE/);
+  assert.doesNotMatch(src, /data-role="keepAspect"/);
+  assert.doesNotMatch(src, /data-role="showLegend"/);
+  assert.match(src, /mountMathNumKeypads/);
+  assert.match(src, /hideNumKeypad/);
+});
+
+test('graph rebuilds curve from function domain settings', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  assert.match(src, /onAxisSettingsChange/);
+  assert.match(src, /fXMin/);
+  assert.match(src, /fXMax/);
+  assert.match(src, /hasFuncDomain:\s*true/);
+});
+
+test('jsx-board wires axis settings by default', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/shared/jsx-board.js'), 'utf8');
+  assert.match(src, /axis-legend-settings/);
+  assert.match(src, /_mathAxisLegend/);
+  assert.match(src, /axisSettings !== false/);
+});
+
+test('graph provides legend items for main curve', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  assert.match(src, /getLegendItems/);
+  assert.match(src, /axisSettingsHost/);
+  assert.match(src, /_mathAxisLegend\?\.refresh/);
+  // 重建曲线保留视窗 + 换肤契约
+  assert.match(src, /withPreservedViewport/);
+  assert.match(src, /bindMathThemeRestyle/);
+  assert.match(src, /remintFnColorsForTheme|remintFunctionColors/);
+});
+
+test('math classroom dismisses axis legend bubble with overlays', () => {
+  const src = fs.readFileSync(
+    path.join(root, 'apps/web/src/subjects/classrooms/math-classroom.js'),
+    'utf8',
+  );
+  assert.match(src, /dismissAxisLegendBubble/);
+});

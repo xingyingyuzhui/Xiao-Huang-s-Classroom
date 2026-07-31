@@ -36,3 +36,4 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 - Classroom enter/exit from the subject intro uses cover-dissolve (etch/particles sampled from cover art), not multi-page flip or stacked 3D cover-open.
 - Chemistry lab work prioritizes a state-driven engine with chemistry logic separated from rendering; experiments should be configuration-driven rather than one-off page stacks.
 - Chemistry web modules: feature packages under `apps/web/src/chemistry/{periodic-table,molecule,molar,electron,battle,ai-classroom,chem,shared}/`; classroom mount/partials under `apps/web/src/subjects/classrooms/`.
+- Math web modules: `apps/web/src/math/{graph,plane,trig,sequence,solid,classroom,shared}/`; classroom shell `subjects/classrooms/math-classroom.js`. **Board theme/lifecycle contract:** `apps/web/src/math/AGENTS.md`（`math-theme.js` + `board-lifecycle.js`；换肤 `chem-theme-change`；禁止 border-soft 当网格）。**表达式：** `@xiaohuang/math-expr`（前后端共用，勿再复制白名单）。

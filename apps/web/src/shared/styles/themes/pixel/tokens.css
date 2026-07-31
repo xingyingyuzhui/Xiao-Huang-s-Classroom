@@ -80,4 +80,16 @@ html[data-theme='pixel'] {
   --body-noise-opacity: 0;
   --brand-eyebrow-display: block;
   --stage-3d-bg: #dfe6e9;
+
+  /* 函数画布：像素珊瑚 / 青绿 / 天蓝 高对比色块 */
+  --math-fn-1: #ff6b81;
+  --math-fn-2: #1dd1a1;
+  --math-fn-3: #54a0ff;
+  --math-fn-4: #a29bfe;
+  --math-fn-5: #ff9f43;
+  --math-fn-6: #feca57;
+  --math-fn-7: #00d2d3;
+  --math-fn-8: #ff6b81;
+  --math-point-ring: var(--card-elevated);
+  --math-grid: #b2bec3;
 }

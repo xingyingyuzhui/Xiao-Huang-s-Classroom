@@ -84,4 +84,16 @@ html[data-theme='reagent'] {
   --body-noise-opacity: 0;
   --brand-eyebrow-display: block;
   --stage-3d-bg: #ebe8e2;
+
+  /* 函数画布：紫铜 / 炭 / 米黄标签色，避免默认真蓝 */
+  --math-fn-1: #b45309;
+  --math-fn-2: #4a4038;
+  --math-fn-3: #0f766e;
+  --math-fn-4: #7c3aed;
+  --math-fn-5: #b91c1c;
+  --math-fn-6: #c9a227;
+  --math-fn-7: #0369a1;
+  --math-fn-8: #9f1239;
+  --math-point-ring: var(--card-elevated);
+  --math-grid: #cfc7bb;
 }

@@ -12,6 +12,7 @@
     "pkg:win": "pkg . --targets node18-win-x64 --output ../dist-exe/XiaoHuang-ChemLab.exe"
   },
   "dependencies": {
+    "@xiaohuang/math-expr": "0.0.1",
     "@xiaohuang/subject-settings": "0.0.1",
     "sql.js": "^1.10.0",
     "cors": "^2.8.5",

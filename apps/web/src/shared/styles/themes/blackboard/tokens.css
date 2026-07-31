@@ -83,4 +83,21 @@ html[data-theme='blackboard'] {
   --brand-eyebrow-display: block;
   /* 3D 区：黑青板心（非白） */
   --stage-3d-bg: #0a1613;
+
+  /*
+   * 函数画布：粉笔色（必须亮于板面 #1a3d32，避免与墨绿重叠）
+   * 旧色 #0f766e / #059669 在黑板上几乎看不见
+   */
+  --math-fn-1: #f0d060; /* 粉笔黄 */
+  --math-fn-2: #7ec8c0; /* 粉笔青 */
+  --math-fn-3: #8ec5ff; /* 粉笔蓝 */
+  --math-fn-4: #d4a5ff; /* 粉笔紫 */
+  --math-fn-5: #ff8a9a; /* 粉笔粉红 */
+  --math-fn-6: #ffc078; /* 粉笔橙 */
+  --math-fn-7: #9ae6b4; /* 粉笔浅绿 */
+  --math-fn-8: #f6adcd; /* 粉笔玫粉 */
+  /* 特征点描边：深板上用浅粉笔描边，形成一圈「粉笔灰」 */
+  --math-point-ring: #eef4ef;
+  /* 网格：粉笔灰线，略亮于板面 */
+  --math-grid: #4a6b5c;
 }
