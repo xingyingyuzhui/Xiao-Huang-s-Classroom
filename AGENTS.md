@@ -2,6 +2,8 @@
 
 本仓库由「小黄的化学实验室」整仓迁移而来，当前以化学为第一个学科模块运行。
 
+**Agent OS（架构 / 理念 / 排障 / 加功能）：** 项目 skill `.grok/skills/xiaohuang-classroom/`（`/xiaohuang-classroom`）。非琐碎改动先读该 skill 与对应 `references/*`。
+
 后续任务（多学科切换壳、其它学科内容）在独立计划中展开。化学功能改动仍按原图层边界（browser / Express / Electron）处理。
 
 **当前壳层：** 启动进入学科大厅；仅「化学」可进入现有实验室 Tab。顶栏学科标签与设置中的「学科大厅」可返回大厅。设计见 `docs/superpowers/specs/2026-07-29-subject-hub-design.md`。
