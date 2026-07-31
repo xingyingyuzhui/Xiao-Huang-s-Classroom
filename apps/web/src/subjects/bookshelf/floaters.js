@@ -74,27 +74,28 @@ export function createDetailFloaters(deps) {
   function homeOffsets(i, n) {
     const t = i / Math.max(1, n);
     const angle = t * Math.PI * 2 + (Math.random() - 0.5) * 0.35;
-    /* 椭圆环绕：左右更开，上下略收，避开封面正中 */
-    const rx = 1.55 + Math.random() * 1.35;
-    const ry = 0.95 + Math.random() * 0.85;
+    /* 简介态：环更靠外，给放大后的书面让位 */
+    const rx = 1.85 + Math.random() * 1.45;
+    const ry = 1.15 + Math.random() * 0.95;
     let hx = Math.cos(angle) * rx;
     let hy = Math.sin(angle) * ry * 0.85;
-    if (Math.abs(hx) < 0.55) hx += Math.sign(hx || 1) * 0.75;
+    if (Math.abs(hx) < 0.7) hx += Math.sign(hx || 1) * 0.85;
     return {
       hx,
       hy,
-      hz: 0.15 + Math.random() * 1.1,
-      sp: 0.18 + Math.random() * 0.35,
+      hz: 0.08 + Math.random() * 1.0,
+      sp: 0.16 + Math.random() * 0.3,
       ph: Math.random() * 6.28,
       rv: new THREE.Vector3(
-        (Math.random() - 0.5) * 0.55,
-        (Math.random() - 0.5) * 0.55,
-        (Math.random() - 0.5) * 0.55,
+        (Math.random() - 0.5) * 0.45,
+        (Math.random() - 0.5) * 0.45,
+        (Math.random() - 0.5) * 0.45,
       ),
       kick: new THREE.Vector3(),
       size: 1,
-      spin: (Math.random() - 0.5) * 0.6,
-      opacity: 0.55 + Math.random() * 0.35,
+      spin: (Math.random() - 0.5) * 0.45,
+      /* 整体更淡，不抢放大后的封面 */
+      opacity: 0.32 + Math.random() * 0.22,
     };
   }
 
@@ -287,8 +288,8 @@ export function createDetailFloaters(deps) {
       const mesh = makeChemSprite(item.s, item.c);
       pushItem(mesh, i, {
         kind: 'sprite',
-        size: 0.32 + Math.random() * 0.12,
-        opacity: 0.7 + Math.random() * 0.2,
+        size: 0.24 + Math.random() * 0.09,
+        opacity: 0.38 + Math.random() * 0.18,
       });
     });
   }
@@ -298,8 +299,8 @@ export function createDetailFloaters(deps) {
       const mesh = makeMathSprite(item.s, item.c);
       pushItem(mesh, i, {
         kind: 'sprite',
-        size: 0.28 + Math.random() * 0.14,
-        opacity: 0.65 + Math.random() * 0.25,
+        size: 0.22 + Math.random() * 0.1,
+        opacity: 0.36 + Math.random() * 0.18,
       });
     });
   }
@@ -318,8 +319,8 @@ export function createDetailFloaters(deps) {
       const mesh = makeLeafSprite(tone);
       pushItem(mesh, i, {
         kind: 'sprite',
-        size: 0.26 + Math.random() * 0.16,
-        opacity: 0.75 + Math.random() * 0.2,
+        size: 0.2 + Math.random() * 0.11,
+        opacity: 0.4 + Math.random() * 0.16,
       });
     }
   }
@@ -332,15 +333,15 @@ export function createDetailFloaters(deps) {
         const mesh = makeOrbitRing(ringColors[(i / 4) % ringColors.length]);
         pushItem(mesh, i, {
           kind: 'ring',
-          size: 0.22 + Math.random() * 0.1,
-          opacity: 0.65,
+          size: 0.16 + Math.random() * 0.07,
+          opacity: 0.38,
         });
       } else {
         const mesh = makePhotonSprite(photonColors[i % photonColors.length]);
         pushItem(mesh, i, {
           kind: 'sprite',
-          size: 0.1 + Math.random() * 0.1,
-          opacity: 0.8 + Math.random() * 0.15,
+          size: 0.07 + Math.random() * 0.07,
+          opacity: 0.42 + Math.random() * 0.14,
         });
       }
     }
@@ -445,8 +446,9 @@ export function createDetailFloaters(deps) {
         }
       }
 
-      const bobX = Math.sin(t * l.sp + l.ph) * 0.22 * drift;
-      const bobY = Math.cos(t * l.sp * 0.83 + l.ph * 1.2) * 0.16 * drift;
+      /* 漂浮幅度收小，少抢书面 */
+      const bobX = Math.sin(t * l.sp + l.ph) * 0.14 * drift;
+      const bobY = Math.cos(t * l.sp * 0.83 + l.ph * 1.2) * 0.1 * drift;
       l.mesh.position.set(
         _bookPos.x + l.hx + bobX + l.kick.x,
         _bookPos.y + l.hy + bobY + l.kick.y,

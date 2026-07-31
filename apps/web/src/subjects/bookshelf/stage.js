@@ -325,80 +325,90 @@ try {
  * env 压低：亮教室下高 env 会像蒙尘；靠 key/fill 塑形
  */
 const THEME_BOOK_FEEL = {
-  /* 亮教室：书要比背景更“跳”——抬 key/fill/曝光，封面 albedo 少压暗 */
+  /* 亮教室 v2：key 右上前半档硬、书比背景跳；含 keyPos 等窗光方位 */
   default: {
-    front: { roughness: 0.2, metalness: 0.03, clearcoat: 0.72, clearcoatRoughness: 0.16, envMapIntensity: 0.38, bumpScale: 0.005 },
-    back: { roughness: 0.3, clearcoat: 0.45, clearcoatRoughness: 0.24, envMapIntensity: 0.28, bumpScale: 0.0045 },
-    edge: { roughness: 0.4, metalness: 0.05, clearcoat: 0.32, clearcoatRoughness: 0.36, envMapIntensity: 0.28, bumpScale: 0.006 },
-    spine: { roughness: 0.5, metalness: 0.02, clearcoat: 0.22, clearcoatRoughness: 0.5, envMapIntensity: 0.26, bumpScale: 0.012, cloth: true },
-    exposure: 1.14,
+    front: { roughness: 0.2, metalness: 0.03, clearcoat: 0.72, clearcoatRoughness: 0.16, envMapIntensity: 0.36, bumpScale: 0.005 },
+    back: { roughness: 0.3, clearcoat: 0.45, clearcoatRoughness: 0.24, envMapIntensity: 0.26, bumpScale: 0.0045 },
+    edge: { roughness: 0.4, metalness: 0.05, clearcoat: 0.32, clearcoatRoughness: 0.36, envMapIntensity: 0.26, bumpScale: 0.006 },
+    spine: { roughness: 0.5, metalness: 0.02, clearcoat: 0.22, clearcoatRoughness: 0.5, envMapIntensity: 0.24, bumpScale: 0.012, cloth: true },
+    exposure: 1.12,
     light: {
-      hemi: 0xd8e6f8, hemiI: 0.55, hemiGround: 0xc8c0b4,
-      key: 0xfffdf8, keyI: 1.55,
-      fill: 0xe8f0fc, fillI: 0.52,
-      rim: 0xc8dcf0, rimI: 0.36,
-      studio: 0xfff8ee, studioI: 0.55,
-      glow: 0xfff0e0, glowI: 0.22,
+      hemi: 0xd4e4f6, hemiI: 0.48, hemiGround: 0xc4bdb2,
+      key: 0xfffdf8, keyI: 1.62,
+      fill: 0xdce8f6, fillI: 0.42,
+      rim: 0xb8d0e8, rimI: 0.32,
+      studio: 0xf4f8fc, studioI: 0.48,
+      glow: 0xfff4ea, glowI: 0.2,
+      keyPos: [4.0, 6.2, 5.6], fillPos: [-4.8, 2.2, 4.0], rimPos: [-2.0, 3.0, -5.2],
+      studioPos: [-0.6, 7.8, 3.2], glowPos: [0.35, 0.4, 2.2],
     },
   },
   stationery: {
-    front: { roughness: 0.48, metalness: 0.02, clearcoat: 0.2, clearcoatRoughness: 0.58, envMapIntensity: 0.3, bumpScale: 0.009 },
-    back: { roughness: 0.55, clearcoat: 0.12, clearcoatRoughness: 0.68, envMapIntensity: 0.24, bumpScale: 0.007 },
-    edge: { roughness: 0.58, metalness: 0.02, clearcoat: 0.1, clearcoatRoughness: 0.72, envMapIntensity: 0.24, bumpScale: 0.009 },
-    spine: { roughness: 0.68, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.78, envMapIntensity: 0.22, bumpScale: 0.016, cloth: true },
-    exposure: 1.12,
+    front: { roughness: 0.48, metalness: 0.02, clearcoat: 0.2, clearcoatRoughness: 0.58, envMapIntensity: 0.28, bumpScale: 0.009 },
+    back: { roughness: 0.55, clearcoat: 0.12, clearcoatRoughness: 0.68, envMapIntensity: 0.22, bumpScale: 0.007 },
+    edge: { roughness: 0.58, metalness: 0.02, clearcoat: 0.1, clearcoatRoughness: 0.72, envMapIntensity: 0.22, bumpScale: 0.009 },
+    spine: { roughness: 0.68, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.78, envMapIntensity: 0.2, bumpScale: 0.016, cloth: true },
+    exposure: 1.1,
     light: {
-      hemi: 0xf8ecd8, hemiI: 0.52, hemiGround: 0xd4b898,
-      key: 0xfff8ec, keyI: 1.42,
-      fill: 0xffecd0, fillI: 0.5,
-      rim: 0xe8c8a0, rimI: 0.3,
-      studio: 0xfff0dc, studioI: 0.5,
-      glow: 0xffe0b8, glowI: 0.2,
+      hemi: 0xf4e6d0, hemiI: 0.46, hemiGround: 0xc8a880,
+      key: 0xfff6e8, keyI: 1.52,
+      fill: 0xf0dcc0, fillI: 0.44,
+      rim: 0xe0b890, rimI: 0.28,
+      studio: 0xffecd4, studioI: 0.46,
+      glow: 0xffe2b8, glowI: 0.18,
+      keyPos: [3.8, 5.8, 5.4], fillPos: [-4.4, 2.4, 3.8], rimPos: [-1.8, 2.8, -5.0],
+      studioPos: [-0.8, 7.4, 3.0], glowPos: [0.25, 0.35, 2.1],
     },
   },
   reagent: {
-    front: { roughness: 0.18, metalness: 0.04, clearcoat: 0.82, clearcoatRoughness: 0.12, envMapIntensity: 0.36, bumpScale: 0.0045 },
-    back: { roughness: 0.28, clearcoat: 0.52, clearcoatRoughness: 0.2, envMapIntensity: 0.28, bumpScale: 0.004 },
-    edge: { roughness: 0.35, metalness: 0.06, clearcoat: 0.4, clearcoatRoughness: 0.3, envMapIntensity: 0.3, bumpScale: 0.005 },
-    spine: { roughness: 0.42, metalness: 0.03, clearcoat: 0.35, clearcoatRoughness: 0.38, envMapIntensity: 0.26, bumpScale: 0.008, cloth: false },
-    exposure: 1.12,
+    front: { roughness: 0.18, metalness: 0.04, clearcoat: 0.82, clearcoatRoughness: 0.12, envMapIntensity: 0.34, bumpScale: 0.0045 },
+    back: { roughness: 0.28, clearcoat: 0.52, clearcoatRoughness: 0.2, envMapIntensity: 0.26, bumpScale: 0.004 },
+    edge: { roughness: 0.35, metalness: 0.06, clearcoat: 0.4, clearcoatRoughness: 0.3, envMapIntensity: 0.28, bumpScale: 0.005 },
+    spine: { roughness: 0.42, metalness: 0.03, clearcoat: 0.35, clearcoatRoughness: 0.38, envMapIntensity: 0.24, bumpScale: 0.008, cloth: false },
+    exposure: 1.1,
     light: {
-      hemi: 0xf0e8dc, hemiI: 0.48, hemiGround: 0xb0a090,
-      key: 0xfffaf4, keyI: 1.5,
-      fill: 0xf0e4d0, fillI: 0.46,
-      rim: 0xd8c8b0, rimI: 0.32,
-      studio: 0xfff4e4, studioI: 0.48,
-      glow: 0xf0d8b8, glowI: 0.18,
+      hemi: 0xece2d4, hemiI: 0.44, hemiGround: 0xa89888,
+      key: 0xfff8f0, keyI: 1.58,
+      fill: 0xe8d8c4, fillI: 0.4,
+      rim: 0xd0bc9c, rimI: 0.3,
+      studio: 0xfff0dc, studioI: 0.44,
+      glow: 0xf0d4b0, glowI: 0.16,
+      keyPos: [4.1, 6.0, 5.2], fillPos: [-4.6, 2.0, 3.6], rimPos: [-2.2, 2.6, -5.1],
+      studioPos: [-1.0, 7.6, 2.8], glowPos: [0.3, 0.3, 2.0],
     },
   },
   blackboard: {
-    front: { roughness: 0.7, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.85, envMapIntensity: 0.2, bumpScale: 0.012 },
-    back: { roughness: 0.76, clearcoat: 0.05, clearcoatRoughness: 0.88, envMapIntensity: 0.16, bumpScale: 0.01 },
-    edge: { roughness: 0.78, metalness: 0.01, clearcoat: 0.05, clearcoatRoughness: 0.9, envMapIntensity: 0.18, bumpScale: 0.012 },
-    spine: { roughness: 0.82, metalness: 0.01, clearcoat: 0.04, clearcoatRoughness: 0.92, envMapIntensity: 0.16, bumpScale: 0.018, cloth: true },
-    exposure: 1.16,
+    front: { roughness: 0.7, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.85, envMapIntensity: 0.18, bumpScale: 0.012 },
+    back: { roughness: 0.76, clearcoat: 0.05, clearcoatRoughness: 0.88, envMapIntensity: 0.14, bumpScale: 0.01 },
+    edge: { roughness: 0.78, metalness: 0.01, clearcoat: 0.05, clearcoatRoughness: 0.9, envMapIntensity: 0.16, bumpScale: 0.012 },
+    spine: { roughness: 0.82, metalness: 0.01, clearcoat: 0.04, clearcoatRoughness: 0.92, envMapIntensity: 0.14, bumpScale: 0.018, cloth: true },
+    exposure: 1.14,
     light: {
-      hemi: 0xe0f0e4, hemiI: 0.5, hemiGround: 0x8a9a88,
-      key: 0xf8fcf6, keyI: 1.45,
-      fill: 0xd8ecd8, fillI: 0.44,
-      rim: 0xb8d8c0, rimI: 0.3,
-      studio: 0xf0f8ec, studioI: 0.46,
-      glow: 0xe0f0c8, glowI: 0.18,
+      hemi: 0xd8eadc, hemiI: 0.46, hemiGround: 0x7a8c78,
+      key: 0xf6faf4, keyI: 1.52,
+      fill: 0xd0e4d0, fillI: 0.4,
+      rim: 0xa8d0b0, rimI: 0.28,
+      studio: 0xe8f4e4, studioI: 0.42,
+      glow: 0xdcecc8, glowI: 0.16,
+      keyPos: [3.6, 6.4, 5.5], fillPos: [-4.2, 2.5, 4.0], rimPos: [-1.6, 3.2, -5.3],
+      studioPos: [-0.5, 8.0, 3.0], glowPos: [0.2, 0.45, 2.15],
     },
   },
   pixel: {
-    front: { roughness: 0.34, metalness: 0.03, clearcoat: 0.38, clearcoatRoughness: 0.3, envMapIntensity: 0.32, bumpScale: 0.0035 },
-    back: { roughness: 0.4, clearcoat: 0.3, clearcoatRoughness: 0.35, envMapIntensity: 0.26, bumpScale: 0.003 },
-    edge: { roughness: 0.38, metalness: 0.03, clearcoat: 0.3, clearcoatRoughness: 0.32, envMapIntensity: 0.28, bumpScale: 0.004 },
-    spine: { roughness: 0.42, metalness: 0.02, clearcoat: 0.26, clearcoatRoughness: 0.38, envMapIntensity: 0.24, bumpScale: 0.006, cloth: false },
-    exposure: 1.14,
+    front: { roughness: 0.34, metalness: 0.03, clearcoat: 0.38, clearcoatRoughness: 0.3, envMapIntensity: 0.3, bumpScale: 0.0035 },
+    back: { roughness: 0.4, clearcoat: 0.3, clearcoatRoughness: 0.35, envMapIntensity: 0.24, bumpScale: 0.003 },
+    edge: { roughness: 0.38, metalness: 0.03, clearcoat: 0.28, clearcoatRoughness: 0.32, envMapIntensity: 0.26, bumpScale: 0.004 },
+    spine: { roughness: 0.42, metalness: 0.02, clearcoat: 0.26, clearcoatRoughness: 0.38, envMapIntensity: 0.22, bumpScale: 0.006, cloth: false },
+    exposure: 1.12,
     light: {
-      hemi: 0xc8e0e0, hemiI: 0.52, hemiGround: 0x708888,
-      key: 0xffffff, keyI: 1.55,
-      fill: 0xb8e0d8, fillI: 0.44,
-      rim: 0x88d0c0, rimI: 0.36,
-      studio: 0xf0f8f8, studioI: 0.48,
-      glow: 0xffc8d0, glowI: 0.16,
+      hemi: 0xc0d8d8, hemiI: 0.48, hemiGround: 0x687e7e,
+      key: 0xffffff, keyI: 1.62,
+      fill: 0xaed8d0, fillI: 0.38,
+      rim: 0x78c8b8, rimI: 0.34,
+      studio: 0xe8f4f4, studioI: 0.44,
+      glow: 0xffc0c8, glowI: 0.14,
+      keyPos: [4.2, 5.6, 5.8], fillPos: [-5.0, 2.0, 4.2], rimPos: [-2.4, 2.8, -5.0],
+      studioPos: [-0.4, 7.2, 3.4], glowPos: [0.4, 0.35, 2.3],
     },
   },
 };
@@ -484,6 +494,12 @@ function applyThemeLights(feel, themeId) {
   studio.intensity = L.studioI;
   glow.color.setHex(L.glow);
   glow.intensity = L.glowI;
+  /* 窗光方向：与教室图主窗大致同侧（右上前） */
+  if (L.keyPos) key.position.set(L.keyPos[0], L.keyPos[1], L.keyPos[2]);
+  if (L.fillPos) fill.position.set(L.fillPos[0], L.fillPos[1], L.fillPos[2]);
+  if (L.rimPos) rim.position.set(L.rimPos[0], L.rimPos[1], L.rimPos[2]);
+  if (L.studioPos) studio.position.set(L.studioPos[0], L.studioPos[1], L.studioPos[2]);
+  if (L.glowPos) glow.position.set(L.glowPos[0], L.glowPos[1], L.glowPos[2]);
   if (feel.exposure != null) {
     renderer.toneMappingExposure = feel.exposure;
   }
@@ -703,18 +719,6 @@ const endpaperTex = (function () {
   x.fillStyle = g;
   x.fillRect(0, 0, s, s);
   return tex(c);
-})();
-
-const blobTex = (function () {
-  const s = 256,
-    c = mkCanvas(s, s),
-    x = c.getContext("2d");
-  const g = x.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
-  g.addColorStop(0, "rgba(0,0,0,.85)");
-  g.addColorStop(1, "rgba(0,0,0,0)");
-  x.fillStyle = g;
-  x.fillRect(0, 0, s, s);
-  return new THREE.CanvasTexture(c);
 })();
 
 /* =========================================================================
@@ -948,7 +952,6 @@ const EDGE_SHEET_N = 3;
 const edgeSheetGeo = new THREE.PlaneGeometry(BLOCK_D * 0.9, H - 0.045);
 /* hitbox 略大于书面，仍远小于旧版巨盒 */
 const hitGeo = new THREE.BoxGeometry(W + 0.08, H + 0.08, T + 0.18);
-const blobGeo = new THREE.PlaneGeometry(1, 1);
 const hitMat = new THREE.MeshBasicMaterial({ visible: false });
 
 function std(o) {
@@ -1282,20 +1285,7 @@ function buildBook(cfg, index) {
     pageFB.push(0.3 * Math.pow(1 - i / 6, 2.6));
   }
 
-  /* soft blob shadow — 基准值；tick 里跟 lift 联动散开/变淡 */
-  const blobMat = new THREE.MeshBasicMaterial({
-    map: blobTex,
-    transparent: true,
-    opacity: 0.48,
-    depthWrite: false,
-  });
-  const blob = new THREE.Mesh(blobGeo, blobMat);
-  /* 亮背景下影子略淡、略收，避免黑板脏斑；抬起时再散 */
-  const blobBase = { sx: 3.1, sy: 3.85, op: 0.32, x: 0.1, y: -0.42, z: -0.88 };
-  blob.scale.set(blobBase.sx, blobBase.sy, 1);
-  blob.position.set(blobBase.x, blobBase.y, blobBase.z);
-  blob.renderOrder = -5;
-  root.add(blob);
+  /* 书后 soft blob 已关闭：亮教室背景下像阴影墙，且会随介绍页转书一起转 */
 
   /* invisible raycast target */
   const hit = new THREE.Mesh(hitGeo, hitMat);
@@ -1337,9 +1327,6 @@ function buildBook(cfg, index) {
     springs,
     dissolveU,
     mats,
-    blob,
-    blobBase,
-    blobMat,
     feelBase: snapshotFeelBase(mats),
     glowAmt: 0,
     phase: Math.random() * 6.28,
@@ -1427,28 +1414,28 @@ function computeSlots() {
   const fit = clamp(a / 1.75, 0.62, 1);
   SLOTS.portrait = a < 0.85;
   bookRoot.scale.setScalar(fit);
-  /* 上移构图：标题 + 书居中偏上，少留天头空白 */
-  bookRoot.position.y = SLOTS.portrait ? -0.04 : -0.02;
+  /* 略压低 root：书更像站在教室课桌纵深前，而不是贴 UI 浮层 */
+  bookRoot.position.y = SLOTS.portrait ? -0.1 : -0.08;
 
-  /* hero fan：再下移 10%、放大 20%；略扇开让侧光吃到书脊 */
+  /* hero fan：下移贴近「桌面带」、略放大；侧书再压低一点增强透视站位 */
   const nBooksHero = Math.max(1, BOOKS.length);
-  const span = SLOTS.portrait ? 3.35 : 5.35;
+  const span = SLOTS.portrait ? 3.2 : 5.15;
   SLOTS.hero = [];
   for (let i = 0; i < nBooksHero; i++) {
     const mid = (nBooksHero - 1) / 2;
     const t = nBooksHero === 1 ? 0.5 : i / (nBooksHero - 1);
     const x = -span / 2 + span * t;
     const dist = Math.abs(i - mid);
-    const y = (SLOTS.portrait ? -0.42 : -0.62) - dist * 0.05;
-    const z = 0.32 - dist * 0.13;
-    const sc = (SLOTS.portrait ? 1.056 : 1.135) - dist * 0.03;
-    /* 对齐原版 fan：左书 ry/rz>0、右书 <0 → 顶部外扩、封面略朝中心 */
+    const y = (SLOTS.portrait ? -0.52 : -0.78) - dist * 0.07;
+    const z = 0.22 - dist * 0.11;
+    const sc = (SLOTS.portrait ? 1.08 : 1.16) - dist * 0.028;
+    /* 对齐原版 fan：外扩 + 略俯视（rx 负更大 → 更像放在桌前） */
     const k = mid - i;
-    const ry = k * (SLOTS.portrait ? 0.22 : 0.2);
-    const rz = k * (SLOTS.portrait ? 0.09 : 0.08);
+    const ry = k * (SLOTS.portrait ? 0.2 : 0.18);
+    const rz = k * (SLOTS.portrait ? 0.085 : 0.075);
     SLOTS.hero.push({
       p: [x, y, z],
-      r: [-0.04, ry, rz],
+      r: [-0.09, ry, rz],
       s: sc,
     });
   }
@@ -1482,13 +1469,21 @@ function computeSlots() {
     const s = clamp(availW / fit / 2.3, 0.5, 1.15);
     SLOTS.detail = {
       p: [0, (yw - rootY) / fit, 0.8],
-      r: [-0.02, -0.4, 0.06],
+      /* 对齐参考：近正面、略见右侧书口，微俯仰 */
+      r: [-0.04, -0.32, 0.05],
       s: s,
     };
   } else {
+    /*
+     * 简介姿态（对齐参考图）：
+     * - 书面近正面
+     * - ry 负：右侧书口微露
+     * - 右上略后 / 右下略前（rx 微负）
+     * 封面微张由 tickBook coverBase 负责
+     */
     SLOTS.detail = {
       p: [-1.95, 0.0, 1.1],
-      r: [0.02, -0.52, 0.1],
+      r: [-0.05, -0.36, 0.06],
       s: 1.26,
     };
   }
@@ -1613,6 +1608,7 @@ const parX = new Spring(0, 60, 10),
 function camTo(mode) {
   if (mode === "detail") {
     camX.t = SLOTS.portrait ? 0 : -0.4;
+    camY.t = 0.1;
     camZ.t = SLOTS.portrait ? 9.9 : 8.9;
     lookX.t = SLOTS.portrait ? 0 : -0.5;
     lookY.t = SLOTS.portrait ? 0 : 0.15;
@@ -1629,11 +1625,12 @@ function camTo(mode) {
     lookX.t = -0.05;
     lookY.t = 0.02;
   } else {
+    /* 大厅：略俯视课桌纵深，书落在画面中下 */
     camX.t = 0;
-    camY.t = 0.1;
-    camZ.t = 9.6;
+    camY.t = 0.22;
+    camZ.t = 9.75;
     lookX.t = 0;
-    lookY.t = 0;
+    lookY.t = -0.12;
   }
 }
 
@@ -1731,7 +1728,7 @@ function enterFromDetail() {
 
   const detail = SLOTS.detail || {
     p: [0, -0.2, 0.85],
-    r: [-0.02, -0.28, 0.02],
+    r: [-0.04, -0.32, 0.05],
     s: 1.35,
   };
 
@@ -1947,7 +1944,7 @@ function playReturnFromLab(returnOpts = {}) {
   /* 合着的书停在与简介页完全相同的详情槽 */
   const detail = SLOTS.detail || {
     p: [0, -0.2, 0.85],
-    r: [-0.02, -0.28, 0.02],
+    r: [-0.04, -0.32, 0.05],
     s: 1.35,
   };
   book.root.visible = true;
@@ -2368,10 +2365,9 @@ function tickBook(b, dt, t) {
   /* --- targets --- */
   let coverBase = 0;
   if (inDetail)
+    /* 微微张开：约 8°～12°，带极轻呼吸；拖转时略收 */
     coverBase =
-      0.02 +
-      (0.13 + Math.sin(t * 0.8 + b.phase) * 0.015 * idle) *
-        (1 - activity);
+      (0.16 + Math.sin(t * 0.7 + b.phase) * 0.02 * idle) * (1 - activity * 0.55);
   /* cover inertia: the trailing board gets flung open by the spin.
      positive spin flings the front cover, negative spin the back cover */
   const fan = orbitActive ? clamp(b.orbYv * 0.16, 0, 0.75) : 0;
@@ -2511,20 +2507,6 @@ function tickBook(b, dt, t) {
     }
   }
 
-  /* --- 落影跟抬起：落地实、抬起散且更淡（适配亮教室） --- */
-  if (b.blob && b.blobBase && b.blobMat) {
-    const liftN = clamp(s.lift.v / 0.3, 0, 1.15);
-    const detailSoft = inDetail ? 0.22 : 0;
-    const k = clamp(liftN + detailSoft + g * 0.1, 0, 1.35);
-    const bb = b.blobBase;
-    b.blob.scale.set(bb.sx * (1 + k * 0.5), bb.sy * (1 + k * 0.4), 1);
-    b.blob.position.set(bb.x, bb.y - k * 0.08, bb.z - k * 0.06);
-    b.blobMat.opacity = bb.op * (1 - k * 0.55);
-    const diss = b.dissolveU?.uDissolve?.value || 0;
-    if (diss > 0.02) {
-      b.blobMat.opacity *= clamp(1 - diss * 1.1, 0, 1);
-    }
-  }
 }
 
 function animate() {
