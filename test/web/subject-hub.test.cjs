@@ -158,18 +158,24 @@ test('theme cover art packs are shipped and wired', () => {
   }
   const stage = fs.readFileSync(path.join(root, 'apps/web/src/subjects/bookshelf/stage.js'), 'utf8');
   assert.match(stage, /enterFromDetail/);
-  assert.match(stage, /THEME_COVER_VERSION/);
   assert.match(stage, /coverUrlForTheme/);
-  assert.match(stage, /stationery:\s*2/);
-  assert.match(stage, /reagent:\s*3/);
-  assert.match(stage, /blackboard:\s*4/);
-  assert.match(stage, /pixel:\s*5/);
   assert.match(stage, /transitionSeq|onOpaque/);
   assert.match(stage, /tid !== transitionSeq|id !== tid/);
   // 返回大厅不得遮蔽构造时的 onRevealHub（曾导致溶解后无法露壳）
   assert.match(stage, /const onRevealHub\s*=/);
   assert.match(stage, /playReturnFromLab\(returnOpts/);
   assert.match(stage, /revealHubShell/);
+  // 主题封面映射已拆到 cover-urls.js
+  const coverUrls = fs.readFileSync(
+    path.join(root, 'apps/web/src/subjects/bookshelf/cover-urls.js'),
+    'utf8',
+  );
+  assert.match(coverUrls, /THEME_COVER_VERSION/);
+  assert.match(coverUrls, /coverUrlForTheme/);
+  assert.match(coverUrls, /stationery:\s*2/);
+  assert.match(coverUrls, /reagent:\s*3/);
+  assert.match(coverUrls, /blackboard:\s*4/);
+  assert.match(coverUrls, /pixel:\s*5/);
 });
 
 test('transition dissolve palette follows theme × subject boards', async () => {
