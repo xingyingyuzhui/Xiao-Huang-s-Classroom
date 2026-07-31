@@ -26,7 +26,11 @@ dist-electron/
 
 # Agent / IDE scratch (do not publish)
 .mimocode/
-.cursor/
+.cursor/*
+!.cursor/skills/
+!.cursor/skills/**
 .superpowers/
-.claude/
+.claude/*
+!.claude/skills/
+!.claude/skills/**
 .tmp-ref-books/
