@@ -33,37 +33,42 @@ export function createSubjectHub({ select, onEnterSubject, onRevealHub }) {
       return;
     }
 
-    stage = createBookshelfStage({
-      canvas,
-      closeBtn: /** @type {HTMLElement} */ (closeBtn),
-      detail: /** @type {HTMLElement} */ (detail),
-      enterBtn: /** @type {HTMLElement | null} */ (enterBtn),
-      lockNote: /** @type {HTMLElement | null} */ (lockNote),
-      pageFxRoot: /** @type {HTMLElement | null} */ (pageFxRoot),
-      subjects: SUBJECTS,
-      onEnterSubject: (id) => {
-        if (entering) return;
-        const meta = getSubject(id);
-        if (!meta || meta.status !== 'ready') return;
-        entering = true;
-        onEnterSubject(id);
-        queueMicrotask(() => {
-          entering = false;
-        });
-      },
-      onRevealHub: () => {
-        if (root) {
-          root.hidden = false;
-          root.setAttribute('aria-hidden', 'false');
-        }
-        document.documentElement.dataset.shell = 'hub';
-        revealHubHandler?.();
-        requestAnimationFrame(() => {
-          stage?.relayout();
-          stage?.syncTheme?.();
-        });
-      },
-    });
+    try {
+      stage = createBookshelfStage({
+        canvas,
+        closeBtn: /** @type {HTMLElement} */ (closeBtn),
+        detail: /** @type {HTMLElement} */ (detail),
+        enterBtn: /** @type {HTMLElement | null} */ (enterBtn),
+        lockNote: /** @type {HTMLElement | null} */ (lockNote),
+        pageFxRoot: /** @type {HTMLElement | null} */ (pageFxRoot),
+        subjects: SUBJECTS,
+        onEnterSubject: (id) => {
+          if (entering) return;
+          const meta = getSubject(id);
+          if (!meta || meta.status !== 'ready') return;
+          entering = true;
+          onEnterSubject(id);
+          queueMicrotask(() => {
+            entering = false;
+          });
+        },
+        onRevealHub: () => {
+          if (root) {
+            root.hidden = false;
+            root.setAttribute('aria-hidden', 'false');
+          }
+          document.documentElement.dataset.shell = 'hub';
+          revealHubHandler?.();
+          requestAnimationFrame(() => {
+            stage?.relayout();
+            stage?.syncTheme?.();
+          });
+        },
+      });
+    } catch (err) {
+      console.error('createBookshelfStage failed', err);
+      stage = null;
+    }
   }
 
   function show() {

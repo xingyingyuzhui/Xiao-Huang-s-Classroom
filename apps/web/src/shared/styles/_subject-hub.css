@@ -125,10 +125,11 @@ html[data-shell='lab'] .subject-hub {
 }
 
 .subject-hub {
-  /* 主题色驱动；各 data-theme 再叠专属氛围 */
+  /* 主题色驱动；背景图见 ::before（须在 WebGL 画布之下） */
   --bookshelf-hero: var(--stamp);
   --bookshelf-cream: var(--card-elevated);
   --bookshelf-ink: var(--ink);
+  --hub-bg-fallback: #0a1220;
   display: none;
   flex: 1;
   min-height: 0;
@@ -136,20 +137,45 @@ html[data-shell='lab'] .subject-hub {
   position: relative;
   padding: 0;
   overflow: hidden;
-  /* 默认：教材夜空 · 科技蓝柔光 */
-  background:
-    radial-gradient(
-      68% 58% at 50% 46%,
-      color-mix(in srgb, var(--stamp) 34%, #1e3a5f) 0%,
-      #0f1b33 48%,
-      #060b18 100%
-    );
+  background-color: var(--hub-bg-fallback);
   color: var(--bookshelf-cream);
+}
+
+/**
+ * 大厅主题背景层：独立层 + 实写 url（避免 var(url) 叠层失效）
+ * z-index 低于 canvas；画布须透明清屏才能透出
+ */
+.subject-hub::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-color: var(--hub-bg-fallback);
+  /* 背景略压四周/整体，让书成为更亮的主体 */
+  background-image:
+    radial-gradient(
+      72% 68% at 50% 48%,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(12, 22, 40, 0.22) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 16, 32, 0.08) 0%,
+      transparent 28%,
+      transparent 72%,
+      rgba(8, 16, 32, 0.12) 100%
+    ),
+    url('/assets/hub-backgrounds/default.png');
+  background-size: cover, cover, cover;
+  background-position: center, center, center;
+  background-repeat: no-repeat, no-repeat, no-repeat;
 }
 
 .bookshelf-stage {
   position: absolute;
   inset: 0;
+  z-index: 1;
 }
 
 .bookshelf-gl {
@@ -160,6 +186,8 @@ html[data-shell='lab'] .subject-hub {
   display: block;
   z-index: 2;
   touch-action: none;
+  /* 勿给 canvas 上底色，否则盖住主题教室图 */
+  background: transparent;
 }
 
 .bookshelf-hero-word {
@@ -218,32 +246,102 @@ body.transit .bookshelf-hero-word {
   display: none !important;
 }
 
+/**
+ * 学科简介：悬浮微透明卡片（按主题换肤）
+ * 亮教室背景下保证正文可读，并做出离面悬浮感
+ */
 .bookshelf-detail {
+  --detail-card-bg: color-mix(in srgb, #0c1628 58%, transparent);
+  --detail-card-border: color-mix(in srgb, #ffffff 18%, transparent);
+  --detail-card-glow: color-mix(in srgb, var(--stamp) 28%, transparent);
+  --detail-ink: #f4f7fb;
+  --detail-ink-soft: color-mix(in srgb, #f4f7fb 72%, transparent);
+  --detail-ink-faint: color-mix(in srgb, #f4f7fb 52%, transparent);
+  --detail-title: color-mix(in srgb, var(--stamp) 55%, #e8f0ff);
+  --detail-rule: color-mix(in srgb, #ffffff 16%, transparent);
+  --detail-radius: 1.35rem;
+  --detail-blur: 18px;
+
   position: absolute;
   right: clamp(1.2rem, 5vw, 4.5rem);
   top: 50%;
-  transform: translateY(-50%);
   z-index: 6;
-  width: min(520px, 40vw);
+  width: min(520px, 42vw);
+  max-width: calc(100vw - 2rem);
+  box-sizing: border-box;
+  padding: clamp(1.35rem, 2.4vw, 1.85rem) clamp(1.4rem, 2.6vw, 2rem)
+    clamp(1.25rem, 2.2vw, 1.65rem);
+  border-radius: var(--detail-radius);
+  border: 1px solid var(--detail-card-border);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, #ffffff 10%, transparent) 0%,
+      transparent 42%
+    ),
+    var(--detail-card-bg);
+  -webkit-backdrop-filter: blur(var(--detail-blur)) saturate(1.2);
+  backdrop-filter: blur(var(--detail-blur)) saturate(1.2);
+  box-shadow:
+    0 28px 64px rgba(4, 10, 24, 0.38),
+    0 10px 28px rgba(4, 10, 24, 0.22),
+    0 1px 0 color-mix(in srgb, #ffffff 22%, transparent) inset,
+    0 0 0 1px color-mix(in srgb, var(--detail-card-glow) 35%, transparent);
   pointer-events: none;
   visibility: hidden;
-  transition: visibility 0s 0.45s;
+  opacity: 0;
+  transform: translateY(calc(-50% + 28px)) scale(0.97);
+  filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.18));
+  transition:
+    visibility 0s 0.45s,
+    opacity 0.42s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    background 0.35s ease,
+    border-color 0.35s ease;
 }
 
 body.detail-open .bookshelf-detail {
   visibility: visible;
-  transition: visibility 0s 0s;
+  opacity: 1;
+  transform: translateY(-50%) scale(1);
+  transition:
+    visibility 0s 0s,
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.62s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    background 0.35s ease,
+    border-color 0.35s ease;
   pointer-events: none; /* 仅操作条可点 */
+  animation: bookshelf-detail-float 5.5s ease-in-out 0.55s infinite;
 }
 
 body.bookshelf-entering .bookshelf-detail {
   visibility: hidden;
+  opacity: 0;
   pointer-events: none;
+  animation: none;
+}
+
+@keyframes bookshelf-detail-float {
+  0%,
+  100% {
+    transform: translateY(-50%) scale(1);
+  }
+  50% {
+    transform: translateY(calc(-50% - 6px)) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  body.detail-open .bookshelf-detail {
+    animation: none;
+  }
 }
 
 .bookshelf-detail > * {
   opacity: 0;
-  transform: translateY(22px);
+  transform: translateY(16px);
   transition:
     opacity 0.28s ease,
     transform 0.28s ease;
@@ -258,25 +356,25 @@ body.detail-open .bookshelf-detail > * {
 }
 
 body.detail-open .bookshelf-detail > *:nth-child(1) {
-  transition-delay: 0.04s;
+  transition-delay: 0.06s;
 }
 body.detail-open .bookshelf-detail > *:nth-child(2) {
-  transition-delay: 0.1s;
+  transition-delay: 0.11s;
 }
 body.detail-open .bookshelf-detail > *:nth-child(3) {
   transition-delay: 0.16s;
 }
 body.detail-open .bookshelf-detail > *:nth-child(4) {
-  transition-delay: 0.22s;
+  transition-delay: 0.21s;
 }
 body.detail-open .bookshelf-detail > *:nth-child(5) {
-  transition-delay: 0.26s;
+  transition-delay: 0.25s;
 }
 body.detail-open .bookshelf-detail > *:nth-child(6) {
-  transition-delay: 0.3s;
+  transition-delay: 0.29s;
 }
 body.detail-open .bookshelf-detail > *:nth-child(7) {
-  transition-delay: 0.34s;
+  transition-delay: 0.33s;
 }
 
 .bookshelf-detail-en {
@@ -286,35 +384,36 @@ body.detail-open .bookshelf-detail > *:nth-child(7) {
   font-weight: 600;
   letter-spacing: 0.22em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--bookshelf-cream) 55%, transparent);
+  color: var(--detail-ink-faint);
 }
 
 .bookshelf-detail-title {
   margin: 0;
-  font-size: clamp(3rem, 6.2vw, 5.4rem);
+  font-size: clamp(2.6rem, 5.6vw, 4.6rem);
   font-weight: 800;
   line-height: 0.98;
   letter-spacing: -0.02em;
-  color: var(--bookshelf-hero);
+  color: var(--detail-title);
   font-family: var(--font-display), 'PingFang SC', 'Noto Sans SC', sans-serif;
+  text-shadow: 0 1px 0 color-mix(in srgb, #000 18%, transparent);
 }
 
 .bookshelf-detail-desc {
-  margin: 1.35rem 0 0;
-  color: color-mix(in srgb, var(--bookshelf-cream) 88%, transparent);
-  font-size: clamp(0.95rem, 1.2vw, 1.12rem);
+  margin: 1.15rem 0 0;
+  color: var(--detail-ink);
+  font-size: clamp(0.95rem, 1.2vw, 1.08rem);
   line-height: 1.7;
   font-weight: 400;
   max-width: 36em;
 }
 
 .bookshelf-detail-meta {
-  margin-top: 1.65rem;
+  margin-top: 1.35rem;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75rem 0.9rem;
-  color: color-mix(in srgb, var(--bookshelf-cream) 62%, transparent);
+  color: var(--detail-ink-soft);
   font-size: clamp(0.88rem, 1.05vw, 1rem);
   font-style: italic;
   letter-spacing: 0.02em;
@@ -325,37 +424,39 @@ body.detail-open .bookshelf-detail > *:nth-child(7) {
   font-style: normal;
   font-weight: 650;
   letter-spacing: 0.04em;
-  color: color-mix(in srgb, var(--stamp) 70%, var(--bookshelf-cream));
+  color: color-mix(in srgb, var(--stamp) 75%, var(--detail-ink));
 }
 
 .bookshelf-detail-sep {
   width: 1px;
   height: 1em;
-  background: color-mix(in srgb, var(--bookshelf-cream) 22%, transparent);
+  background: var(--detail-rule);
   flex-shrink: 0;
 }
 
 .bookshelf-detail-tagline {
   margin-left: auto;
   font-style: normal;
-  opacity: 0.9;
+  opacity: 0.95;
 }
 
 .bookshelf-detail-rule {
-  margin-top: 1.25rem;
-  border-top: 1px solid color-mix(in srgb, var(--bookshelf-cream) 16%, transparent);
+  margin-top: 1.15rem;
+  border-top: 1px solid var(--detail-rule);
 }
 
 .bookshelf-detail-actions {
-  margin-top: 1.45rem;
+  margin-top: 1.35rem;
   display: inline-flex;
   align-items: center;
   gap: 0.45rem;
   padding: 0.45rem;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--ink-lab) 55%, transparent);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.38);
-  backdrop-filter: blur(10px);
+  background: color-mix(in srgb, #061018 42%, transparent);
+  box-shadow:
+    0 12px 28px rgba(0, 0, 0, 0.28),
+    0 1px 0 color-mix(in srgb, #ffffff 14%, transparent) inset;
+  backdrop-filter: blur(8px);
   pointer-events: auto;
 }
 
@@ -399,54 +500,102 @@ body.detail-open .bookshelf-detail > *:nth-child(7) {
 
 .bookshelf-lock {
   margin: 0.9rem 0 0;
-  color: color-mix(in srgb, var(--bookshelf-cream) 68%, transparent);
+  color: var(--detail-ink-soft);
   font-size: 0.9rem;
   line-height: 1.45;
   max-width: 32em;
 }
 
-/* 主题：详情标题跟大厅主色走 */
-html[data-theme='stationery'] .bookshelf-detail-title {
-  color: #fff6e8;
+/* —— 主题卡片语汇 —— */
+
+/* 文具：暖纸玻璃 · 墨字 */
+html[data-theme='stationery'] .bookshelf-detail {
+  --detail-card-bg: color-mix(in srgb, #2a1810 62%, transparent);
+  --detail-card-border: color-mix(in srgb, #f2e0c4 28%, transparent);
+  --detail-card-glow: color-mix(in srgb, #c23b22 32%, transparent);
+  --detail-ink: #fff6e8;
+  --detail-ink-soft: color-mix(in srgb, #fff6e8 76%, transparent);
+  --detail-ink-faint: color-mix(in srgb, #f0d8b0 62%, transparent);
+  --detail-title: #fff6e8;
+  --detail-rule: color-mix(in srgb, #f2e0c4 22%, transparent);
+  --detail-radius: 1.15rem;
+  --detail-blur: 16px;
 }
-html[data-theme='reagent'] .bookshelf-detail-title {
-  color: #fffcf7;
+
+/* 试剂架：石灰玻璃 · 米黄字 */
+html[data-theme='reagent'] .bookshelf-detail {
+  --detail-card-bg: color-mix(in srgb, #1c1610 64%, transparent);
+  --detail-card-border: color-mix(in srgb, #e8d4a8 24%, transparent);
+  --detail-card-glow: color-mix(in srgb, #b45309 34%, transparent);
+  --detail-ink: #fffcf7;
+  --detail-ink-soft: color-mix(in srgb, #fffcf7 74%, transparent);
+  --detail-ink-faint: color-mix(in srgb, #e8d4a8 58%, transparent);
+  --detail-title: #fffcf7;
+  --detail-rule: color-mix(in srgb, #e8d4a8 20%, transparent);
+  --detail-radius: 0.85rem;
+  --detail-blur: 17px;
 }
-html[data-theme='blackboard'] .bookshelf-detail-title {
+
+/* 黑板：墨绿玻璃 · 粉笔黄标题 */
+html[data-theme='blackboard'] .bookshelf-detail {
+  --detail-card-bg: color-mix(in srgb, #0c1a14 68%, transparent);
+  --detail-card-border: color-mix(in srgb, #7ec8c0 26%, transparent);
+  --detail-card-glow: color-mix(in srgb, #f0d060 26%, transparent);
+  --detail-ink: #eef6f0;
+  --detail-ink-soft: color-mix(in srgb, #d8ebe0 80%, transparent);
+  --detail-ink-faint: color-mix(in srgb, #7ec8c0 70%, transparent);
+  --detail-title: #f0d060;
+  --detail-rule: color-mix(in srgb, #7ec8c0 28%, transparent);
+  --detail-radius: 0.55rem;
+  --detail-blur: 14px;
+}
+
+html[data-theme='blackboard'] .bookshelf-detail-status {
   color: #f0d060;
 }
-html[data-theme='blackboard'] .bookshelf-detail-en {
-  color: color-mix(in srgb, var(--diagram) 78%, var(--text-primary));
+
+/* 像素：硬边半透面板 · 无大圆角 */
+html[data-theme='pixel'] .bookshelf-detail {
+  --detail-card-bg: color-mix(in srgb, #1a2228 78%, transparent);
+  --detail-card-border: #2f3542;
+  --detail-card-glow: transparent;
+  --detail-ink: #f1f5f9;
+  --detail-ink-soft: color-mix(in srgb, #e2e8f0 82%, transparent);
+  --detail-ink-faint: color-mix(in srgb, #94a3b8 90%, transparent);
+  --detail-title: #ff6b81;
+  --detail-rule: color-mix(in srgb, #2f3542 80%, #fff);
+  --detail-radius: 0;
+  --detail-blur: 0px;
+  border-width: 3px;
+  box-shadow:
+    6px 6px 0 #2f3542,
+    0 22px 40px rgba(0, 0, 0, 0.28);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: color-mix(in srgb, #1e272e 86%, transparent);
+  animation: none;
 }
-html[data-theme='blackboard'] .bookshelf-detail-desc {
-  color: color-mix(in srgb, var(--text-primary) 96%, transparent);
+
+html[data-theme='pixel'] body.detail-open .bookshelf-detail {
+  animation: none;
 }
-html[data-theme='blackboard'] .bookshelf-detail-meta,
-html[data-theme='blackboard'] .bookshelf-detail-tagline {
-  color: color-mix(in srgb, var(--ink-soft) 94%, transparent);
-}
-html[data-theme='blackboard'] .bookshelf-detail-status {
-  color: var(--stamp);
-}
-html[data-theme='blackboard'] .bookshelf-detail-sep {
-  background: color-mix(in srgb, var(--text-primary) 38%, transparent);
-}
-html[data-theme='blackboard'] .bookshelf-detail-rule {
-  border-top-color: color-mix(in srgb, var(--text-primary) 28%, transparent);
-}
-html[data-theme='blackboard'] .bookshelf-lock {
-  color: color-mix(in srgb, var(--ink-soft) 92%, transparent);
-}
-html[data-theme='pixel'] .bookshelf-detail-title {
-  color: #ff6b81;
-}
+
 html[data-theme='pixel'] .bookshelf-detail-actions {
   border-radius: 0;
-  box-shadow: 5px 5px 0 #2f3542;
+  border: 2px solid #2f3542;
+  box-shadow: 4px 4px 0 #2f3542;
+  background: color-mix(in srgb, #0f1418 70%, transparent);
 }
+
 html[data-theme='pixel'] .bookshelf-enter,
 html[data-theme='pixel'] .bookshelf-peek {
   border-radius: 0;
+}
+
+/* 默认主题标题偏科技蓝 */
+html[data-theme='default'] .bookshelf-detail,
+:root:not([data-theme]) .bookshelf-detail {
+  --detail-title: color-mix(in srgb, #93c5fd 70%, #ffffff);
 }
 
 body.bookshelf-entering .bookshelf-gl {
@@ -495,23 +644,51 @@ body.bookshelf-entering.bookshelf-dive-deep .bookshelf-gl {
   display: block;
 }
 
-/* —— 主题书场：背景 + 标题气质对齐各主题主色 —— */
+/* —— 主题书场：背景图 + 标题气质对齐各主题主色 —— */
 
-/* 文具：暖木刊场 · 章红主色 / 金点缀 */
-html[data-theme='stationery'] .subject-hub {
-  background:
+html[data-theme='default'] .subject-hub,
+:root:not([data-theme]) .subject-hub {
+  --hub-bg-fallback: #0a1220;
+}
+
+html[data-theme='default'] .subject-hub::before,
+:root:not([data-theme]) .subject-hub::before {
+  background-image:
     radial-gradient(
-      90% 70% at 50% 18%,
-      color-mix(in srgb, #c23b22 42%, #5c2a1c) 0%,
-      #3a2218 38%,
-      #1a120e 100%
+      72% 68% at 50% 48%,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(4, 8, 18, 0.22) 100%
     ),
-    repeating-linear-gradient(
-      90deg,
-      transparent,
-      transparent 55px,
-      rgba(242, 233, 220, 0.035) 56px
-    );
+    linear-gradient(
+      180deg,
+      rgba(8, 16, 32, 0.08) 0%,
+      transparent 28%,
+      transparent 72%,
+      rgba(8, 16, 32, 0.1) 100%
+    ),
+    url('/assets/hub-backgrounds/default.png');
+}
+
+/* 文具：暖木教室 */
+html[data-theme='stationery'] .subject-hub {
+  --hub-bg-fallback: #1a120e;
+}
+
+html[data-theme='stationery'] .subject-hub::before {
+  background-image:
+    radial-gradient(
+      72% 68% at 50% 48%,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(20, 12, 8, 0.28) 100%
+    ),
+    linear-gradient(
+      180deg,
+      rgba(8, 16, 32, 0.08) 0%,
+      transparent 28%,
+      transparent 72%,
+      rgba(8, 16, 32, 0.1) 100%
+    ),
+    url('/assets/hub-backgrounds/stationery.png');
 }
 
 html[data-theme='stationery'] .bookshelf-hero-word span {
@@ -525,22 +702,26 @@ html[data-theme='stationery'] .bookshelf-hero-word span {
   filter: none;
 }
 
-/* 试剂架：石灰柜夜场 · 紫铜主色 / 标签米黄 */
+/* 试剂架：实验柜教室 */
 html[data-theme='reagent'] .subject-hub {
-  background:
+  --hub-bg-fallback: #161310;
+}
+
+html[data-theme='reagent'] .subject-hub::before {
+  background-image:
     radial-gradient(
-      85% 65% at 50% 22%,
-      color-mix(in srgb, #b45309 38%, #4a4038) 0%,
-      #2e2924 42%,
-      #161310 100%
+      72% 68% at 50% 48%,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(16, 12, 8, 0.28) 100%
     ),
-    repeating-linear-gradient(
-      to bottom,
-      transparent 0,
-      transparent 47px,
-      rgba(201, 162, 39, 0.045) 47px,
-      rgba(201, 162, 39, 0.045) 48px
-    );
+    linear-gradient(
+      180deg,
+      rgba(8, 16, 32, 0.08) 0%,
+      transparent 28%,
+      transparent 72%,
+      rgba(8, 16, 32, 0.1) 100%
+    ),
+    url('/assets/hub-backgrounds/reagent.png');
 }
 
 html[data-theme='reagent'] .bookshelf-hero-word span {
@@ -554,23 +735,29 @@ html[data-theme='reagent'] .bookshelf-hero-word span {
   filter: none;
 }
 
-/* 黑板：墨绿板面 · 粉笔黄主色 */
+/* 黑板：墨绿板面教室 */
 html[data-theme='blackboard'] .subject-hub {
   /* card-elevated 是深绿卡面，不能当正文色；用粉笔白/墨底 */
   --bookshelf-cream: var(--text-primary);
   --bookshelf-ink: var(--paper-deep);
-  background:
+  --hub-bg-fallback: #0a1713;
+}
+
+html[data-theme='blackboard'] .subject-hub::before {
+  background-image:
     radial-gradient(
-      100% 80% at 50% 12%,
-      color-mix(in srgb, #2f6a58 70%, #1a3d32) 0%,
-      #16352c 46%,
-      #0a1713 100%
+      72% 68% at 50% 48%,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(6, 16, 12, 0.3) 100%
     ),
-    radial-gradient(
-      40% 30% at 70% 60%,
-      rgba(240, 208, 96, 0.06),
-      transparent 70%
-    );
+    linear-gradient(
+      180deg,
+      rgba(8, 16, 32, 0.08) 0%,
+      transparent 28%,
+      transparent 72%,
+      rgba(8, 16, 32, 0.1) 100%
+    ),
+    url('/assets/hub-backgrounds/blackboard.png');
 }
 
 html[data-theme='blackboard'] .bookshelf-hero-word span {
@@ -584,22 +771,26 @@ html[data-theme='blackboard'] .bookshelf-hero-word span {
   filter: none;
 }
 
-/* 像素：炭黑棋盘 · 珊瑚街机铭牌 */
+/* 像素：街机教室 */
 html[data-theme='pixel'] .subject-hub {
-  background:
+  --hub-bg-fallback: #1e272e;
+}
+
+html[data-theme='pixel'] .subject-hub::before {
+  background-image:
     radial-gradient(
-      80% 70% at 50% 28%,
-      color-mix(in srgb, #ff6b81 32%, #3d4450) 0%,
-      #2d3436 48%,
-      #1e272e 100%
+      72% 68% at 50% 48%,
+      rgba(255, 255, 255, 0) 30%,
+      rgba(12, 16, 20, 0.28) 100%
     ),
-    linear-gradient(color-mix(in srgb, #2f3542 18%, transparent) 1px, transparent 1px),
-    linear-gradient(90deg, color-mix(in srgb, #2f3542 18%, transparent) 1px, transparent 1px);
-  background-size:
-    auto,
-    18px 18px,
-    18px 18px;
-  image-rendering: pixelated;
+    linear-gradient(
+      180deg,
+      rgba(8, 16, 32, 0.08) 0%,
+      transparent 28%,
+      transparent 72%,
+      rgba(8, 16, 32, 0.1) 100%
+    ),
+    url('/assets/hub-backgrounds/pixel.png');
 }
 
 html[data-theme='pixel'] .bookshelf-hero-word::after {
@@ -639,22 +830,38 @@ html[data-theme='pixel'] .bookshelf-hero-word span {
 
 @media (max-width: 900px) {
   .bookshelf-detail {
-    right: 0;
-    left: 0;
+    right: 0.75rem;
+    left: 0.75rem;
     top: auto;
-    bottom: 0;
-    width: 100%;
+    bottom: 0.75rem;
+    width: auto;
     max-width: none;
-    padding: 1.35rem 1.25rem 1.75rem;
-    background: linear-gradient(
-      180deg,
-      transparent,
-      color-mix(in srgb, var(--ink-lab) 94%, transparent) 22%
-    );
+    padding: 1.25rem 1.2rem 1.45rem;
+    border-radius: calc(var(--detail-radius) * 0.92);
+    transform: translateY(28px) scale(0.98);
+  }
+
+  body.detail-open .bookshelf-detail {
+    transform: translateY(0) scale(1);
+    animation: bookshelf-detail-float-mobile 5.5s ease-in-out 0.55s infinite;
+  }
+
+  @keyframes bookshelf-detail-float-mobile {
+    0%,
+    100% {
+      transform: translateY(0) scale(1);
+    }
+    50% {
+      transform: translateY(-5px) scale(1);
+    }
+  }
+
+  html[data-theme='pixel'] body.detail-open .bookshelf-detail {
+    animation: none;
   }
 
   .bookshelf-detail-title {
-    font-size: clamp(2.4rem, 12vw, 3.2rem);
+    font-size: clamp(2.2rem, 11vw, 3rem);
   }
 
   .bookshelf-detail-tagline {

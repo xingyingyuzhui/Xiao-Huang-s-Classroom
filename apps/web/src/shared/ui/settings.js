@@ -278,14 +278,28 @@ export async function initSettingsUI({
   }
 
   async function onThemePick(nextId) {
+    const label = THEME_CATALOG.find((t) => t.id === nextId)?.name || nextId;
+    /* 先本地换肤（含 chem-theme-change → 书封面），再尝试持久化 */
+    applyTheme({ id: nextId });
+    syncThemePicker({ id: nextId });
     try {
-      applyTheme({ id: nextId });
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem('xh-theme-id', nextId);
+      }
+    } catch {
+      /* ignore quota / private mode */
+    }
+    try {
       await saveSettings({ theme: { id: nextId } });
-      syncThemePicker({ id: nextId });
-      const label = THEME_CATALOG.find((t) => t.id === nextId)?.name || nextId;
       setStatus(themeStatus, `已切换为「${label}」`, true);
     } catch (err) {
-      setStatus(themeStatus, '保存失败: ' + err.message, false);
+      /* 后端未启动时仍保留本地主题，避免「保存失败」连封面也不换的错觉 */
+      console.warn('主题已应用，但未能写入服务器:', err);
+      setStatus(
+        themeStatus,
+        `已切换为「${label}」（未同步服务器，请确认后端 npm run dev:server 已启动）`,
+        false,
+      );
     }
   }
 

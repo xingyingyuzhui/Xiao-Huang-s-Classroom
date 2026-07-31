@@ -64,6 +64,9 @@ export function createBookshelfStage(opts) {
 
   /** 进出场会话号：过期 timer / FX 回调一律忽略 */
   let transitionSeq = 0;
+  /** 渲染循环状态（提前声明，避免 animate 闭包踩 TDZ） */
+  let running = true;
+  let raf = 0;
 
   const enterFx = pageFxRoot
     ? createEnterPageFx({
@@ -148,6 +151,7 @@ try {
     canvas,
     antialias: true,
     alpha: true,
+    premultipliedAlpha: true,
   });
 } catch (e) {
   console.error("WebGL unavailable for subject bookshelf", e);
@@ -155,11 +159,13 @@ try {
 }
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(viewW(), viewH(), false);
+/* 透明清屏：让 CSS 主题教室背景从 canvas 下透出 */
+renderer.setClearColor(0x000000, 0);
+renderer.setClearAlpha(0);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-/* held just under 1 so cover art keeps its printed saturation instead of
-   being rolled off toward white by the filmic curve */
-renderer.toneMappingExposure = 0.95;
+/* 亮教室下仍抬曝光，让封面成为视觉焦点 */
+renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 const ANISO = renderer.capabilities.getMaxAnisotropy();
@@ -173,7 +179,7 @@ const camera = new THREE.PerspectiveCamera(
 );
 camera.position.set(0, 0.1, 9.6);
 
-/* studio environment: painted equirect, prefiltered */
+/* —— 教室环境反射（非棚拍深色 void）—— */
 function envBlob(x, cx, cy, r, rgb, a) {
   const g = x.createRadialGradient(cx, cy, 0, cx, cy, r);
   g.addColorStop(0, "rgba(" + rgb + "," + a + ")");
@@ -183,31 +189,98 @@ function envBlob(x, cx, cy, r, rgb, a) {
   x.arc(cx, cy, r, 0, 6.2832);
   x.fill();
 }
-(function buildEnv() {
-  const c = mkCanvas(512, 256),
-    x = c.getContext("2d");
+
+/** @type {THREE.Texture | null} */
+let envMapRT = null;
+const pmremGen = new THREE.PMREMGenerator(renderer);
+
+/**
+ * 按主题画 equirect 教室环境 → PMREM
+ * 目标：亮天窗 + 墙面漫反射 + 地板暖回弹，去掉粉雾棚拍
+ * @param {string} themeId
+ */
+function buildClassroomEnv(themeId) {
+  const c = mkCanvas(512, 256);
+  const x = c.getContext("2d");
+  const packs = {
+    default: {
+      sky: ["#d8e4f2", "#a8bdd4", "#6a7f96"],
+      key: "255,252,248",
+      fill: "210,220,235",
+      floor: "180,175,168",
+      warm: "255,230,200",
+    },
+    stationery: {
+      sky: ["#f0e4d0", "#d4b896", "#8a6a4a"],
+      key: "255,248,235",
+      fill: "232,210,175",
+      floor: "160,130,95",
+      warm: "255,210,160",
+    },
+    reagent: {
+      sky: ["#e8dfd2", "#c4b4a0", "#6e6256"],
+      key: "255,250,242",
+      fill: "210,195,175",
+      floor: "120,108,95",
+      warm: "255,200,150",
+    },
+    blackboard: {
+      sky: ["#e8f0e6", "#a8c4b0", "#3d5c4a"],
+      key: "248,252,245",
+      fill: "190,210,195",
+      floor: "90,100,85",
+      warm: "240,220,160",
+    },
+    pixel: {
+      sky: ["#c8d8d8", "#7a9a9a", "#3a5050"],
+      key: "255,255,255",
+      fill: "160,200,195",
+      floor: "70,90,95",
+      warm: "255,170,180",
+    },
+  };
+  const p = packs[themeId] || packs.default;
   const g = x.createLinearGradient(0, 0, 0, 256);
-  g.addColorStop(0, "#5a6ba6");
-  g.addColorStop(0.55, "#262e52");
-  g.addColorStop(1, "#0a0d1d");
+  g.addColorStop(0, p.sky[0]);
+  g.addColorStop(0.42, p.sky[1]);
+  g.addColorStop(0.72, p.sky[2]);
+  g.addColorStop(1, p.floor);
   x.fillStyle = g;
   x.fillRect(0, 0, 512, 256);
-  envBlob(x, 140, 66, 95, "255,255,255", 0.95); // key
-  envBlob(x, 405, 84, 55, "255,214,168", 0.55); // warm kicker
-  envBlob(x, 256, 150, 120, "255,155,185", 0.28); // pink wash
-  const tex = new THREE.CanvasTexture(c);
-  tex.mapping = THREE.EquirectangularReflectionMapping;
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  scene.environment = pmrem.fromEquirectangular(tex).texture;
-  tex.dispose();
-  pmrem.dispose();
-})();
+  /* 主窗光（偏上前） */
+  envBlob(x, 160, 70, 110, p.key, 0.72);
+  /* 侧墙漫反射 */
+  envBlob(x, 400, 100, 70, p.fill, 0.4);
+  /* 地板暖回弹 */
+  envBlob(x, 256, 210, 90, p.warm, 0.28);
+  try {
+    const tex = new THREE.CanvasTexture(c);
+    tex.mapping = THREE.EquirectangularReflectionMapping;
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const prev = envMapRT;
+    const next = pmremGen.fromEquirectangular(tex).texture;
+    scene.environment = next;
+    envMapRT = next;
+    tex.dispose();
+    /* 先换再 dispose，避免当前帧引用已销毁 RT */
+    if (prev && prev !== next) {
+      try {
+        prev.dispose();
+      } catch (_) {
+        /* ignore */
+      }
+    }
+  } catch (err) {
+    console.warn("Classroom env map failed, keep previous", err);
+  }
+}
 
-/* 灯光贴近原版 books：主光 + 补光 + 轮廓光 + 左上工作室斜光 + 中心柔光 */
-const hemi = new THREE.HemisphereLight(0x8fa0d8, 0x0d1024, 0.38);
+/* 灯光：前向主光拉高，封面成为焦点；色温由主题覆盖 */
+const hemi = new THREE.HemisphereLight(0xd8e6f8, 0xc8c0b4, 0.55);
 scene.add(hemi);
-const key = new THREE.DirectionalLight(0xffffff, 1.12);
-key.position.set(3.5, 5.2, 6);
+const key = new THREE.DirectionalLight(0xfffdf8, 1.55);
+/* 右上前：模拟侧窗 + 正面照亮封面 */
+key.position.set(3.6, 5.8, 6.2);
 key.castShadow = true;
 key.shadow.mapSize.set(2048, 2048);
 key.shadow.camera.left = -4.5;
@@ -216,23 +289,255 @@ key.shadow.camera.top = 4.5;
 key.shadow.camera.bottom = -4.5;
 key.shadow.camera.near = 1;
 key.shadow.camera.far = 22;
-key.shadow.bias = -0.0004;
+key.shadow.bias = -0.00035;
 key.shadow.normalBias = 0.02;
+key.shadow.radius = 2.0;
 scene.add(key);
-const fill = new THREE.DirectionalLight(0xa9b6ff, 0.28);
-fill.position.set(-4, 1.2, 4);
+/* 左前墙补：抬高，消掉封面暗侧 */
+const fill = new THREE.DirectionalLight(0xe8f0fc, 0.52);
+fill.position.set(-4.5, 2.8, 4.5);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(0xff9db8, 0.42);
-rim.position.set(-2.2, 3.2, -5);
+/* 背缘：把书从亮背景里“抠”出来 */
+const rim = new THREE.DirectionalLight(0xc8dcf0, 0.36);
+rim.position.set(-1.5, 2.8, -5.5);
 scene.add(rim);
-/* 左上斜切：原版封面那道亮带的方向 */
-const studio = new THREE.DirectionalLight(0xfff3e4, 0.82);
-studio.position.set(-4.2, 6.8, 5.2);
+/* 顶漫：教室天光 */
+const studio = new THREE.DirectionalLight(0xfff8ee, 0.55);
+studio.position.set(-1.0, 7.5, 3.5);
 scene.add(studio);
-/* 中心柔光：原版背后那圈淡粉暖光 */
-const glow = new THREE.PointLight(0xffb6c8, 0.62, 16, 2);
-glow.position.set(0, 0.15, -0.85);
+/* 书前柔光：进一步抬封面通透感 */
+const glow = new THREE.PointLight(0xfff0e0, 0.28, 12, 2);
+glow.position.set(0.2, 0.35, 2.4);
 scene.add(glow);
+
+function activeThemeId() {
+  return document.documentElement.getAttribute("data-theme") || "default";
+}
+
+try {
+  buildClassroomEnv(activeThemeId());
+} catch (err) {
+  console.warn("Initial classroom env failed", err);
+}
+
+/**
+ * 主题 × 书材质手感 + 教室光（亮背景适配）
+ * env 压低：亮教室下高 env 会像蒙尘；靠 key/fill 塑形
+ */
+const THEME_BOOK_FEEL = {
+  /* 亮教室：书要比背景更“跳”——抬 key/fill/曝光，封面 albedo 少压暗 */
+  default: {
+    front: { roughness: 0.2, metalness: 0.03, clearcoat: 0.72, clearcoatRoughness: 0.16, envMapIntensity: 0.38, bumpScale: 0.005 },
+    back: { roughness: 0.3, clearcoat: 0.45, clearcoatRoughness: 0.24, envMapIntensity: 0.28, bumpScale: 0.0045 },
+    edge: { roughness: 0.4, metalness: 0.05, clearcoat: 0.32, clearcoatRoughness: 0.36, envMapIntensity: 0.28, bumpScale: 0.006 },
+    spine: { roughness: 0.5, metalness: 0.02, clearcoat: 0.22, clearcoatRoughness: 0.5, envMapIntensity: 0.26, bumpScale: 0.012, cloth: true },
+    exposure: 1.14,
+    light: {
+      hemi: 0xd8e6f8, hemiI: 0.55, hemiGround: 0xc8c0b4,
+      key: 0xfffdf8, keyI: 1.55,
+      fill: 0xe8f0fc, fillI: 0.52,
+      rim: 0xc8dcf0, rimI: 0.36,
+      studio: 0xfff8ee, studioI: 0.55,
+      glow: 0xfff0e0, glowI: 0.22,
+    },
+  },
+  stationery: {
+    front: { roughness: 0.48, metalness: 0.02, clearcoat: 0.2, clearcoatRoughness: 0.58, envMapIntensity: 0.3, bumpScale: 0.009 },
+    back: { roughness: 0.55, clearcoat: 0.12, clearcoatRoughness: 0.68, envMapIntensity: 0.24, bumpScale: 0.007 },
+    edge: { roughness: 0.58, metalness: 0.02, clearcoat: 0.1, clearcoatRoughness: 0.72, envMapIntensity: 0.24, bumpScale: 0.009 },
+    spine: { roughness: 0.68, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.78, envMapIntensity: 0.22, bumpScale: 0.016, cloth: true },
+    exposure: 1.12,
+    light: {
+      hemi: 0xf8ecd8, hemiI: 0.52, hemiGround: 0xd4b898,
+      key: 0xfff8ec, keyI: 1.42,
+      fill: 0xffecd0, fillI: 0.5,
+      rim: 0xe8c8a0, rimI: 0.3,
+      studio: 0xfff0dc, studioI: 0.5,
+      glow: 0xffe0b8, glowI: 0.2,
+    },
+  },
+  reagent: {
+    front: { roughness: 0.18, metalness: 0.04, clearcoat: 0.82, clearcoatRoughness: 0.12, envMapIntensity: 0.36, bumpScale: 0.0045 },
+    back: { roughness: 0.28, clearcoat: 0.52, clearcoatRoughness: 0.2, envMapIntensity: 0.28, bumpScale: 0.004 },
+    edge: { roughness: 0.35, metalness: 0.06, clearcoat: 0.4, clearcoatRoughness: 0.3, envMapIntensity: 0.3, bumpScale: 0.005 },
+    spine: { roughness: 0.42, metalness: 0.03, clearcoat: 0.35, clearcoatRoughness: 0.38, envMapIntensity: 0.26, bumpScale: 0.008, cloth: false },
+    exposure: 1.12,
+    light: {
+      hemi: 0xf0e8dc, hemiI: 0.48, hemiGround: 0xb0a090,
+      key: 0xfffaf4, keyI: 1.5,
+      fill: 0xf0e4d0, fillI: 0.46,
+      rim: 0xd8c8b0, rimI: 0.32,
+      studio: 0xfff4e4, studioI: 0.48,
+      glow: 0xf0d8b8, glowI: 0.18,
+    },
+  },
+  blackboard: {
+    front: { roughness: 0.7, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.85, envMapIntensity: 0.2, bumpScale: 0.012 },
+    back: { roughness: 0.76, clearcoat: 0.05, clearcoatRoughness: 0.88, envMapIntensity: 0.16, bumpScale: 0.01 },
+    edge: { roughness: 0.78, metalness: 0.01, clearcoat: 0.05, clearcoatRoughness: 0.9, envMapIntensity: 0.18, bumpScale: 0.012 },
+    spine: { roughness: 0.82, metalness: 0.01, clearcoat: 0.04, clearcoatRoughness: 0.92, envMapIntensity: 0.16, bumpScale: 0.018, cloth: true },
+    exposure: 1.16,
+    light: {
+      hemi: 0xe0f0e4, hemiI: 0.5, hemiGround: 0x8a9a88,
+      key: 0xf8fcf6, keyI: 1.45,
+      fill: 0xd8ecd8, fillI: 0.44,
+      rim: 0xb8d8c0, rimI: 0.3,
+      studio: 0xf0f8ec, studioI: 0.46,
+      glow: 0xe0f0c8, glowI: 0.18,
+    },
+  },
+  pixel: {
+    front: { roughness: 0.34, metalness: 0.03, clearcoat: 0.38, clearcoatRoughness: 0.3, envMapIntensity: 0.32, bumpScale: 0.0035 },
+    back: { roughness: 0.4, clearcoat: 0.3, clearcoatRoughness: 0.35, envMapIntensity: 0.26, bumpScale: 0.003 },
+    edge: { roughness: 0.38, metalness: 0.03, clearcoat: 0.3, clearcoatRoughness: 0.32, envMapIntensity: 0.28, bumpScale: 0.004 },
+    spine: { roughness: 0.42, metalness: 0.02, clearcoat: 0.26, clearcoatRoughness: 0.38, envMapIntensity: 0.24, bumpScale: 0.006, cloth: false },
+    exposure: 1.14,
+    light: {
+      hemi: 0xc8e0e0, hemiI: 0.52, hemiGround: 0x708888,
+      key: 0xffffff, keyI: 1.55,
+      fill: 0xb8e0d8, fillI: 0.44,
+      rim: 0x88d0c0, rimI: 0.36,
+      studio: 0xf0f8f8, studioI: 0.48,
+      glow: 0xffc8d0, glowI: 0.16,
+    },
+  },
+};
+
+function themeBookFeel(themeId) {
+  return THEME_BOOK_FEEL[themeId] || THEME_BOOK_FEEL.default;
+}
+
+/**
+ * @param {object} feel
+ * @param {{ mFront: THREE.MeshPhysicalMaterial, mBack: THREE.MeshPhysicalMaterial, mEdge: THREE.MeshPhysicalMaterial, mEdgeDark: THREE.MeshPhysicalMaterial, mSpine: THREE.MeshPhysicalMaterial }} mats
+ * @param {string} [edgeHex]
+ */
+function applyBookFeel(feel, mats, edgeHex) {
+  const { mFront, mBack, mEdge, mEdgeDark, mSpine } = mats;
+  const f = feel.front;
+  mFront.roughness = f.roughness;
+  mFront.metalness = f.metalness ?? 0.04;
+  mFront.clearcoat = f.clearcoat;
+  mFront.clearcoatRoughness = f.clearcoatRoughness;
+  mFront.envMapIntensity = f.envMapIntensity;
+  if (mFront.bumpScale != null) mFront.bumpScale = f.bumpScale;
+  mFront.needsUpdate = true;
+
+  const b = feel.back;
+  mBack.roughness = b.roughness;
+  mBack.clearcoat = b.clearcoat;
+  mBack.clearcoatRoughness = b.clearcoatRoughness;
+  mBack.envMapIntensity = b.envMapIntensity;
+  if (mBack.bumpScale != null) mBack.bumpScale = b.bumpScale;
+  mBack.needsUpdate = true;
+
+  const e = feel.edge;
+  mEdge.roughness = e.roughness;
+  mEdge.metalness = e.metalness ?? 0.06;
+  mEdge.clearcoat = e.clearcoat;
+  mEdge.clearcoatRoughness = e.clearcoatRoughness;
+  mEdge.envMapIntensity = e.envMapIntensity;
+  if (mEdge.bumpScale != null) mEdge.bumpScale = e.bumpScale;
+  if (edgeHex) mEdge.color.set(edgeHex);
+  mEdge.needsUpdate = true;
+  /* 切边更暗：斜侧厚度剪影更利 */
+  try {
+    mEdgeDark.color.copy(mEdge.color).multiplyScalar(0.52);
+  } catch {
+    if (edgeHex) mEdgeDark.color.set(edgeHex);
+  }
+  mEdgeDark.roughness = Math.min(1, e.roughness + 0.1);
+  mEdgeDark.clearcoat = e.clearcoat * 0.55;
+  mEdgeDark.clearcoatRoughness = Math.min(1, e.clearcoatRoughness + 0.12);
+  mEdgeDark.envMapIntensity = e.envMapIntensity * 0.7;
+  mEdgeDark.needsUpdate = true;
+
+  const s = feel.spine;
+  mSpine.roughness = s.roughness;
+  mSpine.metalness = s.metalness ?? 0.02;
+  mSpine.clearcoat = s.clearcoat;
+  mSpine.clearcoatRoughness = s.clearcoatRoughness;
+  mSpine.envMapIntensity = s.envMapIntensity;
+  if (mSpine.bumpScale != null) mSpine.bumpScale = s.bumpScale;
+  mSpine.bumpMap = s.cloth ? clothBump : laminateBump;
+  /* 贴图已带 spineBg；略向边材靠色，避免铰链跳色又不过暗 */
+  if (edgeHex) {
+    mSpine.color.set(edgeHex).lerp(new THREE.Color(0xffffff), 0.62);
+  } else {
+    mSpine.color.set(0xffffff);
+  }
+  mSpine.needsUpdate = true;
+}
+
+function applyThemeLights(feel, themeId) {
+  const L = feel.light;
+  hemi.color.setHex(L.hemi);
+  if (L.hemiGround != null) hemi.groundColor.setHex(L.hemiGround);
+  hemi.intensity = L.hemiI;
+  key.color.setHex(L.key);
+  key.intensity = L.keyI;
+  fill.color.setHex(L.fill);
+  fill.intensity = L.fillI;
+  rim.color.setHex(L.rim);
+  rim.intensity = L.rimI;
+  studio.color.setHex(L.studio);
+  studio.intensity = L.studioI;
+  glow.color.setHex(L.glow);
+  glow.intensity = L.glowI;
+  if (feel.exposure != null) {
+    renderer.toneMappingExposure = feel.exposure;
+  }
+  buildClassroomEnv(themeId || activeThemeId());
+}
+
+/** 快照主题材质基准，供 hover/detail 微光叠在上面 */
+function snapshotFeelBase(mats) {
+  return {
+    frontCC: mats.mFront.clearcoat,
+    frontCCR: mats.mFront.clearcoatRoughness,
+    frontEnv: mats.mFront.envMapIntensity,
+    frontRough: mats.mFront.roughness,
+    edgeEnv: mats.mEdgeDark.envMapIntensity,
+    edgeCC: mats.mEdgeDark.clearcoat,
+    spineEnv: mats.mSpine.envMapIntensity,
+    spineCC: mats.mSpine.clearcoat,
+  };
+}
+
+/**
+ * 封面极淡印刷瑕疵：少量压痕；角部脏迹再减弱，避免封面发闷
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {number} w
+ * @param {number} h
+ */
+function paintPrintWear(ctx, w, h) {
+  ctx.save();
+  ctx.globalCompositeOperation = "soft-light";
+  for (let i = 0; i < 4; i++) {
+    const y = Math.random() * h;
+    ctx.strokeStyle = "rgba(255,255,255," + (0.02 + Math.random() * 0.03).toFixed(3) + ")";
+    ctx.lineWidth = 0.7 + Math.random();
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(w, y + (Math.random() - 0.5) * 22);
+    ctx.stroke();
+  }
+  ctx.globalCompositeOperation = "multiply";
+  const corners = [
+    [0, 0],
+    [w, 0],
+    [0, h],
+    [w, h],
+  ];
+  for (const [cx, cy] of corners) {
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, w * 0.16);
+    g.addColorStop(0, "rgba(40,32,24,0.035)");
+    g.addColorStop(1, "rgba(40,32,24,0)");
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - w * 0.16, cy - h * 0.14, w * 0.32, h * 0.28);
+  }
+  ctx.restore();
+}
 
 /* everything book-related lives under one root so it can be fit-scaled */
 const bookRoot = new THREE.Group();
@@ -289,35 +594,95 @@ const clothBump = (function () {
   return new THREE.CanvasTexture(c);
 })();
 
+/**
+ * 书口层理 albedo（暖纸色）
+ * @param {boolean} vertical
+ */
 function striationTexture(vertical) {
   const s = 512,
     c = mkCanvas(s, s),
     x = c.getContext("2d");
-  x.fillStyle = "#ece4d2";
+  x.fillStyle = "#e4d9c4";
   x.fillRect(0, 0, s, s);
   let p = 0;
   while (p < s) {
-    const w = 1 + Math.random() * 2.4,
+    const w = 0.55 + Math.random() * 1.9,
       tone = Math.random();
     x.fillStyle =
-      tone < 0.12
-        ? "rgba(140,125,95,.5)"
-        : tone < 0.5
-          ? "rgba(255,255,252,.55)"
-          : "rgba(190,178,150,.45)";
+      tone < 0.08
+        ? "rgba(88,72,48,.78)"
+        : tone < 0.2
+          ? "rgba(150,130,95,.58)"
+          : tone < 0.55
+            ? "rgba(255,252,245,.72)"
+            : "rgba(198,182,150,.52)";
     if (vertical) x.fillRect(p, 0, w, s);
     else x.fillRect(0, p, s, w);
-    p += w + 0.6 + Math.random() * 1.6;
+    p += w + 0.28 + Math.random() * 1.0;
   }
-  for (let i = 0; i < 2600; i++) {
+  for (let i = 0; i < 22; i++) {
+    const q = Math.random() * s;
+    const thick = 1.1 + Math.random() * 2.4;
+    x.fillStyle = "rgba(70,55,38," + (0.3 + Math.random() * 0.28).toFixed(3) + ")";
+    if (vertical) x.fillRect(q, 0, thick, s);
+    else x.fillRect(0, q, s, thick);
+  }
+  for (let i = 0; i < 3600; i++) {
     x.fillStyle =
-      "rgba(120,108,84," + (Math.random() * 0.1).toFixed(3) + ")";
-    x.fillRect(Math.random() * s, Math.random() * s, 1.2, 1.2);
+      "rgba(110,95,70," + (Math.random() * 0.14).toFixed(3) + ")";
+    x.fillRect(Math.random() * s, Math.random() * s, 1.1, 1.1);
   }
+  const wash = vertical
+    ? x.createLinearGradient(0, 0, s, 0)
+    : x.createLinearGradient(0, 0, 0, s);
+  wash.addColorStop(0, "rgba(210,175,110,.14)");
+  wash.addColorStop(0.45, "rgba(0,0,0,0)");
+  wash.addColorStop(1, "rgba(40,30,18,.12)");
+  x.fillStyle = wash;
+  x.fillRect(0, 0, s, s);
   return tex(c);
 }
-const striV = striationTexture(true); // fore edge (±x faces)
-const striH = striationTexture(false); // top and bottom (±y faces)
+
+/**
+ * 高对比层理 bump（仅灰度，驱动“千页”凹凸）
+ * @param {boolean} vertical
+ */
+function striationBumpTexture(vertical) {
+  const s = 512,
+    c = mkCanvas(s, s),
+    x = c.getContext("2d");
+  x.fillStyle = "#808080";
+  x.fillRect(0, 0, s, s);
+  let p = 0;
+  while (p < s) {
+    const w = 0.5 + Math.random() * 1.7;
+    const tone = Math.random();
+    const g =
+      tone < 0.12 ? 48 + Math.random() * 30
+        : tone < 0.45 ? 170 + Math.random() * 50
+          : 100 + Math.random() * 40;
+    x.fillStyle = `rgb(${g|0},${g|0},${g|0})`;
+    if (vertical) x.fillRect(p, 0, w, s);
+    else x.fillRect(0, p, s, w);
+    p += w + 0.22 + Math.random() * 0.85;
+  }
+  for (let i = 0; i < 28; i++) {
+    const q = Math.random() * s;
+    const thick = 1.4 + Math.random() * 2.8;
+    const g = 28 + Math.random() * 36;
+    x.fillStyle = `rgb(${g|0},${g|0},${g|0})`;
+    if (vertical) x.fillRect(q, 0, thick, s);
+    else x.fillRect(0, q, s, thick);
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.anisotropy = ANISO;
+  return t;
+}
+
+const striV = striationTexture(true);
+const striH = striationTexture(false);
+const striBumpV = striationBumpTexture(true);
+const striBumpH = striationBumpTexture(false);
 
 const endpaperTex = (function () {
   const s = 512,
@@ -413,24 +778,174 @@ const BOOKS = subjects.map((s) => {
 const W = 1.36,
   H = 2.05,
   T = 0.32,
-  CT = 0.03,
+  CT = 0.032,
   OV = 0.045;
+/** 封面圆角半径（世界单位）— 游戏资产级圆角板，告别方盒 */
+const COVER_R = 0.048;
 const PAGE_N = 10,
   PW = W - 0.02,
   PH = H - 0.02;
-const BLOCK_D = 0.22,
-  BLOCK_Z = -0.018,
+const BLOCK_D = 0.235,
+  BLOCK_Z = -0.012,
   PIVOT_Z = T / 2 + CT / 2,
   BPIVOT_Z = -(T / 2 + CT / 2);
 
-const coverGeo = new THREE.BoxGeometry(W + OV, H + OV * 2, CT);
-const blockGeo = new THREE.BoxGeometry(W - 0.015, H, BLOCK_D);
+/**
+ * 圆角矩形 Shape（中心原点，XY 平面）
+ * @param {number} w
+ * @param {number} h
+ * @param {number} r
+ */
+function roundedRectShape(w, h, r) {
+  const shape = new THREE.Shape();
+  const hw = w * 0.5;
+  const hh = h * 0.5;
+  const rr = Math.min(r, hw * 0.92, hh * 0.92);
+  shape.moveTo(-hw + rr, -hh);
+  shape.lineTo(hw - rr, -hh);
+  shape.quadraticCurveTo(hw, -hh, hw, -hh + rr);
+  shape.lineTo(hw, hh - rr);
+  shape.quadraticCurveTo(hw, hh, hw - rr, hh);
+  shape.lineTo(-hw + rr, hh);
+  shape.quadraticCurveTo(-hw, hh, -hw, hh - rr);
+  shape.lineTo(-hw, -hh + rr);
+  shape.quadraticCurveTo(-hw, -hh, -hw + rr, -hh);
+  return shape;
+}
+
+/**
+ * 盖面 UV 归一到 0–1（Three 默认 Extrude UV 在竖向几乎挤成一条）
+ * 仅处理 |z| 接近极值的盖面顶点，侧壁/bevel 不动
+ * @param {THREE.BufferGeometry} geo
+ * @param {number} w
+ * @param {number} h
+ */
+function normalizeExtrudeCapUVs(geo, w, h) {
+  const uv = geo.attributes.uv;
+  const pos = geo.attributes.position;
+  if (!uv || !pos) return;
+  let maxAbsZ = 0;
+  for (let i = 0; i < pos.count; i++) {
+    maxAbsZ = Math.max(maxAbsZ, Math.abs(pos.getZ(i)));
+  }
+  const thr = maxAbsZ * 0.82;
+  const hw = w * 0.5;
+  const hh = h * 0.5;
+  for (let i = 0; i < pos.count; i++) {
+    if (Math.abs(pos.getZ(i)) < thr) continue;
+    uv.setXY(i, (pos.getX(i) + hw) / w, (pos.getY(i) + hh) / h);
+  }
+  uv.needsUpdate = true;
+}
+
+/**
+ * Three.js ExtrudeGeometry 默认 groups：
+ *   materialIndex 0 = 上下盖（先 bottom 再 top）
+ *   materialIndex 1 = 侧壁
+ * 拆成书本需要的三槽：0=+z 盖, 1=-z 盖, 2=侧壁
+ * @param {THREE.BufferGeometry} geo
+ */
+function reindexCoverMaterialGroups(geo) {
+  const prev = geo.groups.slice();
+  geo.clearGroups();
+  const lid = prev.find((g) => g.materialIndex === 0);
+  const side = prev.find((g) => g.materialIndex === 1);
+  if (lid && lid.count >= 6 && lid.count % 2 === 0) {
+    const half = lid.count / 2;
+    /* buildLidFaces: 先 bottom(-z) 后 top(+z) */
+    geo.addGroup(lid.start + half, half, 0); // +z 外/内封面
+    geo.addGroup(lid.start, half, 1); // -z
+  } else if (lid) {
+    geo.addGroup(lid.start, lid.count, 0);
+  }
+  if (side) geo.addGroup(side.start, side.count, 2);
+}
+
+/**
+ * 圆角挤出封面：侧壁 + 正反盖；bevel 做出印刷板厚边
+ * groups: 0=+z 盖, 1=-z 盖, 2=侧壁(+bevel)
+ */
+function makeCoverGeo() {
+  const cw = W + OV;
+  const ch = H + OV * 2;
+  const shape = roundedRectShape(cw, ch, COVER_R);
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: CT,
+    bevelEnabled: true,
+    bevelThickness: 0.0055,
+    bevelSize: 0.0055,
+    bevelOffset: 0,
+    bevelSegments: 3,
+    curveSegments: 10,
+  });
+  geo.translate(0, 0, -CT / 2);
+  reindexCoverMaterialGroups(geo);
+  normalizeExtrudeCapUVs(geo, cw, ch);
+  geo.computeVertexNormals();
+  return geo;
+}
+
+/**
+ * 微弧书脊截面：内侧贴铰链为直边，外侧轻微外凸（非半圆鼓包）
+ * shape 平面：x 朝外为负，y 沿书厚；再挤出书高并旋到世界轴
+ */
+function makeSpineGeo() {
+  const spineD = T + CT * 2 + 0.01; /* 沿书厚 */
+  const spineW = 0.03; /* 脊板厚度 */
+  const bulge = 0.007; /* 外侧微弧矢高 */
+  const spineH = H + OV * 2 - 0.01;
+  const hd = spineD * 0.5;
+
+  const shape = new THREE.Shape();
+  /* 内侧直边（朝书芯） */
+  shape.moveTo(0, -hd);
+  shape.lineTo(0, hd);
+  shape.lineTo(-spineW * 0.88, hd);
+  /* 外侧两段二次曲线 → 很浅的鼓 */
+  shape.quadraticCurveTo(-spineW - bulge, hd * 0.42, -spineW - bulge, 0);
+  shape.quadraticCurveTo(-spineW - bulge, -hd * 0.42, -spineW * 0.88, -hd);
+  shape.closePath();
+
+  const geo = new THREE.ExtrudeGeometry(shape, {
+    depth: spineH,
+    bevelEnabled: false,
+    curveSegments: 10,
+  });
+  /* 默认沿 +Z 挤出 → 旋成沿 +Y 的书高 */
+  geo.rotateX(-Math.PI / 2);
+  geo.computeBoundingBox();
+  const bb = geo.boundingBox;
+  /* 内侧直边对齐 x=0，整体再由 mesh.position 嵌进铰链 */
+  geo.translate(-bb.max.x, -(bb.min.y + bb.max.y) / 2, -(bb.min.z + bb.max.z) / 2);
+
+  const uv = geo.attributes.uv;
+  const pos = geo.attributes.position;
+  if (uv && pos) {
+    const x0 = bb.min.x - bb.max.x; /* after translate, outer ~ more negative */
+    const xSpan = Math.max(1e-4, spineW + bulge);
+    for (let i = 0; i < pos.count; i++) {
+      const x = pos.getX(i);
+      const y = pos.getY(i);
+      const z = pos.getZ(i);
+      /* 外侧面：用 z 摊 U、y 摊 V */
+      const u = clamp(z / spineD + 0.5, 0, 1);
+      const v = clamp(y / spineH + 0.5, 0, 1);
+      /* 侧缘略用 x 混合，避免纯投影拉伸 */
+      uv.setXY(i, u * 0.92 + clamp((-x) / xSpan, 0, 1) * 0.08, v);
+    }
+    uv.needsUpdate = true;
+  }
+  geo.computeVertexNormals();
+  return geo;
+}
+
+const coverGeo = makeCoverGeo();
+const blockGeo = new THREE.BoxGeometry(W - 0.012, H - 0.01, BLOCK_D);
 const pageGeo = new THREE.PlaneGeometry(PW, PH);
-const spineGeo = new THREE.BoxGeometry(
-  0.03,
-  H + OV * 2,
-  T + CT * 2 + 0.008,
-);
+const spineGeo = makeSpineGeo();
+/** 书口多层薄片：侧光下叠出“千页”剪影 */
+const EDGE_SHEET_N = 3;
+const edgeSheetGeo = new THREE.PlaneGeometry(BLOCK_D * 0.9, H - 0.045);
 /* hitbox 略大于书面，仍远小于旧版巨盒 */
 const hitGeo = new THREE.BoxGeometry(W + 0.08, H + 0.08, T + 0.18);
 const blobGeo = new THREE.PlaneGeometry(1, 1);
@@ -449,23 +964,23 @@ function phys(o) {
 }
 
 const paperFlat = std({
-  color: 0xf2ecdd,
-  roughness: 0.95,
-  envMapIntensity: 0.2,
+  color: 0xefe6d4,
+  roughness: 0.97,
+  envMapIntensity: 0.16,
 });
 const striMatV = std({
   map: striV,
-  bumpMap: striV,
-  bumpScale: 0.0025,
-  roughness: 0.95,
-  envMapIntensity: 0.2,
+  bumpMap: striBumpV,
+  bumpScale: 0.011,
+  roughness: 0.92,
+  envMapIntensity: 0.32,
 });
 const striMatH = std({
   map: striH,
-  bumpMap: striH,
-  bumpScale: 0.0025,
-  roughness: 0.95,
-  envMapIntensity: 0.2,
+  bumpMap: striBumpH,
+  bumpScale: 0.009,
+  roughness: 0.92,
+  envMapIntensity: 0.3,
 });
 const endpaperMat = std({
   map: endpaperTex,
@@ -501,109 +1016,156 @@ function buildBook(cfg, index) {
     backTex = tex(bc),
     spineTex = tex(sc);
 
-  /* printed boards: matte enough that the environment reads as a soft sheen
-     rather than a wash over the artwork */
+  /* printed boards：初值 + 主题手感覆盖 */
   const mEdge = phys({
     color: cfg.edge,
     bumpMap: laminateBump,
-    bumpScale: 0.0055,
-    roughness: 0.48,
-    metalness: 0.06,
-    clearcoat: 0.35,
-    clearcoatRoughness: 0.35,
-    envMapIntensity: 0.55,
+    bumpScale: 0.0065,
+    roughness: 0.42,
+    metalness: 0.08,
+    clearcoat: 0.42,
+    clearcoatRoughness: 0.32,
+    envMapIntensity: 0.62,
   });
+  const mEdgeDark = mEdge.clone();
+  try {
+    mEdgeDark.color = mEdge.color.clone().multiplyScalar(0.72);
+  } catch {
+    /* ignore */
+  }
   const mFront = phys({
     map: frontTex,
     bumpMap: laminateBump,
     bumpScale: 0.0055,
-    roughness: 0.24,
+    roughness: 0.22,
     metalness: 0.05,
-    clearcoat: 0.88,
-    clearcoatRoughness: 0.1,
-    envMapIntensity: 0.92,
+    clearcoat: 0.92,
+    clearcoatRoughness: 0.08,
+    envMapIntensity: 0.88,
   });
   const mBack = phys({
     map: backTex,
     bumpMap: laminateBump,
     bumpScale: 0.0048,
-    roughness: 0.34,
-    clearcoat: 0.55,
-    clearcoatRoughness: 0.2,
-    envMapIntensity: 0.62,
+    roughness: 0.32,
+    clearcoat: 0.58,
+    clearcoatRoughness: 0.18,
+    envMapIntensity: 0.58,
   });
-  const mSpine = std({
+  const mSpine = phys({
     map: spineTex,
+    color: 0xffffff,
     bumpMap: clothBump,
-    bumpScale: 0.01,
+    bumpScale: 0.014,
     roughness: 0.55,
-    envMapIntensity: 0.48,
+    metalness: 0.02,
+    clearcoat: 0.28,
+    clearcoatRoughness: 0.48,
+    envMapIntensity: 0.45,
   });
+  applyBookFeel(
+    themeBookFeel(activeThemeId()),
+    { mFront, mBack, mEdge, mEdgeDark, mSpine },
+    cfg.edge,
+  );
 
-  /* optional printed cover art + 烘焙工作室斜光（再提亮高光带） */
+  /* 封面烘焙：少压暗、略提亮，封面图保持通透 */
   function paintStudioGrade(ctx, w, h) {
     ctx.save();
+    /* 极轻角部压暗，几乎不动主画面亮度 */
     const shade = ctx.createLinearGradient(0, 0, w * 0.95, h);
     shade.addColorStop(0, "rgba(255,255,255,0)");
-    shade.addColorStop(0.42, "rgba(255,255,255,0)");
-    shade.addColorStop(1, "rgba(10,14,32,0.18)");
+    shade.addColorStop(0.55, "rgba(255,255,255,0)");
+    shade.addColorStop(1, "rgba(10,14,32,0.05)");
     ctx.globalCompositeOperation = "multiply";
     ctx.fillStyle = shade;
     ctx.fillRect(0, 0, w, h);
 
+    /* 通透提亮带 */
+    const lift = ctx.createLinearGradient(0, 0, w, h * 0.85);
+    lift.addColorStop(0, "rgba(255,252,248,0.14)");
+    lift.addColorStop(0.45, "rgba(255,255,255,0.06)");
+    lift.addColorStop(1, "rgba(255,255,255,0)");
+    ctx.globalCompositeOperation = "soft-light";
+    ctx.fillStyle = lift;
+    ctx.fillRect(0, 0, w, h);
+
     const shaft = ctx.createLinearGradient(w * 0.02, 0, w * 0.92, h * 0.98);
     shaft.addColorStop(0, "rgba(255,252,245,0)");
-    shaft.addColorStop(0.26, "rgba(255,250,240,0.58)");
-    shaft.addColorStop(0.36, "rgba(255,252,248,0.82)");
-    shaft.addColorStop(0.46, "rgba(255,248,235,0.38)");
-    shaft.addColorStop(0.68, "rgba(0,0,0,0)");
-    shaft.addColorStop(1, "rgba(0,0,0,0.12)");
-    ctx.globalCompositeOperation = "soft-light";
+    shaft.addColorStop(0.3, "rgba(255,250,240,0.22)");
+    shaft.addColorStop(0.4, "rgba(255,252,248,0.32)");
+    shaft.addColorStop(0.55, "rgba(255,248,235,0.12)");
+    shaft.addColorStop(1, "rgba(0,0,0,0)");
     ctx.fillStyle = shaft;
     ctx.fillRect(0, 0, w, h);
-
-    const hard = ctx.createLinearGradient(w * 0.08, h * 0.02, w * 0.78, h * 0.72);
-    hard.addColorStop(0, "rgba(255,255,255,0)");
-    hard.addColorStop(0.34, "rgba(255,255,255,0)");
-    hard.addColorStop(0.4, "rgba(255,255,255,0.38)");
-    hard.addColorStop(0.48, "rgba(255,255,255,0.16)");
-    hard.addColorStop(0.58, "rgba(0,0,0,0.08)");
-    hard.addColorStop(1, "rgba(0,0,0,0.14)");
-    ctx.globalCompositeOperation = "overlay";
-    ctx.fillStyle = hard;
-    ctx.fillRect(0, 0, w, h);
     ctx.restore();
+    paintPrintWear(ctx, w, h);
   }
 
-  function applyCoverMap(url) {
+  /* 程序封面也叠一层印刷感 */
+  paintPrintWear(fc.getContext("2d"), 1024, 1536);
+  frontTex.needsUpdate = true;
+
+  /** 换肤时忽略过期的异步封面加载 */
+  let coverLoadGen = 0;
+  function applyCoverMap(url, themeHint) {
+    const gen = ++coverLoadGen;
     cfg.coverURL = url || null;
-    if (!url) {
-      mFront.map = frontTex;
-      mFront.needsUpdate = true;
-      return;
-    }
+    /* 先立刻挂上程序封面（已按主题重绘），避免旧主题贴图卡住 */
+    mFront.map = frontTex;
+    mFront.needsUpdate = true;
+    if (!url) return;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      const c = mkCanvas(1024, 1536);
-      const x = c.getContext("2d");
-      x.drawImage(img, 0, 0, 1024, 1536);
-      paintStudioGrade(x, 1024, 1536);
-      const graded = tex(c);
-      mFront.map = graded;
+      if (gen !== coverLoadGen) return;
+      try {
+        const c = mkCanvas(1024, 1536);
+        const x = c.getContext("2d");
+        x.drawImage(img, 0, 0, 1024, 1536);
+        paintStudioGrade(x, 1024, 1536);
+        const graded = tex(c);
+        if (gen !== coverLoadGen) {
+          try {
+            graded.dispose();
+          } catch (_) {
+            /* ignore */
+          }
+          return;
+        }
+        const prev = mFront.map;
+        mFront.map = graded;
+        mFront.needsUpdate = true;
+        if (prev && prev !== frontTex && prev !== graded) {
+          try {
+            prev.dispose();
+          } catch (_) {
+            /* ignore */
+          }
+        }
+      } catch (err) {
+        console.warn("Cover grade failed:", cfg.title, err);
+      }
+    };
+    img.onerror = () => {
+      if (gen !== coverLoadGen) return;
+      console.warn("Cover load failed, procedural kept:", cfg.title, url);
+      mFront.map = frontTex;
       mFront.needsUpdate = true;
     };
-    img.onerror = () =>
-      console.warn("Cover load failed, procedural kept:", cfg.title);
-    img.src = url;
+    /* 带主题后缀，避免浏览器把不同主题图当同一缓存 */
+    const tip = themeHint || activeThemeId();
+    const bust = `${url}${url.includes("?") ? "&" : "?"}theme=${encodeURIComponent(tip)}`;
+    img.src = bust;
   }
-  if (cfg.coverURL) applyCoverMap(cfg.coverURL);
+  if (cfg.coverURL) applyCoverMap(cfg.coverURL, activeThemeId());
 
   /* 每本书独立溶解 uniforms（不共享材质程序状态） */
   const dissolveU = createDissolveUniforms(THREE, cfg.edge || 0x6ee7b7);
-  attachDissolveAll([mFront, mBack, mEdge, mSpine], dissolveU);
+  attachDissolveAll([mFront, mBack, mEdge, mEdgeDark, mSpine], dissolveU);
 
-  /* 书芯用克隆材质，才能跟封面一起溶解，不影响其它书 */
+  /* 书芯用克隆材质，才能跟封面一起溶解，不影响其它书
+     Box 面序: +x -x +y -y +z -z → 前缘层理 / 书脊侧纸 / 上下切 / 前后纸面 */
   const mBlock = [
     striMatV.clone(),
     paperFlat.clone(),
@@ -612,53 +1174,75 @@ function buildBook(cfg, index) {
     paperFlat.clone(),
     paperFlat.clone(),
   ];
+  /* 前缘暖亮；上下切略暗但不闷，简介近景也干净 */
+  mBlock[0].color = new THREE.Color(0xfffaf0);
+  mBlock[2].color = new THREE.Color(0xe8dcc4);
+  mBlock[3].color = new THREE.Color(0xddd0b8);
+  mBlock[2].roughness = 0.94;
+  mBlock[3].roughness = 0.95;
   const mEndF = endpaperMat.clone();
   const mEndB = endpaperMat.clone();
   attachDissolveAll([...mBlock, mEndF, mEndB], dissolveU);
 
-  /* back cover, hinged at the spine, opens away from the block */
+  /* Extrude 材质组（reindex 后）: 0=+z 盖, 1=-z 盖, 2=侧壁 */
+  /* back cover: +z 朝书芯=环衬, -z 朝外=封底画 */
   const backPivot = new THREE.Group();
   backPivot.position.set(-W / 2, 0, BPIVOT_Z);
-  const backMesh = new THREE.Mesh(coverGeo, [
-    mEdge,
-    mEdge,
-    mEdge,
-    mEdge,
-    mEndB,
-    mBack,
-  ]);
+  const backMesh = new THREE.Mesh(coverGeo, [mEndB, mBack, mEdgeDark]);
   backMesh.position.x = (W + OV) / 2;
   backMesh.castShadow = backMesh.receiveShadow = true;
   backPivot.add(backMesh);
   float.add(backPivot);
 
-  /* front cover, hinged at the spine */
+  /* front cover: +z 朝外=封面画, -z 朝书芯=环衬 */
   const pivot = new THREE.Group();
   pivot.position.set(-W / 2, 0, PIVOT_Z);
-  const frontMesh = new THREE.Mesh(coverGeo, [
-    mEdge,
-    mEdge,
-    mEdge,
-    mEdge,
-    mFront,
-    mEndF,
-  ]);
+  const frontMesh = new THREE.Mesh(coverGeo, [mFront, mEndF, mEdgeDark]);
   frontMesh.position.x = (W + OV) / 2;
   frontMesh.castShadow = frontMesh.receiveShadow = true;
   pivot.add(frontMesh);
   float.add(pivot);
 
-  /* cloth spine */
+  /* 微弧书脊：内侧贴铰链，略压进封面封缝 */
   const spine = new THREE.Mesh(spineGeo, mSpine);
-  spine.position.set(-W / 2 - 0.016, 0, 0);
+  const spineNest = 0.006;
+  spine.position.set(-W / 2 + spineNest, 0, 0);
   spine.castShadow = true;
   float.add(spine);
 
-  /* page block with striated edges */
+  /* page block with striated edges — 略偏书口，让层理吃侧光 */
   const block = new THREE.Mesh(blockGeo, mBlock);
-  block.position.set(-0.0075, 0, BLOCK_Z);
+  block.position.set(0.01, 0, BLOCK_Z);
   block.castShadow = block.receiveShadow = true;
   float.add(block);
+
+  /* 书口多层薄片：错位叠影，侧光下像真切页 */
+  const edgeSheetColors = [0xfff8ee, 0xf2e8d6, 0xe6d8c0];
+  const edgeSheets = [];
+  const edgeSheetMats = [];
+  for (let i = 0; i < EDGE_SHEET_N; i++) {
+    const em = striMatV.clone();
+    em.color = new THREE.Color(edgeSheetColors[i % edgeSheetColors.length]);
+    em.bumpScale = 0.01 + i * 0.002;
+    em.side = THREE.DoubleSide;
+    em.polygonOffset = true;
+    em.polygonOffsetFactor = -1 - i;
+    em.polygonOffsetUnits = -1 - i;
+    edgeSheetMats.push(em);
+    const sheet = new THREE.Mesh(edgeSheetGeo, em);
+    sheet.rotation.y = Math.PI / 2;
+    /* 贴在书芯 +x 前缘外侧，略交错 z/y */
+    sheet.position.set(
+      W * 0.5 - 0.004 + i * 0.0032,
+      (i - 1) * 0.004,
+      BLOCK_Z + (i - 1) * 0.014,
+    );
+    sheet.castShadow = false;
+    sheet.receiveShadow = true;
+    float.add(sheet);
+    edgeSheets.push(sheet);
+  }
+  attachDissolveAll(edgeSheetMats, dissolveU);
 
   /* individually hinged top sheets */
   const pages = [],
@@ -698,18 +1282,18 @@ function buildBook(cfg, index) {
     pageFB.push(0.3 * Math.pow(1 - i / 6, 2.6));
   }
 
-  /* soft blob shadow against the background */
-  const blob = new THREE.Mesh(
-    blobGeo,
-    new THREE.MeshBasicMaterial({
-      map: blobTex,
-      transparent: true,
-      opacity: 0.45,
-      depthWrite: false,
-    }),
-  );
-  blob.scale.set(3.35, 4.15, 1);
-  blob.position.set(0.12, -0.38, -0.92);
+  /* soft blob shadow — 基准值；tick 里跟 lift 联动散开/变淡 */
+  const blobMat = new THREE.MeshBasicMaterial({
+    map: blobTex,
+    transparent: true,
+    opacity: 0.48,
+    depthWrite: false,
+  });
+  const blob = new THREE.Mesh(blobGeo, blobMat);
+  /* 亮背景下影子略淡、略收，避免黑板脏斑；抬起时再散 */
+  const blobBase = { sx: 3.1, sy: 3.85, op: 0.32, x: 0.1, y: -0.42, z: -0.88 };
+  blob.scale.set(blobBase.sx, blobBase.sy, 1);
+  blob.position.set(blobBase.x, blobBase.y, blobBase.z);
   blob.renderOrder = -5;
   root.add(blob);
 
@@ -734,6 +1318,7 @@ function buildBook(cfg, index) {
     drag: new Spring(0, 160, 16),
   };
 
+  const mats = { mFront, mBack, mEdge, mEdgeDark, mSpine };
   const b = {
     cfg,
     index,
@@ -751,6 +1336,12 @@ function buildBook(cfg, index) {
     hit,
     springs,
     dissolveU,
+    mats,
+    blob,
+    blobBase,
+    blobMat,
+    feelBase: snapshotFeelBase(mats),
+    glowAmt: 0,
     phase: Math.random() * 6.28,
     slotScale: 1,
     hitEdge: null,
@@ -763,29 +1354,49 @@ function buildBook(cfg, index) {
     orbXs: new Spring(0, 60, 12),
     exit: null,
     repaint() {
-      const themeId =
-        document.documentElement.getAttribute("data-theme") || "default";
+      const themeId = activeThemeId();
       const themed = themeBookBoards(cfg.id, themeId);
       Object.assign(cfg, themed);
       const artUrl = coverUrlForTheme(themeId, cfg.id);
-      cfg.front(fc.getContext("2d"), 1024, 1536);
+      const fx = fc.getContext("2d");
+      /* 显式传入 themeId，不依赖闭包时序 */
+      paintSubjectCover(fx, 1024, 1536, cfg.subject || { id: cfg.id, name: cfg.title }, themeId);
+      paintPrintWear(fx, 1024, 1536);
       paintBack(bc.getContext("2d"), 1024, 1536, cfg);
       paintSpine(sc.getContext("2d"), 220, 1536, cfg);
       frontTex.needsUpdate = true;
       backTex.needsUpdate = true;
       spineTex.needsUpdate = true;
-      mEdge.color.set(cfg.edge);
-      mEdge.needsUpdate = true;
+      applyBookFeel(themeBookFeel(themeId), mats, cfg.edge);
+      b.feelBase = snapshotFeelBase(mats);
       if (dissolveU?.uDissolveColor) {
-        dissolveU.uDissolveColor.value.set(cfg.edge || 0x6ee7b7);
+        try {
+          dissolveU.uDissolveColor.value.set(cfg.edge || 0x6ee7b7);
+        } catch (_) {
+          /* ignore */
+        }
       }
-      applyCoverMap(artUrl);
+      applyCoverMap(artUrl, themeId);
     },
   };
   books.push(b);
   return b;
 }
-BOOKS.forEach(buildBook);
+try {
+  BOOKS.forEach(buildBook);
+} catch (err) {
+  console.error("buildBook failed", err);
+}
+/* 初始主题灯光 + 教室 env（材质已在 buildBook 内 applyBookFeel） */
+try {
+  const tid = activeThemeId();
+  applyThemeLights(themeBookFeel(tid), tid);
+} catch (err) {
+  console.warn("applyThemeLights failed", err);
+}
+if (!books.length) {
+  console.error("Bookshelf: no books built — check subjects / buildBook errors");
+}
 const bookByHit = (m) => books.find((b) => b.hit === m);
 
 /* =========================================================================
@@ -1422,22 +2033,19 @@ function playReturnFromLab(returnOpts = {}) {
 }
 
 function syncTheme() {
-  books.forEach((b) => b.repaint?.());
-  const theme = document.documentElement.getAttribute("data-theme") || "default";
-  const packs = {
-    default: { hemi: 0x7aa2e8, fill: 0x93c5fd, rim: 0x3b82f6, keyI: 1.15, studioI: 0.86, glowI: 0.62 },
-    stationery: { hemi: 0xd6b48e, fill: 0xfff6e8, rim: 0xc23b22, keyI: 1.08, studioI: 0.78, glowI: 0.55 },
-    reagent: { hemi: 0xc9b896, fill: 0xfffcf7, rim: 0xb45309, keyI: 1.1, studioI: 0.8, glowI: 0.55 },
-    blackboard: { hemi: 0x6aa898, fill: 0xf0d060, rim: 0x7ec8c0, keyI: 1.0, studioI: 0.72, glowI: 0.48 },
-    pixel: { hemi: 0x636e72, fill: 0xff6b81, rim: 0x1dd1a1, keyI: 1.2, studioI: 0.9, glowI: 0.68 },
-  };
-  const p = packs[theme] || packs.default;
-  hemi.color.setHex(p.hemi);
-  fill.color.setHex(p.fill);
-  rim.color.setHex(p.rim);
-  key.intensity = p.keyI;
-  studio.intensity = p.studioI;
-  glow.intensity = p.glowI;
+  const themeId = activeThemeId();
+  try {
+    applyThemeLights(themeBookFeel(themeId), themeId);
+  } catch (err) {
+    console.warn("syncTheme lights failed", err);
+  }
+  books.forEach((b) => {
+    try {
+      b.repaint?.();
+    } catch (err) {
+      console.warn("book repaint failed", b?.cfg?.id, err);
+    }
+  });
 }
 
 closeBtn.addEventListener("click", close);
@@ -1868,6 +2476,55 @@ function tickBook(b, dt, t) {
     b.pagesB[i].rotation.y = angB * b.pageFB[i];
     b.pagesB[i].visible = angB > 0.035;
   }
+
+  /* --- 悬停 / 选中：只做极轻 clearcoat 锐化，不抬 env/emissive
+     （env 加大会把 studio 雾色反射到封面上，看起来像蒙尘） */
+  const focusT =
+    state.mode === "entering" || state.mode === "returning"
+      ? 0
+      : isHov
+        ? 1
+        : inDetail || (state.selected === b && state.mode === "opening")
+          ? 0.55
+          : 0;
+  b.glowAmt += (focusT - b.glowAmt) * Math.min(1, dt * 7);
+  const g = b.glowAmt;
+  const fb = b.feelBase;
+  const mats = b.mats;
+  if (fb && mats?.mFront) {
+    mats.mFront.clearcoat = fb.frontCC + g * 0.05;
+    mats.mFront.clearcoatRoughness = Math.max(0.05, fb.frontCCR - g * 0.02);
+    /* 保持基准 env / roughness，避免蒙尘感 */
+    mats.mFront.envMapIntensity = fb.frontEnv;
+    mats.mFront.roughness = fb.frontRough;
+    if (mats.mFront.emissive) {
+      mats.mFront.emissive.setHex(0x000000);
+      mats.mFront.emissiveIntensity = 0;
+    }
+    if (mats.mEdgeDark) {
+      mats.mEdgeDark.envMapIntensity = fb.edgeEnv;
+      mats.mEdgeDark.clearcoat = (fb.edgeCC ?? 0.2) + g * 0.04;
+    }
+    if (mats.mSpine) {
+      mats.mSpine.envMapIntensity = fb.spineEnv;
+      mats.mSpine.clearcoat = fb.spineCC + g * 0.03;
+    }
+  }
+
+  /* --- 落影跟抬起：落地实、抬起散且更淡（适配亮教室） --- */
+  if (b.blob && b.blobBase && b.blobMat) {
+    const liftN = clamp(s.lift.v / 0.3, 0, 1.15);
+    const detailSoft = inDetail ? 0.22 : 0;
+    const k = clamp(liftN + detailSoft + g * 0.1, 0, 1.35);
+    const bb = b.blobBase;
+    b.blob.scale.set(bb.sx * (1 + k * 0.5), bb.sy * (1 + k * 0.4), 1);
+    b.blob.position.set(bb.x, bb.y - k * 0.08, bb.z - k * 0.06);
+    b.blobMat.opacity = bb.op * (1 - k * 0.55);
+    const diss = b.dissolveU?.uDissolve?.value || 0;
+    if (diss > 0.02) {
+      b.blobMat.opacity *= clamp(1 - diss * 1.1, 0, 1);
+    }
+  }
 }
 
 function animate() {
@@ -1916,21 +2573,33 @@ function animate() {
 computeSlots();
 books.forEach((b, i) => {
   const slot = SLOTS.hero[i];
+  if (!slot) {
+    console.warn("Bookshelf: missing hero slot for book", i, b?.cfg?.id);
+    return;
+  }
   const s = b.springs;
+  /* 先落到槽位附近，再轻微上浮入场 —— 避免 spring 目标未设时书永久在屏外 */
+  const enterY = slot.p[1] - (RM ? 0 : 1.15);
   s.px.set(slot.p[0]);
-  s.py.set(slot.p[1] - 3.9);
+  s.py.set(enterY);
   s.pz.set(slot.p[2]);
   s.rx.set(slot.r[0]);
   s.ry.set(slot.r[1]);
-  s.rz.set(slot.r[2] + 0.35 * (i === 1 ? -1 : Math.sign(slot.p[0])));
-  s.sc.set(slot.s);
+  s.rz.set(slot.r[2] + 0.35 * (i === 1 ? -1 : Math.sign(slot.p[0] || 1)));
+  s.sc.set(slot.s * 0.92);
   b.slotScale = slot.s;
-  setTimeout(() => setTargets(b, slot), 240 + i * 150);
+  b.root.visible = true;
+  b.root.position.set(slot.p[0], enterY, slot.p[2]);
+  b.root.scale.setScalar(Math.max(slot.s * 0.92, 0.001));
+  /* 立即设目标；再 staggered 微调，保证首帧后就会往槽位靠 */
+  setTargets(b, slot);
+  if (!RM) {
+    later(() => {
+      if (b.springs) setTargets(b, SLOTS.hero[i] || slot);
+    }, 80 + i * 90);
+  }
 });
 camTo("hero");
-
-let running = true;
-let raf = 0;
 
 function relayout() {
   const w = viewW(), h = viewH();

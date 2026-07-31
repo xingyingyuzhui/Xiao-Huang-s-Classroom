@@ -131,6 +131,22 @@ test('bookshelf stage module is wired from hub', () => {
   assert.ok(fs.existsSync(path.join(root, 'apps/web/src/subjects/bookshelf/covers.js')));
 });
 
+test('hub backgrounds ship per theme and are wired in subject-hub CSS', () => {
+  const dir = path.join(root, 'apps/web/public/assets/hub-backgrounds');
+  for (const id of ['default', 'stationery', 'reagent', 'blackboard', 'pixel']) {
+    assert.ok(fs.existsSync(path.join(dir, `${id}.png`)), `hub-backgrounds/${id}.png`);
+  }
+  const css = fs.readFileSync(path.join(root, 'apps/web/src/shared/styles/_subject-hub.css'), 'utf8');
+  assert.match(css, /\.subject-hub::before/);
+  assert.match(css, /hub-backgrounds\/default\.png/);
+  assert.match(css, /hub-backgrounds\/stationery\.png/);
+  assert.match(css, /hub-backgrounds\/reagent\.png/);
+  assert.match(css, /hub-backgrounds\/blackboard\.png/);
+  assert.match(css, /hub-backgrounds\/pixel\.png/);
+  const stage = fs.readFileSync(path.join(root, 'apps/web/src/subjects/bookshelf/stage.js'), 'utf8');
+  assert.match(stage, /setClearColor\(0x000000,\s*0\)|setClearAlpha\(0\)/);
+});
+
 test('theme cover art packs are shipped and wired', () => {
   const covers = path.join(root, 'apps/web/public/assets/subject-covers');
   const stems = ['chemistry', 'physics', 'biology', 'mathematics'];

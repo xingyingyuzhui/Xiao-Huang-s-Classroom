@@ -1,21 +1,29 @@
-MIT License
+小黄的教室 使用许可
 
 Copyright (c) 2026 星影欲坠
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+保留所有权利（All Rights Reserved），并按下列条件授予有限许可。
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+一、许可范围
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+在遵守本许可全部条件的前提下，版权方授予你非独占、不可转让、可撤销的许可，允许你出于个人学习、研究与非商业教学目的使用、复制、修改与再分发本软件及文档（下称「本软件」）。
+
+二、二次修改与来源标注（强制）
+
+对本软件的任何修改、分叉、再分发或衍生作品，必须在明显位置标明来源，至少包括：
+
+  - 原项目名称：小黄的教室
+  - 原作者：星影欲坠
+  - 原仓库：https://github.com/xingyingyuzhui/Xiao-Huang-s-Classroom
+
+不得删除、遮挡或伪造版权声明与作者信息；不得使人误以为衍生作品为原作官方版本。
+
+三、禁止非授权商用
+
+未经版权方事先书面授权，禁止将本软件及其修改版、衍生作品用于任何商业目的，包括但不限于出售、付费分发、捆绑销售、作为商业产品或服务的组成部分、商业培训中以本软件为主体收费使用，以及以本软件为主体进行商业宣传或变现。
+
+四、其他
+
+本软件按「现状」提供，不附带任何明示或暗示担保。在任何情况下，作者或版权持有人均不对因使用本软件而产生的任何索赔、损害或其他责任负责。
+
+第三方依赖各自遵循其原有许可证；本许可仅约束本仓库原创内容。
