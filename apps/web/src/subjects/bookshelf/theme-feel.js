@@ -7,11 +7,11 @@
 export const THEME_BOOK_FEEL = {
   /* 亮教室 v2：key 右上前半档硬、书比背景跳；含 keyPos 等窗光方位 */
   default: {
-    front: { roughness: 0.2, metalness: 0.03, clearcoat: 0.72, clearcoatRoughness: 0.16, envMapIntensity: 0.32, bumpScale: 0.005 },
-    back: { roughness: 0.3, clearcoat: 0.45, clearcoatRoughness: 0.24, envMapIntensity: 0.26, bumpScale: 0.0045 },
-    edge: { roughness: 0.4, metalness: 0.05, clearcoat: 0.32, clearcoatRoughness: 0.36, envMapIntensity: 0.26, bumpScale: 0.006 },
-    spine: { roughness: 0.5, metalness: 0.02, clearcoat: 0.22, clearcoatRoughness: 0.5, envMapIntensity: 0.24, bumpScale: 0.012, cloth: true },
-    exposure: 1.16,
+    front: { roughness: 0.2, metalness: 0.03, clearcoat: 0.45, clearcoatRoughness: 0.22, envMapIntensity: 0.22, bumpScale: 0.005 },
+    back: { roughness: 0.3, clearcoat: 0.34, clearcoatRoughness: 0.28, envMapIntensity: 0.22, bumpScale: 0.0045 },
+    edge: { roughness: 0.4, metalness: 0.05, clearcoat: 0.26, clearcoatRoughness: 0.4, envMapIntensity: 0.2, bumpScale: 0.006 },
+    spine: { roughness: 0.5, metalness: 0.02, clearcoat: 0.18, clearcoatRoughness: 0.54, envMapIntensity: 0.2, bumpScale: 0.012, cloth: true },
+    exposure: 1.12,
     light: {
       hemi: 0xd4e4f6, hemiI: 0.5, hemiGround: 0xc4bdb2,
       key: 0xfffdf8, keyI: 1.72,
@@ -25,11 +25,11 @@ export const THEME_BOOK_FEEL = {
     },
   },
   stationery: {
-    front: { roughness: 0.48, metalness: 0.02, clearcoat: 0.2, clearcoatRoughness: 0.58, envMapIntensity: 0.3, bumpScale: 0.009 },
-    back: { roughness: 0.55, clearcoat: 0.12, clearcoatRoughness: 0.68, envMapIntensity: 0.24, bumpScale: 0.007 },
-    edge: { roughness: 0.58, metalness: 0.02, clearcoat: 0.1, clearcoatRoughness: 0.72, envMapIntensity: 0.24, bumpScale: 0.009 },
-    spine: { roughness: 0.68, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.78, envMapIntensity: 0.22, bumpScale: 0.016, cloth: true },
-    exposure: 1.17,
+    front: { roughness: 0.48, metalness: 0.02, clearcoat: 0.16, clearcoatRoughness: 0.6, envMapIntensity: 0.24, bumpScale: 0.009 },
+    back: { roughness: 0.55, clearcoat: 0.1, clearcoatRoughness: 0.7, envMapIntensity: 0.2, bumpScale: 0.007 },
+    edge: { roughness: 0.58, metalness: 0.02, clearcoat: 0.09, clearcoatRoughness: 0.74, envMapIntensity: 0.2, bumpScale: 0.009 },
+    spine: { roughness: 0.68, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.78, envMapIntensity: 0.18, bumpScale: 0.016, cloth: true },
+    exposure: 1.1,
     light: {
       hemi: 0xf4e6d0, hemiI: 0.5, hemiGround: 0xc8a880,
       key: 0xfff6e8, keyI: 1.66,
@@ -43,11 +43,11 @@ export const THEME_BOOK_FEEL = {
     },
   },
   reagent: {
-    front: { roughness: 0.18, metalness: 0.04, clearcoat: 0.82, clearcoatRoughness: 0.12, envMapIntensity: 0.32, bumpScale: 0.0045 },
-    back: { roughness: 0.28, clearcoat: 0.52, clearcoatRoughness: 0.2, envMapIntensity: 0.26, bumpScale: 0.004 },
-    edge: { roughness: 0.35, metalness: 0.06, clearcoat: 0.4, clearcoatRoughness: 0.3, envMapIntensity: 0.26, bumpScale: 0.005 },
-    spine: { roughness: 0.42, metalness: 0.03, clearcoat: 0.35, clearcoatRoughness: 0.38, envMapIntensity: 0.24, bumpScale: 0.008, cloth: false },
-    exposure: 1.15,
+    front: { roughness: 0.18, metalness: 0.04, clearcoat: 0.5, clearcoatRoughness: 0.2, envMapIntensity: 0.22, bumpScale: 0.0045 },
+    back: { roughness: 0.28, clearcoat: 0.38, clearcoatRoughness: 0.24, envMapIntensity: 0.22, bumpScale: 0.004 },
+    edge: { roughness: 0.35, metalness: 0.06, clearcoat: 0.32, clearcoatRoughness: 0.34, envMapIntensity: 0.2, bumpScale: 0.005 },
+    spine: { roughness: 0.42, metalness: 0.03, clearcoat: 0.26, clearcoatRoughness: 0.42, envMapIntensity: 0.2, bumpScale: 0.008, cloth: false },
+    exposure: 1.1,
     light: {
       hemi: 0xece2d4, hemiI: 0.48, hemiGround: 0xa89888,
       key: 0xfff8f0, keyI: 1.7,
@@ -61,11 +61,11 @@ export const THEME_BOOK_FEEL = {
     },
   },
   blackboard: {
-    front: { roughness: 0.7, metalness: 0.01, clearcoat: 0.08, clearcoatRoughness: 0.85, envMapIntensity: 0.28, bumpScale: 0.012 },
-    back: { roughness: 0.76, clearcoat: 0.05, clearcoatRoughness: 0.88, envMapIntensity: 0.22, bumpScale: 0.01 },
-    edge: { roughness: 0.78, metalness: 0.01, clearcoat: 0.05, clearcoatRoughness: 0.9, envMapIntensity: 0.22, bumpScale: 0.012 },
-    spine: { roughness: 0.82, metalness: 0.01, clearcoat: 0.04, clearcoatRoughness: 0.92, envMapIntensity: 0.2, bumpScale: 0.018, cloth: true },
-    exposure: 1.18,
+    front: { roughness: 0.7, metalness: 0.01, clearcoat: 0.06, clearcoatRoughness: 0.86, envMapIntensity: 0.2, bumpScale: 0.012 },
+    back: { roughness: 0.76, clearcoat: 0.05, clearcoatRoughness: 0.88, envMapIntensity: 0.18, bumpScale: 0.01 },
+    edge: { roughness: 0.78, metalness: 0.01, clearcoat: 0.05, clearcoatRoughness: 0.9, envMapIntensity: 0.18, bumpScale: 0.012 },
+    spine: { roughness: 0.82, metalness: 0.01, clearcoat: 0.04, clearcoatRoughness: 0.92, envMapIntensity: 0.16, bumpScale: 0.018, cloth: true },
+    exposure: 1.14,
     light: {
       hemi: 0xd8eadc, hemiI: 0.5, hemiGround: 0x7a8c78,
       key: 0xf6faf4, keyI: 1.66,
@@ -79,11 +79,11 @@ export const THEME_BOOK_FEEL = {
     },
   },
   pixel: {
-    front: { roughness: 0.34, metalness: 0.03, clearcoat: 0.38, clearcoatRoughness: 0.3, envMapIntensity: 0.3, bumpScale: 0.0035 },
-    back: { roughness: 0.4, clearcoat: 0.3, clearcoatRoughness: 0.35, envMapIntensity: 0.24, bumpScale: 0.003 },
-    edge: { roughness: 0.38, metalness: 0.03, clearcoat: 0.28, clearcoatRoughness: 0.32, envMapIntensity: 0.24, bumpScale: 0.004 },
-    spine: { roughness: 0.42, metalness: 0.02, clearcoat: 0.26, clearcoatRoughness: 0.38, envMapIntensity: 0.22, bumpScale: 0.006, cloth: false },
-    exposure: 1.16,
+    front: { roughness: 0.34, metalness: 0.03, clearcoat: 0.28, clearcoatRoughness: 0.34, envMapIntensity: 0.22, bumpScale: 0.0035 },
+    back: { roughness: 0.4, clearcoat: 0.24, clearcoatRoughness: 0.38, envMapIntensity: 0.2, bumpScale: 0.003 },
+    edge: { roughness: 0.38, metalness: 0.03, clearcoat: 0.22, clearcoatRoughness: 0.36, envMapIntensity: 0.18, bumpScale: 0.004 },
+    spine: { roughness: 0.42, metalness: 0.02, clearcoat: 0.2, clearcoatRoughness: 0.42, envMapIntensity: 0.18, bumpScale: 0.006, cloth: false },
+    exposure: 1.12,
     light: {
       hemi: 0xc0d8d8, hemiI: 0.5, hemiGround: 0x687e7e,
       key: 0xffffff, keyI: 1.72,

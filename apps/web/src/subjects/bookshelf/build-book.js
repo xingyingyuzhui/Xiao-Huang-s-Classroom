@@ -194,9 +194,9 @@ export function createBuildBook(ctx) {
 
       const shaft = ctx2.createLinearGradient(w * 0.02, 0, w * 0.92, h * 0.98);
       shaft.addColorStop(0, 'rgba(255,252,245,0)');
-      shaft.addColorStop(0.3, 'rgba(255,250,240,0.22)');
-      shaft.addColorStop(0.4, 'rgba(255,252,248,0.32)');
-      shaft.addColorStop(0.55, 'rgba(255,248,235,0.12)');
+      shaft.addColorStop(0.3, 'rgba(255,250,240,0.15)');
+      shaft.addColorStop(0.4, 'rgba(255,252,248,0.22)');
+      shaft.addColorStop(0.55, 'rgba(255,248,235,0.08)');
       shaft.addColorStop(1, 'rgba(0,0,0,0)');
       ctx2.fillStyle = shaft;
       ctx2.fillRect(0, 0, w, h);
@@ -221,7 +221,18 @@ export function createBuildBook(ctx) {
         try {
           const c = mkCanvas(1024, 1536);
           const x = c.getContext('2d');
+          /* 反 ACES 去饱和：贴图就位前对艺术图做轻度饱和预补偿，亮部保住色彩浓度 */
+          try {
+            if ('filter' in x) x.filter = 'saturate(1.12)';
+          } catch (_) {
+            /* Safari 等不支持 ctx.filter 时静默跳过 */
+          }
           x.drawImage(img, 0, 0, 1024, 1536);
+          try {
+            x.filter = 'none';
+          } catch (_) {
+            /* ignore */
+          }
           paintStudioGrade(x, 1024, 1536, measureCoverLum(img));
           const graded = makeTex(c);
           if (gen !== coverLoadGen) {
