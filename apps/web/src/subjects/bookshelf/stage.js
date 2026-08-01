@@ -169,8 +169,12 @@ export function createBookshelfStage(opts) {
   const glow = new THREE.PointLight(0xfff0e0, 0.28, 12, 2);
   glow.position.set(0.2, 0.35, 2.4);
   scene.add(glow);
+  /* 正对书架的封面补光：key 斜射封面余弦损失大，用低强度正面柔光把书提亮；不投影 */
+  const frontFill = new THREE.DirectionalLight(0xfff6ec, 0.34);
+  frontFill.position.set(0, 1.4, 7.5);
+  scene.add(frontFill);
 
-  const lights = { hemi, key, fill, rim, studio, glow };
+  const lights = { hemi, key, fill, rim, studio, glow, frontFill };
 
   function activeThemeId() {
     return document.documentElement.getAttribute('data-theme') || 'default';

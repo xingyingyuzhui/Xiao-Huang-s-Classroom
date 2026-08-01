@@ -133,23 +133,64 @@ export function createBuildBook(ctx) {
       feelBumps,
     );
 
-    function paintStudioGrade(ctx2, w, h) {
+    /**
+     * 量封面图平均亮度：过暗的棋面给出有界补偿（屏幕混合，保单调、不沾高光区）
+     * @param {HTMLImageElement} img
+     */
+    function measureCoverLum(img) {
+      try {
+        const c = mkCanvas(48, 72);
+        const x = c.getContext('2d');
+        x.drawImage(img, 0, 0, 48, 72);
+        const d = x.getImageData(0, 0, 48, 72).data;
+        let s = 0;
+        let n = 0;
+        for (let i = 0; i < d.length; i += 4) {
+          if (d[i + 3] < 28) continue;
+          s += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+          n++;
+        }
+        return n ? s / n : 128;
+      } catch {
+        return 128;
+      }
+    }
+
+    /**
+     * @param {CanvasRenderingContext2D} ctx2
+     * @param {number} w
+     * @param {number} h
+     * @param {number} [artLum] 封面图平均亮度（0-255）；低于 ~90 的暗图自适应抬底
+     */
+    function paintStudioGrade(ctx2, w, h, artLum = 128) {
       ctx2.save();
       const shade = ctx2.createLinearGradient(0, 0, w * 0.95, h);
       shade.addColorStop(0, 'rgba(255,255,255,0)');
       shade.addColorStop(0.55, 'rgba(255,255,255,0)');
-      shade.addColorStop(1, 'rgba(10,14,32,0.05)');
+      shade.addColorStop(1, 'rgba(10,14,32,0.03)');
       ctx2.globalCompositeOperation = 'multiply';
       ctx2.fillStyle = shade;
       ctx2.fillRect(0, 0, w, h);
 
       const lift = ctx2.createLinearGradient(0, 0, w, h * 0.85);
-      lift.addColorStop(0, 'rgba(255,252,248,0.14)');
-      lift.addColorStop(0.45, 'rgba(255,255,255,0.06)');
+      lift.addColorStop(0, 'rgba(255,252,248,0.2)');
+      lift.addColorStop(0.45, 'rgba(255,255,255,0.1)');
       lift.addColorStop(1, 'rgba(255,255,255,0)');
       ctx2.globalCompositeOperation = 'soft-light';
       ctx2.fillStyle = lift;
       ctx2.fillRect(0, 0, w, h);
+
+      /* 暗封面自适应抬底（有界）：16→≈82, 70→≈84；亮封面（lum≳92）不插手 */
+      const deficit = Math.max(0, Math.min(1, (92 - artLum) / 92));
+      if (deficit > 0.01) {
+        ctx2.globalCompositeOperation = 'screen';
+        ctx2.globalAlpha = Math.min(0.4, deficit * 0.35);
+        ctx2.fillStyle = '#ffffff';
+        ctx2.fillRect(0, 0, w, h);
+        ctx2.globalAlpha = 1;
+      }
+      /* 恢复 soft-light：保持 shaft 光带的既有混合语义 */
+      ctx2.globalCompositeOperation = 'soft-light';
 
       const shaft = ctx2.createLinearGradient(w * 0.02, 0, w * 0.92, h * 0.98);
       shaft.addColorStop(0, 'rgba(255,252,245,0)');
@@ -181,7 +222,7 @@ export function createBuildBook(ctx) {
           const c = mkCanvas(1024, 1536);
           const x = c.getContext('2d');
           x.drawImage(img, 0, 0, 1024, 1536);
-          paintStudioGrade(x, 1024, 1536);
+          paintStudioGrade(x, 1024, 1536, measureCoverLum(img));
           const graded = makeTex(c);
           if (gen !== coverLoadGen) {
             try {
