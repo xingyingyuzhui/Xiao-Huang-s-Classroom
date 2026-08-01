@@ -171,6 +171,35 @@ function normalizeConstructionRecord(construction, index, seenIds) {
     locked: construction.locked === true,
     visible: construction.visible !== false,
     extend: construction.extend === true,
+    // 持久引用字段（与 construction/records 的 snapshotConstructionMeta 对齐）：
+    // 只保留字符串 id / 数组，绝不允许 element 或对象引用进入文档。
+    ...(Array.isArray(construction.pointIds)
+      ? { pointIds: construction.pointIds.filter((x) => typeof x === 'string') }
+      : {}),
+    ...(typeof construction.fnId === 'string'
+      ? { fnId: construction.fnId }
+      : {}),
+    ...(construction.axis === 'x' || construction.axis === 'y'
+      ? { axis: construction.axis }
+      : {}),
+    ...(typeof construction.perpTarget === 'string'
+      ? { perpTarget: construction.perpTarget }
+      : {}),
+    ...(typeof construction.targetConstrId === 'string'
+      ? { targetConstrId: construction.targetConstrId }
+      : {}),
+    ...(Array.isArray(construction.fnIds)
+      ? { fnIds: construction.fnIds.filter((x) => typeof x === 'string') }
+      : {}),
+    ...(Array.isArray(construction.lineIds)
+      ? { lineIds: construction.lineIds.filter((x) => typeof x === 'string') }
+      : {}),
+    ...(Number.isInteger(construction.intersectIndex)
+      ? { intersectIndex: construction.intersectIndex }
+      : {}),
+    ...(typeof construction.label === 'string'
+      ? { label: construction.label }
+      : {}),
   };
 }
 

@@ -65,11 +65,14 @@ test('graph document architecture files exist and stay DOM/JSXGraph-free', () =>
     assert.equal(fs.existsSync(path.join(graphDir, file)), true, `${file} is required`);
   }
   // 文档模型 / store / history / persistence 是纯逻辑层：禁止直接 import jsxgraph
+  // 或调用浏览器全局 API（参数名 document 不算；这里只拦真实 DOM 调用）
   const pureLayers = ['graph-document.js', 'graph-store.js', 'graph-history.js', 'graph-persistence.js'];
+  const domApiPattern =
+    /(document|window)\.(querySelector|getElementById|createElement|addEventListener|getComputedStyle|matchMedia|localStorage|requestAnimationFrame|ResizeObserver)/;
   for (const file of pureLayers) {
     const src = read(file);
     assert.doesNotMatch(src, /from\s+['"]jsxgraph['"]/, `${file} must not import jsxgraph`);
     assert.doesNotMatch(src, /from\s+['"]\.\.\/shared\/jsx-board\.js['"]/, `${file} must not import jsx-board`);
-    assert.doesNotMatch(src, /document\.|window\./, `${file} must not touch browser globals`);
+    assert.doesNotMatch(src, domApiPattern, `${file} must not touch browser globals`);
   }
 });
