@@ -15,6 +15,11 @@ import { getMathBoardChrome, getMathGridColor } from './math-theme.js';
  */
 const MATH_NAV_ORDER = ['100', 'out', 'in', 'left', 'right', 'up', 'down'];
 
+/** 滚轮 / 触控板：每事件整步乘子（宜小，避免连发跳变） */
+export const MATH_WHEEL_ZOOM_FACTOR = 1.015;
+/** 右下角 +/- 按钮步进（保持可感、可点） */
+export const MATH_NAV_ZOOM_FACTOR = 1.2;
+
 /** @type {Record<string, string>} */
 const MATH_NAV_TITLES = {
   100: '复原',
@@ -25,6 +30,47 @@ const MATH_NAV_TITLES = {
   up: '向上',
   down: '向下',
 };
+
+/**
+ * +/- 用较大 factor；滚轮仍用 board.attr.zoom 的温和值。
+ * @param {any} board
+ * @param {'in' | 'out'} dir
+ */
+function zoomFromNavButton(board, dir) {
+  const zoom = board?.attr?.zoom;
+  if (!zoom) {
+    if (dir === 'in') board.zoomIn();
+    else board.zoomOut();
+    return;
+  }
+  const prevX = zoom.factorx;
+  const prevY = zoom.factory;
+  zoom.factorx = MATH_NAV_ZOOM_FACTOR;
+  zoom.factory = MATH_NAV_ZOOM_FACTOR;
+  try {
+    if (dir === 'in') board.zoomIn();
+    else board.zoomOut();
+  } finally {
+    zoom.factorx = prevX;
+    zoom.factory = prevY;
+  }
+}
+
+/**
+ * 去掉 JSXGraph 绑定的 +/- 监听，改绑课室步进。
+ * @param {Element} el
+ * @param {() => void} onClick
+ */
+function rebindNavButton(el, onClick) {
+  const next = el.cloneNode(true);
+  el.replaceWith(next);
+  next.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    onClick();
+  });
+  return next;
+}
 
 /**
  * 将 JSXGraph 导航条重排为课室约定顺序，并补中文 title。
@@ -48,6 +94,19 @@ export function polishMathNavigation(board) {
     el.setAttribute('title', MATH_NAV_TITLES[type] || type);
     el.setAttribute('aria-label', MATH_NAV_TITLES[type] || type);
     bar.appendChild(el);
+  }
+
+  const inBtn = byType.get('in');
+  const outBtn = byType.get('out');
+  if (inBtn) {
+    const next = rebindNavButton(inBtn, () => zoomFromNavButton(board, 'in'));
+    next.setAttribute('title', MATH_NAV_TITLES.in);
+    next.setAttribute('aria-label', MATH_NAV_TITLES.in);
+  }
+  if (outBtn) {
+    const next = rebindNavButton(outBtn, () => zoomFromNavButton(board, 'out'));
+    next.setAttribute('title', MATH_NAV_TITLES.out);
+    next.setAttribute('aria-label', MATH_NAV_TITLES.out);
   }
 }
 
@@ -188,7 +247,13 @@ export function createMathBoard(box, opts = {}) {
     showNavigation: opts.showNavigation !== false,
     keepaspectratio: opts.keepaspectratio !== false,
     pan: { enabled: true, needShift: false },
-    zoom: { factorX: 1.2, factorY: 1.2, wheel: true, needShift: false },
+    /* 滚轮/触控板用温和 factor；右下角 +/- 在 polishMathNavigation 里用更大步进 */
+    zoom: {
+      factorX: MATH_WHEEL_ZOOM_FACTOR,
+      factorY: MATH_WHEEL_ZOOM_FACTOR,
+      wheel: true,
+      needShift: false,
+    },
     browserPan: false,
     resize: { enabled: true, throttle: 80 },
     ...opts.boardOptions,

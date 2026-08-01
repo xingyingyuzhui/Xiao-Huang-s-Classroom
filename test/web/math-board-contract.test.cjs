@@ -83,6 +83,18 @@ test('jsx-board restyle uses math-theme not border-soft for grid', () => {
   assert.doesNotMatch(src, /border-soft.*grid|grid.*border-soft/);
 });
 
+test('jsx-board wheel zoom is gentle; nav +/- keep a larger step', () => {
+  const src = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/shared/jsx-board.js'),
+    'utf8',
+  );
+  assert.match(src, /MATH_WHEEL_ZOOM_FACTOR\s*=\s*1\.015/);
+  assert.match(src, /MATH_NAV_ZOOM_FACTOR\s*=\s*1\.2/);
+  assert.match(src, /factorX:\s*MATH_WHEEL_ZOOM_FACTOR/);
+  assert.match(src, /zoomFromNavButton/);
+  assert.match(src, /rebindNavButton/);
+});
+
 test('graph follows lifecycle contract', () => {
   const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
   assert.match(src, /withPreservedViewport/);
