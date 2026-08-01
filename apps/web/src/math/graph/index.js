@@ -1,6 +1,6 @@
 /**
- * 高中函数画布：参数滑条 + 多表征（解析式 / 特征 / 对应表）
- * + 长按罗盘加点 / 点跟随函数 / 显示坐标
+ * 高中函数画布：参数滑条 + 多表征（特征 / 对应表）
+ * + 作图工具条 / 长按罗盘 / 点跟随函数 / 显示坐标
  */
 
 import { createMathBoard, freeMathBoard, resizeMathBoard } from '../shared/jsx-board.js';
@@ -14,7 +14,15 @@ import {
   detachBoardObject,
   withPreservedViewport,
 } from '../shared/board-lifecycle.js';
-import { renderTex } from '../shared/tex.js';
+import {
+  BOARD_LABEL_FONT_SIZE,
+  applyBoardLabel,
+  bindLiveLabel,
+  boardLabelAttrs,
+  formatNamedCoords,
+  writeElementLabel,
+} from '../shared/board-label.js';
+import { bindPointIntegerSnap } from '../shared/board-snap.js';
 import {
   GRAPH_PRESETS,
   evalPreset,
@@ -34,6 +42,14 @@ import { applyObjectStyle, readObjectStyle } from '../shared/object-style.js';
 import { attachBoardCompass } from '../shared/board-compass.js';
 import { attachBoardNotes, dismissBoardNotesMode } from '../shared/board-notes.js';
 import {
+  GRAPH_BOARD_TOOLS,
+  attachBoardToolStrip,
+  attachToolPointer,
+  getBoardToolDef,
+  hitBoardElement,
+  hitBoardPrefer,
+} from '../shared/board-tools.js';
+import {
   defaultFollowTol,
   findClosestFollowTarget,
   findNearestFollowTarget,
@@ -44,6 +60,20 @@ import { compileMathExpr, formatExprLabel } from '../shared/expr-safe.js';
 import { appConfirm, appAlert } from '../../shared/ui/app-dialog.js';
 import { mountMathNumKeypads } from '../shared/num-keypad.js';
 import { aiApi } from '../../shared/api/client.js';
+import {
+  clearAllConstructions,
+  createFnIntersection,
+  createLineIntersection,
+  createPerpToAxis,
+  createSegmentOrLine,
+  createTangent,
+  deleteConstruction,
+  isCurveEl,
+  isLineLike,
+  resolveTangentAnchor,
+  restoreConstructions,
+  snapshotConstructions,
+} from './draw-tools.js';
 
 /** @deprecated 兼容旧跟随 id；新 id 为 graph:fn:<id> */
 export const MAIN_CURVE_FOLLOW_ID = 'graph:main';
@@ -73,7 +103,7 @@ export const MAIN_CURVE_FOLLOW_ID = 'graph:main';
  * }} FnRec
  */
 
-/** @type {{ board: any, curve: any, marks: any[], asy: any[], coeffs: any, startCoeffs: any, preset: string, ro: ResizeObserver | null, styleBind: any, userPoints: UserPointRec[], compass: { dispose: () => void } | null, notes: { dispose: () => void, isActive: () => boolean, setActive: (on: boolean) => void, redraw: () => void } | null, pointSeq: number, fXMin: number, fXMax: number, axisSettingsApplying: boolean, functions: FnRec[], activeFnId: string | null, fnSeq: number, editMode: boolean }} */
+/** @type {{ board: any, curve: any, marks: any[], asy: any[], coeffs: any, startCoeffs: any, preset: string, ro: ResizeObserver | null, styleBind: any, userPoints: UserPointRec[], constructions: any[], constrSeq: number, toolStrip: any, toolPointer: { dispose: () => void } | null, toolPick: any, compass: { dispose: () => void } | null, notes: { dispose: () => void, isActive: () => boolean, setActive: (on: boolean) => void, redraw: () => void } | null, pointSeq: number, fXMin: number, fXMax: number, axisSettingsApplying: boolean, functions: FnRec[], activeFnId: string | null, fnSeq: number, editMode: boolean, themeHandle: any, escBound: boolean }} */
 const state = {
   board: null,
   curve: null,
@@ -85,16 +115,25 @@ const state = {
   ro: null,
   styleBind: null,
   userPoints: [],
+  constructions: [],
+  constrSeq: 1,
+  toolStrip: null,
+  toolPointer: null,
+  toolPick: null,
   compass: null,
   notes: null,
   pointSeq: 1,
   fXMin: -10,
   fXMax: 10,
   axisSettingsApplying: false,
+  /** 罗盘触发的一次性工具：完成一轮后回到选择 */
+  toolOneShot: false,
   functions: [],
   activeFnId: null,
   fnSeq: 1,
   editMode: false,
+  themeHandle: null,
+  escBound: false,
 };
 
 let stageEl = null;
@@ -171,35 +210,22 @@ function formatPointLabel(el, baseName) {
   try {
     const x = Number(el.X());
     const y = Number(el.Y());
-    if (!Number.isFinite(x) || !Number.isFinite(y)) return b;
-    return `${b}(${x.toFixed(2)}, ${y.toFixed(2)})`;
+    return formatNamedCoords(b, x, y);
   } catch {
     return b;
   }
 }
 
 /**
- * 把字符串写回点的 name / label
  * @param {any} el
  */
 function refreshPointLabelText(el) {
   if (!el) return;
-  const text = formatPointLabel(el);
-  try {
-    if (typeof el.setName === 'function') el.setName(text);
-    else el.setAttribute?.({ name: text });
-  } catch {
-    try {
-      el.name = text;
-    } catch {
-      /* */
-    }
+  if (typeof el._mathLiveLabelTick === 'function') {
+    el._mathLiveLabelTick();
+    return;
   }
-  try {
-    el.label?.setText?.(text);
-  } catch {
-    /* */
-  }
+  writeElementLabel(el, formatPointLabel(el));
 }
 
 /**
@@ -211,26 +237,13 @@ function applyPointLabel(el, baseName, showCoords) {
   if (!el) return;
   el._mathBaseName = baseName;
   el._mathShowCoords = showCoords;
-  try {
-    el.setAttribute({
-      withLabel: true,
-      name: formatPointLabel(el, baseName),
-      label: { fontSize: 12, offset: [10, 12], parse: false },
-    });
-  } catch {
-    /* */
-  }
-  refreshPointLabelText(el);
-
-  // 拖动时刷新坐标文字（只绑一次）
-  if (!el._mathLabelLiveBound && typeof el.on === 'function') {
-    el._mathLabelLiveBound = true;
-    const tick = () => {
-      if (el._mathShowCoords) refreshPointLabelText(el);
-    };
-    el.on('drag', tick);
-    el.on('up', tick);
-  }
+  applyBoardLabel(el, {
+    baseName,
+    text: () => formatPointLabel(el, baseName),
+    fontSize: BOARD_LABEL_FONT_SIZE,
+    offset: [14, 14],
+  });
+  bindLiveLabel(el, () => formatPointLabel(el));
 }
 
 /**
@@ -572,7 +585,10 @@ function createUserPoint(x, y, opts = {}) {
       fillColor: c.stamp,
       strokeColor: c.pointRing,
       withLabel: true,
-      label: { fontSize: 12, offset: [10, 12], strokeColor: c.ink, color: c.ink },
+      label: boardLabelAttrs({
+        strokeColor: c.ink,
+        color: c.ink,
+      }),
     });
   } else {
     el = board.create('point', [x, y], {
@@ -582,7 +598,10 @@ function createUserPoint(x, y, opts = {}) {
       strokeColor: c.pointRing,
       withLabel: true,
       fixed: Boolean(intersectFnIds),
-      label: { fontSize: 12, offset: [10, 12], strokeColor: c.ink, color: c.ink },
+      label: boardLabelAttrs({
+        strokeColor: c.ink,
+        color: c.ink,
+      }),
     });
   }
 
@@ -593,6 +612,9 @@ function createUserPoint(x, y, opts = {}) {
   el._mathIntersectFnIds = intersectFnIds;
   el._mathPointId = id;
   applyPointLabel(el, baseName, showCoords);
+  bindPointIntegerSnap(el, () => state.board, {
+    onSnapped: () => refreshPointLabelText(el),
+  });
 
   if (opts.style) {
     applyObjectStyle(el, {
@@ -651,17 +673,396 @@ function reregisterSelectable() {
   const userEls = state.userPoints.map((r) => r.el).filter(Boolean);
   const markEls = state.marks.filter(Boolean);
   const curveEls = state.functions.map((f) => f.curve).filter(Boolean);
+  const constrEls = state.constructions.flatMap((c) => c.els || []).filter(Boolean);
   // 特征点：可改样式/显示坐标，不可跟随
   for (const m of markEls) {
     m._mathCanFollow = false;
     m._mathUserPoint = false;
-    if (m._mathShowCoords == null) m._mathShowCoords = false;
+    if (m._mathShowCoords == null) m._mathShowCoords = true;
     if (!m._mathBaseName) m._mathBaseName = typeof m.name === 'string' ? m.name : '点';
   }
-  const els = [...curveEls, ...state.asy, ...markEls, ...userEls].filter(Boolean);
+  const els = [...curveEls, ...state.asy, ...markEls, ...userEls, ...constrEls].filter(
+    Boolean,
+  );
   state.styleBind.selection.registerMany(els, (el) => ({
     label: el._mathBaseName || (typeof el.name === 'string' ? el.name : undefined),
   }));
+}
+
+function makeDrawHost() {
+  return {
+    getBoard: () => state.board,
+    getUserPoints: () => state.userPoints,
+    getFunctions: () => state.functions,
+    getConstructions: () => state.constructions,
+    setConstructions: (list) => {
+      state.constructions = list;
+    },
+    findUserEl: (id) => state.userPoints.find((r) => r.id === id)?.el || null,
+    findConstr: (id) => state.constructions.find((c) => c.id === id) || null,
+    evalFnY,
+    findFnByCurve: (curve) => state.functions.find((f) => f.curve === curve) || null,
+    recomputeIntersection,
+    createUserPoint,
+    nextConstrId: () => `C${state.constrSeq++}`,
+    onChanged: () => {
+      reregisterSelectable();
+      try {
+        state.board?.update?.();
+      } catch {
+        /* */
+      }
+    },
+  };
+}
+
+function clearToolPick() {
+  state.toolPick = null;
+  const tool = state.toolStrip?.getTool?.() || 'select';
+  const def = getBoardToolDef(tool);
+  state.toolStrip?.setHint?.(tool === 'select' ? '' : def?.hint || '');
+}
+
+/** 罗盘一次性工具：无进行中步骤时回到「选择」 */
+function finishOneShotToolIfDone() {
+  if (!state.toolOneShot) return;
+  if (state.toolPick) return;
+  state.toolOneShot = false;
+  if ((state.toolStrip?.getTool?.() || 'select') !== 'select') {
+    state.toolStrip?.setTool?.('select', { toggle: false, oneShot: true });
+  }
+}
+
+/**
+ * @param {any} el
+ */
+function userPointIdOf(el) {
+  if (!el) return null;
+  const rec = findUserRec(el);
+  return rec?.id || el._mathPointId || null;
+}
+
+/**
+ * @param {any} el
+ */
+function ensureUserPointFromHit(el, usrX, usrY) {
+  if (!el) return null;
+  const existing = findUserRec(el);
+  if (existing) return existing;
+  // 点在曲线上：创建贴曲线的点
+  if (isCurveEl(el)) {
+    const fn = state.functions.find((f) => f.curve === el);
+    if (!fn) return null;
+    const y = evalFnY(fn, usrX);
+    return createUserPoint(usrX, y == null ? usrY : y, {
+      followTargetId: followIdForFn(fn.id),
+      showCoords: true,
+    });
+  }
+  return null;
+}
+
+/**
+ * 用户坐标下最近可见曲线（容差：约 14px）
+ * @param {number} usrX
+ * @param {number} usrY
+ */
+function nearestFnAt(usrX, usrY) {
+  const board = state.board;
+  const unitY = Math.abs(Number(board?.unitY) || 40) || 40;
+  const tol = 14 / unitY;
+  /** @type {{ fn: any, d: number, y: number } | null} */
+  let best = null;
+  for (const fn of state.functions) {
+    if (!fn.visible || !fn.curve) continue;
+    const y = evalFnY(fn, usrX);
+    if (y == null || !Number.isFinite(y)) continue;
+    const d = Math.abs(y - usrY);
+    if (d <= tol && (!best || d < best.d)) best = { fn, d, y };
+  }
+  return best;
+}
+
+/**
+ * @param {any} hit
+ * @param {number} usrX
+ * @param {number} usrY
+ */
+function resolveCurveFromTap(hit, usrX, usrY) {
+  if (hit && isCurveEl(hit)) {
+    return state.functions.find((f) => f.curve === hit) || null;
+  }
+  return nearestFnAt(usrX, usrY)?.fn || null;
+}
+
+/**
+ * @param {{ usrX: number, usrY: number, hit: any, event: PointerEvent }} ctx
+ */
+async function handleToolTap(ctx) {
+  if (!state.board || state.notes?.isActive?.()) return;
+  const tool = state.toolStrip?.getTool?.() || 'select';
+  if (tool === 'select') return;
+
+  try {
+    await handleToolTapBody(ctx, tool);
+  } finally {
+    finishOneShotToolIfDone();
+  }
+}
+
+/**
+ * @param {{ usrX: number, usrY: number, hit: any, event: PointerEvent }} ctx
+ * @param {string} tool
+ */
+async function handleToolTapBody(ctx, tool) {
+  const host = makeDrawHost();
+  const { usrX, usrY, hit } = ctx;
+
+  if (tool === 'point') {
+    await addPointAt(usrX, usrY);
+    return;
+  }
+
+  if (tool === 'delete') {
+    // 优先删点，再删作图线
+    const delHit =
+      hit ||
+      null;
+    if (delHit?._mathUserPoint) {
+      deleteUserPoint(delHit);
+      clearToolPick();
+      return;
+    }
+    if (delHit?._mathConstrId) {
+      const cid = delHit._mathConstrId;
+      const rec = state.constructions.find((c) => c.id === cid);
+      if (rec?.kind === 'intersect' && rec.pointIds?.[0]) {
+        const up = state.userPoints.find((p) => p.id === rec.pointIds[0]);
+        if (up) deleteUserPoint(up.el);
+      }
+      deleteConstruction(host, cid);
+      clearToolPick();
+      return;
+    }
+    // 再扫一遍：靠近用户点
+    for (const rec of state.userPoints) {
+      try {
+        const dx = Number(rec.el.X()) - usrX;
+        const dy = Number(rec.el.Y()) - usrY;
+        const unit = Math.abs(Number(state.board.unitX) || 40);
+        if (Math.hypot(dx, dy) * unit < 16) {
+          deleteUserPoint(rec.el);
+          clearToolPick();
+          return;
+        }
+      } catch {
+        /* */
+      }
+    }
+    state.toolStrip?.setHint?.('请点中要删除的点或线');
+    return;
+  }
+
+  if (tool === 'segment' || tool === 'line') {
+    const pick = state.toolPick;
+    let rec = findUserRec(hit);
+    if (!rec && isCurveEl(hit)) {
+      rec = ensureUserPointFromHit(hit, usrX, usrY);
+    }
+    if (!rec) {
+      const near = nearestFnAt(usrX, usrY);
+      if (near) {
+        rec = createUserPoint(usrX, near.y, {
+          followTargetId: followIdForFn(near.fn.id),
+          showCoords: true,
+        });
+      } else {
+        rec = createUserPoint(usrX, usrY, { showCoords: true });
+      }
+      reregisterSelectable();
+    }
+    if (!rec) {
+      state.toolStrip?.setHint?.('请点选或落一个点');
+      return;
+    }
+    if (!pick || pick.tool !== tool) {
+      state.toolPick = { tool, pointId: rec.id };
+      state.toolStrip?.setHint?.(`已选 ${rec.baseName || rec.id}，再点第二个点`);
+      return;
+    }
+    if (pick.pointId === rec.id) {
+      state.toolStrip?.setHint?.('请选择不同的第二个点');
+      return;
+    }
+    const p1 = host.findUserEl(pick.pointId);
+    const p2 = rec.el;
+    if (p1 && p2) {
+      createSegmentOrLine(host, tool, p1, p2, [pick.pointId, rec.id]);
+    }
+    clearToolPick();
+    return;
+  }
+
+  if (tool === 'tangent') {
+    // 一键：点曲线附近 → 造贴线点 + 切线
+    let anchorEl = findUserRec(hit)?.el || null;
+    let fn = null;
+    if (anchorEl) {
+      const resolved = resolveTangentAnchor(anchorEl, host);
+      if (resolved) {
+        fn = resolved.fn;
+        anchorEl = resolved.pt;
+      }
+    }
+    if (!fn) {
+      fn = resolveCurveFromTap(hit, usrX, usrY);
+    }
+    if (!fn) {
+      state.toolStrip?.setHint?.('请点在曲线附近');
+      return;
+    }
+    if (!anchorEl) {
+      const y = evalFnY(fn, usrX);
+      const up = createUserPoint(usrX, y == null ? usrY : y, {
+        followTargetId: followIdForFn(fn.id),
+        showCoords: true,
+      });
+      anchorEl = up?.el;
+      reregisterSelectable();
+    }
+    const pid = userPointIdOf(anchorEl);
+    if (!anchorEl || !pid) {
+      state.toolStrip?.setHint?.('无法在此处创建切点');
+      return;
+    }
+    createTangent(host, anchorEl, fn, pid);
+    clearToolPick();
+    return;
+  }
+
+  if (tool === 'perp-axis') {
+    const pick = state.toolPick;
+    if (!pick || pick.tool !== 'perp-axis') {
+      let rec = findUserRec(hit);
+      if (!rec) {
+        const near = nearestFnAt(usrX, usrY);
+        if (near) {
+          rec = createUserPoint(usrX, near.y, {
+            followTargetId: followIdForFn(near.fn.id),
+            showCoords: true,
+          });
+        } else {
+          rec = createUserPoint(usrX, usrY, { showCoords: true });
+        }
+        reregisterSelectable();
+      }
+      if (!rec) {
+        state.toolStrip?.setHint?.('先点一个点');
+        return;
+      }
+      state.toolPick = { tool: 'perp-axis', pointId: rec.id };
+      state.toolStrip?.setHint?.('再点靠近 x 轴或 y 轴的位置');
+      return;
+    }
+    const pt = host.findUserEl(pick.pointId);
+    if (!pt) {
+      clearToolPick();
+      return;
+    }
+    const axis = Math.abs(usrY) <= Math.abs(usrX) ? 'x' : 'y';
+    createPerpToAxis(host, pt, axis, pick.pointId);
+    clearToolPick();
+    return;
+  }
+
+  if (tool === 'intersect') {
+    await handleIntersectTap(host, ctx);
+  }
+}
+
+/**
+ * @param {ReturnType<typeof makeDrawHost>} host
+ * @param {{ usrX: number, usrY: number, hit: any, event: PointerEvent }} ctx
+ */
+async function handleIntersectTap(host, ctx) {
+  const { usrX, usrY, hit } = ctx;
+  const pick = state.toolPick;
+  const fnHit = resolveCurveFromTap(hit, usrX, usrY);
+  const lineHit = isLineLike(hit) ? hit : null;
+
+  if (!pick || pick.tool !== 'intersect') {
+    if (fnHit) {
+      state.toolPick = { tool: 'intersect', kind: 'curve', fnId: fnHit.id };
+      state.toolStrip?.setHint?.(
+        `已选「${fnDisplayLabel(fnHit)}」，再点另一条曲线`,
+      );
+      return;
+    }
+    if (lineHit && hit._mathConstrId) {
+      state.toolPick = {
+        tool: 'intersect',
+        kind: 'line',
+        constrId: hit._mathConstrId,
+        el: hit,
+      };
+      state.toolStrip?.setHint?.('已选直线，再选另一条直线');
+      return;
+    }
+    state.toolStrip?.setHint?.('请点在曲线附近');
+    return;
+  }
+
+  if (pick.kind === 'curve') {
+    if (!fnHit) {
+      state.toolStrip?.setHint?.('请再点另一条曲线');
+      return;
+    }
+    if (fnHit.id === pick.fnId) {
+      state.toolStrip?.setHint?.('请选择另一条不同的曲线');
+      return;
+    }
+    const made = createFnIntersection(host, pick.fnId, fnHit.id);
+    if (!made) {
+      void appAlert('这两条曲线在定义域附近暂无交点', { title: '交点' });
+    }
+    clearToolPick();
+    reregisterSelectable();
+    return;
+  }
+
+  if (pick.kind === 'line' && lineHit && hit._mathConstrId) {
+    if (hit._mathConstrId === pick.constrId) {
+      state.toolStrip?.setHint?.('请选择另一条直线');
+      return;
+    }
+    createLineIntersection(host, pick.el, hit, [
+      pick.constrId,
+      hit._mathConstrId,
+    ]);
+    clearToolPick();
+    return;
+  }
+  state.toolStrip?.setHint?.('请继续点选第二条对象');
+}
+
+function bindEscToSelect() {
+  if (state.escBound) return;
+  state.escBound = true;
+  window.addEventListener('keydown', onToolEsc);
+}
+
+function onToolEsc(ev) {
+  if (ev.key !== 'Escape') return;
+  if (!state.board) return;
+  if (state.toolPick) {
+    clearToolPick();
+    ev.preventDefault();
+    return;
+  }
+  if (state.toolStrip?.getTool?.() !== 'select') {
+    state.toolStrip?.setTool?.('select');
+    ev.preventDefault();
+  }
 }
 
 /**
@@ -858,6 +1259,8 @@ function rebuildCurve() {
     remintFnColorsForTheme();
     const c = colors();
     const savedUsers = snapshotUserPoints();
+    const savedConstr = snapshotConstructions(makeDrawHost());
+    clearAllConstructions(makeDrawHost());
     removeUserPointEls();
     clearExtras(board);
     removeAllFnCurves(board);
@@ -964,7 +1367,7 @@ function rebuildCurve() {
         else if (slot.kinds.includes('截距')) name = `${slot.kinds.join('·')}（原点）`;
       }
       // 原点附近标签略偏右上，减轻压轴
-      const labelOffset = atOrigin ? [14, 16] : [10, 10];
+      const labelOffset = atOrigin ? [14, 16] : [14, 14];
       const pt = board.create('point', [slot.x, slot.y], {
         name,
         size: 4,
@@ -972,22 +1375,26 @@ function rebuildCurve() {
         strokeColor: c.pointRing,
         fixed: true,
         withLabel: true,
-        label: {
-          fontSize: 12,
+        label: boardLabelAttrs({
           offset: labelOffset,
-          parse: false,
           strokeColor: c.ink,
           color: c.ink,
-        },
+        }),
       });
       pt._mathBaseName = name;
-      pt._mathShowCoords = false;
+      pt._mathShowCoords = true;
       pt._mathCanFollow = false;
+      applyBoardLabel(pt, {
+        baseName: name,
+        text: () => formatNamedCoords(name, Number(pt.X()), Number(pt.Y())),
+        offset: labelOffset,
+      });
       state.marks.push(pt);
     }
   }
 
     restoreUserPoints(savedUsers);
+    restoreConstructions(makeDrawHost(), savedConstr);
     reregisterSelectable();
     renderFnList();
     syncParamPanel();
@@ -1026,10 +1433,11 @@ function renderFnList() {
       const on = fn.id === state.activeFnId;
       // 主标题：函数式；副标题：类型（二次 / 自定义…）
       const formula = escapeHtml(fnDisplayLabel(fn));
-      const typeLabel =
-        fn.kind === 'custom'
-          ? '自定义'
-          : escapeHtml(GRAPH_PRESETS.find((p) => p.id === fn.preset)?.label || '函数');
+      const meta = fn.kind === 'custom' ? null : GRAPH_PRESETS.find((p) => p.id === fn.preset);
+      const typeLabel = fn.kind === 'custom' ? '自定义' : escapeHtml(meta?.label || '函数');
+      const typeTip =
+        fn.kind === 'custom' ? '自定义表达式' : escapeHtml(meta?.tip || '');
+      const subLine = typeTip ? `${typeLabel}<span class="math-fn-card-sub-dot" aria-hidden="true">·</span>${typeTip}` : typeLabel;
       // 对标化学分子卡：删除 × 绝对定位左上角，主按钮单独一层
       return `
       <div class="math-fn-card${on ? ' is-active' : ''}${state.editMode ? ' is-editing' : ''}" data-fn-id="${escapeHtml(fn.id)}" style="--fn-color:${escapeHtml(fn.color)}">
@@ -1038,7 +1446,7 @@ function renderFnList() {
           <span class="math-fn-card-swatch" aria-hidden="true"></span>
           <span class="math-fn-card-body">
             <strong class="math-fn-card-title" title="${formula}">${formula}</strong>
-            <span class="math-fn-card-sub">${typeLabel}</span>
+            <span class="math-fn-card-sub">${subLine}</span>
           </span>
         </button>
       </div>`;
@@ -1489,25 +1897,16 @@ function bindFnListUi() {
 
 function paintReadouts() {
   const fn = activeFn();
-  const formulaEl = document.getElementById('mathGraphFormula');
-  const tipEl = document.getElementById('mathGraphTip');
   const featuresEl = document.getElementById('mathGraphFeatures');
   const tableEl = document.getElementById('mathGraphValueTable');
 
   if (!fn) {
-    if (tipEl) tipEl.textContent = '添加函数后显示解析式';
-    if (formulaEl) formulaEl.textContent = '—';
     if (featuresEl) featuresEl.innerHTML = '';
     if (tableEl) tableEl.innerHTML = '';
     return;
   }
 
   if (fn.kind === 'custom') {
-    if (tipEl) tipEl.textContent = '自定义表达式';
-    if (formulaEl) {
-      // 纯文本，避免复杂 LaTeX 转换失败
-      formulaEl.textContent = formatExprLabel(fn.expr);
-    }
     if (featuresEl) {
       featuresEl.innerHTML =
         '<div class="math-float-feat-row"><strong>类型</strong><span>自定义</span></div>';
@@ -1536,11 +1935,6 @@ function paintReadouts() {
 
   const preset = /** @type {any} */ (fn.preset || state.preset);
   const coeffs = fn.coeffs || state.coeffs;
-  const meta = GRAPH_PRESETS.find((p) => p.id === preset);
-  if (tipEl) tipEl.textContent = meta?.tip || '';
-  if (formulaEl) {
-    renderTex(formulaEl, toTex(preset, coeffs), true);
-  }
   if (featuresEl) {
     featuresEl.innerHTML = keyFeatures(preset, coeffs)
       .map(
@@ -1568,40 +1962,6 @@ function paintReadouts() {
 
 function bindReadoutCards() {
   ensureMathFloatCardsBound();
-}
-
-/**
- * @param {string} preset
- * @param {{ a: number, b: number, c: number }} coeffs
- */
-function toTex(preset, coeffs) {
-  const { a, b, c } = coeffs;
-  const F = (n) => {
-    const r = Math.round(n * 100) / 100;
-    return String(r);
-  };
-  switch (preset) {
-    case 'linear':
-      return String.raw`y=${F(a)}x${b >= 0 ? '+' : ''}${F(b)}`;
-    case 'quadratic':
-      return String.raw`y=${F(a)}x^2${b >= 0 ? '+' : ''}${F(b)}x${c >= 0 ? '+' : ''}${F(c)}`;
-    case 'power':
-      return String.raw`y=${F(a)}x^{${F(b)}}`;
-    case 'exp':
-      return String.raw`y=${F(a)}e^{${F(b)}x}${c >= 0 ? '+' : ''}${F(c)}`;
-    case 'log':
-      return String.raw`y=${F(a)}\ln(x${b >= 0 ? '-' : '+'}${F(Math.abs(b))})${c >= 0 ? '+' : ''}${F(c)}`;
-    case 'abs':
-      return String.raw`y=${F(a)}|x${b >= 0 ? '-' : '+'}${F(Math.abs(b))}|${c >= 0 ? '+' : ''}${F(c)}`;
-    case 'inverse':
-      return String.raw`y=\dfrac{${F(a)}}{x}`;
-    case 'sine':
-      return String.raw`y=${F(a)}\sin(${F(b)}x${c >= 0 ? '+' : ''}${F(c)})`;
-    case 'cosine':
-      return String.raw`y=${F(a)}\cos(${F(b)}x${c >= 0 ? '+' : ''}${F(c)})`;
-    default:
-      return 'y=f(x)';
-  }
 }
 
 function syncSliders() {
@@ -1820,21 +2180,74 @@ export function initGraphUI() {
       return Boolean(el?._mathShowCoords);
     },
     setShowCoords: (el, on) => setPointShowCoords(el, on),
-    canDelete: (el) => Boolean(el?._mathUserPoint) && Boolean(findUserRec(el)),
-    deletePoint: (el) => deleteUserPoint(el),
+    canDelete: (el) =>
+      (Boolean(el?._mathUserPoint) && Boolean(findUserRec(el))) ||
+      Boolean(el?._mathConstrId),
+    deletePoint: (el) => {
+      if (el?._mathConstrId) {
+        const host = makeDrawHost();
+        const cid = el._mathConstrId;
+        const rec = state.constructions.find((c) => c.id === cid);
+        if (rec?.kind === 'intersect' && rec.pointIds?.[0]) {
+          const up = state.userPoints.find((p) => p.id === rec.pointIds[0]);
+          if (up) deleteUserPoint(up.el);
+        }
+        deleteConstruction(host, cid);
+        return;
+      }
+      deleteUserPoint(el);
+    },
   });
 
   state.compass?.dispose?.();
   state.compass = attachBoardCompass(state.board, {
-    items: [{ id: 'add-point', label: '加点', icon: '＋' }],
+    items: GRAPH_BOARD_TOOLS.filter((t) => t.id !== 'select').map((t) => ({
+      id: t.id,
+      label: t.label,
+    })),
     shouldIgnoreTarget: () => Boolean(state.notes?.isActive?.()),
     onAction: async (id, ctx) => {
       if (state.notes?.isActive?.()) return;
-      if (id === 'add-point') {
-        await addPointAt(ctx.usrX, ctx.usrY);
-      }
+      state.toolStrip?.setTool?.(id, { toggle: false, oneShot: true });
+      state.toolOneShot = true;
+      await handleToolTap({
+        usrX: ctx.usrX,
+        usrY: ctx.usrY,
+        hit: hitBoardPrefer(state.board, {
+          clientX: ctx.clientX,
+          clientY: ctx.clientY,
+        }),
+        event: /** @type {any} */ ({
+          clientX: ctx.clientX,
+          clientY: ctx.clientY,
+        }),
+      });
     },
   });
+
+  state.toolStrip?.dispose?.();
+  state.toolStrip = attachBoardToolStrip({
+    host: stageEl,
+    tools: GRAPH_BOARD_TOOLS,
+    initialTool: 'select',
+    onChange: (_id, setOpts = {}) => {
+      clearToolPick();
+      if (!setOpts.oneShot) state.toolOneShot = false;
+    },
+  });
+
+  state.toolPointer?.dispose?.();
+  state.toolPointer = attachToolPointer(state.board, {
+    shouldHandle: () => {
+      const t = state.toolStrip?.getTool?.() || 'select';
+      return t !== 'select' && !state.notes?.isActive?.();
+    },
+    shouldIgnoreTarget: () => Boolean(state.notes?.isActive?.()),
+    onTap: (ctx) => {
+      void handleToolTap(ctx);
+    },
+  });
+  bindEscToSelect();
 
   state.notes?.dispose?.();
   state.notes = attachBoardNotes(state.board, {
@@ -1881,16 +2294,26 @@ export function disposeGraph() {
   hideAddPanel();
   hideAiFnModal();
   dismissBoardNotesMode();
+  if (state.escBound) {
+    window.removeEventListener('keydown', onToolEsc);
+    state.escBound = false;
+  }
   state.themeHandle?.dispose?.();
   state.themeHandle = null;
   state.notes?.dispose?.();
   state.notes = null;
+  state.toolPointer?.dispose?.();
+  state.toolPointer = null;
+  state.toolStrip?.dispose?.();
+  state.toolStrip = null;
+  state.toolPick = null;
   state.compass?.dispose?.();
   state.compass = null;
   setPointOptionHooks(null);
   state.styleBind?.dispose?.();
   state.styleBind = null;
   state.ro?.disconnect();
+  clearAllConstructions(makeDrawHost());
   removeUserPointEls();
   if (state.board) removeAllFnCurves(state.board);
   freeMathBoard(state.board);
@@ -1899,6 +2322,7 @@ export function disposeGraph() {
   state.marks = [];
   state.asy = [];
   state.userPoints = [];
+  state.constructions = [];
   state.functions = [];
   state.activeFnId = null;
   state.editMode = false;

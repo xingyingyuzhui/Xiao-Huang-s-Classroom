@@ -376,13 +376,6 @@ html[data-theme='blackboard'] .math-value-table td {
   color: #e8f4f0;
 }
 
-html[data-theme='blackboard'] .math-board-legend {
-  background: linear-gradient(165deg, #14352d 0%, #0b1c18 100%);
-  border-color: #4a8a78;
-  color: #e8f4f0;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
-}
-
 html[data-theme='blackboard'] .math-fn-card-main {
   background: #1a322c;
   border-color: #4a6b5c;

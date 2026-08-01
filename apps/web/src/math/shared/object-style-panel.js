@@ -104,9 +104,9 @@ const BUBBLE_INNER = `
         <div class="math-field" data-field="fontSize">
           <label class="math-slider-label">
             <span class="math-slider-name">标签字号</span>
-            <span class="math-slider-val" data-role="fontSizeVal">12</span>
+            <span class="math-slider-val" data-role="fontSizeVal">16</span>
           </label>
-          <input type="range" data-role="fontSize" min="8" max="28" step="1" value="12" />
+          <input type="range" data-role="fontSize" min="8" max="28" step="1" value="16" />
         </div>
         <div class="math-field math-field-checks" data-field="pointOptions" hidden>
           <span class="math-field-label">点选项</span>

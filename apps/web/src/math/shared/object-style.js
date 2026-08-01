@@ -179,11 +179,11 @@ export function readObjectStyle(el, fallbackName = '') {
   const hasFont = kind === 'point' || kind === 'text' || Boolean(el?.label);
   const hasDash = kind === 'line' || kind === 'circle' || kind === 'curve' || kind === 'polygon';
 
-  let fontSize = 12;
+  let fontSize = 16;
   if (el?.label && typeof el.label.getAttribute === 'function') {
-    fontSize = asNum(el.label.getAttribute('fontSize') ?? vis(el.label, 'fontSize'), 12);
+    fontSize = asNum(el.label.getAttribute('fontSize') ?? vis(el.label, 'fontSize'), 16);
   } else {
-    fontSize = asNum(vis(el, 'fontSize'), 12);
+    fontSize = asNum(vis(el, 'fontSize'), 16);
   }
 
   return {

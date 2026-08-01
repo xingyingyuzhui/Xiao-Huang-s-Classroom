@@ -16,12 +16,22 @@ test('board-compass module exports attach + dismiss', () => {
   assert.match(src, /export function dismissBoardCompass/);
   assert.match(src, /HOLD_MS|holdMs/);
   assert.match(src, /add-point|加点/);
+  assert.doesNotMatch(src, /icon \|\| '·'/);
+  assert.doesNotMatch(src, /math-board-compass-icon/);
+});
+
+test('graph wires compass one-shot back to select', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  assert.match(src, /toolOneShot/);
+  assert.match(src, /finishOneShotToolIfDone/);
+  assert.match(src, /oneShot:\s*true/);
+  assert.match(src, /bindPointIntegerSnap/);
 });
 
 test('graph wires compass add-point and point option hooks', () => {
   const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
   assert.match(src, /attachBoardCompass/);
-  assert.match(src, /add-point/);
+  assert.match(src, /GRAPH_BOARD_TOOLS|id:\s*'point'|加点/);
   assert.match(src, /setPointOptionHooks/);
   assert.match(src, /createUserPoint|addPointAt/);
   assert.match(src, /跟随函数|listFollowTargets|hitFollowNear/);

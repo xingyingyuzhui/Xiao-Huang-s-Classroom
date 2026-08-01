@@ -1,5 +1,5 @@
 /**
- * 画布右下角：坐标轴 / 网格 / 视窗 / 函数域 / 图例设置
+ * 画布右下角：画布设置（坐标轴 / 网格 / 视窗 / 函数域 / 吸附）
  * 按钮 + 气泡
  */
 
@@ -9,7 +9,7 @@ import { getMathGridColor } from './math-theme.js';
 
 const BTN_CLASS = 'math-axis-settings-btn';
 const BUBBLE_ID = 'mathAxisLegendBubble';
-const BUBBLE_LAYOUT = 'v5-reset-btn';
+const BUBBLE_LAYOUT = 'v6-board-settings-snap';
 
 /**
  * @typedef {{
@@ -18,6 +18,7 @@ const BUBBLE_LAYOUT = 'v5-reset-btn';
  *   showGrid: boolean,
  *   showTicks: boolean,
  *   showLegend: boolean,
+ *   snapToInteger: boolean,
  *   axisStrokeWidth: number,
  *   tickStepX: number,
  *   tickStepY: number,
@@ -38,7 +39,8 @@ export const DEFAULT_AXIS_LEGEND_STATE = {
   showAxisY: true,
   showGrid: true,
   showTicks: true,
-  showLegend: true,
+  showLegend: false,
+  snapToInteger: true,
   axisStrokeWidth: 1.5,
   /** 主刻度间距，如 2 → 轴上显示 …, -2, 0, 2, 4, 6, 8, … */
   tickStepX: 2,
@@ -85,6 +87,7 @@ export function normalizeAxisLegendState(partial = {}) {
   const stepY = Number(s.tickStepY);
   s.tickStepX = Number.isFinite(stepX) && stepX > 0 ? stepX : 2;
   s.tickStepY = Number.isFinite(stepY) && stepY > 0 ? stepY : 2;
+  s.snapToInteger = s.snapToInteger !== false;
   return s;
 }
 
@@ -109,12 +112,12 @@ function ensureBubble() {
   bubbleEl.dataset.layout = BUBBLE_LAYOUT;
   bubbleEl.className = 'brand-tip-bubble math-axis-legend-bubble';
   bubbleEl.setAttribute('role', 'dialog');
-  bubbleEl.setAttribute('aria-label', '坐标轴与图例');
+  bubbleEl.setAttribute('aria-label', '画布设置');
   bubbleEl.hidden = true;
   bubbleEl.innerHTML = `
     <div class="brand-tip-card">
       <div class="brand-tip-head">
-        <span class="brand-tip-badge">坐标轴与图例</span>
+        <span class="brand-tip-badge">画布设置</span>
         <div class="math-axis-legend-head-actions">
           <button type="button" class="brand-tip-btn brand-tip-btn-ghost" data-role="reset" title="恢复默认显示与视窗">
             重置
@@ -130,6 +133,10 @@ function ensureBubble() {
             <label class="math-check-row"><input type="checkbox" data-role="showGrid" /><span>网格</span></label>
             <label class="math-check-row"><input type="checkbox" data-role="showTicks" /><span>刻度</span></label>
           </div>
+          <label class="math-check-row" style="margin-top:0.45rem">
+            <input type="checkbox" data-role="snapToInteger" />
+            <span>拖动点吸附到整数坐标</span>
+          </label>
         </section>
 
         <section class="math-axis-legend-section">
@@ -198,7 +205,7 @@ function ensureBubble() {
   });
   bubbleEl.addEventListener('pointerdown', (e) => e.stopPropagation());
 
-  const boolRoles = ['showAxisX', 'showAxisY', 'showGrid', 'showTicks'];
+  const boolRoles = ['showAxisX', 'showAxisY', 'showGrid', 'showTicks', 'snapToInteger'];
   for (const role of boolRoles) {
     bubbleEl.querySelector(`[data-role="${role}"]`)?.addEventListener('change', (ev) => {
       if (!activeCtrl) return;
@@ -276,7 +283,7 @@ function hideBubble() {
  * @param {AxisLegendState} s
  */
 function paintBubble(el, s) {
-  for (const role of ['showAxisX', 'showAxisY', 'showGrid', 'showTicks']) {
+  for (const role of ['showAxisX', 'showAxisY', 'showGrid', 'showTicks', 'snapToInteger']) {
     const input = /** @type {HTMLInputElement | null} */ (el.querySelector(`[data-role="${role}"]`));
     if (input) input.checked = Boolean(s[role]);
   }
@@ -495,46 +502,6 @@ export function applyAxisLegendToBoard(board, st, opts = {}) {
 }
 
 /**
- * @param {HTMLElement} host
- * @param {LegendItem[]} items
- * @param {boolean} visible
- */
-function renderLegendOverlay(host, items, visible) {
-  let box = host.querySelector('.math-board-legend');
-  if (!visible || !items?.length) {
-    if (box) box.hidden = true;
-    return;
-  }
-  if (!box) {
-    box = document.createElement('div');
-    box.className = 'math-board-legend';
-    box.setAttribute('aria-label', '图例');
-    host.appendChild(box);
-  }
-  box.hidden = false;
-  box.innerHTML = items
-    .map(
-      (it) => `
-    <div class="math-board-legend-item" data-legend-id="${escapeAttr(it.id)}">
-      <span class="math-board-legend-swatch" style="--leg:${escapeAttr(it.color)}"></span>
-      <span class="math-board-legend-label">${escapeHtml(it.label)}</span>
-    </div>`,
-    )
-    .join('');
-}
-
-function escapeHtml(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/"/g, '&quot;');
-}
-
-function escapeAttr(s) {
-  return escapeHtml(s).replace(/'/g, '&#39;');
-}
-
-/**
  * @param {any} board
  * @param {{
  *   host?: HTMLElement | null,
@@ -576,14 +543,6 @@ function createController(board, opts = {}) {
   /** @type {HTMLButtonElement | null} */
   let btn = null;
 
-  function getLegendItems() {
-    try {
-      return opts.getLegendItems?.() || [];
-    } catch {
-      return [];
-    }
-  }
-
   /**
    * @param {{ skipViewport?: boolean, skipOnChange?: boolean }} [applyOpts]
    */
@@ -591,7 +550,8 @@ function createController(board, opts = {}) {
     applyAxisLegendToBoard(board, state, {
       skipViewport: Boolean(applyOpts.skipViewport),
     });
-    if (host) renderLegendOverlay(host, getLegendItems(), state.showLegend);
+    // 浮动曲线图例已移除；清掉遗留 DOM
+    host?.querySelector?.('.math-board-legend')?.remove();
     if (!applyOpts.skipOnChange) {
       try {
         opts.onChange?.(state);
@@ -607,8 +567,8 @@ function createController(board, opts = {}) {
     btn = document.createElement('button');
     btn.type = 'button';
     btn.className = BTN_CLASS;
-    btn.title = '坐标轴与图例';
-    btn.setAttribute('aria-label', '坐标轴与图例设置');
+    btn.title = '画布设置';
+    btn.setAttribute('aria-label', '画布设置');
     btn.innerHTML = `
       <span class="math-axis-settings-btn-icon" aria-hidden="true">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none">

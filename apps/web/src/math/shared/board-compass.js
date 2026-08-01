@@ -76,7 +76,6 @@ function openCompass(clientX, clientY, items, onPick) {
         .map(
           (it, i) => `
         <button type="button" class="math-board-compass-item" data-compass-id="${it.id}" data-i="${i}" role="menuitem">
-          <span class="math-board-compass-icon">${it.icon || '·'}</span>
           <span class="math-board-compass-label">${it.label}</span>
         </button>`,
         )
@@ -152,7 +151,7 @@ export function attachBoardCompass(board, opts = {}) {
 
   const items = opts.items?.length
     ? opts.items
-    : [{ id: 'add-point', label: '加点', icon: '＋' }];
+    : [{ id: 'add-point', label: '加点' }];
   const holdMs = opts.holdMs ?? HOLD_MS;
 
   /** @type {ReturnType<typeof setTimeout> | 0} */

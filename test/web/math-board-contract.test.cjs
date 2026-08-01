@@ -106,6 +106,50 @@ test('graph follows lifecycle contract', () => {
   assert.match(src, /detachFnCurve\(rec\)[\s\S]*filter/);
 });
 
+test('graph board tools v1 strip and construction lifecycle are wired', () => {
+  const tools = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/shared/board-tools.js'),
+    'utf8',
+  );
+  const draw = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/draw-tools.js'),
+    'utf8',
+  );
+  const graph = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  const css = fs.readFileSync(
+    path.join(root, 'apps/web/src/shared/styles/_math-classroom.css'),
+    'utf8',
+  );
+
+  for (const id of [
+    'select',
+    'point',
+    'segment',
+    'line',
+    'tangent',
+    'perp-axis',
+    'intersect',
+    'delete',
+  ]) {
+    assert.match(tools, new RegExp(`id:\\s*'${id}'`));
+  }
+  assert.match(tools, /export function attachBoardToolStrip/);
+  assert.match(tools, /export function attachToolPointer/);
+  assert.match(draw, /export function createTangent/);
+  assert.match(draw, /export function createPerpToAxis/);
+  assert.match(draw, /长 \$\{|segmentLengthText|formatSmartNumber/);
+  assert.match(graph, /board-label|formatNamedCoords|BOARD_LABEL_FONT_SIZE/);
+  assert.match(draw, /export function snapshotConstructions/);
+  assert.match(draw, /export function restoreConstructions/);
+  assert.match(graph, /attachBoardToolStrip/);
+  assert.match(graph, /snapshotConstructions/);
+  assert.match(graph, /restoreConstructions/);
+  assert.match(graph, /handleToolTap/);
+  assert.match(tools, /math-board-tool-label/);
+  assert.match(css, /\.math-board-tool-label/);
+  assert.doesNotMatch(tools, /math-board-tool-icon/);
+});
+
 test('other jsx labs bind theme restyle', () => {
   for (const lab of ['plane', 'trig', 'sequence']) {
     const src = fs.readFileSync(

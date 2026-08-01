@@ -14,6 +14,9 @@ test('axis-legend-settings module exports attach and dismiss', () => {
   );
   assert.match(src, /export function attachAxisLegendSettings/);
   assert.match(src, /export function dismissAxisLegendBubble/);
+  assert.match(src, /snapToInteger/);
+  assert.match(src, /画布设置/);
+  assert.doesNotMatch(src, /坐标轴与图例/);
   assert.match(src, /showAxisX/);
   assert.match(src, /showGrid/);
   assert.match(src, /showLegend/);
