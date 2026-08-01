@@ -12,5 +12,6 @@ export const GRAPH_BOARD_TOOLS = [
   { id: 'tangent', label: '切线', hint: '点跟随函数的点，或点在曲线附近' },
   { id: 'perp-axis', label: '垂线', hint: '先点一点，再点坐标轴 / 直线 / 曲线' },
   { id: 'intersect', label: '交点', hint: '依次点击两条曲线或直线' },
+  { id: 'secant', label: '割线', hint: '先点曲线选函数，再依次点两个 x 位置' },
   { id: 'delete', label: '删除', hint: '点击要删除的点或线' },
 ];

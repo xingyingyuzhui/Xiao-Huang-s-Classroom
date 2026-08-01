@@ -63,6 +63,7 @@ import { createPointLayer } from './point-layer.js';
 import { createConstructionLayer } from './construction-layer.js';
 import { createProbeController } from './probe-controller.js';
 import { constructionDocumentRecord } from './construction/restore.js';
+import { createSecantConstruction } from './construction/render-lines.js';
 import {
   evaluateGraphFunction as evalFnY,
   findFunctionIntersectionNear,
@@ -788,9 +789,69 @@ async function handleToolTapBody(ctx, tool) {
     return;
   }
 
+  if (tool === 'secant') {
+    await handleSecantTap(host, ctx);
+    return;
+  }
+
   if (tool === 'intersect') {
     await handleIntersectTap(host, ctx);
   }
+}
+
+/**
+ * 割线工具：点曲线选函数 → 点第一个 x → 点第二个 x。
+ * 端点 A/B 是函数上的 glider；拖动后松手提交 construction/update（一条历史）。
+ * @param {ReturnType<typeof makeDrawHost>} host
+ * @param {{ usrX: number, usrY: number, hit: any }} ctx
+ */
+async function handleSecantTap(host, ctx) {
+  const { usrX, usrY, hit } = ctx;
+  const fnHit = resolveCurveFromTap(hit, usrX, usrY);
+  const pick = state.toolPick;
+
+  if (!pick || pick.tool !== 'secant') {
+    if (!fnHit) {
+      state.toolStrip?.setHint?.('请点在曲线附近选择函数');
+      return;
+    }
+    state.toolPick = { tool: 'secant', fnId: fnHit.id, x1: usrX };
+    state.toolStrip?.setHint?.(
+      `已选「${fnDisplayLabel(fnHit)}」，再点一个 x 作为 B 点`,
+    );
+    return;
+  }
+
+  if (!fnHit || fnHit.id !== pick.fnId) {
+    state.toolStrip?.setHint?.('请在同一曲线上选择第二个 x');
+    return;
+  }
+  const rec = createSecantConstruction(host, {
+    kind: 'secant',
+    fnId: pick.fnId,
+    x1: pick.x1,
+    x2: usrX,
+    showDelta: true,
+  });
+  if (rec) {
+    commitConstructionDocument(rec);
+    // 拖动端点 → 松手提交 x1/x2（一次拖动一条历史）
+    for (const el of rec.els || []) {
+      const which = el._mathSecantX;
+      if (!which) continue;
+      if (typeof el.on !== 'function') continue;
+      el.on('up', () => {
+        if (!state.graphStore) return;
+        const ax = Number(rec.els.find((e) => e._mathSecantX === 'x1')?.X?.() ?? rec.x1);
+        const bx = Number(rec.els.find((e) => e._mathSecantX === 'x2')?.X?.() ?? rec.x2);
+        state.graphStore.dispatch({
+          type: 'construction/update',
+          payload: { id: rec.id, patch: { x1: ax, x2: bx } },
+        });
+      });
+    }
+  }
+  clearToolPick();
 }
 
 /**

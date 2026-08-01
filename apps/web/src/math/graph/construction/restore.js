@@ -2,7 +2,7 @@
 
 import { clearAllConstructions, isLineLike, lineLikeElOf, supportingLineElOf } from './records.js';
 import { createLineIntersection, createLineFnIntersection } from './intersections.js';
-import { createSegmentOrLine, createTangent } from './render-lines.js';
+import { createSecantConstruction, createSegmentOrLine, createTangent } from './render-lines.js';
 import {
   createNormalAtFn,
   createPerpFootToFn,
@@ -77,6 +77,13 @@ function recreateConstr(host, meta) {
     return createSegmentOrLine(host, meta.kind, a, b, meta.pointIds, meta.id, {
       skipAutoIntersect: true,
       extend: meta.extend,
+    });
+  }
+  if (meta.kind === 'secant') {
+    return createSecantConstruction(host, {
+      ...meta,
+      id: meta.id,
+      showDelta: meta.showDelta !== false,
     });
   }
   if (meta.kind === 'tangent') {

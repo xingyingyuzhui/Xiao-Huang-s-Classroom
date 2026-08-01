@@ -111,3 +111,93 @@ export function createTangent(host, pt, fn, pointId, id, opts = {}) {
   if (opts.notify !== false) host.onChanged?.();
   return rec;
 }
+
+/**
+ * 割线构造：函数上 (x1, f(x1)) 与 (x2, f(x2)) 的连线 + A/B 端点 + 中点量测标签。
+ * 端点用函数上的 glider（拖动更新 x1/x2 语义，由调用方 commit）。
+ * @param {any} host
+ * @param {any} meta { id, kind:'secant', fnId, x1, x2, showDelta }
+ */
+export function createSecantConstruction(host, meta) {
+  const board = host.getBoard();
+  const fn = host.getFunctions().find((f) => f.id === meta.fnId);
+  if (!board || !fn?.curve) return null;
+  const chrome = getMathBoardChrome();
+
+  const x1 = Number.isFinite(Number(meta.x1)) ? Number(meta.x1) : 0;
+  const x2 = Number.isFinite(Number(meta.x2)) ? Number(meta.x2) : 1;
+  const yAt = (x) => host.evalFnY(fn, x) ?? 0;
+
+  const pA = board.create('glider', [x1, yAt(x1), fn.curve], {
+    name: 'A',
+    size: 3,
+    fillColor: chrome.diagram,
+    strokeColor: chrome.pointRing,
+    withLabel: true,
+    label: boardLabelAttrs({ strokeColor: chrome.ink, color: chrome.ink }),
+  });
+  const pB = board.create('glider', [x2, yAt(x2), fn.curve], {
+    name: 'B',
+    size: 3,
+    fillColor: chrome.diagram,
+    strokeColor: chrome.pointRing,
+    withLabel: true,
+    label: boardLabelAttrs({ strokeColor: chrome.ink, color: chrome.ink }),
+  });
+
+  const seg = board.create('segment', [pA, pB], {
+    strokeColor: chrome.diagram,
+    strokeWidth: 2,
+    dash: 1,
+    fixed: true,
+    withLabel: false,
+    name: '割线',
+  });
+
+  const getText = () => {
+    const ax = Number(pA.X());
+    const bx = Number(pB.X());
+    const ay = host.evalFnY(fn, ax);
+    const by = host.evalFnY(fn, bx);
+    if (ay == null || by == null) return '割线 · 暂停';
+    const dx = bx - ax;
+    if (Math.abs(dx) < 1e-9) return '割线 · 暂停';
+    const dy = by - ay;
+    const slope = dy / dx;
+    const parts = [`Δx=${formatSmartNumber(dx)}`, `Δy=${formatSmartNumber(dy)}`, `平均变化率=${formatSmartNumber(slope)}`];
+    return meta.showDelta === false ? `平均变化率=${formatSmartNumber(slope)}` : parts.join('  ');
+  };
+
+  const measure = attachMidpointMeasureLabel(board, seg, pA, pB, getText, {
+    color: chrome.ink,
+    placement: measureLabelPlacementFor('segment'),
+  });
+
+  const els = [pA, pB, seg];
+  if (measure) {
+    measure._mathConstr = true;
+    bindLiveLabel(measure, getText, [pA, pB]);
+    els.push(measure);
+  }
+  for (const el of els) {
+    el._mathConstr = true;
+    el._mathConstrId = meta.id;
+    el._mathConstrKind = 'secant';
+  }
+  pA._mathSecantX = 'x1';
+  pB._mathSecantX = 'x2';
+  const rec = {
+    id: meta.id || host.nextConstrId(),
+    kind: 'secant',
+    fnId: fn.id,
+    x1: Number(pA.X()),
+    x2: Number(pB.X()),
+    showDelta: meta.showDelta !== false,
+    els,
+    label: '割线',
+    extend: false,
+  };
+  host.getConstructions().push(rec);
+  host.onChanged?.();
+  return rec;
+}
