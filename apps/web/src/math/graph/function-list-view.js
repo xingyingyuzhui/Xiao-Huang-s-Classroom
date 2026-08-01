@@ -66,6 +66,7 @@ export function createFunctionListView(options) {
         <button type="button" class="math-fn-card-menu-btn" data-fn-menu="${escapeHtml(fn.id)}" aria-haspopup="true" aria-expanded="${menuOpen ? 'true' : 'false'}" aria-label="${fn.name || '函数'} 更多操作" title="更多操作">⋯</button>
         ${menuOpen ? `
         <div class="math-fn-menu" role="menu" data-fn-menu-panel="${escapeHtml(fn.id)}">
+          <button type="button" role="menuitem" data-fn-action="reference" data-fn-action-id="${escapeHtml(fn.id)}">设为参考</button>
           <button type="button" role="menuitem" data-fn-action="edit" data-fn-action-id="${escapeHtml(fn.id)}">编辑</button>
           <button type="button" role="menuitem" data-fn-action="duplicate" data-fn-action-id="${escapeHtml(fn.id)}">复制</button>
           <button type="button" role="menuitem" data-fn-action="lock" data-fn-action-id="${escapeHtml(fn.id)}">${fn.locked ? '解锁' : '锁定'}</button>

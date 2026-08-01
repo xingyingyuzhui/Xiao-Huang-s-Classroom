@@ -102,6 +102,15 @@ export function createFunctionPanelController(context) {
     const store = context.store?.();
     const fn = state.functions.find((f) => f.id === id);
     if (!fn) return;
+    if (action === 'reference') {
+      if (!store) return;
+      const { curve, ...definition } = fn;
+      store.dispatch({
+        type: 'presentation/update',
+        payload: { patch: { compare: { reference: definition } } },
+      });
+      return;
+    }
     if (action === 'edit') {
       editor.open(fn);
       return;

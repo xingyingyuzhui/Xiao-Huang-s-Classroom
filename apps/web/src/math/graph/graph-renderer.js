@@ -173,6 +173,9 @@ export function createGraphRuntimeSyncAdapter(context) {
     // ── 4) 视口（applyView 自带防回环 guard） ──
     if (plan.viewChanged) context.applyView(doc.view);
 
+    // ── 5) 参考曲线（compare.reference，签名防抖由调用方负责） ──
+    context.applyReference?.(doc);
+
     context.renderFnList();
     context.syncParamPanel();
     context.paintReadouts();

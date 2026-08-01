@@ -62,6 +62,7 @@ import {
 import { createPointLayer } from './point-layer.js';
 import { createConstructionLayer } from './construction-layer.js';
 import { createProbeController } from './probe-controller.js';
+import { describePresetTransform } from './transform-model.js';
 import { constructionDocumentRecord } from './construction/restore.js';
 import { createSecantConstruction } from './construction/render-lines.js';
 import {
@@ -175,6 +176,7 @@ const state = {
   viewApplying: false,
   graphPersistence: null,
   probe: null,
+  referenceCurve: null,
   persistenceController: null,
   storeUnsub: null,
   notesUnsub: null,
@@ -1281,6 +1283,32 @@ function rebuildCurve() {
   });
 }
 
+function renderCompareInfo(fn, featuresEl) {
+  if (!featuresEl) return;
+  const ref = state.graphStore?.getDocument?.()?.presentation?.compare?.reference;
+  if (!ref) return;
+  const currentFormula = fn ? fnDisplayLabel(fn) : '';
+  const refFormula = fnDisplayLabel(ref);
+  const changes = fn && fn.kind === 'preset' && ref.kind === 'preset'
+    ? describePresetTransform(fn.preset, ref.coeffs || {}, fn.coeffs || {})
+    : [];
+  const block = document.createElement('div');
+  block.className = 'math-compare-block';
+  block.innerHTML = `
+    <div class="math-compare-row"><strong>参考</strong><span>${escapeHtml(refFormula)}</span></div>
+    <div class="math-compare-row"><strong>当前</strong><span>${escapeHtml(currentFormula)}</span></div>
+    ${changes.length ? `<ul class="math-compare-changes">${changes.map((c) => `<li>${escapeHtml(c.text)}</li>`).join('')}</ul>` : ''}
+  `;
+  featuresEl.appendChild(block);
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/"/g, '&quot;');
+}
+
 function paintReadouts() {
   const fn = activeFn();
   const featuresEl = document.getElementById('mathGraphFeatures');
@@ -1328,6 +1356,7 @@ function paintReadouts() {
           `<div class="math-float-feat-row"><strong>${f.kind}</strong><span>${f.text}</span></div>`,
       )
       .join('');
+    renderCompareInfo(fn, featuresEl);
   }
   if (tableEl) {
     const rows = valueTable(preset, coeffs);
@@ -1348,6 +1377,53 @@ function paintReadouts() {
 
 function bindReadoutCards() {
   ensureMathFloatCardsBound();
+}
+
+/** 参考曲线：同色虚线低透明度；不作为函数列表新函数、不参与吸附/交点。
+ *  签名不变则跳过重建（滑杆拖动不重画参考线）。 */
+let lastReferenceKey = null;
+function applyReferenceCurveFromDocument(doc) {
+  const ref = doc?.presentation?.compare?.reference;
+  const board = state.board;
+  if (!board) return;
+  const key = ref
+    ? JSON.stringify({ kind: ref.kind, preset: ref.preset, expr: ref.expr, coeffs: ref.coeffs })
+    : null;
+  if (key === lastReferenceKey) return;
+  lastReferenceKey = key;
+  if (state.referenceCurve) {
+    detachBoardObject(board, state.referenceCurve);
+    state.referenceCurve = null;
+  }
+  if (!ref) return;
+  const x0 = Number.isFinite(state.fXMin) ? state.fXMin : -10;
+  const x1 = Number.isFinite(state.fXMax) ? state.fXMax : 10;
+  const xLo = Math.min(x0, x1);
+  const xHi = Math.max(x0, x1);
+  try {
+    state.referenceCurve = board.create(
+      'functiongraph',
+      [
+        (x) => {
+          const y = evalFnY(ref, x);
+          return y == null ? NaN : y;
+        },
+        xLo,
+        xHi,
+      ],
+      {
+        strokeColor: ref.color,
+        strokeWidth: 2,
+        dash: 3,
+        strokeOpacity: 0.45,
+        highlight: false,
+        withLabel: false,
+        name: '参考曲线',
+      },
+    );
+  } catch {
+    state.referenceCurve = null;
+  }
 }
 
 /** 探针读数：在活动函数对应表上方显示当前 x/y（transient，不进文档） */
@@ -1459,6 +1535,7 @@ const syncRuntimeFromDocument = createGraphRuntimeSyncAdapter({
   pointLayer,
   constructionLayer,
   applyView: (view) => viewBridge.applyViewFromDocument(view),
+  applyReference: applyReferenceCurveFromDocument,
   renderFnList,
   syncParamPanel,
   paintReadouts,
@@ -2018,6 +2095,15 @@ export function disposeGraph() {
   state.toolStrip = null;
   state.probe?.dispose?.();
   state.probe = null;
+  if (state.referenceCurve) {
+    try {
+      state.board?.removeObject?.(state.referenceCurve);
+    } catch {
+      /* */
+    }
+    state.referenceCurve = null;
+    lastReferenceKey = null;
+  }
   state.toolPick = null;
   state.compass?.dispose?.();
   state.compass = null;

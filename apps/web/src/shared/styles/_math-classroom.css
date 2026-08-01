@@ -2342,3 +2342,32 @@
   font-weight: 650;
   line-height: 1.4;
 }
+
+/* —— 参考曲线对比 —— */
+
+.math-compare-block {
+  margin-top: 0.45rem;
+  padding-top: 0.45rem;
+  border-top: var(--ui-stroke) dashed var(--border-ink);
+  display: grid;
+  gap: 0.2rem;
+}
+
+.math-compare-row {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.4rem;
+  font-size: 0.82rem;
+}
+
+.math-compare-row strong {
+  color: var(--text-secondary);
+  font-weight: 650;
+}
+
+.math-compare-changes {
+  margin: 0.2rem 0 0;
+  padding-left: 1rem;
+  font-size: 0.78rem;
+  color: var(--diagram, #0f766e);
+}
