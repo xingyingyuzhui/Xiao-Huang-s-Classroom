@@ -63,6 +63,7 @@ import { createPointLayer } from './point-layer.js';
 import { createConstructionLayer } from './construction-layer.js';
 import { createProbeController } from './probe-controller.js';
 import { describePresetTransform } from './transform-model.js';
+import { createNumericAnalysisRunner } from './numeric-analysis-runner.js';
 import { constructionDocumentRecord } from './construction/restore.js';
 import { createSecantConstruction } from './construction/render-lines.js';
 import {
@@ -169,6 +170,9 @@ const state = {
   themeHandle: null,
   escBound: false,
   graphStore: null,
+  numericRunner: createNumericAnalysisRunner(),
+  numericRequest: null,
+  numericAnalysisSeq: 0,
   graphHistory: null,
   historyController: null,
   coeffTxTimer: null,
@@ -1283,6 +1287,57 @@ function rebuildCurve() {
   });
 }
 
+/** 自定义函数：异步数值特征分析（取消 + 缓存 + 数值近似标记）。 */
+function renderCustomNumericFeatures(fn, featuresEl) {
+  if (!featuresEl) return;
+  state.numericRequest?.();
+  state.numericRequest = null;
+  let xMin = -10;
+  let xMax = 10;
+  try {
+    const bb = state.board?.getBoundingBox?.();
+    if (bb && bb.length >= 4) {
+      xMin = Math.min(Number(bb[0]), Number(bb[2]));
+      xMax = Math.max(Number(bb[0]), Number(bb[2]));
+    }
+  } catch {
+    /* viewport default */
+  }
+  featuresEl.innerHTML =
+    '<div class="math-float-feat-row"><strong>分析中…</strong><span>数值近似</span></div>';
+  state.numericRequest = state.numericRunner?.analyze?.({
+    record: fn,
+    interval: [xMin, xMax],
+    resolveEvaluator: (rec) => (x) => evalFnY(rec, x),
+    onResult: (outcome) => {
+      if (activeFn()?.id !== fn.id) return;
+      if (!outcome?.ok || !outcome.result) {
+        featuresEl.innerHTML =
+          '<div class="math-float-feat-row"><strong>类型</strong><span>自定义 · 无结果</span></div>';
+        return;
+      }
+      const r = outcome.result;
+      const rows = [
+        '<div class="math-float-feat-row"><strong>类型</strong><span>自定义 · 数值近似</span></div>',
+        ...r.zeros.map((z) => `<div class="math-float-feat-row"><strong>零点</strong><span>x≈${formatNum(z.x)}</span></div>`),
+        ...r.extrema.map((e) => `<div class="math-float-feat-row"><strong>${e.kind === 'min' ? '极小值' : '极大值'}</strong><span>(${formatNum(e.x)}, ${formatNum(e.y)})</span></div>`),
+        ...(r.discontinuities.length
+          ? [`<div class="math-float-feat-row"><strong>疑似间断</strong><span>${r.discontinuities.length} 处</span></div>`]
+          : []),
+        '<div class="math-float-feat-row is-warn"><strong>提示</strong><span>当前结果为数值近似，部分特征可能未识别</span></div>',
+      ];
+      featuresEl.innerHTML = rows.join('');
+    },
+  });
+}
+
+/** @param {number} value */
+function formatNum(value) {
+  if (!Number.isFinite(value)) return '—';
+  const f = Number(value.toFixed(3));
+  return Object.is(f, -0) ? '0' : String(f);
+}
+
 function renderCompareInfo(fn, featuresEl) {
   if (!featuresEl) return;
   const ref = state.graphStore?.getDocument?.()?.presentation?.compare?.reference;
@@ -1321,10 +1376,7 @@ function paintReadouts() {
   }
 
   if (fn.kind === 'custom') {
-    if (featuresEl) {
-      featuresEl.innerHTML =
-        '<div class="math-float-feat-row"><strong>类型</strong><span>自定义</span></div>';
-    }
+    renderCustomNumericFeatures(fn, featuresEl);
     if (tableEl) {
       const xs = [-2, -1, 0, 1, 2, 3];
       const rows = xs.map((x) => {
