@@ -163,6 +163,10 @@ export function createChemistryClassroom({ select }) {
     },
 
     deactivateTab(tabId) {
+      // 与对局里「← 大厅」一致：离开乱斗 Tab 即清局、停 AI、停 BGM
+      if (tabId === 'battle' && battleModule) {
+        battleModule.setScreen('hub');
+      }
       if (tabId !== 'molecule' && molModule) {
         molModule.getMolViewer()?.stop();
       }

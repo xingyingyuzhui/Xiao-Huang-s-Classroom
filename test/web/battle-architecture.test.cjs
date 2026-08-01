@@ -92,3 +92,23 @@ test('FLIP opens its picker before audio unlock can settle', () => {
   assert.match(uiSource, /battleActions\?\.openFlipPicker\(\);\n    \/\/ 与手牌 FLIP 一致[\s\S]*void sfxUnlock\(\);/);
   assert.match(actionsSource, /sfxUiTap,/);
 });
+
+test('leaving the battle tab clears the match the same way as hub exit', () => {
+  const uiSource = fs.readFileSync(path.join(battleRoot, 'ui.js'), 'utf8');
+  const classroomSource = fs.readFileSync(
+    path.join(
+      require('../helpers/repo-root.js'),
+      'apps/web/src/subjects/classrooms/chemistry-classroom.js',
+    ),
+    'utf8',
+  );
+
+  assert.match(
+    uiSource,
+    /export function setScreen\(screen\) \{[\s\S]*clearAiTimer\(\);[\s\S]*if \(screen === 'hub'\) \{[\s\S]*ui\.modeB = null;[\s\S]*bgmStop/,
+  );
+  assert.match(
+    classroomSource,
+    /deactivateTab\(tabId\) \{[\s\S]*tabId === 'battle'[\s\S]*battleModule\.setScreen\('hub'\)/,
+  );
+});
