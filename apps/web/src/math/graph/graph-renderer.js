@@ -1,9 +1,97 @@
 /**
  * GraphRenderer：doc diff 与各 layer 的增量投影。
  *
- * Task 4 阶段提供文档 → 既有 runtime 的全量同步适配器（beforeCommit），
- * 证明 store 两阶段发布链路；Task 6 将替换为按 layer 的增量 render plan。
+ * - computeGraphRenderPlan：纯 diff，输出最小 add/update/remove 集合与拓扑顺序。
+ * - createGraphRuntimeSyncAdapter：Task 4 的全量同步适配器（Task 7 切换增量后退役）。
+ * - 函数 layer 的增量应用在 function-layer.js。
  */
+
+import { constructionsDependingOn } from './construction/dependency-closure.js';
+
+export { applyFunctionPlan } from './function-layer.js';
+
+/** @param {any} a @param {any} b */
+function recordsEqual(a, b) {
+  return JSON.stringify(a) === JSON.stringify(b);
+}
+
+/**
+ * 按 id 计算记录数组的 add/update/remove。
+ * @param {any[]} beforeList
+ * @param {any[]} afterList
+ */
+function diffRecords(beforeList, afterList) {
+  const beforeById = new Map(beforeList.map((record) => [record.id, record]));
+  const afterById = new Map(afterList.map((record) => [record.id, record]));
+  const add = [];
+  const update = [];
+  const remove = [];
+  for (const [id, record] of afterById) {
+    if (!beforeById.has(id)) {
+      add.push(record);
+    } else if (!recordsEqual(beforeById.get(id), record)) {
+      update.push({ id, record });
+    }
+  }
+  for (const [id] of beforeById) {
+    if (!afterById.has(id)) remove.push(id);
+  }
+  return { add, update, remove };
+}
+
+/**
+ * 纯 render diff：给定 previous/current 文档，输出增量计划与拓扑顺序。
+ *
+ * 拓扑约定：
+ * - remove：下游构造 → 点 → 函数（constructions → points → functions）
+ * - add：上游 → 下游（functions → points → constructions）
+ * - 同一 id 不允许同时出现在 add 与 remove。
+ *
+ * @param {any} previous
+ * @param {any} current
+ */
+export function computeGraphRenderPlan(previous, current) {
+  const functions = diffRecords(previous.functions || [], current.functions || []);
+  const points = diffRecords(previous.points || [], current.points || []);
+  const constructions = diffRecords(
+    previous.constructions || [],
+    current.constructions || [],
+  );
+
+  const viewChanged = !recordsEqual(previous.view || {}, current.view || {});
+  const activeFunctionChanged =
+    previous.presentation?.activeFunctionId !== current.presentation?.activeFunctionId;
+
+  // 被 update 的函数 → 依赖它的构造需要刷新（数值重算/位置重算）
+  const dependencyRefreshIds = [];
+  for (const { id } of functions.update) {
+    for (const constrId of constructionsDependingOn(current.constructions || [], id)) {
+      if (!dependencyRefreshIds.includes(constrId)) dependencyRefreshIds.push(constrId);
+    }
+  }
+
+  const removeOrder = [
+    ...constructions.remove,
+    ...points.remove,
+    ...functions.remove,
+  ];
+  const addOrder = [
+    ...functions.add.map((record) => record.id),
+    ...points.add.map((record) => record.id),
+    ...constructions.add.map((record) => record.id),
+  ];
+
+  return {
+    functions,
+    points,
+    constructions,
+    viewChanged,
+    activeFunctionChanged,
+    dependencyRefreshIds,
+    addOrder,
+    removeOrder,
+  };
+}
 
 /**
  * 把 store candidate 文档投影到既有函数 runtime。
