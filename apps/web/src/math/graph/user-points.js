@@ -335,6 +335,11 @@ export function createUserPointController(context) {
     } catch {
       /* ignore a disposed JSXGraph board */
     }
+    try {
+      element.board?._mathSchedulePointLabelFusion?.();
+    } catch {
+      /* */
+    }
   }
 
   function remove(element) {

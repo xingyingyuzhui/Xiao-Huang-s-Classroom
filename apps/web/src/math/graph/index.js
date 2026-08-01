@@ -30,6 +30,7 @@ import {
 import { ensureMathFloatCardsBound } from '../shared/float-cards.js';
 import { bindRangeNumber, syncRangeNumber } from '../shared/param-controls.js';
 import { createFrameTask } from '../shared/frame-task.js';
+import { refreshPointLabelFusionOnBoard } from '../shared/point-label-fusion.js';
 import { createBoardSelectionController } from '../shared/object-select.js';
 import {
   bindObjectStyleForPanel,
@@ -150,6 +151,48 @@ const state = {
 let stageEl = null;
 
 const curveRebuildTask = createFrameTask(() => rebuildCurve());
+const pointLabelFusionTask = createFrameTask(() => refreshPointLabelFusion());
+
+function listLabeledPointElements() {
+  return listSnapTargets()
+    .map((t) => t?.el)
+    .filter(Boolean);
+}
+
+function refreshPointLabelFusion() {
+  const board = state.board;
+  if (!board) return;
+  refreshPointLabelFusionOnBoard(board, listLabeledPointElements);
+}
+
+function schedulePointLabelFusion() {
+  pointLabelFusionTask.schedule();
+}
+
+function bindPointLabelFusion(board) {
+  if (!board) return;
+  board._mathRefreshPointLabelFusion = () => refreshPointLabelFusion();
+  board._mathSchedulePointLabelFusion = () => schedulePointLabelFusion();
+  try {
+    if (typeof board.on === 'function' && !board._mathFusionBBoxBound) {
+      board._mathFusionBBoxBound = true;
+      board.on('boundingbox', () => schedulePointLabelFusion());
+    }
+  } catch {
+    /* some board builds omit boundingbox events */
+  }
+}
+
+function unbindPointLabelFusion(board) {
+  pointLabelFusionTask.cancel();
+  if (!board) return;
+  try {
+    delete board._mathRefreshPointLabelFusion;
+    delete board._mathSchedulePointLabelFusion;
+  } catch {
+    /* */
+  }
+}
 
 function followIdForFn(fnId) {
   return `graph:fn:${fnId}`;
@@ -367,6 +410,7 @@ function makeDrawHost() {
     listSnapTargets: () => listSnapTargets(),
     onChanged: () => {
       reregisterSelectable();
+      schedulePointLabelFusion();
       try {
         state.board?.update?.();
       } catch {
@@ -978,6 +1022,7 @@ function rebuildCurve() {
       pt._mathBaseName = name;
       pt._mathShowCoords = true;
       pt._mathCanFollow = false;
+      pt._mathFeatureMark = true;
       applyBoardLabel(pt, {
         baseName: name,
         text: () => formatElementCoordsLabel(pt, name),
@@ -1012,6 +1057,7 @@ function rebuildCurve() {
     } catch {
       /* */
     }
+    schedulePointLabelFusion();
     try {
       // refresh 契约：skipViewport，不重置镜头
       board._mathAxisLegend?.refresh?.();
@@ -1258,8 +1304,10 @@ export function initGraphUI() {
           state.axisSettingsApplying = false;
         }
       }
+      schedulePointLabelFusion();
     },
   });
+  bindPointLabelFusion(state.board);
 
   // 默认一条二次
   if (!state.functions.length) {
@@ -1451,11 +1499,13 @@ export function initGraphUI() {
   state.ro = new ResizeObserver(() => {
     resizeMathBoard(state.board, stageEl);
     state.notes?.redraw?.();
+    schedulePointLabelFusion();
   });
   state.ro.observe(stageEl);
   requestAnimationFrame(() => {
     resizeMathBoard(state.board, stageEl);
     state.notes?.redraw?.();
+    schedulePointLabelFusion();
   });
 
   // 换肤契约：bindMathThemeRestyle → restyle + rebuild（含 remint）
@@ -1504,6 +1554,7 @@ export function disposeGraph() {
   clearAllConstructions(makeDrawHost());
   removeUserPointEls();
   if (state.board) removeAllFnCurves(state.board);
+  unbindPointLabelFusion(state.board);
   freeMathBoard(state.board);
   state.board = null;
   state.curve = null;

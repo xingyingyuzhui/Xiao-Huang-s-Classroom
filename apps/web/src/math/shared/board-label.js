@@ -85,9 +85,18 @@ export function formatElementCoordsLabel(el, baseName, maxDecimals = 2) {
  * @param {any} el
  * @param {string | (() => string)} text
  */
-function setLabelContent(el, text) {
+export function setLabelContent(el, text) {
   if (!el) return;
-  const content = typeof text === 'function' ? text : () => String(text ?? '');
+  const content =
+    typeof text === 'function'
+      ? () => {
+          if (el._mathLabelFusionSuppressed) return '';
+          return text();
+        }
+      : () => {
+          if (el._mathLabelFusionSuppressed) return '';
+          return String(text ?? '');
+        };
   // 独立量测 Text（中点标签）本身就是文案载体
   if (el.elType === 'text' || (!el.label && typeof el.setText === 'function')) {
     try {
@@ -550,6 +559,12 @@ export function ensurePointGeomHook(el) {
           /* */
         }
       }
+    }
+    try {
+      const board = el.board;
+      board?._mathRefreshPointLabelFusion?.();
+    } catch {
+      /* */
     }
     try {
       el.label?.updateText?.();

@@ -32,6 +32,7 @@
 禁止重新引入聚合实现文件；新增作图算法优先落在纯模块，再由渲染工厂接线。
 批量创建/恢复构造时传 `{ notify: false }`，由最外层操作统一触发一次 `host.onChanged()`。
 滑条等高频输入通过 `shared/frame-task.js` 合并到下一动画帧，禁止每个 `input` 事件同步全量重建画板。
+重合点坐标标签通过 `shared/point-label-fusion.js` 在 snap 容差内融合成一条 `名1·名2(x, y)`；`board-label` 只调用 `board._mathRefreshPointLabelFusion`，禁止 shared 反向依赖 graph。
 
 `graph/index.js` 只负责画板挂载、工具事件状态机、曲线重建与销毁；其它职责固定如下：
 
