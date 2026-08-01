@@ -19,12 +19,51 @@ export function restoreConstructions(host, saved, options = {}) {
   clearAllConstructions(host);
   for (const meta of saved || []) {
     try {
-      recreateConstr(host, meta);
+      createConstructionFromDocument(host, meta);
     } catch (err) {
       console.warn('[graph-draw] restore failed', meta?.kind, err);
     }
   }
   if (options.notify !== false) host.onChanged?.();
+}
+
+/**
+ * 从文档构造记录创建 runtime 构造（供工具创建与文档恢复共用）。
+ * 不触发 host.onChanged（调用方统一决定通知时机）。
+ * @param {any} host
+ * @param {any} meta
+ */
+export function createConstructionFromDocument(host, meta) {
+  return recreateConstr(host, meta);
+}
+
+/**
+ * runtime 构造记录 → 文档记录（剔除 els 等不可序列化字段）。
+ * @param {any} rec
+ */
+export function constructionDocumentRecord(rec) {
+  if (!rec || typeof rec !== 'object') return null;
+  const out = {};
+  for (const key of [
+    'id',
+    'kind',
+    'name',
+    'label',
+    'pointIds',
+    'fnId',
+    'fnIds',
+    'lineIds',
+    'axis',
+    'perpTarget',
+    'targetConstrId',
+    'intersectIndex',
+    'extend',
+    'locked',
+    'visible',
+  ]) {
+    if (rec[key] !== undefined) out[key] = rec[key];
+  }
+  return out;
 }
 
 /** @param {any} host @param {any} meta */

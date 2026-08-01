@@ -301,3 +301,84 @@ test('an updated handle is restored when a later add fails', async () => {
   assert.equal(restored.evaluator(2), 2);
   assert.equal(registry.has('f2'), false);
 });
+
+test('legacy geometry round-trips through the document losslessly', async () => {
+  const { computeGraphRenderPlan } = await rendererModule();
+  const documentModule = await import(
+    pathToFileURL(path.join(root, 'apps/web/src/math/graph/graph-document.js')).href,
+  );
+  const { normalizeGraphDocument, toSerializableGraphDocument, hydrateGraphDocument } = documentModule;
+
+  const legacyDoc = {
+    schemaVersion: 1,
+    id: 'd',
+    title: 't',
+    functions: [
+      fn('f1'),
+      fn('f2'),
+      { id: 'f3', name: '', kind: 'preset', preset: 'abs', expr: '', coeffs: { a: 1, b: 0, c: 0 }, color: '#333', visible: true, locked: false, domain: { mode: 'viewport' } },
+    ],
+    points: [
+      // 普通跟随点
+      { id: 'p1', name: 'A', x: 1, y: 2, constraint: { kind: 'followFunction', functionId: 'f1', anchorX: 1 }, showCoords: true, locked: false, style: { stroke: { explicitColor: '#ff0000' }, fill: { explicitColor: '#00ff00', opacity: 0.5 }, size: 6, face: 'o', label: { fontSize: 16 } } },
+      // 顶点特征跟随
+      { id: 'p2', name: 'V', x: 0, y: 0, constraint: { kind: 'followFeature', functionId: 'f1', feature: 'vertex', featureIndex: 0 }, showCoords: true, locked: false },
+      // 函数×函数交点（只作为一个 GraphPoint，不重复保存 intersection 构造）
+      { id: 'p3', name: 'I', x: 0.5, y: 0.5, constraint: { kind: 'intersection', targetIds: ['f1', 'f2'], nearX: 0.5 }, showCoords: true, locked: false },
+    ],
+    constructions: [
+      { id: 'c1', kind: 'segment', pointIds: ['p1', 'p2'], locked: false, visible: true, extend: true },
+      { id: 'c2', kind: 'tangent', pointIds: ['p1'], fnId: 'f1', locked: false, visible: true, extend: false },
+      { id: 'c3', kind: 'perp', pointIds: ['p1'], perpTarget: 'line', targetConstrId: 'c1', locked: false, visible: true, extend: true },
+      { id: 'c4', kind: 'perp', pointIds: ['p2'], perpTarget: 'curve', fnId: 'f1', locked: false, visible: true, extend: false },
+    ],
+    view: { boundingBox: [-9, 7, 7, -9], axes: { grid: true } },
+    presentation: { activeFunctionId: 'f1', compare: null },
+    annotations: { version: 1, strokes: [{ id: 's1', points: [{ x: 0, y: 0 }, { x: 1, y: 1 }], width: 3, opacity: 1 }] },
+    meta: { createdAt: '2026-08-01T00:00:00.000Z', updatedAt: '2026-08-01T00:00:00.000Z' },
+  };
+
+  const normalized = normalizeGraphDocument(legacyDoc);
+  assert.equal(normalized.ok, true, normalized.message);
+  const serialized = JSON.parse(JSON.stringify(toSerializableGraphDocument(normalized.document)));
+  const hydrated = hydrateGraphDocument(serialized);
+  assert.equal(hydrated.ok, true, hydrated.message);
+  assert.deepEqual(hydrated.document, normalized.document);
+
+  // 交点只保留一个 GraphPoint：文档中不存在 intersection construction
+  assert.equal(
+    normalized.document.constructions.some((c) => c.kind === 'intersect'),
+    false,
+    'intersections are carried by point constraints, not constructions',
+  );
+  // 视口/样式/批注无损
+  assert.deepEqual(normalized.document.view.boundingBox, [-9, 7, 7, -9]);
+  assert.equal(normalized.document.points[0].style.stroke.explicitColor, '#ff0000');
+  assert.equal(normalized.document.points[0].style.size, 6);
+  assert.equal(normalized.document.annotations.strokes.length, 1);
+});
+
+test('parameter change plans no geometry removal for unrelated objects', async () => {
+  const { computeGraphRenderPlan } = await rendererModule();
+  const before = documentWith({
+    points: [
+      { id: 'p1', name: 'A', x: 1, y: 2, constraint: { kind: 'followFunction', functionId: 'f1', anchorX: 1 }, showCoords: true, locked: false },
+      { id: 'p2', name: 'B', x: 3, y: 4, constraint: { kind: 'free' }, showCoords: true, locked: false },
+    ],
+    constructions: [
+      { id: 'c1', kind: 'segment', pointIds: ['p1', 'p2'], locked: false, visible: true, extend: false },
+      { id: 'c2', kind: 'tangent', pointIds: ['p1'], fnId: 'f2', locked: false, visible: true, extend: false },
+    ],
+  });
+  const after = documentWith({
+    points: before.points,
+    constructions: before.constructions,
+  });
+  after.functions = before.functions.map((f) => (f.id === 'f1' ? { ...f, coeffs: { a: 2, b: 0, c: 0 } } : f));
+
+  const plan = computeGraphRenderPlan(before, after);
+  assert.deepEqual(plan.functions.update.map((u) => u.id), ['f1']);
+  assert.deepEqual(plan.points.remove, [], 'no user point may be cleared by a param change');
+  assert.deepEqual(plan.constructions.remove, [], 'no construction may be cleared by a param change');
+  assert.deepEqual(plan.dependencyRefreshIds, [], 'f2 tangent does not depend on f1');
+});

@@ -15,6 +15,10 @@ import {
 } from '../shared/follow-target.js';
 import { applyObjectStyle, readObjectStyle } from '../shared/object-style.js';
 import {
+  pointConstraintFromLegacy,
+  pointStyleFromLegacy,
+} from './graph-document.js';
+import {
   clearAllConstructions,
   deleteConstructionsDependingOnPoint,
   restoreConstructions,
@@ -77,6 +81,7 @@ function applyPointLabel(element, baseName, showCoords) {
  *   getSelection: () => any,
  *   getViewportCenter: () => { x: number, y: number },
  *   defaultFollowTargetId: string,
+ *   onPointMoved?: (record: UserPointRec, x: number, y: number) => void,
  * }} context
  */
 export function createUserPointController(context) {
@@ -182,8 +187,14 @@ export function createUserPointController(context) {
     if (typeof element.on === 'function') {
       element.on('up', () => {
         void relaxFeatureFollow(element);
+        try {
+          context.onPointMoved?.(record, Number(element.X()), Number(element.Y()));
+        } catch {
+          /* a disposed board must not break drag commit */
+        }
       });
-    }    if (options.style) {
+    }
+    if (options.style) {
       applyObjectStyle(element, {
         strokeColor: options.style.strokeColor,
         strokeWidth: options.style.strokeWidth,
@@ -226,6 +237,80 @@ export function createUserPointController(context) {
         y,
         style: readObjectStyle(record.el, record.baseName),
       };
+    });
+  }
+
+  /**
+   * 单条 runtime 记录 → 文档点记录（工具创建后同步进 store 用）。
+   * @param {any} record
+   */
+  function documentRecordOf(record) {
+    if (!record) return null;
+    let x = 0;
+    let y = 0;
+    try {
+      x = Number(record.el.X());
+      y = Number(record.el.Y());
+    } catch {
+      /* partially disposed point keeps its last safe coordinates */
+    }
+    return {
+      id: record.id,
+      name: record.baseName,
+      x,
+      y,
+      constraint: pointConstraintFromLegacy(record.followTargetId, record.intersectFnIds, { x }),
+      showCoords: record.showCoords,
+      locked: false,
+      style: pointStyleFromLegacy(readObjectStyle(record.el, record.baseName)),
+    };
+  }
+
+  /**
+   * 文档格式快照：legacy 运行时字段 → GraphDocument 点记录（含 constraint/style）。
+   */
+  function snapshotDocument() {
+    return context.getRecords().map(documentRecordOf);
+  }
+
+  /**
+   * 从文档点记录创建 runtime 点（constraint → follow/intersection 语义）。
+   * @param {any} pointRecord
+   */
+  function createFromDocument(pointRecord) {
+    if (!pointRecord || typeof pointRecord !== 'object') return null;
+    const constraint = pointRecord.constraint || { kind: 'free' };
+    let followTargetId = null;
+    let intersectFnIds = null;
+    let x = Number.isFinite(Number(pointRecord.x)) ? Number(pointRecord.x) : 0;
+    let y = Number.isFinite(Number(pointRecord.y)) ? Number(pointRecord.y) : 0;
+    if (constraint.kind === 'followFunction') {
+      followTargetId = curveFollowTargetId(constraint.functionId);
+      x = Number.isFinite(Number(constraint.anchorX)) ? Number(constraint.anchorX) : x;
+    } else if (constraint.kind === 'followFeature') {
+      followTargetId = `graph:fn:${constraint.functionId}:feature:${constraint.feature}`;
+    } else if (constraint.kind === 'intersection') {
+      intersectFnIds = /** @type {[string, string]} */ ([
+        constraint.targetIds[0],
+        constraint.targetIds[1],
+      ]);
+      x = Number.isFinite(Number(constraint.nearX)) ? Number(constraint.nearX) : x;
+    }
+    return create(x, y, {
+      id: pointRecord.id,
+      baseName: pointRecord.name || pointRecord.id,
+      followTargetId,
+      intersectFnIds,
+      showCoords: pointRecord.showCoords !== false,
+      style: pointRecord.style
+        ? {
+            strokeColor: pointRecord.style.stroke?.explicitColor || undefined,
+            fillColor: pointRecord.style.fill?.explicitColor || undefined,
+            fillOpacity: pointRecord.style.fill?.opacity,
+            size: pointRecord.style.size,
+            fontSize: pointRecord.style.label?.fontSize,
+          }
+        : undefined,
     });
   }
 
@@ -450,7 +535,9 @@ export function createUserPointController(context) {
 
   return {
     create,
+    createFromDocument,
     delete: remove,
+    documentRecordOf,
     find,
     removeAll,
     restore,
@@ -458,6 +545,7 @@ export function createUserPointController(context) {
     setFollowTarget,
     setShowCoords,
     snapshot,
+    snapshotDocument,
   };
 }
 

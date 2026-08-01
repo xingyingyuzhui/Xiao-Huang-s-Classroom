@@ -132,6 +132,87 @@ function normalizeFunctionRecord(fn, index, seenIds) {
   };
 }
 
+/**
+ * 点样式（semantic stroke/fill/label；colorSlot 由主题解析，explicitColor 仅用户自定义时存在）
+ * @param {any} style
+ */function normalizePointStyle(style) {
+  if (!style || typeof style !== 'object') {
+    return {
+      stroke: { colorSlot: null, explicitColor: null, opacity: 1 },
+      fill: { colorSlot: null, explicitColor: null, opacity: 1 },
+      size: 3,
+      face: 'o',
+      label: { colorSlot: null, explicitColor: null, opacity: 1, fontSize: 13 },
+    };
+  }
+  const part = (value, fallback) => {
+    if (!value || typeof value !== 'object') return fallback;
+    return {
+      colorSlot: Number.isInteger(value.colorSlot) ? value.colorSlot : null,
+      explicitColor:
+        typeof value.explicitColor === 'string' && value.explicitColor
+          ? value.explicitColor
+          : null,
+      opacity: Math.min(1, Math.max(0, finiteOr(value.opacity, 1))),
+    };
+  };
+  return {
+    stroke: part(style.stroke, { colorSlot: null, explicitColor: null, opacity: 1 }),
+    fill: part(style.fill, { colorSlot: null, explicitColor: null, opacity: 1 }),
+    size: finiteOr(style.size, 3),
+    face: typeof style.face === 'string' ? style.face : 'o',
+    label: {
+      ...part(style.label, { colorSlot: null, explicitColor: null, opacity: 1 }),
+      fontSize: finiteOr(style.label?.fontSize, 13),
+    },
+  };
+}
+
+/**
+ * 点约束（discriminated union；legacy followTargetId/intersectFnIds 已映射为约束）
+ * @param {any} point
+ */
+function normalizePointConstraint(point) {
+  const raw = point?.constraint;
+  if (!raw || typeof raw !== 'object') {
+    return { kind: 'free' };
+  }
+  switch (raw.kind) {
+    case 'free':
+      return { kind: 'free' };
+    case 'followFunction': {
+      if (typeof raw.functionId !== 'string' || !raw.functionId) return { kind: 'free' };
+      return {
+        kind: 'followFunction',
+        functionId: raw.functionId,
+        anchorX: finiteOr(raw.anchorX, point.x ?? 0),
+      };
+    }
+    case 'followFeature': {
+      if (typeof raw.functionId !== 'string' || !raw.functionId) return { kind: 'free' };
+      return {
+        kind: 'followFeature',
+        functionId: raw.functionId,
+        feature: typeof raw.feature === 'string' ? raw.feature : 'vertex',
+        featureIndex: Number.isInteger(raw.featureIndex) ? raw.featureIndex : 0,
+      };
+    }
+    case 'intersection': {
+      const targetIds = Array.isArray(raw.targetIds)
+        ? raw.targetIds.filter((id) => typeof id === 'string')
+        : [];
+      if (targetIds.length < 2) return { kind: 'free' };
+      return {
+        kind: 'intersection',
+        targetIds: /** @type {[string, string]} */ ([targetIds[0], targetIds[1]]),
+        nearX: finiteOr(raw.nearX, point.x ?? 0),
+      };
+    }
+    default:
+      return { kind: 'free' };
+  }
+}
+
 /** @param {any} point @param {number} index @param {Set<string>} seenIds */
 function normalizePointRecord(point, index, seenIds) {
   const at = `points[${index}]`;
@@ -147,8 +228,10 @@ function normalizePointRecord(point, index, seenIds) {
     name: typeof point.name === 'string' ? point.name : id,
     x: finiteOr(point.x, 0),
     y: finiteOr(point.y, 0),
+    constraint: normalizePointConstraint(point),
     showCoords: point.showCoords !== false,
     locked: point.locked === true,
+    style: normalizePointStyle(point.style),
   };
 }
 
@@ -413,5 +496,88 @@ export function createDefaultGraphDocument(options = {}) {
       strokes: [],
     },
     meta,
+  };
+}
+
+/**
+ * legacy followTargetId / intersectFnIds → 文档约束（无损映射）。
+ *
+ * - graph:fn:<id> → followFunction
+ * - graph:fn:<id>:feature:<kind> → followFeature
+ * - intersectFnIds → intersection
+ * - 其它 / 空 → free
+ *
+ * @param {string | null | undefined} followTargetId
+ * @param {[string, string] | null | undefined} intersectFnIds
+ * @param {{ x?: number }} [anchor]
+ */
+export function pointConstraintFromLegacy(followTargetId, intersectFnIds, anchor = {}) {
+  if (Array.isArray(intersectFnIds) && intersectFnIds.length >= 2) {
+    return {
+      kind: 'intersection',
+      targetIds: /** @type {[string, string]} */ ([intersectFnIds[0], intersectFnIds[1]]),
+      nearX: finiteOr(anchor.x, 0),
+    };
+  }
+  if (typeof followTargetId === 'string' && followTargetId) {
+    const feature = /^graph:fn:([^:]+):feature:([^:]+)$/.exec(followTargetId);
+    if (feature) {
+      return {
+        kind: 'followFeature',
+        functionId: feature[1],
+        feature: feature[2],
+        featureIndex: 0,
+      };
+    }
+    const curve = /^graph:fn:([^:]+)$/.exec(followTargetId);
+    if (curve) {
+      return {
+        kind: 'followFunction',
+        functionId: curve[1],
+        anchorX: finiteOr(anchor.x, 0),
+      };
+    }
+  }
+  return { kind: 'free' };
+}
+
+/**
+ * 文档点记录 → legacy followTargetId（重建 runtime 时使用）
+ * @param {any} constraint
+ * @returns {string | null}
+ */
+export function pointFollowTargetIdFromConstraint(constraint) {
+  if (!constraint || typeof constraint !== 'object') return null;
+  if (constraint.kind === 'followFunction') {
+    return `graph:fn:${constraint.functionId}`;
+  }
+  if (constraint.kind === 'followFeature') {
+    return `graph:fn:${constraint.functionId}:feature:${constraint.feature}`;
+  }
+  return null;
+}
+
+/**
+ * legacy 扁平样式（object-style readObjectStyle 输出）→ 文档语义样式。
+ * 主题色无法回推 colorSlot 时置 null；用户自定义色进入 explicitColor。
+ * @param {any} [style]
+ */
+export function pointStyleFromLegacy(style = {}) {
+  const toPart = (color, opacity) => ({
+    colorSlot: null,
+    explicitColor: typeof color === 'string' && color ? color : null,
+    opacity: Number.isFinite(Number(opacity)) ? Number(opacity) : 1,
+  });
+  return {
+    stroke: toPart(style.strokeColor, style.strokeOpacity ?? 1),
+    fill: toPart(style.fillColor, style.fillOpacity ?? 1),
+    size: finiteOr(style.size, 3),
+    face: 'o',
+    label: {
+      colorSlot: null,
+      explicitColor: null,
+      opacity: 1,
+      fontSize: finiteOr(style.fontSize, 13),
+    },
   };
 }

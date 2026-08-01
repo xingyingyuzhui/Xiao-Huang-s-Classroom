@@ -7,6 +7,7 @@
  */
 
 import { constructionsDependingOn } from './construction/dependency-closure.js';
+import { constructionDocumentRecord } from './construction/restore.js';
 
 export { applyFunctionPlan } from './function-layer.js';
 
@@ -94,15 +95,25 @@ export function computeGraphRenderPlan(previous, current) {
 }
 
 /**
- * 把 store candidate 文档投影到既有函数 runtime。
- * 适配器不拥有文档真值；只负责让画板/UI 与文档一致。
+ * 把 store candidate 文档投影到既有 runtime（plan 驱动，增量）。
+ *
+ * 适配器不拥有文档真值；只负责让画板/UI 与文档一致。要点：
+ * - 参数变化只重建“变化的那条函数曲线”及其依赖（跟随点 → 交点 → 构造），
+ *   不得清空全部用户点和构造（Task 7 不变量）。
+ * - 点/构造按文档记录增删（layer 幂等：工具已创建的 runtime 对象不重复建）。
+ * - 视口变化由 applyView 回写 board，配合 viewApplying guard 防止反馈回环。
  *
  * @param {{
  *   getState: () => any,
+ *   createFunctionCurve: (fn: any) => void,
  *   detachFnCurve: (fn: any) => void,
+ *   detachFunctionDependents: (fnId: string) => void,
+ *   rebindFunctionDependents: (fnId: string, doc: any) => void,
+ *   refreshActiveMarks: () => void,
  *   mirrorActiveToLegacy: () => void,
- *   rebuildCurve: () => void,
- *   scheduleCurveRebuild: () => void,
+ *   pointLayer: any,
+ *   constructionLayer: any,
+ *   applyView: (view: any) => void,
  *   renderFnList: () => void,
  *   syncParamPanel: () => void,
  *   paintReadouts: () => void,
@@ -114,14 +125,14 @@ export function createGraphRuntimeSyncAdapter(context) {
     const state = context.getState();
     const doc = ctx.candidate;
     if (!doc || !Array.isArray(doc.functions)) return { ok: false };
+    const plan = computeGraphRenderPlan(ctx.previous, doc);
 
-    // 删除文档中不存在的函数（先 detach 曲线再移除引用）
-    const byId = new Map(doc.functions.map((fn) => [fn.id, fn]));
-    for (const rec of state.functions.slice()) {
-      if (!byId.has(rec.id)) context.detachFnCurve(rec);
+    // ── 1) 函数：remove → add → update（依赖按序重绑） ──
+    for (const id of plan.functions.remove) {
+      context.detachFunctionDependents(id);
+      const record = state.functions.find((fn) => fn.id === id);
+      context.detachFnCurve(record);
     }
-
-    // 同步 / 新增函数记录（保留既有 curve 运行时引用）
     state.functions = doc.functions.map((dfn) => {
       const existing = state.functions.find((fn) => fn.id === dfn.id);
       if (existing) {
@@ -130,19 +141,187 @@ export function createGraphRuntimeSyncAdapter(context) {
       }
       return { ...dfn };
     });
+    for (const record of plan.functions.add) {
+      const fn = state.functions.find((f) => f.id === record.id);
+      if (fn && !fn.curve) context.createFunctionCurve(fn);
+    }
+    for (const { id } of plan.functions.update) {
+      const fn = state.functions.find((f) => f.id === id);
+      if (!fn) continue;
+      // 变化的那一条曲线重建；先卸依赖对象（跟随点/交点/构造），重建后按文档恢复
+      context.detachFunctionDependents(id);
+      context.detachFnCurve(fn);
+      if (fn.visible) context.createFunctionCurve(fn);
+      context.rebindFunctionDependents(id, doc);
+    }
+
     state.activeFnId =
       doc.presentation?.activeFunctionId ?? state.functions[0]?.id ?? null;
     context.mirrorActiveToLegacy();
+    if (plan.activeFunctionChanged) context.refreshActiveMarks();
 
-    if (ctx.preview) {
-      // 事务 preview：曲线帧合并，UI 读数即时同步
-      context.scheduleCurveRebuild();
-    } else {
-      context.rebuildCurve();
-    }
+    // ── 2) 点：按文档记录增删（layer 幂等） ──
+    for (const record of plan.points.add) context.pointLayer.add(record);
+    for (const record of plan.points.update) context.pointLayer.update(record);
+    for (const id of plan.points.remove) context.pointLayer.remove(id);
+
+    // ── 3) 构造 ──
+    for (const record of plan.constructions.add) context.constructionLayer.add(record);
+    for (const record of plan.constructions.update) context.constructionLayer.update(record);
+    for (const id of plan.constructions.remove) context.constructionLayer.remove(id);
+
+    // ── 4) 视口（applyView 自带防回环 guard） ──
+    if (plan.viewChanged) context.applyView(doc.view);
+
     context.renderFnList();
     context.syncParamPanel();
     context.paintReadouts();
     return { ok: true };
+  };
+}
+
+/** @param {number[]} a @param {number[]} b */
+export function arraysNearEqual(a, b) {
+  if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
+  return a.every((value, i) => Math.abs(Number(value) - Number(b[i])) < 1e-9);
+}
+
+/**
+ * 视口桥接：文档 view/update 的 apply（防回环 guard）+ board boundingbox → 文档。
+ * @param {{
+ *   getBoard: () => any,
+ *   getStore: () => any,
+ *   getState: () => any,
+ * }} context
+ */
+export function createGraphViewBridge(context) {
+  let txTimer = null;
+  return {
+    /** 由 adapter 回写 bbox 时抑制 boundingbox 监听器再 dispatch */
+    applyViewFromDocument(view) {
+      const board = context.getBoard();
+      if (!board) return;
+      const bb = view?.boundingBox;
+      if (!Array.isArray(bb) || bb.length < 4) return;
+      let current = null;
+      try {
+        current = board.getBoundingBox();
+      } catch {
+        return;
+      }
+      if (current && arraysNearEqual(bb, current)) return;
+      context.getState().viewApplying = true;
+      try {
+        board.setBoundingBox(bb, false);
+      } catch {
+        /* best-effort viewport apply */
+      } finally {
+        context.getState().viewApplying = false;
+      }
+    },
+
+    /** 视口平移/缩放：250ms 静默窗口合并成一条历史 */
+    openViewTransaction() {
+      const state = context.getState();
+      if (txTimer != null) {
+        clearTimeout(txTimer);
+      } else {
+        context.getStore()?.beginTransaction();
+      }
+      txTimer = window.setTimeout(() => {
+        txTimer = null;
+        context.getStore()?.commitTransaction();
+      }, 250);
+    },
+
+    onBoardBoundingBox() {
+      const state = context.getState();
+      if (state.viewApplying) return;
+      const store = context.getStore();
+      const board = context.getBoard();
+      if (!store || !board) return;
+      let bb = null;
+      try {
+        bb = board.getBoundingBox();
+      } catch {
+        return;
+      }
+      if (!bb) return;
+      const currentDoc = store.getDocument();
+      if (currentDoc?.view?.boundingBox && arraysNearEqual(bb, currentDoc.view.boundingBox)) {
+        return;
+      }
+      this.openViewTransaction();
+      store.dispatch({ type: 'view/update', payload: { patch: { boundingBox: bb } } });
+    },
+
+    dispose() {
+      if (txTimer != null) {
+        clearTimeout(txTimer);
+        txTimer = null;
+        context.getStore()?.cancelTransaction();
+      }
+    },
+  };
+}
+
+/**
+ * 工具对象提交桥接：runtime 点/构造 → 文档（幂等），删除经 store 级联。
+ * fn×fn 交点在文档模型中由 GraphPoint.constraint 承载，不保存 intersection 构造。
+ * @param {{
+ *   getStore: () => any,
+ *   getPointsCtrl: () => any,
+ *   getState: () => any,
+ *   fallbackDeleteUserPoint: (el: any) => void,
+ *   fallbackDeleteConstruction: (cid: string) => void,
+ * }} context
+ */
+export function createGraphCommitBridge(context) {
+  return {
+    commitPointDocument(rec) {
+      const store = context.getStore();
+      if (!store || !rec) return;
+      const docRecord = context.getPointsCtrl().documentRecordOf(rec);
+      if (docRecord) {
+        store.dispatch({ type: 'point/add', payload: { point: docRecord } });
+      }
+    },
+
+    commitConstructionDocument(rec) {
+      const store = context.getStore();
+      if (!store || !rec) return;
+      if (rec.kind === 'intersect' && rec.fnIds?.length === 2 && !rec.lineIds?.length) return;
+      const docRecord = constructionDocumentRecord(rec);
+      if (docRecord) {
+        store.dispatch({ type: 'construction/add', payload: { construction: docRecord } });
+      }
+    },
+
+    removeUserPointById(id) {
+      if (!id) return;
+      const store = context.getStore();
+      if (!store) {
+        const rec = context.getState().userPoints.find((r) => r.id === id);
+        if (rec) context.fallbackDeleteUserPoint(rec.el);
+        return;
+      }
+      store.dispatch({ type: 'point/removeCascade', payload: { id } });
+    },
+
+    removeConstructionById(cid) {
+      if (!cid) return;
+      const store = context.getStore();
+      if (!store) {
+        context.fallbackDeleteConstruction(cid);
+        return;
+      }
+      const inDocument = store.getDocument().constructions.some((c) => c.id === cid);
+      if (!inDocument) {
+        // 文档外的 runtime-only 构造（自动交点等）直删
+        context.fallbackDeleteConstruction(cid);
+        return;
+      }
+      store.dispatch({ type: 'construction/removeCascade', payload: { id: cid } });
+    },
   };
 }

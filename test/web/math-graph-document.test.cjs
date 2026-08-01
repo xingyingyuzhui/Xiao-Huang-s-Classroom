@@ -298,3 +298,84 @@ test('validateGraphDocument reports validity', async () => {
   const bad = validateGraphDocument({ schemaVersion: 1, functions: 'nope' });
   assert.equal(bad.ok, false);
 });
+
+test('point constraints normalize from legacy follow ids and intersect pairs', async () => {
+  const { normalizeGraphDocument, pointConstraintFromLegacy } = await docModule();
+
+  const legacyCurve = pointConstraintFromLegacy('graph:fn:f1', null, { x: 2 });
+  assert.deepEqual(legacyCurve, { kind: 'followFunction', functionId: 'f1', anchorX: 2 });
+
+  const legacyFeature = pointConstraintFromLegacy('graph:fn:f1:feature:vertex', null, { x: 1 });
+  assert.deepEqual(legacyFeature, { kind: 'followFeature', functionId: 'f1', feature: 'vertex', featureIndex: 0 });
+
+  const legacyIx = pointConstraintFromLegacy(null, ['f1', 'f2'], { x: 0.5 });
+  assert.deepEqual(legacyIx, { kind: 'intersection', targetIds: ['f1', 'f2'], nearX: 0.5 });
+
+  const free = pointConstraintFromLegacy(null, null);
+  assert.deepEqual(free, { kind: 'free' });
+
+  const doc = normalizeGraphDocument({
+    schemaVersion: 1,
+    id: 'd',
+    title: 't',
+    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic' }],
+    points: [
+      { id: 'p1', name: 'A', x: 1, y: 2, constraint: { kind: 'followFunction', functionId: 'f1', anchorX: 1 } },
+      { id: 'p2', name: 'B', x: 3, y: 4, constraint: { kind: 'followFeature', functionId: 'f1', feature: 'vertex', featureIndex: 0 } },
+      { id: 'p3', name: 'C', x: 0, y: 0, constraint: { kind: 'intersection', targetIds: ['f1', 'f2'], nearX: 0 } },
+      { id: 'p4', name: 'D', x: 5, y: 6, constraint: { kind: 'bogus' } },
+    ],
+    points2: [],
+    constructions: [],
+    view: { boundingBox: [-8, 8, 8, -8] },
+    presentation: { activeFunctionId: 'f1' },
+    annotations: { version: 1, strokes: [] },
+    meta: {},
+  });
+  assert.equal(doc.ok, true);
+  const points = doc.document.points;
+  assert.deepEqual(points[0].constraint, { kind: 'followFunction', functionId: 'f1', anchorX: 1 });
+  assert.deepEqual(points[1].constraint, { kind: 'followFeature', functionId: 'f1', feature: 'vertex', featureIndex: 0 });
+  assert.deepEqual(points[2].constraint, { kind: 'intersection', targetIds: ['f1', 'f2'], nearX: 0 });
+  assert.deepEqual(points[3].constraint, { kind: 'free' }, 'unknown constraint kinds fall back to free');
+  // 样式默认结构
+  assert.equal(points[0].style.stroke.colorSlot, null);
+  assert.equal(points[0].style.fill.opacity, 1);
+  assert.equal(points[0].style.size, 3);
+  // 引用不存在的函数仍保留约束（runtime unresolved，不擅自降级）
+  assert.deepEqual(points[2].constraint, { kind: 'intersection', targetIds: ['f1', 'f2'], nearX: 0 });
+});
+
+test('point style round-trips through legacy mapping', async () => {
+  const { pointStyleFromLegacy, normalizeGraphDocument } = await docModule();
+  const legacy = {
+    strokeColor: '#ff0000',
+    strokeWidth: 2,
+    fillColor: '#00ff00',
+    fillOpacity: 0.5,
+    size: 5,
+    fontSize: 16,
+  };
+  const style = pointStyleFromLegacy(legacy);
+  assert.equal(style.stroke.explicitColor, '#ff0000');
+  assert.equal(style.fill.explicitColor, '#00ff00');
+  assert.equal(style.fill.opacity, 0.5);
+  assert.equal(style.size, 5);
+  assert.equal(style.label.fontSize, 16);
+
+  const result = normalizeGraphDocument({
+    schemaVersion: 1,
+    id: 'd',
+    title: 't',
+    functions: [],
+    points: [{ id: 'p1', style: { stroke: { explicitColor: '#123456' }, size: 7 } }],
+    constructions: [],
+    view: { boundingBox: [-8, 8, 8, -8] },
+    presentation: { activeFunctionId: null },
+    annotations: { version: 1, strokes: [] },
+    meta: {},
+  });
+  assert.equal(result.ok, true);
+  assert.equal(result.document.points[0].style.stroke.explicitColor, '#123456');
+  assert.equal(result.document.points[0].style.size, 7);
+});

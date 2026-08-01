@@ -53,7 +53,14 @@ import { createDefaultGraphDocument } from './graph-document.js';
 import { createGraphStore } from './graph-store.js';
 import { createGraphHistory } from './graph-history.js';
 import { createGraphHistoryController } from './graph-history-controller.js';
-import { createGraphRuntimeSyncAdapter } from './graph-renderer.js';
+import {
+  createGraphCommitBridge,
+  createGraphRuntimeSyncAdapter,
+  createGraphViewBridge,
+} from './graph-renderer.js';
+import { createPointLayer } from './point-layer.js';
+import { createConstructionLayer } from './construction-layer.js';
+import { constructionDocumentRecord } from './construction/restore.js';
 import {
   evaluateGraphFunction as evalFnY,
   findFunctionIntersectionNear,
@@ -161,6 +168,8 @@ const state = {
   graphHistory: null,
   historyController: null,
   coeffTxTimer: null,
+  viewTxTimer: null,
+  viewApplying: false,
 };
 
 let stageEl = null;
@@ -386,17 +395,7 @@ function listSnapTargets(excludeEl) {
   return out;
 }
 
-const {
-  create: createUserPoint,
-  delete: deleteUserPoint,
-  find: findUserRec,
-  removeAll: removeUserPointEls,
-  restore: restoreUserPoints,
-  setFollow: setUserPointFollow,
-  setFollowTarget: setUserPointFollowTarget,
-  setShowCoords: setPointShowCoords,
-  snapshot: snapshotUserPoints,
-} = createUserPointController({
+const pointsCtrl = createUserPointController({
   getBoard: () => state.board,
   getRecords: () => state.userPoints,
   setRecords: (records) => {
@@ -416,7 +415,49 @@ const {
   }),
   defaultFollowTargetId: MAIN_CURVE_FOLLOW_ID,
   featureFollowTol: () => followTol(),
+  // 拖动结束 → 文档 point/update（一次拖动一条历史）
+  onPointMoved: (rec, _x, _y) => {
+    if (!state.graphStore || !rec) return;
+    const docRecord = pointsCtrl.documentRecordOf(rec);
+    if (!docRecord) return;
+    state.graphStore.dispatch({
+      type: 'point/update',
+      payload: {
+        id: rec.id,
+        patch: { x: docRecord.x, y: docRecord.y, constraint: docRecord.constraint },
+      },
+    });
+  },
 });
+
+const {
+  create: createUserPointRaw,
+  delete: deleteUserPoint,
+  find: findUserRec,
+  removeAll: removeUserPointEls,
+  restore: restoreUserPoints,
+  setFollow: setUserPointFollow,
+  setFollowTarget: setUserPointFollowTarget,
+  setShowCoords: setPointShowCoords,
+  snapshot: snapshotUserPoints,
+} = pointsCtrl;
+
+/** 工具对象 → 文档的提交/删除桥接 */
+const commitBridge = createGraphCommitBridge({
+  getStore: () => state.graphStore,
+  getPointsCtrl: () => pointsCtrl,
+  getState: () => state,
+  fallbackDeleteUserPoint: (el) => deleteUserPoint(el),
+  fallbackDeleteConstruction: (cid) => deleteConstruction(makeDrawHost(), cid),
+});
+const { commitPointDocument, commitConstructionDocument, removeConstructionById, removeUserPointById } = commitBridge;
+
+/** 包一层：所有工具创建点都进文档 */
+const createUserPoint = (x, y, options = {}) => {
+  const rec = createUserPointRaw(x, y, options);
+  if (rec) commitPointDocument(rec);
+  return rec;
+};
 
 function makeDrawHost() {
   return {
@@ -560,18 +601,13 @@ async function handleToolTapBody(ctx, tool) {
       hit ||
       null;
     if (delHit?._mathUserPoint) {
-      deleteUserPoint(delHit);
+      const rec = findUserRec(delHit);
+      if (rec) removeUserPointById(rec.id);
       clearToolPick();
       return;
     }
     if (delHit?._mathConstrId) {
-      const cid = delHit._mathConstrId;
-      const rec = state.constructions.find((c) => c.id === cid);
-      if (rec?.kind === 'intersect' && rec.pointIds?.[0]) {
-        const up = state.userPoints.find((p) => p.id === rec.pointIds[0]);
-        if (up) deleteUserPoint(up.el);
-      }
-      deleteConstruction(host, cid);
+      removeConstructionById(delHit._mathConstrId);
       clearToolPick();
       return;
     }
@@ -582,7 +618,7 @@ async function handleToolTapBody(ctx, tool) {
         const dy = Number(rec.el.Y()) - usrY;
         const unit = Math.abs(Number(state.board.unitX) || 40);
         if (Math.hypot(dx, dy) * unit < 16) {
-          deleteUserPoint(rec.el);
+          removeUserPointById(rec.id);
           clearToolPick();
           return;
         }
@@ -628,7 +664,7 @@ async function handleToolTapBody(ctx, tool) {
     const p1 = host.findUserEl(pick.pointId);
     const p2 = rec.el;
     if (p1 && p2) {
-      createSegmentOrLine(host, tool, p1, p2, [pick.pointId, rec.id]);
+      commitConstructionDocument(createSegmentOrLine(host, tool, p1, p2, [pick.pointId, rec.id]));
     }
     clearToolPick();
     return;
@@ -675,7 +711,7 @@ async function handleToolTapBody(ctx, tool) {
       state.toolStrip?.setHint?.('无法在此处创建切点');
       return;
     }
-    createTangent(host, anchorEl, fn, pid);
+    commitConstructionDocument(createTangent(host, anchorEl, fn, pid));
     clearToolPick();
     return;
   }
@@ -713,7 +749,7 @@ async function handleToolTapBody(ctx, tool) {
     // 优先：已有直线/线段/切线 → 作垂足
     const lineHit = isLineLike(hit) ? hit : null;
     if (lineHit && hit._mathConstrId) {
-      createPerpToLine(host, pt, lineHit, pick.pointId, hit._mathConstrId);
+      commitConstructionDocument(createPerpToLine(host, pt, lineHit, pick.pointId, hit._mathConstrId));
       clearToolPick();
       return;
     }
@@ -724,7 +760,7 @@ async function handleToolTapBody(ctx, tool) {
     const axisTol = Math.max(0.35, followTol() * 1.2);
     if (Math.min(distToX, distToY) <= axisTol) {
       const axis = distToX <= distToY ? 'x' : 'y';
-      createPerpToAxis(host, pt, axis, pick.pointId);
+      commitConstructionDocument(createPerpToAxis(host, pt, axis, pick.pointId));
       clearToolPick();
       return;
     }
@@ -732,14 +768,14 @@ async function handleToolTapBody(ctx, tool) {
     // 曲线：从点向曲线作垂线（垂足）；若点已在曲线上则作法线
     const fnHit = resolveCurveFromTap(hit, usrX, usrY);
     if (fnHit) {
-      createPerpToFn(host, pt, fnHit, pick.pointId);
+      commitConstructionDocument(createPerpToFn(host, pt, fnHit, pick.pointId));
       clearToolPick();
       return;
     }
 
     // 默认：离哪条轴更近垂向哪条
     const axis = distToX <= distToY ? 'x' : 'y';
-    createPerpToAxis(host, pt, axis, pick.pointId);
+    commitConstructionDocument(createPerpToAxis(host, pt, axis, pick.pointId));
     clearToolPick();
     return;
   }
@@ -790,6 +826,7 @@ async function handleIntersectTap(host, ctx) {
       state.toolStrip?.setHint?.('请选择另一条不同的曲线');
       return;
     }
+    // 交点 GraphPoint 已由 createUserPoint 包装器提交（constraint: intersection）
     const made = createFnIntersection(host, pick.fnId, fnHit.id);
     if (!made) {
       void appAlert('这两条曲线在定义域附近暂无交点', { title: '交点' });
@@ -804,10 +841,10 @@ async function handleIntersectTap(host, ctx) {
       state.toolStrip?.setHint?.('请选择另一条直线');
       return;
     }
-    createLineIntersection(host, pick.el, hit, [
+    commitConstructionDocument(createLineIntersection(host, pick.el, hit, [
       pick.constrId,
       hit._mathConstrId,
-    ]);
+    ]));
     clearToolPick();
     return;
   }
@@ -923,51 +960,43 @@ function remintFnColorsForTheme() {
   remintFunctionColors(state.functions);
 }
 
-function rebuildCurve() {
-  curveRebuildTask.cancel();
+/** 创建单条函数曲线（增量路径与全量重建共用） */
+function createFnCurve(fn) {
   const board = state.board;
-  if (!board) return;
-  // 生命周期：重建包 withPreservedViewport，避免镜头被图例/fullUpdate 打回
-  withPreservedViewport(board, () => {
-    remintFnColorsForTheme();
-    const c = colors();
-    const savedUsers = snapshotUserPoints();
-    const savedConstr = snapshotConstructions(makeDrawHost());
-    clearAllConstructions(makeDrawHost());
-    removeUserPointEls();
-    clearExtras(board);
-    removeAllFnCurves(board);
-    state.curve = null;
-
+  if (!board || !fn || !fn.visible) return null;
+  const c = colors();
   const x0 = Number.isFinite(state.fXMin) ? state.fXMin : -10;
   const x1 = Number.isFinite(state.fXMax) ? state.fXMax : 10;
   const xLo = Math.min(x0, x1);
   const xHi = Math.max(x0, x1);
-
-  for (const fn of state.functions) {
-    if (!fn.visible) continue;
-    const stroke = fn.color || c.stamp;
-    const curve = board.create(
-      'functiongraph',
-      [
-        (x) => {
-          const y = evalFnY(fn, x);
-          return y == null ? NaN : y;
-        },
-        xLo,
-        xHi,
-      ],
-      {
-        strokeColor: stroke,
-        strokeWidth: fn.id === state.activeFnId ? 3.2 : 2.4,
-        name: fn.id,
+  const stroke = fn.color || c.stamp;
+  const curve = board.create(
+    'functiongraph',
+    [
+      (x) => {
+        const y = evalFnY(fn, x);
+        return y == null ? NaN : y;
       },
-    );
-    fn.curve = curve;
-    curve._mathFnId = fn.id;
-  }
+      xLo,
+      xHi,
+    ],
+    {
+      strokeColor: stroke,
+      strokeWidth: fn.id === state.activeFnId ? 3.2 : 2.4,
+      name: fn.id,
+    },
+  );
+  fn.curve = curve;
+  curve._mathFnId = fn.id;
+  return curve;
+}
 
-  mirrorActiveToLegacy();
+/** 重绘活动预设函数的渐近线 + 特征点（先清除旧 marks/asy） */
+function paintActiveFeatureMarks() {
+  const board = state.board;
+  if (!board) return;
+  clearExtras(board);
+  const c = colors();
   const act = activeFn();
   if (act?.kind === 'preset' && act.preset) {
     const preset = /** @type {any} */ (act.preset);
@@ -1068,6 +1097,86 @@ function rebuildCurve() {
       state.marks.push(pt);
     }
   }
+}
+
+/**
+ * 卸载某函数的所有 runtime 依赖对象（跟随点 / 函数交点 / 依赖构造）。
+ * 必须在重建该函数曲线前调用。
+ * @param {string} fnId
+ */
+function detachFunctionDependents(fnId) {
+  const board = state.board;
+  if (!board) return;
+  for (const rec of state.userPoints.slice()) {
+    const tid = rec.followTargetId;
+    const isFollow =
+      tid === curveFollowTargetId(fnId) ||
+      parseFeatureFollowTargetId(tid)?.fnId === fnId;
+    const isIntersection = rec.intersectFnIds?.includes(fnId);
+    if (!isFollow && !isIntersection) continue;
+    try {
+      board.removeObject(rec.el);
+    } catch {
+      /* */
+    }
+    state.userPoints = state.userPoints.filter((r) => r.id !== rec.id);
+  }
+  for (const rec of state.constructions.slice()) {
+    if (rec.fnId !== fnId && !rec.fnIds?.includes(fnId)) continue;
+    detachConstr(rec, board);
+    state.constructions = state.constructions.filter((c) => c.id !== rec.id);
+  }
+  reregisterSelectable();
+}
+
+/**
+ * 函数曲线重建后，按文档记录恢复其依赖（顺序：跟随点 → 函数交点 → 构造）。
+ * @param {string} fnId
+ * @param {any} doc
+ */
+function rebindFunctionDependents(fnId, doc) {
+  for (const pt of doc.points || []) {
+    const constraint = pt.constraint;
+    if (!constraint || typeof constraint !== 'object') continue;
+    const depends =
+      (constraint.kind === 'followFunction' && constraint.functionId === fnId) ||
+      (constraint.kind === 'followFeature' && constraint.functionId === fnId) ||
+      (constraint.kind === 'intersection' && constraint.targetIds?.includes(fnId));
+    if (depends) pointLayer.add(pt);
+  }
+  for (const rec of doc.constructions || []) {
+    if (rec.fnId !== fnId && !rec.fnIds?.includes(fnId)) continue;
+    constructionLayer.add(rec);
+  }
+  reregisterSelectable();
+}
+
+/** 活动函数变化 / 活动函数参数变化后刷新特征点与渐近线 */
+function refreshActiveMarks() {
+  paintActiveFeatureMarks();
+}
+
+function rebuildCurve() {
+  curveRebuildTask.cancel();
+  const board = state.board;
+  if (!board) return;
+  // 生命周期：重建包 withPreservedViewport，避免镜头被图例/fullUpdate 打回
+  withPreservedViewport(board, () => {
+    remintFnColorsForTheme();
+    const savedUsers = snapshotUserPoints();
+    const savedConstr = snapshotConstructions(makeDrawHost());
+    clearAllConstructions(makeDrawHost());
+    removeUserPointEls();
+    clearExtras(board);
+    removeAllFnCurves(board);
+    state.curve = null;
+
+    for (const fn of state.functions) {
+      createFnCurve(fn);
+    }
+
+    mirrorActiveToLegacy();
+    paintActiveFeatureMarks();
 
     restoreUserPoints(savedUsers);
     restoreConstructions(makeDrawHost(), savedConstr, { notify: false });
@@ -1240,13 +1349,35 @@ function buildInitialDocument() {
   return doc;
 }
 
-/** beforeCommit 适配器：把 candidate 文档投影到既有 runtime（Task 6/7 换增量 layer）。 */
+const pointLayer = createPointLayer({
+  controller: pointsCtrl,
+  getRecords: () => state.userPoints,
+});
+
+const constructionLayer = createConstructionLayer({
+  makeHost: () => makeDrawHost(),
+  getConstructions: () => state.constructions,
+});
+
+/** 视口桥接：view/update 的 apply guard + boundingbox → 文档（250ms 合并） */
+const viewBridge = createGraphViewBridge({
+  getBoard: () => state.board,
+  getStore: () => state.graphStore,
+  getState: () => state,
+});
+
+/** beforeCommit 适配器：把 candidate 文档投影到既有 runtime（plan 驱动，增量）。 */
 const syncRuntimeFromDocument = createGraphRuntimeSyncAdapter({
   getState: () => state,
+  createFunctionCurve: createFnCurve,
   detachFnCurve,
+  detachFunctionDependents,
+  rebindFunctionDependents,
+  refreshActiveMarks,
   mirrorActiveToLegacy,
-  rebuildCurve,
-  scheduleCurveRebuild: () => curveRebuildTask.schedule(),
+  pointLayer,
+  constructionLayer,
+  applyView: (view) => viewBridge.applyViewFromDocument(view),
   renderFnList,
   syncParamPanel,
   paintReadouts,
@@ -1397,6 +1528,12 @@ export function initGraphUI() {
     },
   });
   bindPointLabelFusion(state.board);
+  // 视口平移/缩放 → 文档 view/update（250ms 静默合并；applyView 有防回环 guard）
+  try {
+    state.board.on?.('boundingbox', () => viewBridge.onBoardBoundingBox());
+  } catch {
+    /* */
+  }
 
   // 默认一条二次
   if (!state.functions.length) {
@@ -1478,14 +1615,7 @@ export function initGraphUI() {
         /* */
       }
       if (el?._mathConstrId) {
-        const host = makeDrawHost();
-        const cid = el._mathConstrId;
-        const rec = state.constructions.find((c) => c.id === cid);
-        if (rec?.kind === 'intersect' && rec.pointIds?.[0]) {
-          const up = state.userPoints.find((p) => p.id === rec.pointIds[0]);
-          if (up) deleteUserPoint(up.el);
-        }
-        deleteConstruction(host, cid);
+        removeConstructionById(el._mathConstrId);
         return;
       }
       const fn =
@@ -1495,7 +1625,8 @@ export function initGraphUI() {
         deleteFn(fn.id);
         return;
       }
-      deleteUserPoint(el);
+      const rec = findUserRec(el);
+      if (rec) removeUserPointById(rec.id);
     },
     canExtend: (el) => {
       if (!el?._mathConstrId) return false;
@@ -1511,6 +1642,13 @@ export function initGraphUI() {
     },
     setExtend: (el, on) => {
       if (!el?._mathConstrId || el.elType !== 'segment') return;
+      if (state.graphStore) {
+        state.graphStore.dispatch({
+          type: 'construction/update',
+          payload: { id: el._mathConstrId, patch: { extend: Boolean(on) } },
+        });
+        return;
+      }
       setConstructionExtend(makeDrawHost(), el, on);
       try {
         state.board?.update?.();
@@ -1638,6 +1776,12 @@ export function disposeGraph() {
     clearTimeout(state.coeffTxTimer);
     state.coeffTxTimer = null;
     state.graphStore?.cancelTransaction();
+  }
+  viewBridge.dispose();
+  try {
+    state.board?.off?.('boundingbox');
+  } catch {
+    /* */
   }
   state.historyController?.dispose?.();
   state.historyController = null;
