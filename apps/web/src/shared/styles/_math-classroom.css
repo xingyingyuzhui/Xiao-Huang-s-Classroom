@@ -2329,3 +2329,16 @@
   color: var(--text-secondary);
   font-size: 0.8rem;
 }
+
+/* —— 探针读数 —— */
+
+.math-probe-readout {
+  margin: 0 0 0.35rem;
+  padding: 0.3rem 0.5rem;
+  border-radius: 8px;
+  background: var(--diagram-soft, var(--note-soft));
+  color: var(--diagram, #0f766e);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.4;
+}

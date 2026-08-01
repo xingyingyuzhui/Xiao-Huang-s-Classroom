@@ -5,6 +5,7 @@
 /** @type {BoardToolDef[]} */
 export const GRAPH_BOARD_TOOLS = [
   { id: 'select', label: '选择', hint: '拖动自由点 · 双击改样式' },
+  { id: 'probe', label: '探针', hint: '沿曲线读取坐标，并联动对应表' },
   { id: 'point', label: '加点', hint: '点击画板空白处加点' },
   { id: 'segment', label: '线段', hint: '依次点击两个点' },
   { id: 'line', label: '直线', hint: '依次点击两个点' },

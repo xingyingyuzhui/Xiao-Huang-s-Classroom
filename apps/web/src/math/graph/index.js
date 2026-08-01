@@ -61,6 +61,7 @@ import {
 } from './graph-renderer.js';
 import { createPointLayer } from './point-layer.js';
 import { createConstructionLayer } from './construction-layer.js';
+import { createProbeController } from './probe-controller.js';
 import { constructionDocumentRecord } from './construction/restore.js';
 import {
   evaluateGraphFunction as evalFnY,
@@ -172,6 +173,7 @@ const state = {
   viewTxTimer: null,
   viewApplying: false,
   graphPersistence: null,
+  probe: null,
   persistenceController: null,
   storeUnsub: null,
   notesUnsub: null,
@@ -1287,6 +1289,32 @@ function bindReadoutCards() {
   ensureMathFloatCardsBound();
 }
 
+/** 探针读数：在活动函数对应表上方显示当前 x/y（transient，不进文档） */
+function renderProbeReadout(samples, x) {
+  const row = document.getElementById('mathGraphProbeReadout');
+  if (!row) return;
+  if (x == null || !samples || !samples.length) {
+    row.textContent = '';
+    row.hidden = true;
+    return;
+  }
+  const active = samples.find((s) => s.valid);
+  if (!active) {
+    row.textContent = '曲线外';
+    row.hidden = false;
+    return;
+  }
+  row.textContent = `${active.label}  x=${formatProbeNumber(active.x)}  y=${formatProbeNumber(active.y)}`;
+  row.hidden = false;
+}
+
+/** @param {number} value */
+function formatProbeNumber(value) {
+  if (!Number.isFinite(value)) return '—';
+  const f = Number(value.toFixed(2));
+  return Object.is(f, -0) ? '0' : String(f);
+}
+
 function syncSliders() {
   for (const [id, key, numId] of [
     ['mathGraphA', 'a', 'mathGraphANum'],
@@ -1715,10 +1743,33 @@ export function initGraphUI() {
     host: stageEl,
     tools: GRAPH_BOARD_TOOLS,
     initialTool: 'select',
-    onChange: (_id, setOpts = {}) => {
+    onChange: (next, setOpts = {}) => {
       clearToolPick();
       if (!setOpts.oneShot) state.toolOneShot = false;
+      // 探针工具激活/退出（transient，不写文档）
+      if (next === 'probe') state.probe?.activate?.();
+      else state.probe?.deactivate?.();
     },
+  });
+
+  // 探针：transient 十字线/读数；pointer move 帧合并，不写文档/历史/自动保存
+  state.probe?.dispose?.();
+  state.probe = createProbeController({
+    board: state.board,
+    getFunctions: () => state.functions,
+    getActiveFunctionId: () => state.activeFnId,
+    resolveEvaluator: (fn) => (x) => evalFnY(fn, x),
+    labelFor: fnDisplayLabel,
+    getTick: () => {
+      try {
+        return Math.abs(Number(state.board.unitX)) || 1;
+      } catch {
+        return 1;
+      }
+    },
+    readoutEl: /** @type {any} */ (document.getElementById('mathGraphProbeReadout')),
+    eventTarget: window,
+    onSample: renderProbeReadout,
   });
 
   state.toolPointer?.dispose?.();
@@ -1904,6 +1955,8 @@ export function disposeGraph() {
   state.toolPointer = null;
   state.toolStrip?.dispose?.();
   state.toolStrip = null;
+  state.probe?.dispose?.();
+  state.probe = null;
   state.toolPick = null;
   state.compass?.dispose?.();
   state.compass = null;
