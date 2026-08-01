@@ -82,7 +82,7 @@ flowchart TD
 | 模块 | 职责 |
 |------|------|
 | 新建 `math/shared/point-label-fusion.js` | 纯函数：`classifyPointRole`、`clusterLabeledPoints`、`formatFusedPointLabel`、`applyFusionToCluster`；**不** import `graph` |
-| `math/shared/board-label.js` | 导出 `setLabelContent`（或 `writeElementLabel`）；`ensurePointGeomHook` 的 `run` 在 live/dep ticks **之后**、`label.updateText` / `setAutoPosition` **之前** 调用 `board._mathRefreshPointLabelFusion?.()`；未注册则 no-op。单点 tick 若见 `_mathLabelFusionSuppressed` 则写空串短路 |
+| `math/shared/board-label.js` | 导出 `setLabelContent`（或沿用 `writeElementLabel`）；`ensurePointGeomHook` 的 `run` **顺序必须写死**：`_mathSnapTick` → `_mathLiveLabelTick` → `_mathDepLabelTicks` → `_mathDepIntersectTicks` → **`board._mathRefreshPointLabelFusion?.()`** → `label.updateText` / `setAutoPosition`。未注册则 no-op。单点 tick 若见 `_mathLabelFusionSuppressed` 则写空串短路（防止 intersect tick 把融合结果盖回单点文案后，仍靠 fusion 覆盖；suppress 成员在单独被 tick 时保持空串） |
 | `math/shared/board-snap.js` | 不改 API；fusion 复用 `snapTolerance` |
 | `math/shared/frame-task.js` | CRUD / 视口变更路径用 `createFrameTask` 合并同帧多次 schedule |
 | `math/graph/index.js` | mount 时注册：`board._mathListLabeledPoints`、`board._mathRefreshPointLabelFusion`（内部 list → cluster → apply）；dispose 时清掉回调并 `cancel` frame task；特征点创建处设 `_mathFeatureMark = true` |
@@ -91,8 +91,8 @@ flowchart TD
 
 ### 4.2 写入策略（避免闪一帧）
 
-- **拖动路径（geom hook）**：同一次 `run` 内 **同步** 调用 `board._mathRefreshPointLabelFusion()`，在 `updateText`/`setAutoPosition` 之前完成 suppress/融合写入。
-- **CRUD / rebuild / 视口变更**：`schedule()` 到 `createFrameTask`，同帧多次合并为一次；task 内执行同一 refresh。
+- **拖动路径（geom hook）**：同一次 `run` 内 **同步** 调用 fusion（插在 intersect ticks 与 `updateText` 之间），完成 suppress/融合写入后再 `updateText`/`setAutoPosition`。
+- **CRUD / rebuild / 视口 / 交点显隐**：`schedule()` 到 `createFrameTask`，同帧多次合并为一次；task 内执行同一 refresh。
 - 统一 refresh 是 **唯一** 写融合结果的权威路径：对代表 `setLabelContent(el, fusedText)` 并 `_mathLabelFusionSuppressed = false`；对非代表 `setLabelContent(el, '')` 并 `_mathLabelFusionSuppressed = true`；对已不在任何多点簇的点清除 suppress，并用该点原 `_mathLiveLabelTick` / 绑定的 getText 恢复单点文案。
 
 ### 4.3 元素字段
@@ -105,12 +105,15 @@ flowchart TD
 
 必须调度 refresh 的路径：
 
-1. 参与点的 `ensurePointGeomHook` run（同步）
+1. 参与点的 `ensurePointGeomHook` run（同步；见 §4.1 顺序）
 2. 用户点创建 / 删除 / 恢复后
 3. 构造（交点、垂足等）创建 / 删除 / restore 后
 4. 特征点随曲线 rebuild 重建后
 5. 「显示坐标」切换后（`setShowCoords` / 样式面板）
 6. **视口变更**：图例改 bbox、滚轮缩放、导航缩放/平移、罗盘回到原点等会改变 `unitX`/`unitY`（从而改变 tol）的路径 — 均 `schedule` 同一 fusion frame task
+7. **交点显隐变更**：`setConstructionExtend` → `refreshIntersectVisibilityFor`（以及任何改写 `_mathIntersectOnBody` / 交点 `visible` 的路径）结束后必须 `schedule` fusion；否则隐藏交点的名字会残留在融合串中
+
+实现上：graph 的 `host.onChanged` / 显隐 helper 出口统一 `schedule` 一次即可，避免每个调用点漏接。
 
 ## 6. 测试
 
@@ -124,10 +127,11 @@ flowchart TD
 | 用户点 + 交点 | 用户点为代表；文案 `U1·交点(…)` |
 | 仅一员开坐标 | 仍显示一份坐标 |
 | 全员关坐标 | 仅拼接名字 |
-| 不可见 / `_mathIntersectOnBody === false` | 不入候选 |
+| 不可见 / `_mathIntersectOnBody === false` | 不入候选；显隐切换后 schedule 会去掉融合串中的残留名 |
 | 删簇内一员 | 剩余若仍 ≥2 则重算；若只剩 1 则恢复单点标签 |
 | 名字序 | 同比较器；重复 baseName 不去重 |
-| 接线 | rebuild、delete、viewport、setShowCoords 会调用 refresh/schedule；`board-label` 不 import `graph`；特征点带 `_mathFeatureMark` |
+| hook 顺序 | fusion 在 `_mathDepIntersectTicks` 之后、`updateText` 之前 |
+| 接线 | rebuild、delete、viewport、setShowCoords、交点显隐会调用 refresh/schedule；`board-label` 不 import `graph`；特征点带 `_mathFeatureMark` |
 
 ## 7. 风险与边界
 
