@@ -28,6 +28,7 @@ function escapeHtml(value) {
  *   detachFunctionCurve: (fn: any) => void,
  *   paintReadouts: () => void,
  *   syncSliders: () => void,
+ *   store: () => any,
  * }} context
  */
 export function createFunctionPanelController(context) {
@@ -40,8 +41,13 @@ export function createFunctionPanelController(context) {
 
   const commitRecord = (record) => {
     state.fnSeq += 1;
-    state.functions.push(record);
-    state.activeFnId = record.id;
+    const store = context.store?.();
+    if (store) {
+      store.dispatch({ type: 'function/add', payload: { function: record } });
+    } else {
+      state.functions.push(record);
+      state.activeFnId = record.id;
+    }
   };
 
   function render() {
@@ -167,9 +173,7 @@ export function createFunctionPanelController(context) {
       preset,
     });
     commitRecord(record);
-    context.mirrorActiveToLegacy();
     hideAdd();
-    context.rebuildCurve();
   }
 
   function addCustom(raw, options = {}) {
@@ -188,7 +192,6 @@ export function createFunctionPanelController(context) {
     const status = document.getElementById('mathFnExprStatus');
     if (status) status.textContent = '';
     hideAdd();
-    context.rebuildCurve();
     return true;
   }
 
@@ -196,10 +199,8 @@ export function createFunctionPanelController(context) {
     const result = createFunctionRecordFromAiSpec(spec, pendingIdentity());
     if (!result.ok) return false;
     commitRecord(result.record);
-    if (result.record.kind === 'preset') context.mirrorActiveToLegacy();
     hideAdd();
     hideAi();
-    context.rebuildCurve();
     return true;
   }
 
@@ -252,6 +253,14 @@ export function createFunctionPanelController(context) {
 
   function select(id) {
     if (!state.functions.some((fn) => fn.id === id)) return;
+    const store = context.store?.();
+    if (store) {
+      store.dispatch({
+        type: 'presentation/update',
+        payload: { patch: { activeFunctionId: id } },
+      });
+      return;
+    }
     state.activeFnId = id;
     context.mirrorActiveToLegacy();
     render();
@@ -263,6 +272,11 @@ export function createFunctionPanelController(context) {
   function remove(id) {
     if (state.functions.length <= 1) {
       void appAlert('至少保留一条函数', { title: '无法删除' });
+      return;
+    }
+    const store = context.store?.();
+    if (store) {
+      store.dispatch({ type: 'function/remove', payload: { id } });
       return;
     }
     const record = state.functions.find((fn) => fn.id === id);

@@ -1,5 +1,38 @@
 /* —— 函数画布：侧栏函数列表（对标 3D 分子列表） —— */
 
+.math-history-controls {
+  display: flex;
+  gap: 0.25rem;
+  margin-left: auto;
+  margin-right: 0.35rem;
+}
+
+.math-history-btn {
+  appearance: none;
+  border: var(--ui-stroke) solid var(--border-ink);
+  background: var(--card-elevated);
+  color: var(--text-primary);
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  text-align: center;
+  cursor: pointer;
+  font: inherit;
+  font-size: 1.05rem;
+  line-height: 1;
+  box-shadow: var(--shadow-print-sm);
+}
+
+.math-history-btn:hover:not(:disabled) {
+  background: var(--diagram-soft);
+}
+
+.math-history-btn:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
 .math-fn-toolbar {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;

@@ -48,7 +48,11 @@ export function reduceGraphDocument(document, action) {
       if (!fn || typeof fn !== 'object' || typeof fn.id !== 'string' || !fn.id) return document;
       if (fn.kind !== 'preset' && fn.kind !== 'custom') return document;
       if (document.functions.some((f) => f.id === fn.id)) return document;
-      return { ...document, functions: [...document.functions, fn] };
+      return {
+        ...document,
+        functions: [...document.functions, fn],
+        presentation: { ...document.presentation, activeFunctionId: fn.id },
+      };
     }
 
     case 'function/update': {
@@ -186,6 +190,14 @@ export function reduceGraphDocument(document, action) {
       return replacement;
     }
 
+    case 'history/restore': {
+      // 历史恢复：与 document/replace 同语义，但 action 带 record:false 标记
+      const replacement = action.payload?.document;
+      if (!replacement || typeof replacement !== 'object') return document;
+      if (replacement === document) return document;
+      return replacement;
+    }
+
     default:
       return document;
   }
@@ -250,8 +262,24 @@ export function createGraphStore(initialDocument, options = {}) {
      */
     dispatch(action) {
       if (transaction) {
-        transaction.candidate = reduceGraphDocument(transaction.candidate, action);
-        return transaction.candidate;
+        // 事务内：reducer 计算 preview candidate，允许 renderer 看到 preview，
+        // 但不修改 current、不通知 subscriber。
+        const preview = reduceGraphDocument(transaction.candidate, action);
+        if (preview === transaction.candidate) return transaction.candidate;
+        let check;
+        try {
+          check = beforeCommit({
+            previous: transaction.previous,
+            candidate: preview,
+            action,
+            preview: true,
+          });
+        } catch {
+          check = { ok: false };
+        }
+        if (!check || check.ok === false) return transaction.candidate;
+        transaction.candidate = preview;
+        return preview;
       }
       const previous = current;
       const candidate = reduceGraphDocument(previous, action);

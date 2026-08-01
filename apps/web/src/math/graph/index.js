@@ -49,6 +49,11 @@ import { GRAPH_BOARD_TOOLS } from './tool-definitions.js';
 import { createUserPointController } from './user-points.js';
 import { createFunctionPanelController } from './function-panel.js';
 import { createPresetFunctionRecord } from './function-records.js';
+import { createDefaultGraphDocument } from './graph-document.js';
+import { createGraphStore } from './graph-store.js';
+import { createGraphHistory } from './graph-history.js';
+import { createGraphHistoryController } from './graph-history-controller.js';
+import { createGraphRuntimeSyncAdapter } from './graph-renderer.js';
 import {
   evaluateGraphFunction as evalFnY,
   findFunctionIntersectionNear,
@@ -121,7 +126,7 @@ export const MAIN_CURVE_FOLLOW_ID = 'graph:main';
  * }} FnRec
  */
 
-/** @type {{ board: any, curve: any, marks: any[], asy: any[], coeffs: any, startCoeffs: any, preset: string, ro: ResizeObserver | null, styleBind: any, userPoints: UserPointRec[], constructions: any[], constrSeq: number, toolStrip: any, toolPointer: { dispose: () => void } | null, toolPick: any, compass: { dispose: () => void } | null, notes: { dispose: () => void, isActive: () => boolean, setActive: (on: boolean) => void, redraw: () => void } | null, pointSeq: number, fXMin: number, fXMax: number, axisSettingsApplying: boolean, functions: FnRec[], activeFnId: string | null, fnSeq: number, editMode: boolean, themeHandle: any, escBound: boolean }} */
+/** @type {{ board: any, curve: any, marks: any[], asy: any[], coeffs: any, startCoeffs: any, preset: string, ro: ResizeObserver | null, styleBind: any, userPoints: UserPointRec[], constructions: any[], constrSeq: number, toolStrip: any, toolPointer: { dispose: () => void } | null, toolPick: any, compass: { dispose: () => void } | null, notes: { dispose: () => void, isActive: () => boolean, setActive: (on: boolean) => void, redraw: () => void } | null, pointSeq: number, fXMin: number, fXMax: number, axisSettingsApplying: boolean, functions: FnRec[], activeFnId: string | null, fnSeq: number, editMode: boolean, themeHandle: any, escBound: boolean, graphStore: any, graphHistory: any, historyController: any, coeffTxTimer: any }} */
 const state = {
   board: null,
   curve: null,
@@ -152,6 +157,10 @@ const state = {
   editMode: false,
   themeHandle: null,
   escBound: false,
+  graphStore: null,
+  graphHistory: null,
+  historyController: null,
+  coeffTxTimer: null,
 };
 
 let stageEl = null;
@@ -1214,28 +1223,81 @@ const {
   detachFunctionCurve: detachFnCurve,
   paintReadouts,
   syncSliders,
+  store: () => state.graphStore,
 });
 
-function setCoeffs(next, options = {}) {
-  const fn = activeFn();
-  if (fn && fn.kind === 'preset') {
-    fn.coeffs = { ...fn.coeffs, ...next };
+/** 由 store 文档快照构建初始文档（剔除曲线等 runtime 字段）。 */
+function buildInitialDocument() {
+  const doc = createDefaultGraphDocument({
+    now: () => new Date().toISOString(),
+    functionId: state.functions[0]?.id || 'f1',
+  });
+  doc.functions = state.functions.map((fn) => {
+    const { curve, ...rest } = fn;
+    return rest;
+  });
+  doc.presentation.activeFunctionId = state.activeFnId || state.functions[0]?.id || null;
+  return doc;
+}
+
+/** beforeCommit 适配器：把 candidate 文档投影到既有 runtime（Task 6/7 换增量 layer）。 */
+const syncRuntimeFromDocument = createGraphRuntimeSyncAdapter({
+  getState: () => state,
+  detachFnCurve,
+  mirrorActiveToLegacy,
+  rebuildCurve,
+  scheduleCurveRebuild: () => curveRebuildTask.schedule(),
+  renderFnList,
+  syncParamPanel,
+  paintReadouts,
+});
+
+/** 滑条/参数输入：300ms 静默窗口合并成一条历史 */
+function openCoeffTransaction() {
+  if (state.coeffTxTimer != null) {
+    clearTimeout(state.coeffTxTimer);
+  } else {
+    state.graphStore?.beginTransaction();
   }
-  state.coeffs = { ...(fn?.coeffs || state.coeffs), ...next };
-  syncSliders();
-  if (options.defer) curveRebuildTask.schedule();
-  else rebuildCurve();
+  state.coeffTxTimer = window.setTimeout(() => {
+    state.coeffTxTimer = null;
+    state.graphStore?.commitTransaction();
+  }, 300);
+}
+
+function setCoeffs(next) {
+  const fn = activeFn();
+  if (!fn || fn.kind !== 'preset') return;
+  if (!state.graphStore) {
+    fn.coeffs = { ...fn.coeffs, ...next };
+    state.coeffs = { ...(fn.coeffs || state.coeffs), ...next };
+    syncSliders();
+    rebuildCurve();
+    return;
+  }
+  openCoeffTransaction();
+  state.graphStore.dispatch({
+    type: 'function/update',
+    payload: { id: fn.id, patch: { coeffs: { ...fn.coeffs, ...next } } },
+  });
 }
 
 function ensurePreset(id) {
   const fn = activeFn();
   if (fn && fn.kind === 'preset' && fn.preset === id) return;
   if (fn && fn.kind === 'preset') {
-    fn.preset = id;
-    fn.coeffs = defaultCoeffsFor(/** @type {any} */ (id));
-    mirrorActiveToLegacy();
-    syncSliders();
-    rebuildCurve();
+    if (!state.graphStore) {
+      fn.preset = id;
+      fn.coeffs = defaultCoeffsFor(/** @type {any} */ (id));
+      mirrorActiveToLegacy();
+      syncSliders();
+      rebuildCurve();
+      return;
+    }
+    state.graphStore.dispatch({
+      type: 'function/update',
+      payload: { id: fn.id, patch: { preset: id, coeffs: defaultCoeffsFor(/** @type {any} */ (id)) } },
+    });
     return;
   }
   // 无选中预设时直接加一条
@@ -1351,6 +1413,14 @@ export function initGraphUI() {
   mirrorActiveToLegacy();
   state.startCoeffs = { ...state.coeffs };
 
+  // 文档底座：函数集合作为首个接入 store 的行为（历史/事务链路）
+  state.graphStore?.dispose?.();
+  state.graphStore = createGraphStore(buildInitialDocument(), {
+    beforeCommit: syncRuntimeFromDocument,
+  });
+  state.graphHistory?.dispose?.();
+  state.graphHistory = createGraphHistory(state.graphStore);
+
   bindFnListUi();
 
   const graphPanel = document.getElementById('panel-math-graph');
@@ -1365,7 +1435,7 @@ export function initGraphUI() {
         range: /** @type {HTMLInputElement | null} */ (document.getElementById(id)),
         number: /** @type {HTMLInputElement | null} */ (document.getElementById(numId)),
         onChange: (v) => {
-          setCoeffs({ [key]: v }, { defer: true });
+          setCoeffs({ [key]: v });
         },
       });
     }
@@ -1517,6 +1587,14 @@ export function initGraphUI() {
     storageKey: 'math-graph-board-notes-v1',
   });
 
+  state.historyController?.dispose?.();
+  state.historyController = createGraphHistoryController({
+    eventTarget: window,
+    root: stageEl,
+    history: state.graphHistory,
+    notes: state.notes,
+  });
+
   syncSliders();
   rebuildCurve();
   bindReadoutCards();
@@ -1556,6 +1634,17 @@ export function resizeGraph() {
 
 export function disposeGraph() {
   curveRebuildTask.cancel();
+  if (state.coeffTxTimer != null) {
+    clearTimeout(state.coeffTxTimer);
+    state.coeffTxTimer = null;
+    state.graphStore?.cancelTransaction();
+  }
+  state.historyController?.dispose?.();
+  state.historyController = null;
+  state.graphHistory?.dispose?.();
+  state.graphHistory = null;
+  state.graphStore?.dispose?.();
+  state.graphStore = null;
   hideAddPanel();
   hideAiFnModal();
   dismissBoardNotesMode();
