@@ -173,18 +173,18 @@ export function createBuildBook(ctx) {
       ctx2.fillRect(0, 0, w, h);
 
       const lift = ctx2.createLinearGradient(0, 0, w, h * 0.85);
-      lift.addColorStop(0, 'rgba(255,252,248,0.2)');
-      lift.addColorStop(0.45, 'rgba(255,255,255,0.1)');
+      lift.addColorStop(0, 'rgba(255,252,248,0.15)');
+      lift.addColorStop(0.45, 'rgba(255,255,255,0.07)');
       lift.addColorStop(1, 'rgba(255,255,255,0)');
       ctx2.globalCompositeOperation = 'soft-light';
       ctx2.fillStyle = lift;
       ctx2.fillRect(0, 0, w, h);
 
-      /* 暗封面自适应抬底（有界）：16→≈82, 70→≈84；亮封面（lum≳92）不插手 */
+      /* 暗封面自适应抬底（有界，宁留黑韵不可泛灰）：16→≈67；亮封面（lum≳92）不插手 */
       const deficit = Math.max(0, Math.min(1, (92 - artLum) / 92));
       if (deficit > 0.01) {
         ctx2.globalCompositeOperation = 'screen';
-        ctx2.globalAlpha = Math.min(0.4, deficit * 0.35);
+        ctx2.globalAlpha = Math.min(0.3, deficit * 0.26);
         ctx2.fillStyle = '#ffffff';
         ctx2.fillRect(0, 0, w, h);
         ctx2.globalAlpha = 1;
