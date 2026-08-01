@@ -52,3 +52,24 @@ test('graph orchestrator delegates function collection UI and record creation', 
     'graph/index.js should stay a thin orchestration entry',
   );
 });
+
+test('graph document architecture files exist and stay DOM/JSXGraph-free', () => {
+  for (const file of [
+    'graph-document.js',
+    'graph-store.js',
+    'graph-history.js',
+    'graph-persistence.js',
+    'graph-runtime.js',
+    'graph-renderer.js',
+  ]) {
+    assert.equal(fs.existsSync(path.join(graphDir, file)), true, `${file} is required`);
+  }
+  // 文档模型 / store / history / persistence 是纯逻辑层：禁止直接 import jsxgraph
+  const pureLayers = ['graph-document.js', 'graph-store.js', 'graph-history.js', 'graph-persistence.js'];
+  for (const file of pureLayers) {
+    const src = read(file);
+    assert.doesNotMatch(src, /from\s+['"]jsxgraph['"]/, `${file} must not import jsxgraph`);
+    assert.doesNotMatch(src, /from\s+['"]\.\.\/shared\/jsx-board\.js['"]/, `${file} must not import jsx-board`);
+    assert.doesNotMatch(src, /document\.|window\./, `${file} must not touch browser globals`);
+  }
+});
