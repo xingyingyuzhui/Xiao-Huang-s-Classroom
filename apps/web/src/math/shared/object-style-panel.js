@@ -551,6 +551,11 @@ function buildBubbleApi() {
         } catch {
           /* */
         }
+        try {
+          target.board?._mathSchedulePointLabelFusion?.();
+        } catch {
+          /* */
+        }
       }
     });
     followCurveEl?.addEventListener('change', () => {
