@@ -18,6 +18,7 @@ import {
 } from './theme-feel.js';
 import { createClassroomEnvBuilder } from './classroom-env.js';
 import {
+  W,
   PAGE_N,
   BLOCK_Z,
   PIVOT_Z,
@@ -259,6 +260,24 @@ export function createBookshelfStage(opts) {
       detailEl: detail,
       SLOTS,
     });
+  }
+
+  /** Hero hover Z lift that clears the inward neighbor under the fan pose. */
+  function heroHoverLift(index) {
+    const slot = SLOTS.hero[index];
+    if (!slot) return 0.55;
+    const myZ = slot.p[2];
+    const myRy = Math.abs(slot.r[1] || 0);
+    const sc = slot.s || 1;
+    let need = 0.42;
+    for (const j of [index - 1, index + 1]) {
+      const n = SLOTS.hero[j];
+      if (!n) continue;
+      const nRy = Math.abs(n.r[1] || 0);
+      const fanGap = W * 0.5 * sc * (Math.sin(myRy) + Math.sin(nRy));
+      need = Math.max(need, n.p[2] - myZ + fanGap + 0.28);
+    }
+    return need;
   }
 
   function applyMode() {
@@ -1044,7 +1063,10 @@ export function createBookshelfStage(opts) {
       const dyN = (b.scr.y - ptr.cy) / (innerHeight * 0.3);
       s.tiltY.t = clamp(dxN * 0.28, -0.15, 0.15);
       s.tiltX.t = clamp(-dyN * 0.1, -0.09, 0.1);
-      s.lift.t = 0.3;
+      /* Edge books sit further back; outward fan pulls the shared edge behind
+         the neighbor (math under biology, chemistry under physics). Lift must
+         clear slot Δz + half-width·sin(|ry|) on both sides. */
+      s.lift.t = heroHoverLift(b.index);
       const edge = b.hitEdge != null ? b.hitEdge : 0.5;
       coverBase = 0.085 + edge * 0.16 + clamp(dyN, 0, 1) * 0.09;
     } else {
