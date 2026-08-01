@@ -21,8 +21,9 @@ test('graph function analysis evaluates visible preset and custom records', asyn
     visible: true,
   };
   const custom = {
+    id: 'f1',
     kind: 'custom',
-    evalFn: (x) => x * x,
+    expr: 'x^2',
     visible: true,
   };
 
@@ -35,8 +36,8 @@ test('graph function analysis evaluates visible preset and custom records', asyn
 test('function intersection analysis detects a tangent intersection near the pointer', async () => {
   const { findFunctionIntersectionNear } = await analysis();
   const functions = [
-    { id: 'a', kind: 'custom', evalFn: (x) => (x - 0.137) ** 2, visible: true },
-    { id: 'b', kind: 'custom', evalFn: () => 0, visible: true },
+    { id: 'a', kind: 'custom', expr: '(x-0.137)^2', visible: true },
+    { id: 'b', kind: 'custom', expr: '0', visible: true },
   ];
 
   const hit = findFunctionIntersectionNear(functions, 0, 0, 0.2);

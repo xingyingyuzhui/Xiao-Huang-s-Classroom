@@ -20,6 +20,7 @@ export function createPresetFunctionRecord(options) {
   const coeffs = options.coeffs || {};
   return {
     id: options.id,
+    name: options.name || '',
     kind: 'preset',
     preset,
     coeffs: {
@@ -30,8 +31,8 @@ export function createPresetFunctionRecord(options) {
     expr: '',
     color: options.color,
     visible: true,
-    curve: null,
-    evalFn: null,
+    locked: false,
+    domain: { mode: 'viewport' },
   };
 }
 
@@ -49,14 +50,15 @@ export function createCustomFunctionRecord(options) {
     error: '',
     record: {
       id: options.id,
+      name: options.name || '',
       kind: 'custom',
       preset: null,
       coeffs: { a: 0, b: 0, c: 0 },
       expr: compiled.src,
       color: options.color,
       visible: true,
-      curve: null,
-      evalFn: compiled.fn,
+      locked: false,
+      domain: { mode: 'viewport' },
     },
   };
 }

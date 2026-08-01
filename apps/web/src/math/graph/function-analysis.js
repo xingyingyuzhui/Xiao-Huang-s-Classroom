@@ -3,13 +3,25 @@
 import { evalPreset, formulaText } from './model.js';
 import { formatExprLabel } from '../shared/expr-safe.js';
 import { findRootNear } from './construction/function-roots.js';
+import { createFunctionEvaluatorCache } from './function-evaluator.js';
 
-/** @param {any} fn @param {number} x */
-export function evaluateGraphFunction(fn, x) {
+/** 未显式注入 resolver 时使用的默认编译缓存 */
+const defaultEvaluatorCache = createFunctionEvaluatorCache();
+
+/**
+ * @param {any} fn
+ * @param {number} x
+ * @param {{ resolveEvaluator?: (record: any) => any }} [options]
+ */
+export function evaluateGraphFunction(fn, x, options = {}) {
   if (!fn?.visible) return null;
-  if (fn.kind === 'custom' && typeof fn.evalFn === 'function') return fn.evalFn(x);
   if (fn.kind === 'preset' && fn.preset) {
     return evalPreset(fn.preset, fn.coeffs, x);
+  }
+  if (fn.kind === 'custom') {
+    const evaluator =
+      options.resolveEvaluator?.(fn) ?? defaultEvaluatorCache.resolve(fn);
+    return typeof evaluator === 'function' ? evaluator(x) : null;
   }
   return null;
 }

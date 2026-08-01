@@ -36,5 +36,7 @@ test('custom function record returns validation errors without a partial record'
   assert.equal(invalid.record, null);
   assert.equal(valid.ok, true);
   assert.equal(valid.record.expr, 'x^2');
-  assert.equal(valid.record.evalFn(3), 9);
+  // 记录不再携带求值函数；求值收敛到 function-evaluator sidecar
+  assert.equal('evalFn' in valid.record, false);
+  assert.equal('curve' in valid.record, false);
 });

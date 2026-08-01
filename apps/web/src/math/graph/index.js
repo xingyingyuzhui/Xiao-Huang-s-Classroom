@@ -108,14 +108,16 @@ export const MAIN_CURVE_FOLLOW_ID = 'graph:main';
  *
  * @typedef {{
  *   id: string,
+ *   name: string,
  *   kind: 'preset' | 'custom',
  *   preset: string | null,
  *   coeffs: { a: number, b: number, c: number },
  *   expr: string,
  *   color: string,
  *   visible: boolean,
+ *   locked: boolean,
+ *   domain: { mode: 'viewport' } | { mode: 'custom', min: number, max: number },
  *   curve: any,
- *   evalFn: ((x: number) => number | null) | null,
  * }} FnRec
  */
 

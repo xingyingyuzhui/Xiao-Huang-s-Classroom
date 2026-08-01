@@ -80,15 +80,18 @@ test('function-records.js keeps the current record shape', async () => {
   assert.equal(preset.kind, 'preset');
   assert.equal(preset.preset, 'quadratic');
   assert.equal(preset.visible, true);
-  // 基线：记录目前带 runtime 占位字段；Task 2 将把它们迁入 evaluator/runtime sidecar
-  assert.equal(preset.curve, null);
-  assert.equal(preset.evalFn, null);
+  // 记录只保存持久字段：不携带曲线元素或编译求值函数
+  assert.equal('curve' in preset, false);
+  assert.equal('evalFn' in preset, false);
+  assert.equal(preset.locked, false);
+  assert.deepEqual(preset.domain, { mode: 'viewport' });
 
   const custom = mod.createCustomFunctionRecord({ raw: 'x^2' });
   assert.equal(custom.ok, true);
   assert.equal(custom.record.kind, 'custom');
   assert.equal(custom.record.expr, 'x^2');
-  assert.equal(typeof custom.record.evalFn, 'function', 'custom records compile an evaluator today');
+  assert.equal('evalFn' in custom.record, false);
+  assert.equal('curve' in custom.record, false);
 
   const bad = mod.createCustomFunctionRecord({ raw: 'x^(' });
   assert.equal(bad.ok, false);
