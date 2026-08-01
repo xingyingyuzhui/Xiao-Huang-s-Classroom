@@ -192,7 +192,8 @@ html[data-shell='lab'] .subject-hub {
 
 .bookshelf-hero-word {
   position: absolute;
-  top: max(6.2rem, 15.5vh);
+  /* 与书场一并上移约 5vh，底部留一点顶栏余量 */
+  top: max(1.8rem, calc(max(6.2rem, 15.5vh) - 5vh));
   left: 50%;
   transform: translateX(-50%);
   z-index: 1;
@@ -880,7 +881,7 @@ html[data-theme='pixel'] .bookshelf-hero-word span {
   }
 
   .bookshelf-hero-word {
-    top: max(4.8rem, 12vh);
+    top: max(1.5rem, calc(max(4.8rem, 12vh) - 5vh));
   }
 
   .bookshelf-hero-word span {

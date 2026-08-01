@@ -5,6 +5,13 @@
 import { clamp } from './spring.js';
 
 /**
+ * Hub composition nudge: lift books toward the brand by ~5% of the
+ * visible board height (camera FOV 26° · distance 9.6, matching stage.js).
+ */
+export const HUB_COMPOSITION_LIFT_Y =
+  0.05 * 2 * 9.6 * Math.tan((26 * Math.PI) / 360);
+
+/**
  * @param {object} ctx
  * @param {number} ctx.viewW
  * @param {number} ctx.viewH
@@ -30,7 +37,8 @@ export function computeSlots(ctx) {
     const t = nBooksHero === 1 ? 0.5 : i / (nBooksHero - 1);
     const x = -span / 2 + span * t;
     const dist = Math.abs(i - mid);
-    const y = (SLOTS.portrait ? -0.52 : -0.78) - dist * 0.07;
+    const y =
+      (SLOTS.portrait ? -0.52 : -0.78) - dist * 0.07 + HUB_COMPOSITION_LIFT_Y;
     const z = 0.22 - dist * 0.11;
     const sc = (SLOTS.portrait ? 1.08 : 1.16) - dist * 0.028;
     const k = mid - i;
@@ -44,7 +52,7 @@ export function computeSlots(ctx) {
   }
 
   SLOTS.portal = {
-    p: [0, -0.12, 1.2],
+    p: [0, -0.12 + HUB_COMPOSITION_LIFT_Y, 1.2],
     r: [-0.02, -0.35, 0.03],
     s: SLOTS.portrait ? 1.35 : 1.48,
   };
