@@ -34,6 +34,9 @@ let activeSelection = null;
  *   setShowCoords?: (el: any, on: boolean) => void,
  *   canDelete?: (el: any) => boolean,
  *   deletePoint?: (el: any) => void | Promise<void>,
+ *   canExtend?: (el: any) => boolean,
+ *   getExtend?: (el: any) => boolean,
+ *   setExtend?: (el: any, on: boolean) => void,
  * }}
  */
 let pointOptionHooks = null;
@@ -49,7 +52,7 @@ export function setPointOptionHooks(hooks) {
  * @returns {HTMLElement}
  */
 /** 布局版本：旧气泡 DOM 不匹配时整段重建 */
-const BUBBLE_LAYOUT = 'v4-delete-point';
+const BUBBLE_LAYOUT = 'v8-hidden-extend';
 
 const BUBBLE_INNER = `
     <div class="brand-tip-card math-object-style-card">
@@ -119,10 +122,24 @@ const BUBBLE_INNER = `
               <input type="checkbox" data-role="followCurve" />
               <span>跟随函数</span>
             </label>
-            <button type="button" class="math-point-delete-btn" data-role="deletePoint" hidden>
+            <button type="button" class="math-point-delete-btn" data-role="deletePointInline" hidden>
               删除
             </button>
           </div>
+        </div>
+        <div class="math-field math-field-checks" data-field="lineOptions" hidden>
+          <span class="math-field-label">线选项</span>
+          <div class="math-check-row-inline math-point-options-row">
+            <label class="math-check-row" data-field="extendLine">
+              <input type="checkbox" data-role="extendLine" />
+              <span>延长线</span>
+            </label>
+          </div>
+        </div>
+        <div class="math-field" data-field="objectDelete">
+          <button type="button" class="math-point-delete-btn" data-role="deletePoint">
+            删除
+          </button>
         </div>
       </div>
     </div>
@@ -202,8 +219,13 @@ function buildBubbleApi() {
   const showCoordsEl = /** @type {HTMLInputElement | null} */ ($('showCoords'));
   const followCurveEl = /** @type {HTMLInputElement | null} */ ($('followCurve'));
   const deletePointBtn = /** @type {HTMLButtonElement | null} */ ($('deletePoint'));
+  const deletePointInlineBtn = /** @type {HTMLButtonElement | null} */ ($('deletePointInline'));
+  const extendLineEl = /** @type {HTMLInputElement | null} */ ($('extendLine'));
   const pointOptionsHost = /** @type {HTMLElement | null} */ (
     root.querySelector('[data-field="pointOptions"]')
+  );
+  const lineOptionsHost = /** @type {HTMLElement | null} */ (
+    root.querySelector('[data-field="lineOptions"]')
   );
   const followRow = /** @type {HTMLElement | null} */ (
     root.querySelector('[data-field="followCurve"]')
@@ -274,9 +296,10 @@ function buildBubbleApi() {
     setFieldVisible('size', snap.hasSize);
     setFieldVisible('fontSize', snap.hasFont);
 
-    // 点专属：显示坐标 / 跟随函数
+    // 点专属：显示坐标 / 跟随函数 / 行内删除（线/曲线绝不出这些）
     const isPoint = snap.kind === 'point';
     if (pointOptionsHost) pointOptionsHost.hidden = !isPoint;
+    setFieldVisible('pointOptions', isPoint);
     if (isPoint && target) {
       const showC =
         typeof pointOptionHooks?.getShowCoords === 'function'
@@ -284,7 +307,6 @@ function buildBubbleApi() {
           : Boolean(target._mathShowCoords);
       if (showCoordsEl) showCoordsEl.checked = showC;
 
-      // 仅用户自建点可「跟随函数」；函数自带特征点不显示
       const canFollow =
         typeof pointOptionHooks?.canFollow === 'function'
           ? Boolean(pointOptionHooks.canFollow(target))
@@ -297,15 +319,40 @@ function buildBubbleApi() {
             : Boolean(target._mathFollow);
         followCurveEl.checked = fol;
       }
-      const canDelete =
-        typeof pointOptionHooks?.canDelete === 'function'
-          ? Boolean(pointOptionHooks.canDelete(target))
-          : Boolean(target._mathUserPoint);
-      if (deletePointBtn) deletePointBtn.hidden = !canDelete;
-    } else if (followRow) {
-      followRow.hidden = true;
-      if (deletePointBtn) deletePointBtn.hidden = true;
+    } else {
+      if (followRow) followRow.hidden = true;
+      if (showCoordsEl) showCoordsEl.checked = false;
+      if (followCurveEl) followCurveEl.checked = false;
     }
+
+    // 仅线段 / 垂线实线段：延长线开关（点、直线、切线、曲线都不出）
+    const canExtend =
+      !isPoint &&
+      snap.kind === 'line' &&
+      typeof pointOptionHooks?.canExtend === 'function' &&
+      Boolean(pointOptionHooks.canExtend(target));
+    if (lineOptionsHost) lineOptionsHost.hidden = !canExtend;
+    setFieldVisible('lineOptions', canExtend);
+    if (canExtend && extendLineEl) {
+      const ext =
+        typeof pointOptionHooks?.getExtend === 'function'
+          ? Boolean(pointOptionHooks.getExtend(target))
+          : Boolean(target?._mathExtend);
+      extendLineEl.checked = ext;
+    } else if (extendLineEl) {
+      extendLineEl.checked = false;
+    }
+
+    // 删除：点用行内按钮，其它对象用底部按钮
+    const canDelete =
+      typeof pointOptionHooks?.canDelete === 'function'
+        ? Boolean(pointOptionHooks.canDelete(target))
+        : Boolean(target?._mathUserPoint || target?._mathConstrId || target?._mathFnId);
+    if (deletePointInlineBtn) {
+      deletePointInlineBtn.hidden = !(isPoint && canDelete);
+    }
+    if (deletePointBtn) deletePointBtn.hidden = !(!isPoint && canDelete);
+    setFieldVisible('objectDelete', !isPoint && canDelete);
     syncing = false;
   }
 
@@ -491,6 +538,19 @@ function buildBubbleApi() {
         pointOptionHooks.setShowCoords(target, on);
       } else {
         target._mathShowCoords = on;
+        // 无 lab 钩子时也要立刻刷标签（依赖 getText 读 _mathShowCoords）
+        try {
+          if (typeof target._mathLiveLabelTick === 'function') {
+            target._mathLiveLabelTick();
+          }
+        } catch {
+          /* */
+        }
+        try {
+          target.board?.update?.();
+        } catch {
+          /* */
+        }
       }
     });
     followCurveEl?.addEventListener('change', () => {
@@ -509,6 +569,24 @@ function buildBubbleApi() {
       const el = target;
       if (typeof pointOptionHooks?.deletePoint === 'function') {
         void pointOptionHooks.deletePoint(el);
+      }
+    });
+    deletePointInlineBtn?.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (!target) return;
+      const el = target;
+      if (typeof pointOptionHooks?.deletePoint === 'function') {
+        void pointOptionHooks.deletePoint(el);
+      }
+    });
+    extendLineEl?.addEventListener('change', () => {
+      if (syncing || !target) return;
+      const on = Boolean(extendLineEl.checked);
+      if (typeof pointOptionHooks?.setExtend === 'function') {
+        pointOptionHooks.setExtend(target, on);
+      } else {
+        target._mathExtend = on;
       }
     });
   }

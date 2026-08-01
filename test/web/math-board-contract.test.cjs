@@ -97,13 +97,17 @@ test('jsx-board wheel zoom is gentle; nav +/- keep a larger step', () => {
 
 test('graph follows lifecycle contract', () => {
   const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  const functionPanel = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/function-panel.js'),
+    'utf8',
+  );
   assert.match(src, /withPreservedViewport/);
   assert.match(src, /detachBoardObject|detachFnCurve/);
   assert.match(src, /bindMathThemeRestyle/);
   assert.match(src, /remintFunctionColors|remintFnColorsForTheme/);
   assert.match(src, /colorForFnIndex|getMathBoardChrome/);
   // 删除：先 detach 再 filter
-  assert.match(src, /detachFnCurve\(rec\)[\s\S]*filter/);
+  assert.match(functionPanel, /detachFunctionCurve\(record\)[\s\S]*filter/);
 });
 
 test('graph board tools v1 strip and construction lifecycle are wired', () => {
@@ -116,6 +120,10 @@ test('graph board tools v1 strip and construction lifecycle are wired', () => {
     'utf8',
   );
   const graph = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  const defs = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/tool-definitions.js'),
+    'utf8',
+  );
   const css = fs.readFileSync(
     path.join(root, 'apps/web/src/shared/styles/_math-classroom.css'),
     'utf8',
@@ -131,20 +139,22 @@ test('graph board tools v1 strip and construction lifecycle are wired', () => {
     'intersect',
     'delete',
   ]) {
-    assert.match(tools, new RegExp(`id:\\s*'${id}'`));
+    assert.match(defs, new RegExp(`id:\\s*'${id}'`));
   }
   assert.match(tools, /export function attachBoardToolStrip/);
   assert.match(tools, /export function attachToolPointer/);
-  assert.match(draw, /export function createTangent/);
-  assert.match(draw, /export function createPerpToAxis/);
-  assert.match(draw, /长 \$\{|segmentLengthText|formatSmartNumber/);
+  assert.match(draw, /construction\/render-lines\.js/);
+  assert.match(draw, /construction\/render-perpendiculars\.js/);
+  assert.match(draw, /construction\/render-lines\.js/);
   assert.match(graph, /board-label|formatNamedCoords|BOARD_LABEL_FONT_SIZE/);
-  assert.match(draw, /export function snapshotConstructions/);
-  assert.match(draw, /export function restoreConstructions/);
+  assert.match(draw, /construction\/records\.js/);
+  assert.match(draw, /construction\/restore\.js/);
   assert.match(graph, /attachBoardToolStrip/);
   assert.match(graph, /snapshotConstructions/);
   assert.match(graph, /restoreConstructions/);
   assert.match(graph, /handleToolTap/);
+  assert.match(defs, /export const GRAPH_BOARD_TOOLS/);
+  assert.doesNotMatch(tools, /GRAPH_BOARD_TOOLS/);
   assert.match(tools, /math-board-tool-label/);
   assert.match(css, /\.math-board-tool-label/);
   assert.doesNotMatch(tools, /math-board-tool-icon/);

@@ -15,40 +15,46 @@ import {
   withPreservedViewport,
 } from '../shared/board-lifecycle.js';
 import {
-  BOARD_LABEL_FONT_SIZE,
   applyBoardLabel,
   bindLiveLabel,
   boardLabelAttrs,
-  formatNamedCoords,
-  writeElementLabel,
+  formatElementCoordsLabel,
 } from '../shared/board-label.js';
-import { bindPointIntegerSnap } from '../shared/board-snap.js';
 import {
   GRAPH_PRESETS,
-  evalPreset,
-  formulaText,
   defaultCoeffsFor,
+  formulaText,
   keyFeatures,
   asymptotes,
 } from './model.js';
 import { ensureMathFloatCardsBound } from '../shared/float-cards.js';
 import { bindRangeNumber, syncRangeNumber } from '../shared/param-controls.js';
+import { createFrameTask } from '../shared/frame-task.js';
 import { createBoardSelectionController } from '../shared/object-select.js';
 import {
   bindObjectStyleForPanel,
   setPointOptionHooks,
 } from '../shared/object-style-panel.js';
-import { applyObjectStyle, readObjectStyle } from '../shared/object-style.js';
 import { attachBoardCompass } from '../shared/board-compass.js';
 import { attachBoardNotes, dismissBoardNotesMode } from '../shared/board-notes.js';
 import {
-  GRAPH_BOARD_TOOLS,
   attachBoardToolStrip,
   attachToolPointer,
   getBoardToolDef,
   hitBoardElement,
   hitBoardPrefer,
 } from '../shared/board-tools.js';
+import { GRAPH_BOARD_TOOLS } from './tool-definitions.js';
+import { createUserPointController } from './user-points.js';
+import { createFunctionPanelController } from './function-panel.js';
+import { createPresetFunctionRecord } from './function-records.js';
+import {
+  evaluateGraphFunction as evalFnY,
+  findFunctionIntersectionNear,
+  graphFunctionDisplayLabel as fnDisplayLabel,
+  presetValueTable as valueTable,
+  recomputeFunctionIntersection,
+} from './function-analysis.js';
 import {
   defaultFollowTol,
   findClosestFollowTarget,
@@ -56,22 +62,27 @@ import {
   getFollowTargetById,
   makeFunctionCurveTarget,
 } from '../shared/follow-target.js';
-import { compileMathExpr, formatExprLabel } from '../shared/expr-safe.js';
 import { appConfirm, appAlert } from '../../shared/ui/app-dialog.js';
 import { mountMathNumKeypads } from '../shared/num-keypad.js';
-import { aiApi } from '../../shared/api/client.js';
 import {
+  autoIntersectNewLine,
   clearAllConstructions,
   createFnIntersection,
   createLineIntersection,
+  createNormalAtFn,
   createPerpToAxis,
+  createPerpToFn,
+  createPerpToLine,
   createSegmentOrLine,
   createTangent,
   deleteConstruction,
   isCurveEl,
+  isExtendStyleTarget,
   isLineLike,
+  lineLikeElOf,
   resolveTangentAnchor,
   restoreConstructions,
+  setConstructionExtend,
   snapshotConstructions,
 } from './draw-tools.js';
 
@@ -138,6 +149,8 @@ const state = {
 
 let stageEl = null;
 
+const curveRebuildTask = createFrameTask(() => rebuildCurve());
+
 function followIdForFn(fnId) {
   return `graph:fn:${fnId}`;
 }
@@ -158,21 +171,6 @@ function mirrorActiveToLegacy() {
   }
   state.curve = fn.curve;
   state.startCoeffs = { ...fn.coeffs };
-}
-
-/**
- * @param {string} preset
- * @param {{ a: number, b: number, c: number }} coeffs
- * @param {number[]} [xs]
- */
-function valueTable(preset, coeffs, xs = [-2, -1, 0, 1, 2, 3]) {
-  return xs.map((x) => {
-    const y = evalPreset(/** @type {any} */ (preset), coeffs, x);
-    return {
-      x,
-      y: y == null || !Number.isFinite(y) ? null : y,
-    };
-  });
 }
 
 /** @returns {ReturnType<typeof getMathBoardChrome>} */
@@ -197,74 +195,6 @@ function clearExtras(board) {
   }
   state.marks = [];
   state.asy = [];
-}
-
-/**
- * 生成点标签文案（JSXGraph 的 name 不支持函数，必须是字符串）
- * @param {any} el
- * @param {string} [baseName]
- */
-function formatPointLabel(el, baseName) {
-  const b = el?._mathBaseName || baseName || 'P';
-  if (!el?._mathShowCoords) return b;
-  try {
-    const x = Number(el.X());
-    const y = Number(el.Y());
-    return formatNamedCoords(b, x, y);
-  } catch {
-    return b;
-  }
-}
-
-/**
- * @param {any} el
- */
-function refreshPointLabelText(el) {
-  if (!el) return;
-  if (typeof el._mathLiveLabelTick === 'function') {
-    el._mathLiveLabelTick();
-    return;
-  }
-  writeElementLabel(el, formatPointLabel(el));
-}
-
-/**
- * @param {any} el
- * @param {string} baseName
- * @param {boolean} showCoords
- */
-function applyPointLabel(el, baseName, showCoords) {
-  if (!el) return;
-  el._mathBaseName = baseName;
-  el._mathShowCoords = showCoords;
-  applyBoardLabel(el, {
-    baseName,
-    text: () => formatPointLabel(el, baseName),
-    fontSize: BOARD_LABEL_FONT_SIZE,
-    offset: [14, 14],
-  });
-  bindLiveLabel(el, () => formatPointLabel(el));
-}
-
-/**
- * @param {FnRec} fn
- */
-function evalFnY(fn, x) {
-  if (!fn || !fn.visible) return null;
-  if (fn.kind === 'custom' && fn.evalFn) return fn.evalFn(x);
-  if (fn.kind === 'preset' && fn.preset) {
-    return evalPreset(/** @type {any} */ (fn.preset), fn.coeffs, x);
-  }
-  return null;
-}
-
-/**
- * @param {FnRec} fn
- */
-function fnDisplayLabel(fn) {
-  if (!fn) return '函数';
-  if (fn.kind === 'custom') return formatExprLabel(fn.expr);
-  return formulaText(/** @type {any} */ (fn.preset), fn.coeffs) || fn.preset || '函数';
 }
 
 /**
@@ -301,6 +231,15 @@ function followTol() {
   return defaultFollowTol(state.board);
 }
 
+const recomputeIntersection = (firstId, secondId, nearX) =>
+  recomputeFunctionIntersection(
+    state.functions,
+    firstId,
+    secondId,
+    nearX,
+    followTol(),
+  );
+
 /**
  * 在容差内找最近可跟随目标
  * @param {number} x
@@ -330,343 +269,6 @@ function resolveFollowTarget(x, y, preferredId, opts = {}) {
   return findClosestFollowTarget(x, y, targets)?.target || null;
 }
 
-/**
- * @returns {Array<{ id: string, followTargetId: string | null, intersectFnIds: [string, string] | null, showCoords: boolean, baseName: string, x: number, y: number, style: any }>}
- */
-function snapshotUserPoints() {
-  return state.userPoints.map((rec) => {
-    let x = 0;
-    let y = 0;
-    try {
-      x = Number(rec.el.X());
-      y = Number(rec.el.Y());
-    } catch {
-      /* */
-    }
-    return {
-      id: rec.id,
-      followTargetId: rec.followTargetId || null,
-      intersectFnIds: rec.intersectFnIds ? [...rec.intersectFnIds] : null,
-      showCoords: rec.showCoords,
-      baseName: rec.baseName,
-      x,
-      y,
-      style: readObjectStyle(rec.el, rec.baseName),
-    };
-  });
-}
-
-function removeUserPointEls() {
-  const board = state.board;
-  if (!board) return;
-  for (const rec of state.userPoints) {
-    try {
-      board.removeObject(rec.el);
-    } catch {
-      /* */
-    }
-  }
-  state.userPoints = [];
-}
-
-/**
- * 求两函数差 fA(x)-fB(x)
- * @param {FnRec} fnA
- * @param {FnRec} fnB
- * @param {number} x
- */
-function evalDiff(fnA, fnB, x) {
-  const ya = evalFnY(fnA, x);
-  const yb = evalFnY(fnB, x);
-  if (ya == null || yb == null) return null;
-  return ya - yb;
-}
-
-/**
- * 二分求根
- * @param {FnRec} fnA
- * @param {FnRec} fnB
- * @param {number} lo
- * @param {number} hi
- */
-function bisectRoot(fnA, fnB, lo, hi) {
-  let a = lo;
-  let b = hi;
-  let fa = evalDiff(fnA, fnB, a);
-  let fb = evalDiff(fnA, fnB, b);
-  if (fa == null || fb == null) return null;
-  if (fa === 0) return a;
-  if (fb === 0) return b;
-  if (fa * fb > 0) return null;
-  for (let i = 0; i < 40; i++) {
-    const m = (a + b) / 2;
-    const fm = evalDiff(fnA, fnB, m);
-    if (fm == null) return null;
-    if (Math.abs(fm) < 1e-10 || Math.abs(b - a) < 1e-10) return m;
-    if (fa * fm <= 0) {
-      b = m;
-      fb = fm;
-    } else {
-      a = m;
-      fa = fm;
-    }
-  }
-  return (a + b) / 2;
-}
-
-/**
- * 在 x0 附近窗口内找 fi、fj 的交点（最近根）
- * @param {FnRec} fnA
- * @param {FnRec} fnB
- * @param {number} x0
- * @param {number} win
- * @returns {number | null}
- */
-function findRootNear(fnA, fnB, x0, win) {
-  const samples = 48;
-  const lo = x0 - win;
-  const hi = x0 + win;
-  const step = (hi - lo) / samples;
-  /** @type {number | null} */
-  let best = null;
-  let bestAbs = Infinity;
-  let prevX = lo;
-  let prevD = evalDiff(fnA, fnB, lo);
-  for (let k = 1; k <= samples; k++) {
-    const x = lo + k * step;
-    const d = evalDiff(fnA, fnB, x);
-    if (prevD != null && d != null && prevD * d <= 0) {
-      const r = bisectRoot(fnA, fnB, prevX, x);
-      if (r != null && Number.isFinite(r)) {
-        const ad = Math.abs(r - x0);
-        if (ad < bestAbs) {
-          bestAbs = ad;
-          best = r;
-        }
-      }
-    }
-    prevX = x;
-    prevD = d;
-  }
-  return best;
-}
-
-/**
- * 点击位置附近是否存在两函数交点
- * @param {number} px
- * @param {number} py
- * @returns {{ fnA: FnRec, fnB: FnRec, x: number, y: number } | null}
- */
-function findIntersectionNear(px, py) {
-  const visible = state.functions.filter((f) => f.visible);
-  if (visible.length < 2 || !Number.isFinite(px) || !Number.isFinite(py)) return null;
-  const tol = followTol();
-  const xWin = Math.max(1.2, tol * 6);
-  const hitTol = Math.max(tol * 2.8, 0.55);
-
-  /** @type {{ fnA: FnRec, fnB: FnRec, x: number, y: number } | null} */
-  let best = null;
-  let bestD = Infinity;
-
-  for (let i = 0; i < visible.length; i++) {
-    for (let j = i + 1; j < visible.length; j++) {
-      const fnA = visible[i];
-      const fnB = visible[j];
-      const rx = findRootNear(fnA, fnB, px, xWin);
-      if (rx == null) continue;
-      const ya = evalFnY(fnA, rx);
-      const yb = evalFnY(fnB, rx);
-      if (ya == null || yb == null) continue;
-      if (Math.abs(ya - yb) > 1e-3) continue;
-      const y = (ya + yb) / 2;
-      const d = Math.hypot(rx - px, y - py);
-      if (d < bestD) {
-        bestD = d;
-        best = { fnA, fnB, x: rx, y };
-      }
-    }
-  }
-  if (!best || bestD > hitTol) return null;
-  return best;
-}
-
-/**
- * 根据两函数 id 在附近重算交点
- * @param {string} idA
- * @param {string} idB
- * @param {number} nearX
- * @param {number} nearY
- */
-function recomputeIntersection(idA, idB, nearX, nearY) {
-  const fnA = state.functions.find((f) => f.id === idA);
-  const fnB = state.functions.find((f) => f.id === idB);
-  if (!fnA?.visible || !fnB?.visible) return null;
-  const tol = followTol();
-  const xWin = Math.max(2.5, tol * 10);
-  const rx = findRootNear(fnA, fnB, nearX, xWin);
-  if (rx == null) return null;
-  const ya = evalFnY(fnA, rx);
-  const yb = evalFnY(fnB, rx);
-  if (ya == null || yb == null) return null;
-  if (Math.abs(ya - yb) > 0.05) return null;
-  return { x: rx, y: (ya + yb) / 2 };
-}
-
-/**
- * @param {number} x
- * @param {number} y
- * @param {{
- *   followTargetId?: string | null,
- *   follow?: boolean,
- *   intersectFnIds?: [string, string] | null,
- *   showCoords?: boolean,
- *   id?: string,
- *   baseName?: string,
- *   style?: any,
- * }} [opts] follow 已弃用，请用 followTargetId；true 时解析为主曲线
- */
-function createUserPoint(x, y, opts = {}) {
-  const board = state.board;
-  if (!board) return null;
-  const c = colors();
-  const id = opts.id || `U${state.pointSeq++}`;
-  const baseName = opts.baseName || id;
-  const showCoords = opts.showCoords !== false;
-
-  /** @type {[string, string] | null} */
-  let intersectFnIds =
-    opts.intersectFnIds && opts.intersectFnIds.length === 2
-      ? [opts.intersectFnIds[0], opts.intersectFnIds[1]]
-      : null;
-
-  if (intersectFnIds) {
-    const hit = recomputeIntersection(intersectFnIds[0], intersectFnIds[1], x, y);
-    if (hit) {
-      x = hit.x;
-      y = hit.y;
-    } else {
-      // 两曲线暂无交点：仍落在原位置，但保留交点语义
-    }
-  }
-
-  /** @type {string | null} */
-  let followTargetId = null;
-  if (!intersectFnIds) {
-    followTargetId =
-      opts.followTargetId != null
-        ? opts.followTargetId
-        : opts.follow
-          ? MAIN_CURVE_FOLLOW_ID
-          : null;
-  }
-
-  /** @type {import('../shared/follow-target.js').FollowTarget | null} */
-  let target = null;
-  if (followTargetId) {
-    target = resolveFollowTarget(x, y, followTargetId, { requireNear: false });
-    if (!target) {
-      followTargetId = null;
-    } else {
-      followTargetId = target.id;
-      const sn = target.snap(x, y);
-      if (sn) {
-        x = sn.x;
-        y = sn.y;
-      }
-    }
-  }
-
-  /** @type {any} */
-  let el;
-  if (followTargetId && target?.el) {
-    el = board.create('glider', [x, y, target.el], {
-      name: baseName,
-      size: 5,
-      fillColor: c.stamp,
-      strokeColor: c.pointRing,
-      withLabel: true,
-      label: boardLabelAttrs({
-        strokeColor: c.ink,
-        color: c.ink,
-      }),
-    });
-  } else {
-    el = board.create('point', [x, y], {
-      name: baseName,
-      size: 5,
-      fillColor: c.stamp,
-      strokeColor: c.pointRing,
-      withLabel: true,
-      fixed: Boolean(intersectFnIds),
-      label: boardLabelAttrs({
-        strokeColor: c.ink,
-        color: c.ink,
-      }),
-    });
-  }
-
-  el._mathUserPoint = true;
-  el._mathCanFollow = !intersectFnIds;
-  el._mathFollow = Boolean(followTargetId);
-  el._mathFollowTargetId = followTargetId;
-  el._mathIntersectFnIds = intersectFnIds;
-  el._mathPointId = id;
-  applyPointLabel(el, baseName, showCoords);
-  bindPointIntegerSnap(el, () => state.board, {
-    onSnapped: () => refreshPointLabelText(el),
-  });
-
-  if (opts.style) {
-    applyObjectStyle(el, {
-      strokeColor: opts.style.strokeColor,
-      strokeWidth: opts.style.strokeWidth,
-      fillColor: opts.style.fillColor,
-      fillOpacity: opts.style.fillOpacity,
-      size: opts.style.size,
-      fontSize: opts.style.fontSize,
-    });
-  }
-
-  /** @type {UserPointRec} */
-  const rec = {
-    id,
-    el,
-    followTargetId,
-    intersectFnIds,
-    showCoords,
-    baseName,
-  };
-  state.userPoints.push(rec);
-  return rec;
-}
-
-/**
- * @param {Array<{ id: string, followTargetId?: string | null, follow?: boolean, intersectFnIds?: [string, string] | null, showCoords: boolean, baseName: string, x: number, y: number, style: any }>} saved
- */
-function restoreUserPoints(saved) {
-  for (const s of saved) {
-    const intersectFnIds =
-      s.intersectFnIds && s.intersectFnIds.length === 2
-        ? /** @type {[string, string]} */ ([s.intersectFnIds[0], s.intersectFnIds[1]])
-        : null;
-    const followTargetId = intersectFnIds
-      ? null
-      : s.followTargetId != null
-        ? s.followTargetId
-        : s.follow
-          ? MAIN_CURVE_FOLLOW_ID
-          : null;
-    createUserPoint(s.x, s.y, {
-      id: s.id,
-      followTargetId,
-      intersectFnIds,
-      showCoords: s.showCoords,
-      baseName: s.baseName,
-      style: s.style,
-    });
-  }
-}
-
 function reregisterSelectable() {
   state.styleBind?.selection?.clear?.();
   if (!state.styleBind || !state.board) return;
@@ -689,6 +291,63 @@ function reregisterSelectable() {
   }));
 }
 
+function listSnapTargets(excludeEl) {
+  /** @type {Array<{ x: number, y: number, el?: any }>} */
+  const out = [];
+  const pushEl = (el) => {
+    if (!el || el === excludeEl || el._is_removed) return;
+    try {
+      const x = Number(el.X());
+      const y = Number(el.Y());
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return;
+      out.push({ x, y, el });
+    } catch {
+      /* */
+    }
+  };
+  for (const r of state.userPoints) pushEl(r.el);
+  for (const m of state.marks) pushEl(m);
+  for (const c of state.constructions) {
+    if (!c?.els) continue;
+    for (const el of c.els) {
+      if (!el || el._mathExtendRay) continue;
+      const t = el.elType;
+      if (t === 'point' || t === 'glider' || t === 'perpendicularpoint') pushEl(el);
+    }
+  }
+  return out;
+}
+
+const {
+  create: createUserPoint,
+  delete: deleteUserPoint,
+  find: findUserRec,
+  removeAll: removeUserPointEls,
+  restore: restoreUserPoints,
+  setFollow: setUserPointFollow,
+  setShowCoords: setPointShowCoords,
+  snapshot: snapshotUserPoints,
+} = createUserPointController({
+  getBoard: () => state.board,
+  getRecords: () => state.userPoints,
+  setRecords: (records) => {
+    state.userPoints = records;
+  },
+  nextId: () => `U${state.pointSeq++}`,
+  getColors: colors,
+  resolveFollowTarget,
+  recomputeIntersection,
+  listSnapTargets,
+  makeDrawHost: () => makeDrawHost(),
+  onSelectableChanged: reregisterSelectable,
+  getSelection: () => state.styleBind?.selection || null,
+  getViewportCenter: () => ({
+    x: window.innerWidth / 2,
+    y: window.innerHeight / 2,
+  }),
+  defaultFollowTargetId: MAIN_CURVE_FOLLOW_ID,
+});
+
 function makeDrawHost() {
   return {
     getBoard: () => state.board,
@@ -705,6 +364,7 @@ function makeDrawHost() {
     recomputeIntersection,
     createUserPoint,
     nextConstrId: () => `C${state.constrSeq++}`,
+    listSnapTargets: () => listSnapTargets(),
     onChanged: () => {
       reregisterSelectable();
       try {
@@ -961,7 +621,7 @@ async function handleToolTapBody(ctx, tool) {
         return;
       }
       state.toolPick = { tool: 'perp-axis', pointId: rec.id };
-      state.toolStrip?.setHint?.('再点靠近 x 轴或 y 轴的位置');
+      state.toolStrip?.setHint?.('再点坐标轴 / 直线 / 曲线');
       return;
     }
     const pt = host.findUserEl(pick.pointId);
@@ -969,7 +629,36 @@ async function handleToolTapBody(ctx, tool) {
       clearToolPick();
       return;
     }
-    const axis = Math.abs(usrY) <= Math.abs(usrX) ? 'x' : 'y';
+
+    // 优先：已有直线/线段/切线 → 作垂足
+    const lineHit = isLineLike(hit) ? hit : null;
+    if (lineHit && hit._mathConstrId) {
+      createPerpToLine(host, pt, lineHit, pick.pointId, hit._mathConstrId);
+      clearToolPick();
+      return;
+    }
+
+    // 靠近坐标轴（优先于曲线，避免轴附近曲线抢命中）
+    const distToX = Math.abs(usrY);
+    const distToY = Math.abs(usrX);
+    const axisTol = Math.max(0.35, followTol() * 1.2);
+    if (Math.min(distToX, distToY) <= axisTol) {
+      const axis = distToX <= distToY ? 'x' : 'y';
+      createPerpToAxis(host, pt, axis, pick.pointId);
+      clearToolPick();
+      return;
+    }
+
+    // 曲线：从点向曲线作垂线（垂足）；若点已在曲线上则作法线
+    const fnHit = resolveCurveFromTap(hit, usrX, usrY);
+    if (fnHit) {
+      createPerpToFn(host, pt, fnHit, pick.pointId);
+      clearToolPick();
+      return;
+    }
+
+    // 默认：离哪条轴更近垂向哪条
+    const axis = distToX <= distToY ? 'x' : 'y';
     createPerpToAxis(host, pt, axis, pick.pointId);
     clearToolPick();
     return;
@@ -1066,108 +755,6 @@ function onToolEsc(ev) {
 }
 
 /**
- * @param {any} el
- */
-function findUserRec(el) {
-  return state.userPoints.find((r) => r.el === el) || null;
-}
-
-/**
- * @param {any} el
- * @param {boolean} follow
- */
-async function setUserPointFollow(el, follow) {
-  const rec = findUserRec(el);
-  if (!rec || !state.board) return;
-
-  const x = Number(el.X());
-  const y = Number(el.Y());
-  /** @type {string | null} */
-  let followTargetId = null;
-  if (follow) {
-    // 勾选跟随：优先原目标，否则绑最近（不限容差，保证总能跟到某条）
-    const t = resolveFollowTarget(x, y, rec.followTargetId, { requireNear: false });
-    if (!t) return;
-    followTargetId = t.id;
-  }
-  if ((rec.followTargetId || null) === followTargetId) return;
-
-  const style = readObjectStyle(el, rec.baseName);
-  const { id, baseName, showCoords } = rec;
-
-  try {
-    state.board.removeObject(el);
-  } catch {
-    /* */
-  }
-  state.userPoints = state.userPoints.filter((r) => r.id !== id);
-
-  const next = createUserPoint(x, y, {
-    id,
-    baseName,
-    showCoords,
-    followTargetId,
-    style,
-  });
-  reregisterSelectable();
-  if (next) {
-    state.styleBind?.selection?.select?.(next.el, {
-      label: baseName,
-      clientX: window.innerWidth / 2,
-      clientY: window.innerHeight / 2,
-    });
-  }
-  state.board.update();
-}
-
-/**
- * @param {any} el
- * @param {boolean} on
- */
-function setPointShowCoords(el, on) {
-  const rec = findUserRec(el);
-  if (rec) {
-    rec.showCoords = on;
-    applyPointLabel(rec.el, rec.baseName, on);
-  } else {
-    // 特征点等
-    const base = el._mathBaseName || (typeof el.name === 'string' ? el.name : '点');
-    applyPointLabel(el, base, on);
-  }
-  try {
-    el.board?.update?.();
-  } catch {
-    /* */
-  }
-}
-
-/**
- * 删除用户自建点（无确认）
- * @param {any} el
- */
-function deleteUserPoint(el) {
-  const rec = findUserRec(el);
-  if (!rec || !state.board) return;
-  try {
-    state.styleBind?.selection?.clear?.();
-  } catch {
-    /* */
-  }
-  try {
-    state.board.removeObject(rec.el);
-  } catch {
-    /* */
-  }
-  state.userPoints = state.userPoints.filter((r) => r.id !== rec.id);
-  reregisterSelectable();
-  try {
-    state.board.update();
-  } catch {
-    /* */
-  }
-}
-
-/**
  * @param {number} usrX
  * @param {number} usrY
  */
@@ -1181,7 +768,12 @@ async function addPointAt(usrX, usrY) {
   let intersectFnIds = null;
 
   // 1) 优先：靠近两函数交点 → 询问是否成为交点
-  const ix = findIntersectionNear(x, y);
+  const ix = findFunctionIntersectionNear(
+    state.functions,
+    x,
+    y,
+    followTol(),
+  );
   if (ix) {
     const la = fnDisplayLabel(ix.fnA);
     const lb = fnDisplayLabel(ix.fnB);
@@ -1252,6 +844,7 @@ function remintFnColorsForTheme() {
 }
 
 function rebuildCurve() {
+  curveRebuildTask.cancel();
   const board = state.board;
   if (!board) return;
   // 生命周期：重建包 withPreservedViewport，避免镜头被图例/fullUpdate 打回
@@ -1291,6 +884,7 @@ function rebuildCurve() {
       },
     );
     fn.curve = curve;
+    curve._mathFnId = fn.id;
   }
 
   mirrorActiveToLegacy();
@@ -1386,15 +980,29 @@ function rebuildCurve() {
       pt._mathCanFollow = false;
       applyBoardLabel(pt, {
         baseName: name,
-        text: () => formatNamedCoords(name, Number(pt.X()), Number(pt.Y())),
+        text: () => formatElementCoordsLabel(pt, name),
         offset: labelOffset,
       });
+      bindLiveLabel(pt, () => formatElementCoordsLabel(pt, name));
       state.marks.push(pt);
     }
   }
 
     restoreUserPoints(savedUsers);
-    restoreConstructions(makeDrawHost(), savedConstr);
+    restoreConstructions(makeDrawHost(), savedConstr, { notify: false });
+    // 曲线重建后：补齐线/垂线与函数的交点（已有则跳过）
+    {
+      const host = makeDrawHost();
+      for (const rec of host.getConstructions().slice()) {
+        if (!rec || rec.kind === 'intersect') continue;
+        if (!lineLikeElOf(rec)) continue;
+        try {
+          autoIntersectNewLine(host, rec);
+        } catch {
+          /* */
+        }
+      }
+    }
     reregisterSelectable();
     renderFnList();
     syncParamPanel();
@@ -1411,488 +1019,6 @@ function rebuildCurve() {
       /* */
     }
   });
-}
-
-function escapeHtml(s) {
-  return String(s ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/"/g, '&quot;');
-}
-
-function renderFnList() {
-  const host = document.getElementById('mathFnList');
-  if (!host) return;
-  host.classList.toggle('is-edit-mode', state.editMode);
-  if (!state.functions.length) {
-    host.innerHTML = `<p class="math-fn-empty">点 ＋ 添加函数到画布</p>`;
-    return;
-  }
-  host.innerHTML = state.functions
-    .map((fn) => {
-      const on = fn.id === state.activeFnId;
-      // 主标题：函数式；副标题：类型（二次 / 自定义…）
-      const formula = escapeHtml(fnDisplayLabel(fn));
-      const meta = fn.kind === 'custom' ? null : GRAPH_PRESETS.find((p) => p.id === fn.preset);
-      const typeLabel = fn.kind === 'custom' ? '自定义' : escapeHtml(meta?.label || '函数');
-      const typeTip =
-        fn.kind === 'custom' ? '自定义表达式' : escapeHtml(meta?.tip || '');
-      const subLine = typeTip ? `${typeLabel}<span class="math-fn-card-sub-dot" aria-hidden="true">·</span>${typeTip}` : typeLabel;
-      // 对标化学分子卡：删除 × 绝对定位左上角，主按钮单独一层
-      return `
-      <div class="math-fn-card${on ? ' is-active' : ''}${state.editMode ? ' is-editing' : ''}" data-fn-id="${escapeHtml(fn.id)}" style="--fn-color:${escapeHtml(fn.color)}">
-        <button type="button" class="math-fn-card-del" data-fn-del="${escapeHtml(fn.id)}" title="删除" aria-label="删除">×</button>
-        <button type="button" class="math-fn-card-main" data-fn-id="${escapeHtml(fn.id)}">
-          <span class="math-fn-card-swatch" aria-hidden="true"></span>
-          <span class="math-fn-card-body">
-            <strong class="math-fn-card-title" title="${formula}">${formula}</strong>
-            <span class="math-fn-card-sub">${subLine}</span>
-          </span>
-        </button>
-      </div>`;
-    })
-    .join('');
-}
-
-function syncParamPanel() {
-  const panel = document.getElementById('mathFnParamPanel');
-  const title = document.getElementById('mathFnParamTitle');
-  const fn = activeFn();
-  if (!panel) return;
-  if (!fn || fn.kind !== 'preset') {
-    panel.hidden = true;
-    return;
-  }
-  panel.hidden = false;
-  if (title) {
-    const meta = GRAPH_PRESETS.find((p) => p.id === fn.preset);
-    title.textContent = `${meta?.label || '函数'}参数`;
-  }
-  mirrorActiveToLegacy();
-  // 标签与数值同步（syncSliders 内含 a/b/c 文案）
-  syncSliders();
-}
-
-/**
- * @param {string} presetId
- */
-function addPresetFn(presetId) {
-  const preset = GRAPH_PRESETS.some((p) => p.id === presetId) ? presetId : 'quadratic';
-  const id = `f${state.fnSeq++}`;
-  const color = colorForFnIndex(state.fnSeq - 1);
-  /** @type {FnRec} */
-  const rec = {
-    id,
-    kind: 'preset',
-    preset,
-    coeffs: defaultCoeffsFor(/** @type {any} */ (preset)),
-    expr: '',
-    color,
-    visible: true,
-    curve: null,
-    evalFn: null,
-  };
-  state.functions.push(rec);
-  state.activeFnId = id;
-  mirrorActiveToLegacy();
-  hideAddPanel();
-  rebuildCurve();
-}
-
-/**
- * @param {string} raw
- * @param {{ quietStatus?: boolean }} [opts]
- */
-function addCustomFn(raw, opts = {}) {
-  const compiled = compileMathExpr(raw);
-  if (!compiled.ok) {
-    if (!opts.quietStatus) {
-      const st = document.getElementById('mathFnExprStatus');
-      if (st) st.textContent = compiled.error;
-    }
-    return false;
-  }
-  const id = `f${state.fnSeq++}`;
-  const color = colorForFnIndex(state.fnSeq - 1);
-  /** @type {FnRec} */
-  const rec = {
-    id,
-    kind: 'custom',
-    preset: null,
-    coeffs: { a: 0, b: 0, c: 0 },
-    expr: compiled.src,
-    color,
-    visible: true,
-    curve: null,
-    evalFn: compiled.fn,
-  };
-  state.functions.push(rec);
-  state.activeFnId = id;
-  const st = document.getElementById('mathFnExprStatus');
-  if (st) st.textContent = '';
-  hideAddPanel();
-  rebuildCurve();
-  return true;
-}
-
-/**
- * AI 返回的函数规格 → 上画布
- * @param {{
- *   kind?: string,
- *   preset?: string | null,
- *   coeffs?: { a?: number, b?: number, c?: number },
- *   expr?: string,
- * }} spec
- */
-function addFnFromAiSpec(spec) {
-  if (!spec || typeof spec !== 'object') return false;
-  if (spec.kind === 'preset' && spec.preset) {
-    const preset = GRAPH_PRESETS.some((p) => p.id === spec.preset) ? spec.preset : null;
-    if (!preset) return false;
-    const id = `f${state.fnSeq++}`;
-    const color = colorForFnIndex(state.fnSeq - 1);
-    const base = defaultCoeffsFor(/** @type {any} */ (preset));
-    const c = spec.coeffs || {};
-    /** @type {FnRec} */
-    const rec = {
-      id,
-      kind: 'preset',
-      preset,
-      coeffs: {
-        a: Number.isFinite(Number(c.a)) ? Number(c.a) : base.a,
-        b: Number.isFinite(Number(c.b)) ? Number(c.b) : base.b,
-        c: Number.isFinite(Number(c.c)) ? Number(c.c) : base.c,
-      },
-      expr: '',
-      color,
-      visible: true,
-      curve: null,
-      evalFn: null,
-    };
-    state.functions.push(rec);
-    state.activeFnId = id;
-    mirrorActiveToLegacy();
-    hideAddPanel();
-    hideAiFnModal();
-    rebuildCurve();
-    return true;
-  }
-  if (spec.kind === 'custom' || spec.expr) {
-    const ok = addCustomFn(String(spec.expr || ''), { quietStatus: true });
-    if (ok) hideAiFnModal();
-    return ok;
-  }
-  return false;
-}
-
-function showAiFnModal() {
-  const backdrop = document.getElementById('mathFnAiBackdrop');
-  const modal = document.getElementById('mathFnAiModal');
-  const prompt = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('mathFnAiPrompt'));
-  const status = document.getElementById('mathFnAiStatus');
-  if (status) {
-    status.textContent = '';
-    status.classList.remove('is-ok', 'is-err');
-  }
-  if (prompt) prompt.value = '';
-  backdrop?.classList.add('is-open');
-  modal?.classList.add('is-open');
-  backdrop?.setAttribute('aria-hidden', 'false');
-  modal?.setAttribute('aria-hidden', 'false');
-  requestAnimationFrame(() => prompt?.focus());
-}
-
-function hideAiFnModal() {
-  const backdrop = document.getElementById('mathFnAiBackdrop');
-  const modal = document.getElementById('mathFnAiModal');
-  backdrop?.classList.remove('is-open');
-  modal?.classList.remove('is-open');
-  backdrop?.setAttribute('aria-hidden', 'true');
-  modal?.setAttribute('aria-hidden', 'true');
-  const submit = document.getElementById('btnMathFnAiSubmit');
-  if (submit instanceof HTMLButtonElement) {
-    submit.disabled = false;
-    submit.textContent = '生成并添加';
-  }
-}
-
-async function handleAiFnGenerate() {
-  const promptEl = /** @type {HTMLTextAreaElement | null} */ (document.getElementById('mathFnAiPrompt'));
-  const status = document.getElementById('mathFnAiStatus');
-  const submit = document.getElementById('btnMathFnAiSubmit');
-  const prompt = promptEl?.value?.trim() || '';
-  if (!prompt) {
-    if (status) {
-      status.textContent = '请输入函数描述';
-      status.classList.add('is-err');
-      status.classList.remove('is-ok');
-    }
-    return;
-  }
-  if (submit instanceof HTMLButtonElement) {
-    submit.disabled = true;
-    submit.textContent = '生成中…';
-  }
-  if (status) {
-    status.textContent = '正在调用 DeepSeek…';
-    status.classList.remove('is-ok', 'is-err');
-  }
-  try {
-    const data = await aiApi.mathFnGenerate(prompt);
-    const ok = addFnFromAiSpec(data);
-    if (!ok) {
-      throw new Error('生成结果无法上画布，请换种描述重试');
-    }
-    if (status) {
-      status.textContent = '已生成并添加';
-      status.classList.add('is-ok');
-      status.classList.remove('is-err');
-    }
-    window.setTimeout(() => hideAiFnModal(), 400);
-  } catch (err) {
-    if (status) {
-      status.textContent = err?.message || String(err);
-      status.classList.add('is-err');
-      status.classList.remove('is-ok');
-    }
-    if (submit instanceof HTMLButtonElement) {
-      submit.disabled = false;
-      submit.textContent = '生成并添加';
-    }
-  }
-}
-
-/**
- * @param {string} id
- */
-function selectFn(id) {
-  if (!state.functions.some((f) => f.id === id)) return;
-  state.activeFnId = id;
-  mirrorActiveToLegacy();
-  renderFnList();
-  syncParamPanel();
-  paintReadouts();
-  // 重画以加粗当前曲线、刷新特征点
-  rebuildCurve();
-}
-
-/**
- * @param {string} id
- */
-function deleteFn(id) {
-  if (state.functions.length <= 1) {
-    void appAlert('至少保留一条函数', { title: '无法删除' });
-    return;
-  }
-  // 必须先卸曲线再从列表移除，否则 rebuild 时找不到 curve 引用 → 画板残留幽灵曲线
-  const rec = state.functions.find((f) => f.id === id);
-  detachFnCurve(rec);
-  state.functions = state.functions.filter((f) => f.id !== id);
-  if (state.activeFnId === id) {
-    state.activeFnId = state.functions[0]?.id || null;
-  }
-  mirrorActiveToLegacy();
-  rebuildCurve();
-}
-
-function showAddPanel() {
-  const backdrop = document.getElementById('mathFnAddBackdrop');
-  const modal = document.getElementById('mathFnAddModal');
-  const st = document.getElementById('mathFnExprStatus');
-  const exprInput = /** @type {HTMLInputElement | null} */ (document.getElementById('mathFnExprInput'));
-  if (st) st.textContent = '';
-  if (exprInput) exprInput.value = '';
-  backdrop?.classList.add('is-open');
-  modal?.classList.add('is-open');
-  backdrop?.setAttribute('aria-hidden', 'false');
-  modal?.setAttribute('aria-hidden', 'false');
-  // 稍延后聚焦，便于键盘立刻可用
-  requestAnimationFrame(() => {
-    exprInput?.focus();
-  });
-}
-
-function hideAddPanel() {
-  const backdrop = document.getElementById('mathFnAddBackdrop');
-  const modal = document.getElementById('mathFnAddModal');
-  backdrop?.classList.remove('is-open');
-  modal?.classList.remove('is-open');
-  backdrop?.setAttribute('aria-hidden', 'true');
-  modal?.setAttribute('aria-hidden', 'true');
-  const st = document.getElementById('mathFnExprStatus');
-  if (st) st.textContent = '';
-}
-
-/**
- * 表达式键盘：往输入框插入 / 退格 / 清空 / 确定
- * @param {HTMLInputElement} input
- * @param {string} key
- */
-function applyExprKey(input, key) {
-  if (!input || !key) return;
-  if (key === '清空') {
-    input.value = '';
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    return;
-  }
-  if (key === '⌫') {
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? input.value.length;
-    if (start !== end) {
-      input.value = input.value.slice(0, start) + input.value.slice(end);
-      input.setSelectionRange(start, start);
-    } else if (start > 0) {
-      input.value = input.value.slice(0, start - 1) + input.value.slice(end);
-      input.setSelectionRange(start - 1, start - 1);
-    }
-    input.dispatchEvent(new Event('input', { bubbles: true }));
-    return;
-  }
-  if (key === '确定') {
-    addCustomFn(input.value || '');
-    return;
-  }
-  const start = input.selectionStart ?? input.value.length;
-  const end = input.selectionEnd ?? input.value.length;
-  const insert = key;
-  input.value = input.value.slice(0, start) + insert + input.value.slice(end);
-  const caret = start + insert.length;
-  input.setSelectionRange(caret, caret);
-  input.dispatchEvent(new Event('input', { bubbles: true }));
-  input.focus();
-}
-
-function bindFnListUi() {
-  const list = document.getElementById('mathFnList');
-  const addBtn = document.getElementById('btnMathAddFn');
-  const aiBtn = document.getElementById('btnMathAiFn');
-  const editBtn = document.getElementById('btnMathEditFns');
-  const cancelBtn = document.getElementById('btnMathFnAddCancel');
-  const closeBtn = document.getElementById('btnMathFnAddClose');
-  const backdrop = document.getElementById('mathFnAddBackdrop');
-  const aiBackdrop = document.getElementById('mathFnAiBackdrop');
-  const aiClose = document.getElementById('btnMathFnAiClose');
-  const aiCancel = document.getElementById('btnMathFnAiCancel');
-  const aiSubmit = document.getElementById('btnMathFnAiSubmit');
-  const exprAdd = document.getElementById('btnMathFnExprAdd');
-  const exprInput = /** @type {HTMLInputElement | null} */ (document.getElementById('mathFnExprInput'));
-  const keypad = document.getElementById('mathFnExprKeypad');
-  const presetsHost = document.getElementById('mathGraphPresets');
-
-  if (list && !list.dataset.bound) {
-    list.dataset.bound = '1';
-    list.addEventListener('click', (ev) => {
-      const del = /** @type {HTMLElement} */ (ev.target).closest?.('[data-fn-del]');
-      if (del) {
-        ev.preventDefault();
-        ev.stopPropagation();
-        if (!state.editMode) return;
-        deleteFn(del.getAttribute('data-fn-del') || '');
-        return;
-      }
-      if (state.editMode) return;
-      const card = /** @type {HTMLElement} */ (ev.target).closest?.('[data-fn-id]');
-      if (!card) return;
-      selectFn(card.getAttribute('data-fn-id') || '');
-    });
-  }
-
-  if (addBtn && !addBtn.dataset.bound) {
-    addBtn.dataset.bound = '1';
-    addBtn.addEventListener('click', () => {
-      showAddPanel();
-    });
-  }
-  if (aiBtn && !aiBtn.dataset.bound) {
-    aiBtn.dataset.bound = '1';
-    aiBtn.addEventListener('click', () => {
-      hideAddPanel();
-      showAiFnModal();
-    });
-  }
-  if (editBtn && !editBtn.dataset.bound) {
-    editBtn.dataset.bound = '1';
-    editBtn.addEventListener('click', () => {
-      state.editMode = !state.editMode;
-      editBtn.classList.toggle('is-on', state.editMode);
-      editBtn.textContent = state.editMode ? '完成' : '编辑';
-      renderFnList();
-    });
-  }
-  if (cancelBtn && !cancelBtn.dataset.bound) {
-    cancelBtn.dataset.bound = '1';
-    cancelBtn.addEventListener('click', () => hideAddPanel());
-  }
-  if (closeBtn && !closeBtn.dataset.bound) {
-    closeBtn.dataset.bound = '1';
-    closeBtn.addEventListener('click', () => hideAddPanel());
-  }
-  if (backdrop && !backdrop.dataset.bound) {
-    backdrop.dataset.bound = '1';
-    backdrop.addEventListener('click', () => hideAddPanel());
-  }
-  if (aiBackdrop && !aiBackdrop.dataset.bound) {
-    aiBackdrop.dataset.bound = '1';
-    aiBackdrop.addEventListener('click', () => hideAiFnModal());
-  }
-  if (aiClose && !aiClose.dataset.bound) {
-    aiClose.dataset.bound = '1';
-    aiClose.addEventListener('click', () => hideAiFnModal());
-  }
-  if (aiCancel && !aiCancel.dataset.bound) {
-    aiCancel.dataset.bound = '1';
-    aiCancel.addEventListener('click', () => hideAiFnModal());
-  }
-  if (aiSubmit && !aiSubmit.dataset.bound) {
-    aiSubmit.dataset.bound = '1';
-    aiSubmit.addEventListener('click', () => {
-      void handleAiFnGenerate();
-    });
-  }
-  if (exprAdd && !exprAdd.dataset.bound) {
-    exprAdd.dataset.bound = '1';
-    exprAdd.addEventListener('click', () => {
-      addCustomFn(exprInput?.value || '');
-    });
-  }
-  if (exprInput && !exprInput.dataset.bound) {
-    exprInput.dataset.bound = '1';
-    exprInput.setAttribute('inputmode', 'none');
-    exprInput.addEventListener('keydown', (ev) => {
-      if (/** @type {KeyboardEvent} */ (ev).key === 'Enter') {
-        ev.preventDefault();
-        addCustomFn(exprInput.value || '');
-      } else if (/** @type {KeyboardEvent} */ (ev).key === 'Escape') {
-        ev.preventDefault();
-        hideAddPanel();
-      }
-    });
-  }
-  if (keypad && !keypad.dataset.bound) {
-    keypad.dataset.bound = '1';
-    keypad.addEventListener('mousedown', (e) => {
-      // 点键时保持输入框焦点 / 选区
-      e.preventDefault();
-    });
-    keypad.addEventListener('click', (ev) => {
-      const btn = /** @type {HTMLElement} */ (ev.target).closest?.('[data-expr-key]');
-      if (!btn || !exprInput) return;
-      applyExprKey(exprInput, btn.getAttribute('data-expr-key') || '');
-    });
-  }
-
-  if (presetsHost && !presetsHost.dataset.ready) {
-    presetsHost.innerHTML = GRAPH_PRESETS.map(
-      (p) =>
-        `<button type="button" class="chip" data-math-preset="${p.id}" title="${p.tip}">${p.label}</button>`,
-    ).join('');
-    presetsHost.dataset.ready = '1';
-    presetsHost.addEventListener('click', (ev) => {
-      const btn = /** @type {HTMLElement} */ (ev.target).closest?.('[data-math-preset]');
-      if (!btn) return;
-      addPresetFn(btn.getAttribute('data-math-preset') || 'quadratic');
-    });
-  }
 }
 
 function paintReadouts() {
@@ -2000,14 +1126,32 @@ function syncSliders() {
   if (cName) cName.textContent = L[2];
 }
 
-function setCoeffs(next) {
+const {
+  addPreset: addPresetFn,
+  bind: bindFnListUi,
+  hideAdd: hideAddPanel,
+  hideAi: hideAiFnModal,
+  render: renderFnList,
+  syncParams: syncParamPanel,
+} = createFunctionPanelController({
+  state,
+  activeFunction: activeFn,
+  mirrorActiveToLegacy,
+  rebuildCurve,
+  detachFunctionCurve: detachFnCurve,
+  paintReadouts,
+  syncSliders,
+});
+
+function setCoeffs(next, options = {}) {
   const fn = activeFn();
   if (fn && fn.kind === 'preset') {
     fn.coeffs = { ...fn.coeffs, ...next };
   }
   state.coeffs = { ...(fn?.coeffs || state.coeffs), ...next };
   syncSliders();
-  rebuildCurve();
+  if (options.defer) curveRebuildTask.schedule();
+  else rebuildCurve();
 }
 
 function ensurePreset(id) {
@@ -2120,17 +1264,13 @@ export function initGraphUI() {
   // 默认一条二次
   if (!state.functions.length) {
     const id = `f${state.fnSeq++}`;
-    state.functions.push({
-      id,
-      kind: 'preset',
-      preset: 'quadratic',
-      coeffs: defaultCoeffsFor('quadratic'),
-      expr: '',
-      color: colorForFnIndex(0),
-      visible: true,
-      curve: null,
-      evalFn: null,
-    });
+    state.functions.push(
+      createPresetFunctionRecord({
+        id,
+        preset: 'quadratic',
+        color: colorForFnIndex(0),
+      }),
+    );
     state.activeFnId = id;
   }
   mirrorActiveToLegacy();
@@ -2150,7 +1290,7 @@ export function initGraphUI() {
         range: /** @type {HTMLInputElement | null} */ (document.getElementById(id)),
         number: /** @type {HTMLInputElement | null} */ (document.getElementById(numId)),
         onChange: (v) => {
-          setCoeffs({ [key]: v });
+          setCoeffs({ [key]: v }, { defer: true });
         },
       });
     }
@@ -2180,10 +1320,18 @@ export function initGraphUI() {
       return Boolean(el?._mathShowCoords);
     },
     setShowCoords: (el, on) => setPointShowCoords(el, on),
-    canDelete: (el) =>
-      (Boolean(el?._mathUserPoint) && Boolean(findUserRec(el))) ||
-      Boolean(el?._mathConstrId),
+    canDelete: (el) => {
+      if (Boolean(el?._mathUserPoint) && Boolean(findUserRec(el))) return true;
+      if (el?._mathConstrId) return true;
+      if (el?._mathFnId || state.functions.some((f) => f.curve === el)) return true;
+      return false;
+    },
     deletePoint: (el) => {
+      try {
+        state.styleBind?.selection?.clear?.();
+      } catch {
+        /* */
+      }
       if (el?._mathConstrId) {
         const host = makeDrawHost();
         const cid = el._mathConstrId;
@@ -2195,7 +1343,35 @@ export function initGraphUI() {
         deleteConstruction(host, cid);
         return;
       }
+      const fn =
+        (el?._mathFnId && state.functions.find((f) => f.id === el._mathFnId)) ||
+        state.functions.find((f) => f.curve === el);
+      if (fn) {
+        deleteFn(fn.id);
+        return;
+      }
       deleteUserPoint(el);
+    },
+    canExtend: (el) => {
+      if (!el?._mathConstrId) return false;
+      const rec = state.constructions.find((c) => c.id === el._mathConstrId);
+      return isExtendStyleTarget(el, rec);
+    },
+    getExtend: (el) => {
+      if (!el?._mathConstrId) return false;
+      // 点/垂足上不读延长状态，避免点样式带出开关
+      if (el.elType !== 'segment') return false;
+      const rec = state.constructions.find((c) => c.id === el._mathConstrId);
+      return Boolean(rec?.extend);
+    },
+    setExtend: (el, on) => {
+      if (!el?._mathConstrId || el.elType !== 'segment') return;
+      setConstructionExtend(makeDrawHost(), el, on);
+      try {
+        state.board?.update?.();
+      } catch {
+        /* */
+      }
     },
   });
 
@@ -2206,6 +1382,17 @@ export function initGraphUI() {
       label: t.label,
     })),
     shouldIgnoreTarget: () => Boolean(state.notes?.isActive?.()),
+    // 仅笔记模式抑制；点上长按要能开罗盘（切线等）
+    shouldSuppressHold: () => Boolean(state.notes?.isActive?.()),
+    // 按住点时 JSXGraph 会进 DRAG，仍允许开罗盘
+    shouldAllowHoldDespiteDrag: (ev) => {
+      const hit = hitBoardPrefer(state.board, ev);
+      if (!hit) return false;
+      if (hit._mathUserPoint) return true;
+      if (hit.elType === 'point' || hit.elType === 'glider') return true;
+      if (hit.elementClass === 1) return true;
+      return false;
+    },
     onAction: async (id, ctx) => {
       if (state.notes?.isActive?.()) return;
       state.toolStrip?.setTool?.(id, { toggle: false, oneShot: true });
@@ -2291,6 +1478,7 @@ export function resizeGraph() {
 }
 
 export function disposeGraph() {
+  curveRebuildTask.cancel();
   hideAddPanel();
   hideAiFnModal();
   dismissBoardNotesMode();

@@ -136,6 +136,8 @@ function openCompass(clientX, clientY, items, onPick) {
  *   holdMs?: number,
  *   onAction?: (id: string, ctx: CompassContext) => void | Promise<void>,
  *   shouldIgnoreTarget?: (target: EventTarget | null) => boolean,
+ *   shouldSuppressHold?: (ev: PointerEvent, board: any) => boolean,
+ *   shouldAllowHoldDespiteDrag?: (ev: PointerEvent, board: any) => boolean,
  * }} [opts]
  * @returns {{ dispose: () => void }}
  */
@@ -161,6 +163,8 @@ export function attachBoardCompass(board, opts = {}) {
   let active = false;
   /** @type {number | null} */
   let ptrId = null;
+  /** @type {PointerEvent | null} */
+  let downEvRef = null;
 
   function clearTimer() {
     if (timer) {
@@ -169,6 +173,44 @@ export function attachBoardCompass(board, opts = {}) {
     }
     active = false;
     ptrId = null;
+    downEvRef = null;
+  }
+
+  /**
+   * JSXGraph 是否已抓住几何对象在拖（不含画布平移 MOVE_ORIGIN）
+   */
+  function boardIsDraggingObject() {
+    try {
+      if (board?.mouse?.obj) return true;
+      // BOARD_MODE_DRAG = 0x0001；MOVE_ORIGIN = 0x0002（平移，不应抑制罗盘）
+      const mode = board?.mode;
+      if (mode === board?.BOARD_MODE_DRAG) return true;
+      if (mode === 1) return true;
+    } catch {
+      /* */
+    }
+    return false;
+  }
+
+  /** 松开 JSXGraph 对点的抓取，避免罗盘弹出后还在拖点 */
+  function releaseBoardObjectDrag() {
+    try {
+      if (board.mouse) board.mouse.obj = null;
+      if (board.mode === board.BOARD_MODE_DRAG || board.mode === 1) {
+        board.mode = board.BOARD_MODE_NONE ?? 0;
+      }
+      board.dehighlightAll?.();
+    } catch {
+      /* */
+    }
+  }
+
+  function allowHoldDespiteDrag(ev) {
+    try {
+      return Boolean(ev && opts.shouldAllowHoldDespiteDrag?.(ev, board));
+    } catch {
+      return false;
+    }
   }
 
   /**
@@ -179,7 +221,6 @@ export function attachBoardCompass(board, opts = {}) {
       if (typeof board.getUsrCoordsOfMouse === 'function') {
         const c = board.getUsrCoordsOfMouse(ev);
         if (Array.isArray(c) && c.length >= 2) {
-          // 可能是 [1,x,y] 齐次或 [x,y]
           if (c.length >= 3 && Math.abs(c[0] - 1) < 1e-9) return { x: c[1], y: c[2] };
           return { x: c[0], y: c[1] };
         }
@@ -210,21 +251,31 @@ export function attachBoardCompass(board, opts = {}) {
   const onDown = (ev) => {
     if (ev.button != null && ev.button !== 0) return;
     if (opts.shouldIgnoreTarget?.(ev.target)) return;
-    // 点在导航条上忽略
     const t = /** @type {Element | null} */ (ev.target);
     if (t?.closest?.('.JXG_navigation')) return;
+    try {
+      if (opts.shouldSuppressHold?.(ev, board)) return;
+    } catch {
+      /* */
+    }
 
     clearTimer();
     active = true;
     ptrId = ev.pointerId;
     startX = ev.clientX;
     startY = ev.clientY;
-    const downEv = ev;
+    downEvRef = ev;
 
     timer = window.setTimeout(() => {
       timer = 0;
-      if (!active) return;
-      const usr = usrFromEvent(downEv);
+      if (!active || !downEvRef) return;
+      const allowPoint = allowHoldDespiteDrag(downEvRef);
+      if (boardIsDraggingObject() && !allowPoint) {
+        clearTimer();
+        return;
+      }
+      if (allowPoint) releaseBoardObjectDrag();
+      const usr = usrFromEvent(downEvRef);
       const ctx = {
         clientX: startX,
         clientY: startY,
@@ -235,7 +286,6 @@ export function attachBoardCompass(board, opts = {}) {
       openCompass(startX, startY, items, (id) => {
         void opts.onAction?.(id, ctx);
       });
-      // 取消后续 click 误触
       try {
         host.setPointerCapture?.(ptrId);
       } catch {
@@ -251,7 +301,9 @@ export function attachBoardCompass(board, opts = {}) {
     if (!active || (ptrId != null && ev.pointerId !== ptrId)) return;
     if (Math.hypot(ev.clientX - startX, ev.clientY - startY) > MOVE_TOL) {
       clearTimer();
+      return;
     }
+    if (boardIsDraggingObject() && !allowHoldDespiteDrag(downEvRef)) clearTimer();
   };
 
   const onUp = (ev) => {

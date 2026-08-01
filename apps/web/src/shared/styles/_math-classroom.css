@@ -1020,6 +1020,17 @@
   background: transparent !important;
 }
 
+/* 线段/直线量测文案：轻底衬，避免被线身穿字 */
+.math-board-host .math-jxg .math-board-path-label,
+.math-board-host .math-jxg .JXGtext.math-board-path-label {
+  padding: 0.12em 0.4em;
+  border-radius: 0.35em;
+  line-height: 1.25;
+  pointer-events: none;
+  background: color-mix(in srgb, var(--bg, #f4f4f4) 82%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg, #f4f4f4) 55%, transparent);
+}
+
 /* 右下角 FAB 槽：笔记 + 坐标轴设置 同一行、贴导航条上方 */
 .math-board-host {
   --math-fab-bottom: 2.35rem; /* 贴 JSXGraph 导航条上方 */
@@ -1709,6 +1720,14 @@
   gap: 0.4rem;
 }
 
+/* display:grid/flex 会压过 UA 的 [hidden]，必须显式关掉 */
+.math-field-checks[hidden],
+.math-object-style-bubble [data-field][hidden],
+.math-object-style-bubble .math-check-row[hidden],
+.math-object-style-bubble .math-point-delete-btn[hidden] {
+  display: none !important;
+}
+
 .math-check-row-inline {
   display: flex;
   flex-wrap: wrap;
@@ -1733,11 +1752,14 @@
   gap: 0.55rem 0.75rem;
 }
 
+.math-point-options-row .math-point-delete-btn {
+  margin-left: 0;
+}
+
 .math-point-delete-btn {
   appearance: none;
   flex: 0 0 auto;
   margin: 0;
-  margin-left: auto;
   padding: 0.28rem 0.7rem;
   border-radius: 8px;
   border: 1.5px solid color-mix(in srgb, #dc2626 75%, var(--border-ink));
@@ -1747,6 +1769,10 @@
   font-weight: 750;
   cursor: pointer;
   line-height: 1.2;
+}
+
+.math-field[data-field="objectDelete"] .math-point-delete-btn {
+  width: 100%;
 }
 
 .math-point-delete-btn:hover,

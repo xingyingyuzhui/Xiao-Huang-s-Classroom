@@ -36,7 +36,15 @@ test('graph sidebar multi-fn list markup and wiring', () => {
     path.join(root, 'apps/web/src/subjects/classrooms/partials/math-panels.partial.html'),
     'utf8',
   );
-  const js = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  const graph = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  const panel = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/function-panel.js'),
+    'utf8',
+  );
+  const records = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/function-records.js'),
+    'utf8',
+  );
   const css = fs.readFileSync(
     path.join(root, 'apps/web/src/shared/styles/_math-classroom.css'),
     'utf8',
@@ -52,15 +60,15 @@ test('graph sidebar multi-fn list markup and wiring', () => {
   assert.match(css, /\.math-fn-card-del[\s\S]*top:\s*-6px/);
   assert.match(css, /\.math-fn-card-del[\s\S]*left:\s*-6px/);
   assert.match(css, /\.math-fn-list\.is-edit-mode\s+\.math-fn-card-del/);
-  assert.match(js, /addPresetFn|addCustomFn/);
-  assert.match(js, /compileMathExpr/);
-  assert.match(js, /state\.functions/);
-  assert.match(js, /listFollowTargets/);
-  assert.match(js, /findIntersectionNear/);
-  assert.match(js, /成为交点/);
-  assert.match(js, /applyExprKey/);
+  assert.match(panel, /addPreset|addCustom/);
+  assert.match(records, /compileMathExpr/);
+  assert.match(graph, /state\.functions/);
+  assert.match(graph, /listFollowTargets/);
+  assert.match(graph, /findFunctionIntersectionNear/);
+  assert.match(graph, /成为交点/);
+  assert.match(panel, /applyExpressionKey/);
   // 删除：先 detach 曲线再 filter，避免幽灵曲线
-  assert.match(js, /function detachFnCurve/);
-  assert.match(js, /detachFnCurve\(rec\)/);
-  assert.match(js, /function deleteFn[\s\S]*detachFnCurve[\s\S]*filter/);
+  assert.match(graph, /function detachFnCurve/);
+  assert.match(panel, /detachFunctionCurve\(record\)/);
+  assert.match(panel, /function remove[\s\S]*detachFunctionCurve[\s\S]*filter/);
 });

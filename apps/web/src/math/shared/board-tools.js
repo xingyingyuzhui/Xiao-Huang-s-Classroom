@@ -1,6 +1,6 @@
 /**
  * 画板作图工具：迷你工具条 + 点击会话
- * 函数画布 v1 共用；其它 lab 可传入自定义 tools。
+ * 各 lab 传入自己的工具定义；这里不承载任何学科业务工具。
  */
 
 /**
@@ -11,23 +11,15 @@
  * }} BoardToolDef
  */
 
-/** 函数画布 v1 工具（顺序即工具条顺序；按钮用文字） */
-export const GRAPH_BOARD_TOOLS = /** @type {BoardToolDef[]} */ ([
-  { id: 'select', label: '选择', hint: '拖动自由点 · 双击改样式' },
-  { id: 'point', label: '加点', hint: '点击画板空白处加点' },
-  { id: 'segment', label: '线段', hint: '依次点击两个点' },
-  { id: 'line', label: '直线', hint: '依次点击两个点' },
-  { id: 'tangent', label: '切线', hint: '点击曲线附近，生成该处切线' },
-  { id: 'perp-axis', label: '垂线', hint: '点击一点，再点靠近的坐标轴' },
-  { id: 'intersect', label: '交点', hint: '依次点击两条曲线' },
-  { id: 'delete', label: '删除', hint: '点击要删除的点或线' },
+const DEFAULT_BOARD_TOOLS = /** @type {BoardToolDef[]} */ ([
+  { id: 'select', label: '选择' },
 ]);
 
 /**
  * @param {string} id
  * @param {BoardToolDef[]} [tools]
  */
-export function getBoardToolDef(id, tools = GRAPH_BOARD_TOOLS) {
+export function getBoardToolDef(id, tools = DEFAULT_BOARD_TOOLS) {
   return tools.find((t) => t.id === id) || tools[0] || null;
 }
 
@@ -49,7 +41,7 @@ export function getBoardToolDef(id, tools = GRAPH_BOARD_TOOLS) {
  */
 export function attachBoardToolStrip(opts) {
   const host = opts.host;
-  const tools = opts.tools?.length ? opts.tools : GRAPH_BOARD_TOOLS;
+  const tools = opts.tools?.length ? opts.tools : DEFAULT_BOARD_TOOLS;
   if (!host) {
     return {
       el: null,

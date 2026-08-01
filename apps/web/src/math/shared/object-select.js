@@ -137,21 +137,69 @@ export function createBoardSelectionController(opts = {}) {
     const x = pos[0];
     const y = pos[1];
 
+    /** @param {any} el */
+    const isPointEl = (el) => {
+      const t = el?.elType;
+      return (
+        t === 'point' ||
+        t === 'glider' ||
+        t === 'perpendicularpoint' ||
+        el?.elementClass === 1
+      );
+    };
+
+    /** @type {typeof registry} */
+    const hits = [];
     // 从后往前：后画的在上层
     for (let i = registry.length - 1; i >= 0; i -= 1) {
       const item = registry[i];
       if (item.board && item.board !== board) continue;
       const el = item.el;
       if (!el || el._is_removed) continue;
+      if (el._mathExtendRay) continue; // 延长虚线不抢双击
+      if (el._mathIntersectOnBody === false) continue; // 延长线外交点已隐藏
+      try {
+        if (el.visProp && el.visProp.visible === false) continue;
+      } catch {
+        /* */
+      }
       try {
         if (typeof el.hasPoint === 'function' && el.hasPoint(x, y)) {
-          return item;
+          hits.push(item);
         }
       } catch {
         /* dead object */
       }
     }
-    return null;
+
+    // 点优先于线/曲线，避免线段端点双击只出线样式
+    const pointHit = hits.find((h) => isPointEl(h.el));
+    if (pointHit) return pointHit;
+
+    // 线命中但点 hasPoint 略严：屏幕距离内的登记点仍开点样式
+    /** @type {(typeof registry)[number] | null} */
+    let nearPoint = null;
+    let nearD = Infinity;
+    const NEAR_PX = 16;
+    for (let i = registry.length - 1; i >= 0; i -= 1) {
+      const item = registry[i];
+      if (item.board && item.board !== board) continue;
+      const el = item.el;
+      if (!el || el._is_removed || !isPointEl(el)) continue;
+      try {
+        const scr = el.coords?.scrCoords;
+        if (!scr || scr.length < 3) continue;
+        const d = Math.hypot(Number(scr[1]) - x, Number(scr[2]) - y);
+        if (d <= NEAR_PX && d < nearD) {
+          nearD = d;
+          nearPoint = item;
+        }
+      } catch {
+        /* */
+      }
+    }
+    if (nearPoint) return nearPoint;
+    return hits[0] || null;
   }
 
   /**

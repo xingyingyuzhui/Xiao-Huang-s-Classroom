@@ -330,6 +330,12 @@ html[data-theme='blackboard'] .JXG_navigation {
   fill: var(--ink) !important;
 }
 
+html[data-theme='blackboard'] .math-board-host .math-jxg .math-board-path-label,
+html[data-theme='blackboard'] .math-board-host .math-jxg .JXGtext.math-board-path-label {
+  background: color-mix(in srgb, #0c1a16 78%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #152e27 60%, transparent);
+}
+
 html[data-theme='blackboard'] .math-float-card {
   background: linear-gradient(165deg, #14352d 0%, #0b1c18 100%);
   border-color: #4a8a78;

@@ -76,11 +76,17 @@ test('graph wires AI function modal', () => {
     path.join(root, 'apps/web/src/subjects/classrooms/partials/math-panels.partial.html'),
     'utf8',
   );
-  const js = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  const js = [
+    'index.js',
+    'function-panel.js',
+    'function-records.js',
+  ]
+    .map((file) => fs.readFileSync(path.join(root, 'apps/web/src/math/graph', file), 'utf8'))
+    .join('\n');
   const client = fs.readFileSync(path.join(root, 'apps/web/src/shared/api/client.js'), 'utf8');
   assert.match(html, /id="btnMathAiFn"/);
   assert.match(html, /id="mathFnAiModal"/);
-  assert.match(js, /mathFnGenerate|addFnFromAiSpec|showAiFnModal/);
+  assert.match(js, /mathFnGenerate|addFromAiSpec|showAi/);
   assert.match(client, /mathFnGenerate/);
   assert.match(client, /\/ai\/math\/function/);
 });

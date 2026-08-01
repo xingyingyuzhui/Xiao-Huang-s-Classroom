@@ -486,7 +486,8 @@ export function applyAxisLegendToBoard(board, st, opts = {}) {
   if (!opts.skipViewport) {
     try {
       // JSXGraph boundingbox: [xMin, yMax, xMax, yMin]
-      board.setBoundingBox([s.xMin, s.yMax, s.xMax, s.yMin], false);
+      // keepaspectratio=true：保证 unitX≈unitY，否则数学直角在屏幕上会歪
+      board.setBoundingBox([s.xMin, s.yMax, s.xMax, s.yMin], true);
     } catch {
       /* */
     }
