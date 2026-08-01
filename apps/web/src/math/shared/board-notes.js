@@ -179,6 +179,13 @@ export function attachBoardNotes(board, opts = {}) {
       setActive() {},
       clear() {},
       redraw() {},
+      getSnapshot: () => ({ version: 1, strokes: [] }),
+      replaceSnapshot() {},
+      undo() {},
+      canUndo: () => false,
+      onSnapshotChange() {
+        return () => {};
+      },
     };
   }
 
@@ -196,6 +203,13 @@ export function attachBoardNotes(board, opts = {}) {
         setActive() {},
         clear() {},
         redraw() {},
+        getSnapshot: () => ({ version: 1, strokes: [] }),
+        replaceSnapshot() {},
+        undo() {},
+        canUndo: () => false,
+        onSnapshotChange() {
+          return () => {};
+        },
       }
     );
   }
@@ -338,6 +352,58 @@ function createNotesController(board, boardEl, host, storageKey) {
     }
   }
 
+  // ── 文档快照 API（Task 5：批注并入 GraphDocument.annotations） ──
+  /** @type {((snapshot: any) => void) | null} */
+  let snapshotListener = null;
+
+  /**
+   * 文档格式快照：{ version: 1, strokes: [{ id, points, colorSlot, explicitColor, width, opacity }] }
+   */
+  function getSnapshot() {
+    return {
+      version: 1,
+      strokes: strokes.map((s) => ({
+        id: s.id,
+        points: s.points.map((p) => ({ x: p.x, y: p.y })),
+        colorSlot: null,
+        explicitColor: s.color,
+        width: s.width,
+        opacity: 1,
+      })),
+    };
+  }
+
+  /** @param {any} snapshot */
+  function replaceSnapshot(snapshot) {
+    const list = Array.isArray(snapshot?.strokes) ? snapshot.strokes : [];
+    strokes = list
+      .filter((s) => s && Array.isArray(s.points) && s.points.length)
+      .map((s) => ({
+        id: String(s.id || `n${strokeSeq++}`),
+        color: String(s.explicitColor || s.color || '#b45309'),
+        width: Number(s.width) || 3.6,
+        points: s.points
+          .map((p) => ({ x: Number(p.x), y: Number(p.y) }))
+          .filter((p) => Number.isFinite(p.x) && Number.isFinite(p.y)),
+      }))
+      .filter((s) => s.points.length);
+    redraw();
+    snapshotListener?.(getSnapshot());
+  }
+
+  /** stroke/clear/undo 后通知外层（dispatch annotations/replace） */
+  function notifySnapshotChange() {
+    snapshotListener?.(getSnapshot());
+  }
+
+  /** @param {(snapshot: any) => void} listener */
+  function onSnapshotChange(listener) {
+    snapshotListener = listener;
+    return () => {
+      if (snapshotListener === listener) snapshotListener = null;
+    };
+  }
+
   function syncChrome() {
     root.classList.toggle('is-active', active);
     root.classList.toggle('is-eraser', tool === 'eraser');
@@ -476,6 +542,7 @@ function createNotesController(board, boardEl, host, storageKey) {
     }
     saveStorage();
     redraw();
+    notifySnapshotChange();
   }
 
   function clearAll() {
@@ -485,6 +552,7 @@ function createNotesController(board, boardEl, host, storageKey) {
     draft = null;
     saveStorage();
     redraw();
+    notifySnapshotChange();
   }
 
   /**
@@ -506,9 +574,11 @@ function createNotesController(board, boardEl, host, storageKey) {
       strokes.push(draft);
       pushHistory({ type: 'add', stroke: draft });
       saveStorage();
+      notifySnapshotChange();
     } else if (tool === 'eraser' && eraseSessionList.length) {
       pushHistory({ type: 'erase', removed: eraseSessionList.slice() });
       saveStorage();
+      notifySnapshotChange();
     }
     draft = null;
     eraseSessionRemoved = new Set();
@@ -681,6 +751,11 @@ function createNotesController(board, boardEl, host, storageKey) {
     clear: clearAll,
     redraw,
     getStrokeCount: () => strokes.length,
+    getSnapshot,
+    replaceSnapshot,
+    undo,
+    canUndo: () => history.length > 0,
+    onSnapshotChange,
     dispose() {
       setActive(false);
       ro.disconnect();

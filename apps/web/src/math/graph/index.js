@@ -53,6 +53,7 @@ import { createDefaultGraphDocument } from './graph-document.js';
 import { createGraphStore } from './graph-store.js';
 import { createGraphHistory } from './graph-history.js';
 import { createGraphHistoryController } from './graph-history-controller.js';
+import { createGraphPersistence, createGraphPersistenceController } from './graph-persistence.js';
 import {
   createGraphCommitBridge,
   createGraphRuntimeSyncAdapter,
@@ -170,6 +171,11 @@ const state = {
   coeffTxTimer: null,
   viewTxTimer: null,
   viewApplying: false,
+  graphPersistence: null,
+  persistenceController: null,
+  storeUnsub: null,
+  notesUnsub: null,
+  onPageHide: null,
 };
 
 let stageEl = null;
@@ -1335,20 +1341,6 @@ const {
   store: () => state.graphStore,
 });
 
-/** 由 store 文档快照构建初始文档（剔除曲线等 runtime 字段）。 */
-function buildInitialDocument() {
-  const doc = createDefaultGraphDocument({
-    now: () => new Date().toISOString(),
-    functionId: state.functions[0]?.id || 'f1',
-  });
-  doc.functions = state.functions.map((fn) => {
-    const { curve, ...rest } = fn;
-    return rest;
-  });
-  doc.presentation.activeFunctionId = state.activeFnId || state.functions[0]?.id || null;
-  return doc;
-}
-
 const pointLayer = createPointLayer({
   controller: pointsCtrl,
   getRecords: () => state.userPoints,
@@ -1486,6 +1478,14 @@ export function initGraphUI() {
     return;
   }
 
+  // 持久化：先加载（含迁移/限额校验），再建 board/store，避免先默认后覆盖
+  state.graphPersistence?.dispose?.();
+  state.graphPersistence = createGraphPersistence({
+    storage: window.localStorage,
+    now: () => new Date().toISOString(),
+  });
+  const loadedDoc = state.graphPersistence.load().document;
+
   state.board = createMathBoard('mathGraphBoard', {
     boundingbox: [-8, 8, 8, -8],
     axisSettingsHost: stageEl,
@@ -1535,7 +1535,7 @@ export function initGraphUI() {
     /* */
   }
 
-  // 默认一条二次
+  // 默认一条二次（无持久化文档时）
   if (!state.functions.length) {
     const id = `f${state.fnSeq++}`;
     state.functions.push(
@@ -1547,16 +1547,31 @@ export function initGraphUI() {
     );
     state.activeFnId = id;
   }
+  // 持久化文档覆盖默认函数（函数记录已是规范形状）
+  if (loadedDoc.functions.length) {
+    state.functions = loadedDoc.functions.map((fn) => ({ ...fn }));
+    state.activeFnId =
+      loadedDoc.presentation.activeFunctionId ?? state.functions[0]?.id ?? null;
+  }
   mirrorActiveToLegacy();
   state.startCoeffs = { ...state.coeffs };
 
   // 文档底座：函数集合作为首个接入 store 的行为（历史/事务链路）
   state.graphStore?.dispose?.();
-  state.graphStore = createGraphStore(buildInitialDocument(), {
+  state.graphStore = createGraphStore(loadedDoc, {
     beforeCommit: syncRuntimeFromDocument,
   });
   state.graphHistory?.dispose?.();
   state.graphHistory = createGraphHistory(state.graphStore);
+  // 初始 storage load：建立起点，清空历史（不能 undo 回「导入前」）
+  state.graphHistory.clear();
+  // 文档变更 → 自动保存（300ms debounce；annotations/replace 带 persist:true）
+  state.storeUnsub?.();
+  state.storeUnsub = state.graphStore.subscribe((event) => {
+    if (event.action?.type === 'transaction/cancel') return;
+    if (event.action?.meta?.persist === false) return;
+    state.graphPersistence?.scheduleSave(event.current);
+  });
 
   bindFnListUi();
 
@@ -1733,6 +1748,79 @@ export function initGraphUI() {
     notes: state.notes,
   });
 
+  // 恢复批注 → 之后任何 stroke/clear/undo 都回写文档（record:false, persist:true）
+  state.notes?.replaceSnapshot?.(loadedDoc.annotations);
+  state.notesUnsub?.();
+  state.notesUnsub = state.notes?.onSnapshotChange?.((snapshot) => {
+    if (!state.graphStore) return;
+    state.graphStore.dispatch({
+      type: 'annotations/replace',
+      payload: { annotations: snapshot },
+      meta: { record: false, persist: true },
+    });
+  });
+
+  // 页面隐藏时立即落盘
+  state.onPageHide = () => state.graphPersistence?.flush();
+  window.addEventListener('pagehide', state.onPageHide);
+
+  // 项目：导入 / 导出 / 重置
+  state.persistenceController = createGraphPersistenceController({
+    persistence: state.graphPersistence,
+    store: () => state.graphStore,
+    history: () => state.graphHistory,
+    defaultDocument: () =>
+      createDefaultGraphDocument({
+        now: () => new Date().toISOString(),
+        functionId: 'f1',
+      }),
+    confirm: appConfirm,
+    alert: (message, opts) => appAlert(message, opts),
+    pickJsonFile: () => {
+      const input = /** @type {HTMLInputElement | null} */ (document.getElementById('mathGraphFileInput'));
+      if (!input) return Promise.resolve(null);
+      return new Promise((resolve) => {
+        const onChange = () => {
+          input.removeEventListener('change', onChange);
+          const file = input.files?.[0];
+          input.value = '';
+          if (!file) {
+            resolve(null);
+            return;
+          }
+          const reader = new FileReader();
+          reader.onload = () => resolve(String(reader.result || ''));
+          reader.onerror = () => resolve(null);
+          reader.readAsText(file, 'utf-8');
+        };
+        input.addEventListener('change', onChange);
+        input.click();
+      });
+    },
+    downloadText: (filename, text) => {
+      try {
+        const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+      } catch {
+        /* download blocked */
+      }
+    },
+  });
+  document
+    .getElementById('btnMathGraphImport')
+    ?.addEventListener('click', () => void state.persistenceController.importJson());
+  document
+    .getElementById('btnMathGraphExport')
+    ?.addEventListener('click', () => state.persistenceController.exportJson());
+  document
+    .getElementById('btnMathGraphReset')
+    ?.addEventListener('click', () => void state.persistenceController.reset());
+
   syncSliders();
   rebuildCurve();
   bindReadoutCards();
@@ -1777,6 +1865,18 @@ export function disposeGraph() {
     state.coeffTxTimer = null;
     state.graphStore?.cancelTransaction();
   }
+  // 持久化收尾：卸载监听、pagehide 移除、落盘
+  state.storeUnsub?.();
+  state.storeUnsub = null;
+  state.notesUnsub?.();
+  state.notesUnsub = null;
+  if (state.onPageHide) {
+    window.removeEventListener('pagehide', state.onPageHide);
+    state.onPageHide = null;
+  }
+  state.graphPersistence?.dispose();
+  state.graphPersistence = null;
+  state.persistenceController = null;
   viewBridge.dispose();
   try {
     state.board?.off?.('boundingbox');

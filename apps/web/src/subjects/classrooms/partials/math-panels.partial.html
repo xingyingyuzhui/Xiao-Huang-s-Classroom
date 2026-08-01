@@ -23,6 +23,12 @@
                   编辑
                 </button>
               </div>
+              <div class="math-project-row" role="group" aria-label="画布项目">
+                <button type="button" class="math-project-btn" id="btnMathGraphImport" title="导入项目 JSON">导入</button>
+                <button type="button" class="math-project-btn" id="btnMathGraphExport" title="导出项目 JSON">导出</button>
+                <button type="button" class="math-project-btn math-project-btn-danger" id="btnMathGraphReset" title="重置画布">重置</button>
+                <input type="file" id="mathGraphFileInput" accept=".json,application/json" hidden />
+              </div>
               <div id="mathFnList" class="math-fn-list" aria-label="函数列表"></div>
 
               <!-- 选中函数参数（预设 a/b/c） -->

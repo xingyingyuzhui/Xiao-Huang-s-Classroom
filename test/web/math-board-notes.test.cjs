@@ -5,6 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
+const { pathToFileURL } = require('node:url');
 const root = require('../helpers/repo-root.js');
 
 test('board-notes module exports attach + dismiss + hit helpers', () => {
@@ -87,4 +88,20 @@ test('notes and axis settings share fab dock', () => {
   assert.match(notes, /ensureMathBoardFabDock/);
   assert.match(axis, /ensureMathBoardFabDock/);
   assert.match(notes, /math-axis-settings-btn|insertBefore/);
+});
+
+test('notes controller exposes the document snapshot API contract', async () => {
+  const { attachBoardNotes } = await import(
+    pathToFileURL(path.join(root, 'apps/web/src/math/shared/board-notes.js')).href,
+  );
+  // 无 board 的 fallback 也必须提供完整契约
+  const fallback = attachBoardNotes({}, {});
+  assert.equal(typeof fallback.getSnapshot, 'function');
+  assert.equal(typeof fallback.replaceSnapshot, 'function');
+  assert.equal(typeof fallback.undo, 'function');
+  assert.equal(typeof fallback.canUndo, 'function');
+  assert.equal(typeof fallback.onSnapshotChange, 'function');
+  assert.deepEqual(fallback.getSnapshot(), { version: 1, strokes: [] });
+  const unsubscribe = fallback.onSnapshotChange(() => {});
+  assert.equal(typeof unsubscribe, 'function');
 });
