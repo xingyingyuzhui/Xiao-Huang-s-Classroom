@@ -58,6 +58,64 @@ test('findNearestFollowTarget picks closest within tol', async () => {
   assert.equal(f1.snap(2, 0)?.y, 4);
 });
 
+test('makeFeaturePointTarget snaps to live feature position', async () => {
+  const {
+    makeFeaturePointTarget,
+    featureFollowTargetId,
+    parseFeatureFollowTargetId,
+    curveFollowTargetId,
+  } = await load('apps/web/src/math/shared/follow-target.js');
+
+  let pos = { x: 1, y: 2 };
+  const t = makeFeaturePointTarget({
+    id: featureFollowTargetId('f1', 'vertex'),
+    label: '顶点',
+    getPosition: () => pos,
+  });
+  assert.equal(t.kind, 'feature');
+  assert.equal(t.el, null);
+  assert.equal(t.distance(1, 2.1)?.toFixed?.(2) || Number(t.distance(1, 2.1)).toFixed(2), '0.10');
+  assert.deepEqual(t.snap(9, 9), { x: 1, y: 2 });
+  pos = { x: -3, y: 4 };
+  assert.deepEqual(t.snap(0, 0), { x: -3, y: 4 });
+
+  assert.deepEqual(parseFeatureFollowTargetId('graph:fn:f1:feature:vertex'), {
+    fnId: 'f1',
+    kind: 'vertex',
+  });
+  assert.equal(parseFeatureFollowTargetId('graph:fn:f1'), null);
+  assert.equal(curveFollowTargetId('f1'), 'graph:fn:f1');
+});
+
+test('pickTangentFollowTargetId prefers vertex when near', async () => {
+  const { pickTangentFollowTargetId } = await load(
+    'apps/web/src/math/graph/tangent-follow.js',
+  );
+  const fn = {
+    id: 'f1',
+    kind: 'preset',
+    preset: 'quadratic',
+    coeffs: { a: 1, b: -2, c: 0 }, // vertex at (1, -1)
+  };
+  assert.equal(
+    pickTangentFollowTargetId(fn, 1.02, -1.01, 0.2),
+    'graph:fn:f1:feature:vertex',
+  );
+  assert.equal(pickTangentFollowTargetId(fn, 3, 5, 0.2), 'graph:fn:f1');
+});
+
+test('graph lists feature follow targets and tangent pick helper', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  assert.match(src, /makeFeaturePointTarget/);
+  assert.match(src, /pickTangentFollowTargetId/);
+  assert.match(src, /featureFollowTargetId/);
+  const followSrc = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/tangent-follow.js'),
+    'utf8',
+  );
+  assert.match(followSrc, /feature:vertex|featureFollowTargetId/);
+});
+
 test('graph uses followTargetId + listFollowTargets', () => {
   const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
   assert.match(src, /MAIN_CURVE_FOLLOW_ID/);

@@ -6,7 +6,7 @@
  */
 
 /**
- * @typedef {'curve' | 'line' | 'circle' | 'other'} FollowTargetKind
+ * @typedef {'curve' | 'line' | 'circle' | 'feature' | 'other'} FollowTargetKind
  *
  * @typedef {{
  *   id: string,
@@ -152,6 +152,64 @@ export function makeLineFollowTarget(opts) {
       const den = A * A + B * B || 1;
       const t = -(A * x + B * y + C) / den;
       return { x: x + t * A, y: y + t * B };
+    },
+  };
+}
+
+/**
+ * 特征点跟随 id：graph:fn:{fnId}:feature:{kind}
+ * @param {string} fnId
+ * @param {string} [kind='vertex']
+ */
+export function featureFollowTargetId(fnId, kind = 'vertex') {
+  return `graph:fn:${fnId}:feature:${kind}`;
+}
+
+/**
+ * @param {string | null | undefined} id
+ * @returns {{ fnId: string, kind: string } | null}
+ */
+export function parseFeatureFollowTargetId(id) {
+  if (!id || typeof id !== 'string') return null;
+  const m = /^graph:fn:([^:]+):feature:([^:]+)$/.exec(id);
+  if (!m) return null;
+  return { fnId: m[1], kind: m[2] };
+}
+
+/**
+ * 曲线跟随 id（与 graph listFollowTargets 一致）
+ * @param {string} fnId
+ */
+export function curveFollowTargetId(fnId) {
+  return `graph:fn:${fnId}`;
+}
+
+/**
+ * 固定点状特征（顶点等）：非 glider，仅 snap 到当前特征坐标
+ * @param {{
+ *   id: string,
+ *   label?: string,
+ *   getPosition: () => { x: number, y: number } | null | undefined,
+ * }} opts
+ * @returns {FollowTarget}
+ */
+export function makeFeaturePointTarget(opts) {
+  const { id, getPosition } = opts;
+  const label = opts.label || id;
+  return {
+    id,
+    label,
+    kind: 'feature',
+    el: null,
+    distance(x, y) {
+      const p = getPosition?.();
+      if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return null;
+      return Math.hypot(x - p.x, y - p.y);
+    },
+    snap(_x, _y) {
+      const p = getPosition?.();
+      if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return null;
+      return { x: p.x, y: p.y };
     },
   };
 }

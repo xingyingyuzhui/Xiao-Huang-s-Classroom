@@ -1,5 +1,6 @@
 /** 作图对象删除与交互锚点解析。 */
 
+import { parseFeatureFollowTargetId } from '../../shared/follow-target.js';
 import { detachConstr } from './records.js';
 import { constructionRemovalOrder } from './dependency-closure.js';
 
@@ -22,11 +23,22 @@ export function resolveTangentAnchor(el, host) {
   if (!el) return null;
   const fns = host.getFunctions().filter((fn) => fn.visible && fn.curve);
   for (const fn of fns) {
-    if (el.slideObject === fn.curve || el._mathFollowTargetId === `graph:fn:${fn.id}`) return { pt: el, fn };
+    if (el.slideObject === fn.curve || el._mathFollowTargetId === `graph:fn:${fn.id}`) {
+      return { pt: el, fn };
+    }
+    const feature = parseFeatureFollowTargetId(el._mathFollowTargetId);
+    if (feature && feature.fnId === fn.id) return { pt: el, fn };
   }
   if (el._mathFollowTargetId) {
+    const feature = parseFeatureFollowTargetId(el._mathFollowTargetId);
+    if (feature) {
+      const fn = fns.find((item) => item.id === feature.fnId);
+      if (fn) return { pt: el, fn };
+    }
     const id = String(el._mathFollowTargetId).replace(/^graph:fn:/, '').replace(/^graph:/, '');
-    const fn = fns.find((item) => item.id === id) || fns.find((item) => `graph:fn:${item.id}` === el._mathFollowTargetId);
+    const fn =
+      fns.find((item) => item.id === id) ||
+      fns.find((item) => `graph:fn:${item.id}` === el._mathFollowTargetId);
     if (fn) return { pt: el, fn };
   }
   try {

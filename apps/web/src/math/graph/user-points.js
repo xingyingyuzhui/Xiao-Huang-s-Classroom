@@ -9,6 +9,10 @@ import {
   writeElementLabel,
 } from '../shared/board-label.js';
 import { bindPointIntegerSnap } from '../shared/board-snap.js';
+import {
+  curveFollowTargetId,
+  parseFeatureFollowTargetId,
+} from '../shared/follow-target.js';
 import { applyObjectStyle, readObjectStyle } from '../shared/object-style.js';
 import {
   clearAllConstructions,
@@ -153,7 +157,12 @@ export function createUserPointController(context) {
         color: colors.ink,
       }),
     };
-    const element = followTargetId && target?.el
+    const useGlider =
+      Boolean(followTargetId) &&
+      target &&
+      target.el &&
+      target.kind !== 'feature';
+    const element = useGlider
       ? board.create('glider', [x, y, target.el], attrs)
       : board.create('point', [x, y], { ...attrs, fixed: Boolean(intersectFnIds) });
 
@@ -170,8 +179,11 @@ export function createUserPointController(context) {
       onSnapped: () => refreshPointLabelText(element),
       getTargets: () => context.listSnapTargets(element),
     });
-
-    if (options.style) {
+    if (typeof element.on === 'function') {
+      element.on('up', () => {
+        void relaxFeatureFollow(element);
+      });
+    }    if (options.style) {
       applyObjectStyle(element, {
         strokeColor: options.style.strokeColor,
         strokeWidth: options.style.strokeWidth,
@@ -256,12 +268,11 @@ export function createUserPointController(context) {
 
   async function setFollow(element, follow) {
     const record = find(element);
-    const board = context.getBoard();
-    if (!record || !board) return;
-    const x = Number(element.X());
-    const y = Number(element.Y());
+    if (!record) return;
     let followTargetId = null;
     if (follow) {
+      const x = Number(element.X());
+      const y = Number(element.Y());
       const target = context.resolveFollowTarget(
         x,
         y,
@@ -271,8 +282,48 @@ export function createUserPointController(context) {
       if (!target) return;
       followTargetId = target.id;
     }
-    if ((record.followTargetId || null) === followTargetId) return;
+    await setFollowTarget(element, followTargetId);
+  }
 
+  /**
+   * @param {any} element
+   * @param {string | null} followTargetId
+   */
+  async function setFollowTarget(element, followTargetId) {
+    const record = find(element);
+    const board = context.getBoard();
+    if (!record || !board) return;
+    const nextId = followTargetId || null;
+    if ((record.followTargetId || null) === nextId) {
+      // 仍绑特征时：拖后若仍近则吸回特征坐标
+      if (nextId) {
+        const x = Number(element.X());
+        const y = Number(element.Y());
+        const target = context.resolveFollowTarget(x, y, nextId, { requireNear: false });
+        const snapped = target?.snap?.(x, y);
+        if (snapped && target?.kind === 'feature') {
+          try {
+            if (typeof element.setPositionDirectly === 'function') {
+              element.setPositionDirectly(1, [snapped.x, snapped.y]);
+            } else if (typeof element.moveTo === 'function') {
+              element.moveTo([snapped.x, snapped.y], 0);
+            }
+          } catch {
+            /* */
+          }
+          refreshPointLabelText(element);
+          try {
+            board.update?.();
+          } catch {
+            /* */
+          }
+        }
+      }
+      return;
+    }
+
+    const x = Number(element.X());
+    const y = Number(element.Y());
     const style = readObjectStyle(element, record.baseName);
     const { id, baseName, showCoords } = record;
     const previousFollowTargetId = record.followTargetId;
@@ -291,7 +342,7 @@ export function createUserPointController(context) {
       id,
       baseName,
       showCoords,
-      followTargetId,
+      followTargetId: nextId,
       style,
     });
     const activePoint = replacement || create(x, y, {
@@ -312,6 +363,34 @@ export function createUserPointController(context) {
       });
     }
     board.update();
+  }
+
+  async function relaxFeatureFollow(element) {
+    const record = find(element);
+    if (!record?.followTargetId) return;
+    const parsed = parseFeatureFollowTargetId(record.followTargetId);
+    if (!parsed) return;
+    let x = 0;
+    let y = 0;
+    try {
+      x = Number(element.X());
+      y = Number(element.Y());
+    } catch {
+      return;
+    }
+    const target = context.resolveFollowTarget(x, y, record.followTargetId, {
+      requireNear: false,
+    });
+    const distance = target?.distance?.(x, y);
+    const tol =
+      typeof context.featureFollowTol === 'function'
+        ? context.featureFollowTol()
+        : 0.35;
+    if (distance != null && Number.isFinite(distance) && distance <= tol) {
+      await setFollowTarget(element, record.followTargetId);
+      return;
+    }
+    await setFollowTarget(element, curveFollowTargetId(parsed.fnId));
   }
 
   function setShowCoords(element, enabled) {
@@ -376,6 +455,7 @@ export function createUserPointController(context) {
     removeAll,
     restore,
     setFollow,
+    setFollowTarget,
     setShowCoords,
     snapshot,
   };

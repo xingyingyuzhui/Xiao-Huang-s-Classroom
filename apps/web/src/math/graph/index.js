@@ -58,11 +58,15 @@ import {
 } from './function-analysis.js';
 import {
   defaultFollowTol,
+  featureFollowTargetId,
   findClosestFollowTarget,
   findNearestFollowTarget,
   getFollowTargetById,
+  makeFeaturePointTarget,
   makeFunctionCurveTarget,
+  parseFeatureFollowTargetId,
 } from '../shared/follow-target.js';
+import { pickTangentFollowTargetId, vertexFeatureOfFn } from './tangent-follow.js';
 import { appConfirm, appAlert } from '../../shared/ui/app-dialog.js';
 import { mountMathNumKeypads } from '../shared/num-keypad.js';
 import {
@@ -257,10 +261,20 @@ function listFollowTargets() {
         evalY: (x) => evalFnY(fn, x),
       }),
     );
+    const vertex = vertexFeatureOfFn(fn);
+    if (vertex) {
+      out.push(
+        makeFeaturePointTarget({
+          id: featureFollowTargetId(fn.id, 'vertex'),
+          label: `${fnDisplayLabel(fn)} · 顶点`,
+          getPosition: () => vertexFeatureOfFn(fn),
+        }),
+      );
+    }
   }
   // 兼容旧跟随 id
   if (out.length && !out.some((t) => t.id === MAIN_CURVE_FOLLOW_ID)) {
-    const first = out[0];
+    const first = out.find((t) => t.kind === 'curve') || out[0];
     out.push({
       ...first,
       id: MAIN_CURVE_FOLLOW_ID,
@@ -368,6 +382,7 @@ const {
   removeAll: removeUserPointEls,
   restore: restoreUserPoints,
   setFollow: setUserPointFollow,
+  setFollowTarget: setUserPointFollowTarget,
   setShowCoords: setPointShowCoords,
   snapshot: snapshotUserPoints,
 } = createUserPointController({
@@ -389,6 +404,7 @@ const {
     y: window.innerHeight / 2,
   }),
   defaultFollowTargetId: MAIN_CURVE_FOLLOW_ID,
+  featureFollowTol: () => followTol(),
 });
 
 function makeDrawHost() {
@@ -608,7 +624,7 @@ async function handleToolTapBody(ctx, tool) {
   }
 
   if (tool === 'tangent') {
-    // 一键：点曲线附近 → 造贴线点 + 切线
+    // 一键：点曲线附近 → 造贴线点 + 切线；靠近顶点则绑特征跟随
     let anchorEl = findUserRec(hit)?.el || null;
     let fn = null;
     if (anchorEl) {
@@ -625,14 +641,23 @@ async function handleToolTapBody(ctx, tool) {
       state.toolStrip?.setHint?.('请点在曲线附近');
       return;
     }
+    const followTargetId = pickTangentFollowTargetId(fn, usrX, usrY, followTol());
     if (!anchorEl) {
       const y = evalFnY(fn, usrX);
       const up = createUserPoint(usrX, y == null ? usrY : y, {
-        followTargetId: followIdForFn(fn.id),
+        followTargetId,
         showCoords: true,
       });
       anchorEl = up?.el;
       reregisterSelectable();
+    } else {
+      const rec = findUserRec(anchorEl);
+      if (rec && followTargetId && rec.followTargetId !== followTargetId) {
+        const parsed = parseFeatureFollowTargetId(followTargetId);
+        if (parsed) {
+          void setUserPointFollowTarget(anchorEl, followTargetId);
+        }
+      }
     }
     const pid = userPointIdOf(anchorEl);
     if (!anchorEl || !pid) {
