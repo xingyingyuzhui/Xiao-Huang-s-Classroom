@@ -645,7 +645,7 @@ export function createBookshelfStage(opts) {
       if (state.mode !== 'returning' || tid !== transitionSeq) return;
       shelfStarted = true;
       revealHubShell();
-      resetBookDissolve(book);
+      /* 不在此 resetBookDissolve：复原尾巴由 FX onProgress 连续收完（见上） */
       document.body.classList.remove('bookshelf-entering', 'bookshelf-dive-deep');
       beginCloseToShelf(book, { onDone: returnOpts.onDone });
     };
@@ -661,12 +661,20 @@ export function createBookshelfStage(opts) {
         origin: { x: book.scr.x, y: book.scr.y },
         bookRect: { ...book.scrRect },
         onProgress: (t) => {
-          if (state.mode !== 'returning' || tid !== transitionSeq) return;
+          /* 归架（closing）已开始也继续收完复原尾巴，避免 cleared 时瞬跳复原 */
+          if (tid !== transitionSeq) return;
+          if (state.mode !== 'returning' && state.mode !== 'closing') return;
           applyBookDissolve(book, 1.05 * (1 - t));
         },
         onOpaque: (id) => {
           if (id !== tid || tid !== transitionSeq) return;
           revealHubShell();
+        },
+        /* 帷幕一离开前景（约 1.0s）就并联启动归架，不等 FX 全清（1.5s） */
+        onCleared: (id) => {
+          if (state.mode !== 'returning' || tid !== transitionSeq) return;
+          if (id !== tid) return;
+          startShelfReturn();
         },
         onSettled: (id) => {
           if (id !== tid || tid !== transitionSeq) return;
@@ -675,8 +683,11 @@ export function createBookshelfStage(opts) {
         onDone: startShelfReturn,
       });
       later(() => {
-        if (tid === transitionSeq && state.mode === 'returning') startShelfReturn();
-      }, RM ? 600 : 2000);
+        if (tid !== transitionSeq || state.mode !== 'returning') return;
+        /* FX 停摆保险：强制复原后再归架，避免半蚀刻状态卡住 */
+        resetBookDissolve(book);
+        startShelfReturn();
+      }, RM ? 600 : 1700);
     } else {
       revealHubShell();
       resetBookDissolve(book);

@@ -64,6 +64,10 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
   let coverImg = null;
   /** @type {Uint8ClampedArray | null} */
   let sampleData = null;
+  /** 封面图按 URL 缓存：返回时复用进入时已加载的封面，避免二次解码拖慢帷幕升起 */
+  let coverCacheUrl = null;
+  /** @type {HTMLImageElement | null} */
+  let coverCacheImg = null;
   let phase = 'idle';
   let t0 = 0;
   let lastNow = 0;
@@ -213,6 +217,27 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
     if (!sctx) return;
     sctx.drawImage(coverImg, 0, 0, SAMPLE_W, SAMPLE_H);
     sampleData = sctx.getImageData(0, 0, SAMPLE_W, SAMPLE_H).data;
+  }
+
+  /**
+   * 加载（或命中缓存）封面并烘焙采样；返回 false 表示播放已被取代/取消。
+   * @param {string | null} url
+   * @param {number} myId
+   */
+  async function prepareCover(url, myId) {
+    if (url && coverCacheUrl === url && coverCacheImg) {
+      coverImg = coverCacheImg;
+      bakeSample();
+      return true;
+    }
+    coverImg = await loadCover(url || null);
+    if (!playing || activeId !== myId) return false;
+    if (url && coverImg) {
+      coverCacheUrl = url;
+      coverCacheImg = coverImg;
+    }
+    bakeSample();
+    return true;
   }
 
   /**
@@ -873,12 +898,12 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
       if (phase === 'fade' && veil <= CLEARED_THRESHOLD) fireCleared();
     } else if (direction === 'exit') {
       /*
-       * 返回：帷幕先起 → 粒子从场外凝聚 → 溶解进度反向（书复原）
-       * 0–0.2 cover
-       * 0.2–0.85 coalesce
-       * 0.85–1.4 fade
+       * 返回：帷幕先起遮住教室 → 粒子凝聚 → 幕布边收边露出书复原的高潮
+       * 0–0.2    cover：帷幕升起
+       * 0.15–1.2 coalesce：复原主线（单条 smoothstep 连续推进，无跳变）
+       * 0.6–1.35 fade：帷幕提前缓出让位，最后一段复原在薄幕下可见
        */
-      let coalesceT = 0;
+      let coalesceT = smoothstep(0, 1, (elapsed - 0.15) / 1.05);
       if (RM) {
         phase = 'converge';
         coalesceT = Math.min(1, elapsed / 0.14);
@@ -888,8 +913,7 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
         flash = 0;
       } else if (elapsed < 0.2) {
         phase = 'converge';
-        coalesceT = easeOut(elapsed / 0.55);
-        dissolveT = 1 - coalesceT * 0.15;
+        dissolveT = 1 - coalesceT;
         veil = Math.min(1, easeOut(elapsed / 0.16));
         ink = veil;
         flash = 0;
@@ -901,18 +925,21 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
           spawnConverge(Math.min(n, 8));
         }
         if (elapsed > 0.06 && !motifSpawned) spawnMotifsConverge();
-      } else if (elapsed < 0.85) {
+      } else if (elapsed < 1.35) {
         phase = 'converge';
-        const u = (elapsed - 0.2) / 0.65;
-        coalesceT = easeOut(0.35 + u * 0.65);
+        const u = (elapsed - 0.2) / 1.0;
         dissolveT = Math.max(0, 1 - coalesceT);
-        veil = 1;
-        ink = 1;
+        /* 0.6s 起帷幕缓出：复原高潮透过薄幕可见 */
+        veil =
+          elapsed < 0.6 ? 1 : Math.max(0, 1 - easeOut((elapsed - 0.6) / 0.75));
+        ink = veil;
+        /* 让位瞬间一点闪光，标记“翻开/凝聚”的高潮 */
         flash =
-          elapsed > 0.58 && elapsed < 0.72
-            ? ((elapsed - 0.58) / 0.08) * (1 - (elapsed - 0.58) / 0.14)
+          elapsed > 0.62 && elapsed < 0.8
+            ? ((elapsed - 0.62) / 0.08) * (1 - (elapsed - 0.62) / 0.18)
             : 0;
-        emitCarry += dt * 40 * (1 - u);
+        /* 凝聚流贯穿整个可见高潮，随进度自然减弱 */
+        emitCarry += dt * (30 + 50 * (1 - u));
         const n = Math.floor(emitCarry);
         if (n >= 1) {
           emitCarry -= n;
@@ -922,8 +949,8 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
         phase = 'fade';
         coalesceT = 1;
         dissolveT = 0;
-        veil = Math.max(0, 1 - easeIn((elapsed - 0.85) / 0.5));
-        ink = veil;
+        veil = 0;
+        ink = 0;
         flash = 0;
       }
 
@@ -936,7 +963,8 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
       drawGrain(ink);
 
       if (veil >= OPAQUE_THRESHOLD) fireOpaque();
-      if (phase === 'fade' && veil <= CLEARED_THRESHOLD) fireCleared();
+      /* 帷幕收起即 cleared（此时仍是 converge 尾段，比 fade 阶段更早） */
+      if (elapsed >= 0.6 && veil <= CLEARED_THRESHOLD) fireCleared();
     } else {
       /* neutral hold */
       if (elapsed < 0.14) {
@@ -986,9 +1014,7 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
     motifs = [];
     applyBookRect(opts.bookRect, opts.origin);
 
-    coverImg = await loadCover(opts.coverURL || null);
-    if (!playing || activeId !== myId) return;
-    bakeSample();
+    if (!(await prepareCover(opts.coverURL || null, myId))) return;
 
     /* 开场只撒很少表面粒子，主体靠前线连续喷 */
     spawnFlakes(RM ? 12 : 28, 0.08, 'burst');
@@ -1055,9 +1081,7 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
     );
     const done = typeof opts.onDone === 'function' ? opts.onDone : onDone;
 
-    coverImg = await loadCover(opts.coverURL || null);
-    if (!playing || activeId !== myId) return;
-    bakeSample();
+    if (!(await prepareCover(opts.coverURL || null, myId))) return;
 
     spawnConverge(RM ? 20 : 48);
 
@@ -1069,8 +1093,9 @@ export function createEnterPageFx({ root, onRevealLab, onRevealHub, onDone }) {
     emitProgress(0);
     raf = requestAnimationFrame(frame);
 
-    const holdMs = RM ? 180 : 1180;
-    const endMs = RM ? 320 : 1620;
+    /* fade 于 ~1.03s 越过 cleared 阈值；holdMs 仅作帧停顿时的兜底 */
+    const holdMs = RM ? 180 : 1100;
+    const endMs = RM ? 320 : 1500;
 
     later(() => {
       if (!playing || activeId !== myId) return;
