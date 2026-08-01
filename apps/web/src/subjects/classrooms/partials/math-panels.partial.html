@@ -607,3 +607,63 @@
             </div>
           </div>
         </div>
+
+        <!-- 编辑函数弹窗：名称 / 表达式 / 预设系数 / 独立定义域 -->
+        <div class="modal-backdrop" id="mathFnEditBackdrop" aria-hidden="true"></div>
+        <div
+          class="modal-panel math-fn-edit-modal"
+          id="mathFnEditModal"
+          role="dialog"
+          aria-labelledby="mathFnEditTitle"
+          aria-hidden="true"
+        >
+          <div class="modal-head">
+            <h2 id="mathFnEditTitle">编辑函数</h2>
+          </div>
+          <div class="modal-body">
+            <p class="math-field-label" for="mathFnEditName">名称</p>
+            <input type="text" id="mathFnEditName" class="math-fn-expr-input" maxlength="20" autocomplete="off" aria-label="函数名称" />
+            <p class="math-edit-hint">1–20 个字符；重复名称允许，用颜色区分</p>
+
+            <div id="mathFnEditExprWrap" hidden>
+              <p class="math-field-label" for="mathFnEditExpr">表达式</p>
+              <input type="text" id="mathFnEditExpr" class="math-fn-expr-input math-expr-input" autocomplete="off" aria-label="自定义表达式" />
+            </div>
+
+            <div id="mathFnEditCoeffs" hidden>
+              <p class="math-field-label" for="mathFnEditPreset">类型</p>
+              <select id="mathFnEditPreset" class="math-fn-preset-select" aria-label="函数类型"></select>
+              <div class="math-edit-coeffs">
+                <div class="math-field">
+                  <label class="math-slider-label" for="mathFnEditA"><span class="math-slider-name">a</span></label>
+                  <input type="number" id="mathFnEditA" class="math-num-input" step="0.1" aria-label="a 系数" />
+                </div>
+                <div class="math-field">
+                  <label class="math-slider-label" for="mathFnEditB"><span class="math-slider-name">b</span></label>
+                  <input type="number" id="mathFnEditB" class="math-num-input" step="0.1" aria-label="b 系数" />
+                </div>
+                <div class="math-field">
+                  <label class="math-slider-label" for="mathFnEditC"><span class="math-slider-name">c</span></label>
+                  <input type="number" id="mathFnEditC" class="math-num-input" step="0.1" aria-label="c 系数" />
+                </div>
+              </div>
+            </div>
+
+            <p class="math-field-label" for="mathFnEditDomainMode">定义域</p>
+            <select id="mathFnEditDomainMode" class="math-fn-preset-select" aria-label="定义域模式">
+              <option value="viewport">跟随视口</option>
+              <option value="custom">自定义</option>
+            </select>
+            <div id="mathFnEditDomainWrap" class="math-edit-domain" hidden>
+              <input type="number" id="mathFnEditDomainMin" class="math-num-input" aria-label="定义域最小值" placeholder="min" />
+              <span aria-hidden="true">至</span>
+              <input type="number" id="mathFnEditDomainMax" class="math-num-input" aria-label="定义域最大值" placeholder="max" />
+            </div>
+            <p class="math-edit-status" id="mathFnEditStatus" aria-live="polite"></p>
+
+            <div class="settings-actions math-fn-add-actions">
+              <button type="button" class="btn ghost" id="btnMathFnEditCancel">取消</button>
+              <button type="button" class="btn primary" id="btnMathFnEditSubmit">保存</button>
+            </div>
+          </div>
+        </div>

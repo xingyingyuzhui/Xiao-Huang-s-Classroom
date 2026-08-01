@@ -2,9 +2,10 @@
 
 import { colorForFnIndex } from '../shared/math-theme.js';
 import { aiApi } from '../../shared/api/client.js';
-import { appAlert } from '../../shared/ui/app-dialog.js';
+import { appAlert, appConfirm } from '../../shared/ui/app-dialog.js';
 import { GRAPH_PRESETS } from './model.js';
-import { graphFunctionDisplayLabel } from './function-analysis.js';
+import { createFunctionListView } from './function-list-view.js';
+import { createFunctionEditor } from './function-editor.js';
 import {
   createCustomFunctionRecord,
   createFunctionRecordFromAiSpec,
@@ -50,43 +51,131 @@ export function createFunctionPanelController(context) {
     }
   };
 
+  // 函数列表视图（事件委托 + 更多菜单）
+  const listHost = document.getElementById('mathFnList');
+  const listView = createFunctionListView({
+    root: listHost,
+    callbacks: {
+      onSelect: (id) => select(id),
+      onToggleVisible: (id) => toggleVisible(id),
+      onMenu: (id, action) => void handleMenuAction(id, action),
+    },
+  });
+
+  // 编辑弹窗（重命名 / 表达式 / 系数 / 定义域）
+  const editor = createFunctionEditor({
+    root: /** @type {any} */ (document.getElementById('mathFnEditModal')),
+    callbacks: {
+      onSubmit: (patch) => {
+        const store = context.store?.();
+        const current = editor.getEditing?.() || state.functions.find((f) => f.id === state.activeFnId);
+        if (!current || !store) return;
+        store.dispatch({
+          type: 'function/update',
+          payload: { id: current.id, patch },
+        });
+      },
+      onCancel: () => {},
+    },
+  });
+
+  /** 删除依赖计数（文档点/构造中引用该函数者） */
+  function dependentCount(id) {
+    const store = context.store?.();
+    const doc = store?.getDocument?.();
+    if (!doc) return 0;
+    const pointCount = (doc.points || []).filter((p) => {
+      const c = p.constraint;
+      return (
+        (c?.kind === 'followFunction' && c.functionId === id) ||
+        (c?.kind === 'followFeature' && c.functionId === id) ||
+        (c?.kind === 'intersection' && c.targetIds?.includes(id))
+      );
+    }).length;
+    const constructionCount = (doc.constructions || []).filter(
+      (c) => c.fnId === id || c.fnIds?.includes(id),
+    ).length;
+    return pointCount + constructionCount;
+  }
+
+  async function handleMenuAction(id, action) {
+    const store = context.store?.();
+    const fn = state.functions.find((f) => f.id === id);
+    if (!fn) return;
+    if (action === 'edit') {
+      editor.open(fn);
+      return;
+    }
+    if (action === 'duplicate') {
+      if (!store) return;
+      const color = colorForFnIndex(state.fnSeq);
+      const { curve, ...definition } = fn;
+      const dup = {
+        ...definition,
+        id: `f${state.fnSeq}`,
+        name: fn.name ? `${fn.name}（副本）` : '',
+        color,
+      };
+      state.fnSeq += 1;
+      store.dispatch({ type: 'function/duplicate', payload: { sourceId: id, function: dup } });
+      return;
+    }
+    if (action === 'lock') {
+      store?.dispatch({
+        type: 'function/update',
+        payload: { id, patch: { locked: !fn.locked } },
+      });
+      return;
+    }
+    if (action === 'up' || action === 'down') {
+      if (!store) return;
+      const ids = state.functions.map((f) => f.id);
+      const index = ids.indexOf(id);
+      const target = action === 'up' ? index - 1 : index + 1;
+      if (target < 0 || target >= ids.length) return;
+      const next = ids.slice();
+      const [moved] = next.splice(index, 1);
+      next.splice(target, 0, moved);
+      store.dispatch({ type: 'function/reorder', payload: { ids: next } });
+      return;
+    }
+    if (action === 'delete') {
+      if (state.functions.length <= 1) {
+        void appAlert('至少保留一条函数', { title: '无法删除' });
+        return;
+      }
+      const count = dependentCount(id);
+      const suffix = count > 0 ? `（将同时删除 ${count} 个关联对象）` : '';
+      const ok = await appConfirm(`确定删除「${fn.name || '函数'}」？${suffix}`, {
+        title: '删除函数',
+        okText: '删除',
+        cancelText: '取消',
+      });
+      if (ok) remove(id);
+    }
+  }
+
+  function toggleVisible(id) {
+    const fn = state.functions.find((f) => f.id === id);
+    if (!fn) return;
+    const store = context.store?.();
+    if (store) {
+      store.dispatch({
+        type: 'function/update',
+        payload: { id, patch: { visible: !fn.visible } },
+      });
+      return;
+    }
+    fn.visible = !fn.visible;
+    context.rebuildCurve();
+    render();
+  }
+
   function render() {
     const host = document.getElementById('mathFnList');
     if (!host) return;
     host.classList.toggle('is-edit-mode', state.editMode);
-    if (!state.functions.length) {
-      host.innerHTML = '<p class="math-fn-empty">点 ＋ 添加函数到画布</p>';
-      return;
-    }
-    host.innerHTML = state.functions
-      .map((fn) => {
-        const selected = fn.id === state.activeFnId;
-        const formula = escapeHtml(graphFunctionDisplayLabel(fn));
-        const meta = fn.kind === 'custom'
-          ? null
-          : GRAPH_PRESETS.find((preset) => preset.id === fn.preset);
-        const typeLabel = fn.kind === 'custom'
-          ? '自定义'
-          : escapeHtml(meta?.label || '函数');
-        const typeTip = fn.kind === 'custom'
-          ? '自定义表达式'
-          : escapeHtml(meta?.tip || '');
-        const subtitle = typeTip
-          ? `${typeLabel}<span class="math-fn-card-sub-dot" aria-hidden="true">·</span>${typeTip}`
-          : typeLabel;
-        return `
-      <div class="math-fn-card${selected ? ' is-active' : ''}${state.editMode ? ' is-editing' : ''}" data-fn-id="${escapeHtml(fn.id)}" style="--fn-color:${escapeHtml(fn.color)}">
-        <button type="button" class="math-fn-card-del" data-fn-del="${escapeHtml(fn.id)}" title="删除" aria-label="删除">×</button>
-        <button type="button" class="math-fn-card-main" data-fn-id="${escapeHtml(fn.id)}">
-          <span class="math-fn-card-swatch" aria-hidden="true"></span>
-          <span class="math-fn-card-body">
-            <strong class="math-fn-card-title" title="${formula}">${formula}</strong>
-            <span class="math-fn-card-sub">${subtitle}</span>
-          </span>
-        </button>
-      </div>`;
-      })
-      .join('');
+    listView.render(state.functions, state.activeFnId, state.editMode);
   }
 
   function syncParams() {
@@ -339,22 +428,7 @@ export function createFunctionPanelController(context) {
     const keypad = document.getElementById('mathFnExprKeypad');
     const presetsHost = document.getElementById('mathGraphPresets');
 
-    if (list && !list.dataset.bound) {
-      list.dataset.bound = '1';
-      list.addEventListener('click', (event) => {
-        const target = /** @type {HTMLElement} */ (event.target);
-        const deleteButton = target.closest?.('[data-fn-del]');
-        if (deleteButton) {
-          event.preventDefault();
-          event.stopPropagation();
-          if (state.editMode) remove(deleteButton.getAttribute('data-fn-del') || '');
-          return;
-        }
-        if (state.editMode) return;
-        const card = target.closest?.('[data-fn-id]');
-        if (card) select(card.getAttribute('data-fn-id') || '');
-      });
-    }
+    // 函数列表事件委托已由 function-list-view 接管（含更多菜单/显隐/键盘）
     if (addButton && !addButton.dataset.bound) {
       addButton.dataset.bound = '1';
       addButton.addEventListener('click', showAdd);
@@ -421,6 +495,8 @@ export function createFunctionPanelController(context) {
         }
       });
     }
+    editor.bind();
+
     if (presetsHost && !presetsHost.dataset.ready) {
       presetsHost.innerHTML = GRAPH_PRESETS.map(
         (preset) =>

@@ -67,6 +67,26 @@ export function reduceGraphDocument(document, action) {
       return { ...document, functions };
     }
 
+    case 'function/duplicate': {
+      // 复制：插入原函数之后；数组位置是唯一顺序真值
+      const fn = action.payload?.function;
+      const sourceId = action.payload?.sourceId;
+      if (!fn || typeof fn !== 'object' || typeof fn.id !== 'string' || !fn.id) {
+        return document;
+      }
+      if (fn.kind !== 'preset' && fn.kind !== 'custom') return document;
+      if (document.functions.some((f) => f.id === fn.id)) return document;
+      const index = document.functions.findIndex((f) => f.id === sourceId);
+      const at = index < 0 ? document.functions.length : index + 1;
+      const functions = document.functions.slice();
+      functions.splice(at, 0, fn);
+      return {
+        ...document,
+        functions,
+        presentation: { ...document.presentation, activeFunctionId: fn.id },
+      };
+    }
+
     case 'function/remove': {
       const id = action.payload?.id;
       if (!document.functions.some((f) => f.id === id)) return document;
