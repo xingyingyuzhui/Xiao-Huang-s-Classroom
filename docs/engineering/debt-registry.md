@@ -25,3 +25,5 @@
 3. 新增债务必须经 Program 负责人确认并写明删除条件；无条件的债务不得入表。
 
 | D11 | 旧 CSS 重复选择器与结构问题 | `apps/web/src/shared/styles/**`（8 处 no-duplicate-selectors） | 级联歧义 | P3（五主题收口） | stylelint 全仓清零 | 已登记（stylelint 门禁仅查新范围） |
+
+| D12 | node:test 并行 IPC 序列化偶发失败（`Unable to deserialize cloned data`） | 根 `npm test`（无并发限制时 ~1/8 概率触发，与业务改动无关） | 测试结果不可靠 | P7（Vitest 迁移后自然消除） | 根 test 脚本已固定 `--test-concurrency=4`（10/10 稳定）；Vitest 目录迁移完成后删除该限制 | 已控制（并发数固定） |

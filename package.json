@@ -13,7 +13,7 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "node --test 'test/**/*.cjs'",
+    "test": "node --test --test-concurrency=4 'test/**/*.cjs'",
     "dev": "npm run dev -w @xiaohuang/web",
     "dev:server": "npm run dev -w @xiaohuang/server",
     "dev:all": "npm run dev:server & npm run dev",
