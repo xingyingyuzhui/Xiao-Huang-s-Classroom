@@ -496,3 +496,34 @@ export const balanceScriptsApi = {
     });
   },
 };
+
+// ───────────────────────── API v2（Program 5 Task 5.4） ─────────────────────────
+
+/**
+ * v2 请求：统一 { success, data|error, requestId } 响应；与 v1 同一 service。
+ * 首个 v2 端点：subject-settings（GET）。
+ * @param {string} url
+ * @returns {Promise<{ ok: true, data: any, requestId: string } | { ok: false, error: { code: string, message: string }, requestId: string }>}
+ */
+export async function apiV2Get(url) {
+  let res;
+  try {
+    res = await fetch(url, { headers: { Accept: 'application/json' } });
+  } catch {
+    return { ok: false, error: { code: 'NETWORK_OFFLINE', message: '网络不可用' }, requestId: '' };
+  }
+  let json;
+  try {
+    json = await res.json();
+  } catch {
+    return { ok: false, error: { code: 'INTERNAL_UNKNOWN', message: '响应不是 JSON' }, requestId: '' };
+  }
+  if (json && json.success === true) {
+    return { ok: true, data: json.data, requestId: json.requestId };
+  }
+  return {
+    ok: false,
+    error: json?.error ?? { code: 'INTERNAL_UNKNOWN', message: '未知错误' },
+    requestId: json?.requestId ?? '',
+  };
+}

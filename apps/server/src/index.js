@@ -74,6 +74,7 @@ if (fs.existsSync(publicDir)) {
   );
 }
 
+app.use('/api/v2', require('./routes/v2/settings'));
 app.use('/api/molecules', moleculesRouter);
 app.use('/api/settings', settingsRouter);
 app.use('/api/ai', aiRouter);
