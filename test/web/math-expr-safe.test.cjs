@@ -13,9 +13,7 @@ async function load(rel) {
 }
 
 test('compileMathExpr evaluates polynomials and sin', async () => {
-  const { compileMathExpr, formatExprLabel } = await load(
-    'apps/web/src/math/shared/expr-safe.js',
-  );
+  const { compileMathExpr, formatExprLabel } = await load('apps/web/src/math/shared/expr-safe.js');
   const q = compileMathExpr('0.5x^2-x-1.5');
   assert.equal(q.ok, true);
   if (q.ok) {
@@ -54,7 +52,10 @@ test('graph sidebar multi-fn list markup and wiring', () => {
     'utf8',
   );
   assert.match(html, /id="mathFnList"/);
-  assert.match(html, /id="btnMathAddFn"/);
+  // 添加按钮由 @xiaohuang/ui createButton 渲染（Program 3 试点），HTML 不再静态保留
+  assert.doesNotMatch(html, /id="btnMathAddFn"/);
+  assert.match(panel, /@xiaohuang\/ui/, 'function-panel 必须消费 ui 包');
+  assert.match(panel, /createButton/, '添加按钮必须经 createButton 渲染');
   assert.match(html, /id="mathFnExprInput"/);
   // 添加函数改为弹窗 + 表达式专属键盘
   assert.match(html, /id="mathFnAddModal"/);

@@ -4,6 +4,28 @@ import { aiApi } from '../../shared/api/client.js';
 import { appAlert, appConfirm } from '../../shared/ui/app-dialog.js';
 import { GRAPH_PRESETS } from './model.js';
 import { createFunctionListView } from './function-list-view.js';
+import { createButton } from '@xiaohuang/ui';
+
+/**
+ * Program 3 试点：真实消费方使用 @xiaohuang/ui 组件。
+ * 渲染「添加函数」按钮（保留既有 math-fn-btn 样式类与结构）。
+ */
+function createUiAddFnButton() {
+  const host = document.querySelector('.math-fn-toolbar');
+  if (!host) return null;
+  const button = createButton({
+    label: '＋',
+    title: '添加函数',
+    className: 'math-fn-btn math-fn-btn-add',
+    onClick: () => showAdd(),
+  });
+  const strong = document.createElement('strong');
+  strong.className = 'math-fn-add-plus';
+  strong.textContent = '＋';
+  button.element.replaceChildren(strong);
+  host.appendChild(button.element);
+  return button.element;
+}
 import { createFunctionEditor } from './function-editor.js';
 import {
   createCustomFunctionRecord,
@@ -78,7 +100,8 @@ export function createFunctionPanelController(context) {
     callbacks: {
       onSubmit: (patch) => {
         const store = context.store?.();
-        const current = editor.getEditing?.() || state.functions.find((f) => f.id === state.activeFnId);
+        const current =
+          editor.getEditing?.() || state.functions.find((f) => f.id === state.activeFnId);
         if (!current || !store) return;
         store.dispatch({
           type: 'function/update',
@@ -432,7 +455,8 @@ export function createFunctionPanelController(context) {
 
   function bind() {
     const list = document.getElementById('mathFnList');
-    const addButton = document.getElementById('btnMathAddFn');
+    // 添加按钮：@xiaohuang/ui createButton 渲染（Program 3 真实消费方试点）
+    const addButton = createUiAddFnButton();
     const aiButton = document.getElementById('btnMathAiFn');
     const editButton = document.getElementById('btnMathEditFns');
     const cancelButton = document.getElementById('btnMathFnAddCancel');
@@ -509,10 +533,7 @@ export function createFunctionPanelController(context) {
       keypad.addEventListener('click', (event) => {
         const button = /** @type {HTMLElement} */ (event.target).closest?.('[data-expr-key]');
         if (button && expressionInput) {
-          applyExpressionKey(
-            expressionInput,
-            button.getAttribute('data-expr-key') || '',
-          );
+          applyExpressionKey(expressionInput, button.getAttribute('data-expr-key') || '');
         }
       });
     }
@@ -540,4 +561,3 @@ export function createFunctionPanelController(context) {
     syncParams,
   };
 }
-

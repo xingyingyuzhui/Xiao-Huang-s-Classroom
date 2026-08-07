@@ -1,666 +1,920 @@
-
-        <!-- 函数画布 -->
-        <section id="panel-math-graph" class="panel" role="tabpanel" hidden>
-          <aside class="sidebar side-drawer" data-drawer-key="math-graph">
-            <div class="side-drawer-head">
-              <h2>函数画布</h2>
-              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
-            </div>
-            <div class="side-drawer-body">
-              <!-- 对标 3D 分子：＋ 手动添加 / AI 生成 / 编辑 -->
-              <div class="math-fn-toolbar">
-                <button type="button" class="math-fn-btn math-fn-btn-add" id="btnMathAddFn" title="添加函数">
-                  <strong class="math-fn-add-plus">＋</strong>
-                </button>
-                <button type="button" class="math-fn-btn math-fn-btn-ai" id="btnMathAiFn" title="AI 生成函数">
-                  <span class="math-fn-ai-label">AI</span>
-                </button>
-                <button type="button" class="math-fn-btn math-fn-btn-edit" id="btnMathEditFns" title="编辑列表">
-                  编辑
-                </button>
-              </div>
-              <div class="math-project-row" role="group" aria-label="画布项目">
-                <button type="button" class="math-project-btn" id="btnMathGraphImport" title="导入项目 JSON">导入</button>
-                <button type="button" class="math-project-btn" id="btnMathGraphExport" title="导出项目 JSON">导出</button>
-                <button type="button" class="math-project-btn math-project-btn-danger" id="btnMathGraphReset" title="重置画布">重置</button>
-                <input type="file" id="mathGraphFileInput" accept=".json,application/json" hidden />
-              </div>
-              <div id="mathFnList" class="math-fn-list" aria-label="函数列表"></div>
-
-              <!-- 选中函数参数（预设 a/b/c） -->
-              <div id="mathFnParamPanel" class="math-fn-param-panel" hidden>
-                <p class="math-field-label" id="mathFnParamTitle">参数</p>
-                <div class="math-field" id="mathGraphALabel">
-                  <label class="math-slider-label" for="mathGraphANum">
-                    <span class="math-slider-name">a</span>
-                  </label>
-                  <div class="math-param-row">
-                    <input type="range" id="mathGraphA" min="-5" max="5" step="0.1" value="1" />
-                    <input type="number" id="mathGraphANum" class="math-num-input" step="0.1" value="1" aria-label="a 精确值" />
-                  </div>
-                </div>
-                <div class="math-field" id="mathGraphBLabel">
-                  <label class="math-slider-label" for="mathGraphBNum">
-                    <span class="math-slider-name">b</span>
-                  </label>
-                  <div class="math-param-row">
-                    <input type="range" id="mathGraphB" min="-5" max="5" step="0.1" value="0" />
-                    <input type="number" id="mathGraphBNum" class="math-num-input" step="0.1" value="0" aria-label="b 精确值" />
-                  </div>
-                </div>
-                <div class="math-field" id="mathGraphCRow">
-                  <label class="math-slider-label" for="mathGraphCNum" id="mathGraphCLabel">
-                    <span class="math-slider-name">c</span>
-                  </label>
-                  <div class="math-param-row">
-                    <input type="range" id="mathGraphC" min="-5" max="5" step="0.1" value="0" />
-                    <input type="number" id="mathGraphCNum" class="math-num-input" step="0.1" value="0" aria-label="c 精确值" />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </aside>
-          <div class="stage stage-math stage-math-graph">
-            <div id="mathGraphStage" class="math-board-host">
-              <div id="mathGraphBoard" class="jxgbox math-jxg" aria-label="函数画布"></div>
-            </div>
-            <!-- 叠在坐标系上的读数卡 -->
-            <article
-              class="math-float-card math-float-card-features"
-              data-math-card="features"
-              data-collapsed="false"
-            >
-              <header class="math-float-card-head">
-                <h3>关键特征</h3>
-                <button
-                  type="button"
-                  class="math-float-card-toggle"
-                  data-math-card-toggle
-                  aria-expanded="true"
-                  title="收起"
-                >
-                  −
-                </button>
-              </header>
-              <div class="math-float-card-body">
-                <div id="mathGraphFeatures" class="math-float-features"></div>
-              </div>
-            </article>
-            <article
-              class="math-float-card math-float-card-table"
-              data-math-card="table"
-              data-collapsed="false"
-            >
-              <header class="math-float-card-head">
-                <h3>对应表</h3>
-                <button
-                  type="button"
-                  class="math-float-card-toggle"
-                  data-math-card-toggle
-                  aria-expanded="true"
-                  title="收起"
-                >
-                  −
-                </button>
-              </header>
-              <div class="math-float-card-body">
-                <p id="mathGraphProbeReadout" class="math-probe-readout" aria-live="polite" hidden></p>
-                <div id="mathGraphValueTable" class="math-float-table-wrap"></div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <!-- 直线与圆 -->
-        <section id="panel-math-plane" class="panel" role="tabpanel" hidden>
-          <aside class="sidebar side-drawer" data-drawer-key="math-plane">
-            <div class="side-drawer-head">
-              <h2>直线与圆</h2>
-              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
-            </div>
-            <div class="side-drawer-body">
-              <button type="button" class="btn primary btn-sm math-side-action" id="btnMathPlaneReset">
-                复位点位
-              </button>
-            </div>
-          </aside>
-          <div class="stage stage-math stage-math-overlay">
-            <div id="mathPlaneStage" class="math-board-host">
-              <div id="mathPlaneBoard" class="jxgbox math-jxg" aria-label="解析几何画板"></div>
-            </div>
-            <article class="math-float-card math-float-card-formula" data-math-card="plane-eq" data-collapsed="false">
-              <header class="math-float-card-head">
-                <h3>方程</h3>
-                <button type="button" class="math-float-card-toggle" data-math-card-toggle aria-expanded="true" title="收起">−</button>
-              </header>
-              <div class="math-float-card-body">
-                <div id="mathPlaneFormulas" class="math-float-features"></div>
-              </div>
-            </article>
-            <article class="math-float-card math-float-card-table" data-math-card="plane-dist" data-collapsed="false">
-              <header class="math-float-card-head">
-                <h3>点到直线距离</h3>
-                <button type="button" class="math-float-card-toggle" data-math-card-toggle aria-expanded="true" title="收起">−</button>
-              </header>
-              <div class="math-float-card-body">
-                <div id="mathPlaneMeasure" class="math-float-features"></div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <!-- 三角函数 -->
-        <section id="panel-math-trig" class="panel" role="tabpanel" hidden>
-          <aside class="sidebar side-drawer" data-drawer-key="math-trig">
-            <div class="side-drawer-head">
-              <h2>三角函数</h2>
-              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
-            </div>
-            <div class="side-drawer-body">
-              <div class="math-field">
-                <label class="math-slider-label" for="mathTrigDegNum">
-                  <span class="math-slider-name">角度 θ（度）</span>
-                </label>
-                <div class="math-param-row">
-                  <input type="range" id="mathTrigSlider" min="0" max="360" step="1" value="30" />
-                  <input type="number" id="mathTrigDegNum" class="math-num-input" min="0" max="360" step="1" value="30" aria-label="角度精确值" />
-                </div>
-                <span id="mathTrigDegLabel" class="visually-hidden">30</span>
-              </div>
-              <label class="math-check">
-                <input type="checkbox" id="mathTrigSnap" checked />
-                吸附特殊角（0°/30°/45°…）
-              </label>
-              <div class="math-field">
-                <span class="math-field-label">特殊角</span>
-                <div id="mathTrigSpecials" class="math-chip-row" role="group" aria-label="特殊角"></div>
-              </div>
-            </div>
-          </aside>
-          <div class="stage stage-math stage-math-split stage-math-overlay">
-            <div id="mathTrigCircleStage" class="math-board-host math-board-half">
-              <div class="math-board-caption">单位圆</div>
-              <div id="mathTrigCircleBoard" class="jxgbox math-jxg" aria-label="单位圆"></div>
-            </div>
-            <div id="mathTrigWaveStage" class="math-board-host math-board-half">
-              <div class="math-board-caption">y = sin θ · y = cos θ</div>
-              <div id="mathTrigWaveBoard" class="jxgbox math-jxg" aria-label="正弦余弦图象"></div>
-            </div>
-            <article class="math-float-card math-float-card-formula" data-math-card="trig-val" data-collapsed="false">
-              <header class="math-float-card-head">
-                <h3>当前值</h3>
-                <button type="button" class="math-float-card-toggle" data-math-card-toggle aria-expanded="true" title="收起">−</button>
-              </header>
-              <div class="math-float-card-body">
-                <div id="mathTrigReadout" class="math-float-features"></div>
-              </div>
-            </article>
-            <article class="math-float-card math-float-card-features" data-math-card="trig-exact" data-collapsed="false">
-              <header class="math-float-card-head">
-                <h3>精确值</h3>
-                <button type="button" class="math-float-card-toggle" data-math-card-toggle aria-expanded="true" title="收起">−</button>
-              </header>
-              <div class="math-float-card-body">
-                <div id="mathTrigExact" class="math-float-features"></div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <!-- 数列 -->
-        <section id="panel-math-sequence" class="panel" role="tabpanel" hidden>
-          <aside class="sidebar side-drawer" data-drawer-key="math-sequence">
-            <div class="side-drawer-head">
-              <h2>数列</h2>
-              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
-            </div>
-            <div class="side-drawer-body">
-              <div class="math-field">
-                <span class="math-field-label">类型</span>
-                <div class="math-chip-row" role="group" aria-label="数列类型">
-                  <button type="button" class="chip active" data-math-seq-kind="arith">等差数列</button>
-                  <button type="button" class="chip" data-math-seq-kind="geom">等比数列</button>
-                </div>
-              </div>
-              <div class="math-field">
-                <label class="math-slider-label" for="mathSeqA1Num">
-                  <span class="math-slider-name">首项 a₁</span>
-                </label>
-                <div class="math-param-row">
-                  <input type="range" id="mathSeqA1" min="-10" max="10" step="0.5" value="2" />
-                  <input type="number" id="mathSeqA1Num" class="math-num-input" step="0.5" value="2" aria-label="首项精确值" />
-                </div>
-              </div>
-              <div class="math-field" id="mathSeqStepLabel">
-                <label class="math-slider-label" for="mathSeqStepNum">
-                  <span class="math-slider-name">公差 d</span>
-                </label>
-                <div class="math-param-row">
-                  <input type="range" id="mathSeqStep" min="-5" max="5" step="0.5" value="3" />
-                  <input type="number" id="mathSeqStepNum" class="math-num-input" step="0.5" value="3" aria-label="公差或公比精确值" />
-                </div>
-              </div>
-              <div class="math-field">
-                <label class="math-slider-label" for="mathSeqNNum">
-                  <span class="math-slider-name">项数 n</span>
-                </label>
-                <div class="math-param-row">
-                  <input type="range" id="mathSeqN" min="3" max="16" step="1" value="8" />
-                  <input type="number" id="mathSeqNNum" class="math-num-input" min="3" max="40" step="1" value="8" aria-label="项数精确值" />
-                </div>
-              </div>
-            </div>
-          </aside>
-          <div class="stage stage-math stage-math-overlay">
-            <div id="mathSeqStage" class="math-board-host">
-              <div id="mathSeqBoard" class="jxgbox math-jxg" aria-label="数列图象"></div>
-            </div>
-            <article class="math-float-card math-float-card-formula" data-math-card="seq-f" data-collapsed="false">
-              <header class="math-float-card-head">
-                <h3>公式</h3>
-                <button type="button" class="math-float-card-toggle" data-math-card-toggle aria-expanded="true" title="收起">−</button>
-              </header>
-              <div class="math-float-card-body">
-                <div id="mathSeqFormulas" class="math-float-features"></div>
-              </div>
-            </article>
-            <article class="math-float-card math-float-card-table" data-math-card="seq-list" data-collapsed="false">
-              <header class="math-float-card-head">
-                <h3>前 n 项</h3>
-                <button type="button" class="math-float-card-toggle" data-math-card-toggle aria-expanded="true" title="收起">−</button>
-              </header>
-              <div class="math-float-card-body">
-                <div id="mathSeqList" class="math-float-features"></div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <!-- 立体几何 -->
-        <section id="panel-math-solid" class="panel" role="tabpanel" hidden>
-          <aside class="sidebar side-drawer" data-drawer-key="math-solid">
-            <div class="side-drawer-head">
-              <h2>立体几何</h2>
-              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
-            </div>
-            <div class="side-drawer-body">
-              <div class="math-field">
-                <span class="math-field-label">几何体</span>
-                <div class="math-chip-row" role="group" aria-label="几何体类型">
-                  <button type="button" class="chip active" data-math-solid="box">长方体</button>
-                  <button type="button" class="chip" data-math-solid="cube">正方体</button>
-                  <button type="button" class="chip" data-math-solid="pyramid">正四棱锥</button>
-                </div>
-              </div>
-              <div class="math-field">
-                <label class="math-slider-label" for="mathSolidANum">
-                  <span class="math-slider-name">棱长 a</span>
-                </label>
-                <div class="math-param-row">
-                  <input type="range" id="mathSolidA" min="0.6" max="4.5" step="0.1" value="2.4" />
-                  <input type="number" id="mathSolidANum" class="math-num-input" min="0.1" max="20" step="0.1" value="2.4" aria-label="棱长 a 精确值" />
-                </div>
-              </div>
-              <div class="math-field" id="mathSolidBRow">
-                <label class="math-slider-label" for="mathSolidBNum">
-                  <span class="math-slider-name">宽 b</span>
-                </label>
-                <div class="math-param-row">
-                  <input type="range" id="mathSolidB" min="0.6" max="4.5" step="0.1" value="1.6" />
-                  <input type="number" id="mathSolidBNum" class="math-num-input" min="0.1" max="20" step="0.1" value="1.6" aria-label="宽 b 精确值" />
-                </div>
-              </div>
-              <div class="math-field" id="mathSolidCLabel">
-                <label class="math-slider-label" for="mathSolidCNum">
-                  <span class="math-slider-name">高 c</span>
-                </label>
-                <div class="math-param-row">
-                  <input type="range" id="mathSolidC" min="0.6" max="4.5" step="0.1" value="1.2" />
-                  <input type="number" id="mathSolidCNum" class="math-num-input" min="0.1" max="20" step="0.1" value="1.2" aria-label="高 c 精确值" />
-                </div>
-              </div>
-            </div>
-          </aside>
-          <div class="stage stage-math stage-math-3d stage-math-overlay">
-            <div id="mathSolidStage" class="math-board-host">
-              <div id="mathSolidCanvasHost" class="math-solid-canvas" aria-label="立体几何视图"></div>
-            </div>
-            <article class="math-float-card math-float-card-formula" data-math-card="solid-f" data-collapsed="false">
-              <header class="math-float-card-head">
-                <h3>公式</h3>
-                <button type="button" class="math-float-card-toggle" data-math-card-toggle aria-expanded="true" title="收起">−</button>
-              </header>
-              <div class="math-float-card-body">
-                <div id="mathSolidFormulas" class="math-float-features"></div>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <!-- 课堂 -->
-        <section id="panel-math-ai" class="panel" role="tabpanel" hidden>
-          <aside class="sidebar ai-sidebar side-drawer" data-drawer-key="math-ai">
-            <div class="side-drawer-head">
-              <h2>课堂</h2>
-              <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
-            </div>
-            <div class="side-drawer-body">
-              <div id="mathAiNavList" class="ai-nav-list" role="list"></div>
-            </div>
-          </aside>
-          <div class="stage stage-ai stage-math-ai">
-            <!-- 概念讲解 -->
-            <div id="mathAiSectionExplain" class="ai-section">
-              <header class="quiz-section-head">
-                <h3>概念讲解</h3>
-              </header>
-              <div class="math-lesson-layout">
-                <div class="math-lesson-topics" id="mathExplainTopics" aria-label="讲解主题"></div>
-                <div class="math-lesson-main">
-                  <p id="mathExplainTopicMeta" class="math-side-lead"></p>
-                  <label class="math-field" for="mathExplainFocus">
-                    <span class="math-field-label">想搞清的点（可选）</span>
-                    <textarea
-                      id="mathExplainFocus"
-                      class="math-lesson-focus"
-                      rows="3"
-                      placeholder="例如：判别式 Δ 与图象交点个数的关系；顶点式怎么由一般式配方得到…"
-                    ></textarea>
-                  </label>
-                  <div class="math-lesson-actions">
-                    <button type="button" class="btn primary" id="btnMathExplain">生成讲解</button>
-                    <button type="button" class="btn ghost" id="btnMathExplainOpenLab" hidden>打开实验台</button>
-                    <p class="quiz-status" id="mathExplainStatus" aria-live="polite"></p>
-                  </div>
-                  <div id="mathExplainLabActions" class="math-explain-lab-actions" hidden></div>
-                  <article id="mathExplainBody" class="math-lesson-body" aria-live="polite">
-                    <p class="math-empty">选择左侧主题，点击「生成讲解」。公式会用数学排版显示；讲解后可一键把示范参数推到实验台。</p>
-                  </article>
-                </div>
-              </div>
-            </div>
-
-            <!-- 智能出题 -->
-            <div id="mathAiSectionQuiz" class="ai-section" hidden>
-              <div id="mathQuizConfig" class="quiz-config">
-                <header class="quiz-section-head">
-                  <h3>智能出题</h3>
-                </header>
-                <div class="quiz-field">
-                  <span class="quiz-label">年级范围</span>
-                  <div class="quiz-chips" id="mathQuizGrades" role="group" aria-label="年级"></div>
-                </div>
-                <div class="quiz-field">
-                  <span class="quiz-label">章节 / 主题 <em>（可多选）</em></span>
-                  <div class="quiz-topics" id="mathQuizTopics" role="group" aria-label="主题"></div>
-                </div>
-                <div class="quiz-field quiz-field-toolbar">
-                  <div class="quiz-toolbar-diff">
-                    <span class="quiz-label">难度</span>
-                    <div class="quiz-chips" id="mathQuizDifficulty" role="group" aria-label="难度"></div>
-                  </div>
-                  <div class="quiz-toolbar-count">
-                    <span class="quiz-label">题量</span>
-                    <div class="quiz-count-row quiz-count-row-compact">
-                      <input type="range" id="mathQuizCount" min="1" max="10" value="5" />
-                      <strong id="mathQuizCountLabel">5</strong>
-                    </div>
-                  </div>
-                </div>
-                <div class="math-side-card math-quiz-lab-card">
-                  <p class="math-side-card-title">实验台状态（P1）</p>
-                  <p id="mathQuizLabContext" class="math-side-hint">—</p>
-                  <div class="math-lesson-actions">
-                    <button type="button" class="btn ghost btn-sm" id="btnMathQuizRefreshLab">刷新状态</button>
-                  </div>
-                </div>
-                <div class="quiz-actions">
-                  <button type="button" class="btn primary" id="btnMathQuizGenerate">按主题出题</button>
-                  <button type="button" class="btn ghost" id="btnMathQuizFromLab">按当前实验台出题</button>
-                  <p class="quiz-status" id="mathQuizConfigStatus" aria-live="polite"></p>
-                </div>
-              </div>
-
-              <div id="mathQuizPaper" class="quiz-paper" hidden>
-                <header class="quiz-paper-head">
-                  <div>
-                    <h3>练习中</h3>
-                    <p id="mathQuizPaperMeta" class="quiz-paper-meta"></p>
-                  </div>
-                  <div class="quiz-paper-actions">
-                    <button type="button" class="btn ghost" id="btnMathQuizBackConfig">重新出题</button>
-                    <button type="button" class="btn primary" id="btnMathQuizSubmit">交卷</button>
-                  </div>
-                </header>
-                <div id="mathQuizQuestions" class="quiz-questions"></div>
-              </div>
-
-              <div id="mathQuizResult" class="quiz-result" hidden>
-                <header class="quiz-paper-head">
-                  <div>
-                    <h3>本场结果</h3>
-                    <p id="mathQuizScoreLine" class="quiz-paper-meta"></p>
-                  </div>
-                  <div class="quiz-paper-actions">
-                    <button type="button" class="btn primary" id="btnMathQuizAgain">再出一套</button>
-                  </div>
-                </header>
-                <div id="mathQuizResultList" class="quiz-result-list"></div>
-              </div>
-            </div>
-
-            <!-- 随机点名 -->
-            <div id="mathAiSectionRollcall" class="ai-section" hidden>
-              <header class="quiz-section-head">
-                <h3>随机点名</h3>
-              </header>
-              <div class="rollcall-layout">
-                <div class="rollcall-stage">
-                  <div class="rollcall-deck" aria-live="polite">
-                    <div class="rollcall-card">
-                      <span class="rollcall-card-label">准备就绪</span>
-                      <strong class="rollcall-card-name" id="mathRollcallCardName">点名</strong>
-                    </div>
-                  </div>
-                  <div class="rollcall-actions">
-                    <button type="button" class="btn primary" id="btnMathRollcallSpin">开始点名</button>
-                    <button type="button" class="btn ghost" id="btnMathRollcallAgain" hidden>再来一次</button>
-                  </div>
-                  <p class="quiz-status" id="mathRollcallStatus" aria-live="polite"></p>
-                </div>
-                <div class="rollcall-manage">
-                  <h4>班级名单</h4>
-                  <div class="rollcall-add-row">
-                    <input type="text" id="mathRollcallNameInput" placeholder="输入姓名" autocomplete="off" />
-                    <button type="button" class="btn primary btn-sm" id="btnMathRollcallAdd">添加</button>
-                  </div>
-                  <ul id="mathRollcallStudentList" class="rollcall-student-list"></ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <!-- AI 生成函数弹窗（对标化学 AI 生成分子） -->
-        <div class="modal-backdrop" id="mathFnAiBackdrop" aria-hidden="true"></div>
-        <div
-          class="modal-panel math-fn-ai-modal"
-          id="mathFnAiModal"
-          role="dialog"
-          aria-labelledby="mathFnAiTitle"
-          aria-hidden="true"
+<!-- 函数画布 -->
+<section id="panel-math-graph" class="panel" role="tabpanel" hidden>
+  <aside class="sidebar side-drawer" data-drawer-key="math-graph">
+    <div class="side-drawer-head">
+      <h2>函数画布</h2>
+      <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+    </div>
+    <div class="side-drawer-body">
+      <!-- 对标 3D 分子：＋ 手动添加 / AI 生成 / 编辑 -->
+      <div class="math-fn-toolbar">
+        <!-- btnMathAddFn 由 function-panel 用 @xiaohuang/ui createButton 渲染（Program 3 试点） -->
+        <button
+          type="button"
+          class="math-fn-btn math-fn-btn-ai"
+          id="btnMathAiFn"
+          title="AI 生成函数"
         >
-          <div class="modal-head">
-            <h2 id="mathFnAiTitle">AI 生成函数</h2>
-            <button type="button" class="settings-close" id="btnMathFnAiClose" aria-label="关闭">
-              ×
-            </button>
+          <span class="math-fn-ai-label">AI</span>
+        </button>
+        <button
+          type="button"
+          class="math-fn-btn math-fn-btn-edit"
+          id="btnMathEditFns"
+          title="编辑列表"
+        >
+          编辑
+        </button>
+      </div>
+      <div class="math-project-row" role="group" aria-label="画布项目">
+        <button
+          type="button"
+          class="math-project-btn"
+          id="btnMathGraphImport"
+          title="导入项目 JSON"
+        >
+          导入
+        </button>
+        <button
+          type="button"
+          class="math-project-btn"
+          id="btnMathGraphExport"
+          title="导出项目 JSON"
+        >
+          导出
+        </button>
+        <button
+          type="button"
+          class="math-project-btn math-project-btn-danger"
+          id="btnMathGraphReset"
+          title="重置画布"
+        >
+          重置
+        </button>
+        <input type="file" id="mathGraphFileInput" accept=".json,application/json" hidden />
+      </div>
+      <div id="mathFnList" class="math-fn-list" aria-label="函数列表"></div>
+
+      <!-- 选中函数参数（预设 a/b/c） -->
+      <div id="mathFnParamPanel" class="math-fn-param-panel" hidden>
+        <p class="math-field-label" id="mathFnParamTitle">参数</p>
+        <div class="math-field" id="mathGraphALabel">
+          <label class="math-slider-label" for="mathGraphANum">
+            <span class="math-slider-name">a</span>
+          </label>
+          <div class="math-param-row">
+            <input type="range" id="mathGraphA" min="-5" max="5" step="0.1" value="1" />
+            <input
+              type="number"
+              id="mathGraphANum"
+              class="math-num-input"
+              step="0.1"
+              value="1"
+              aria-label="a 精确值"
+            />
           </div>
-          <div class="modal-body">
-            <p class="settings-hint">
-              用中文描述想画的函数，例如「开口向上、顶点在 (1,-2) 的二次函数」「振幅 2 的正弦波」。
-              将生成可上画布的预设参数或安全表达式。
+        </div>
+        <div class="math-field" id="mathGraphBLabel">
+          <label class="math-slider-label" for="mathGraphBNum">
+            <span class="math-slider-name">b</span>
+          </label>
+          <div class="math-param-row">
+            <input type="range" id="mathGraphB" min="-5" max="5" step="0.1" value="0" />
+            <input
+              type="number"
+              id="mathGraphBNum"
+              class="math-num-input"
+              step="0.1"
+              value="0"
+              aria-label="b 精确值"
+            />
+          </div>
+        </div>
+        <div class="math-field" id="mathGraphCRow">
+          <label class="math-slider-label" for="mathGraphCNum" id="mathGraphCLabel">
+            <span class="math-slider-name">c</span>
+          </label>
+          <div class="math-param-row">
+            <input type="range" id="mathGraphC" min="-5" max="5" step="0.1" value="0" />
+            <input
+              type="number"
+              id="mathGraphCNum"
+              class="math-num-input"
+              step="0.1"
+              value="0"
+              aria-label="c 精确值"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="stage stage-math stage-math-graph">
+    <div id="mathGraphStage" class="math-board-host">
+      <div id="mathGraphBoard" class="jxgbox math-jxg" aria-label="函数画布"></div>
+    </div>
+    <!-- 叠在坐标系上的读数卡 -->
+    <article
+      class="math-float-card math-float-card-features"
+      data-math-card="features"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>关键特征</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <div id="mathGraphFeatures" class="math-float-features"></div>
+      </div>
+    </article>
+    <article
+      class="math-float-card math-float-card-table"
+      data-math-card="table"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>对应表</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <p id="mathGraphProbeReadout" class="math-probe-readout" aria-live="polite" hidden></p>
+        <div id="mathGraphValueTable" class="math-float-table-wrap"></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- 直线与圆 -->
+<section id="panel-math-plane" class="panel" role="tabpanel" hidden>
+  <aside class="sidebar side-drawer" data-drawer-key="math-plane">
+    <div class="side-drawer-head">
+      <h2>直线与圆</h2>
+      <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+    </div>
+    <div class="side-drawer-body">
+      <button type="button" class="btn primary btn-sm math-side-action" id="btnMathPlaneReset">
+        复位点位
+      </button>
+    </div>
+  </aside>
+  <div class="stage stage-math stage-math-overlay">
+    <div id="mathPlaneStage" class="math-board-host">
+      <div id="mathPlaneBoard" class="jxgbox math-jxg" aria-label="解析几何画板"></div>
+    </div>
+    <article
+      class="math-float-card math-float-card-formula"
+      data-math-card="plane-eq"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>方程</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <div id="mathPlaneFormulas" class="math-float-features"></div>
+      </div>
+    </article>
+    <article
+      class="math-float-card math-float-card-table"
+      data-math-card="plane-dist"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>点到直线距离</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <div id="mathPlaneMeasure" class="math-float-features"></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- 三角函数 -->
+<section id="panel-math-trig" class="panel" role="tabpanel" hidden>
+  <aside class="sidebar side-drawer" data-drawer-key="math-trig">
+    <div class="side-drawer-head">
+      <h2>三角函数</h2>
+      <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+    </div>
+    <div class="side-drawer-body">
+      <div class="math-field">
+        <label class="math-slider-label" for="mathTrigDegNum">
+          <span class="math-slider-name">角度 θ（度）</span>
+        </label>
+        <div class="math-param-row">
+          <input type="range" id="mathTrigSlider" min="0" max="360" step="1" value="30" />
+          <input
+            type="number"
+            id="mathTrigDegNum"
+            class="math-num-input"
+            min="0"
+            max="360"
+            step="1"
+            value="30"
+            aria-label="角度精确值"
+          />
+        </div>
+        <span id="mathTrigDegLabel" class="visually-hidden">30</span>
+      </div>
+      <label class="math-check">
+        <input type="checkbox" id="mathTrigSnap" checked />
+        吸附特殊角（0°/30°/45°…）
+      </label>
+      <div class="math-field">
+        <span class="math-field-label">特殊角</span>
+        <div id="mathTrigSpecials" class="math-chip-row" role="group" aria-label="特殊角"></div>
+      </div>
+    </div>
+  </aside>
+  <div class="stage stage-math stage-math-split stage-math-overlay">
+    <div id="mathTrigCircleStage" class="math-board-host math-board-half">
+      <div class="math-board-caption">单位圆</div>
+      <div id="mathTrigCircleBoard" class="jxgbox math-jxg" aria-label="单位圆"></div>
+    </div>
+    <div id="mathTrigWaveStage" class="math-board-host math-board-half">
+      <div class="math-board-caption">y = sin θ · y = cos θ</div>
+      <div id="mathTrigWaveBoard" class="jxgbox math-jxg" aria-label="正弦余弦图象"></div>
+    </div>
+    <article
+      class="math-float-card math-float-card-formula"
+      data-math-card="trig-val"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>当前值</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <div id="mathTrigReadout" class="math-float-features"></div>
+      </div>
+    </article>
+    <article
+      class="math-float-card math-float-card-features"
+      data-math-card="trig-exact"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>精确值</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <div id="mathTrigExact" class="math-float-features"></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- 数列 -->
+<section id="panel-math-sequence" class="panel" role="tabpanel" hidden>
+  <aside class="sidebar side-drawer" data-drawer-key="math-sequence">
+    <div class="side-drawer-head">
+      <h2>数列</h2>
+      <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+    </div>
+    <div class="side-drawer-body">
+      <div class="math-field">
+        <span class="math-field-label">类型</span>
+        <div class="math-chip-row" role="group" aria-label="数列类型">
+          <button type="button" class="chip active" data-math-seq-kind="arith">等差数列</button>
+          <button type="button" class="chip" data-math-seq-kind="geom">等比数列</button>
+        </div>
+      </div>
+      <div class="math-field">
+        <label class="math-slider-label" for="mathSeqA1Num">
+          <span class="math-slider-name">首项 a₁</span>
+        </label>
+        <div class="math-param-row">
+          <input type="range" id="mathSeqA1" min="-10" max="10" step="0.5" value="2" />
+          <input
+            type="number"
+            id="mathSeqA1Num"
+            class="math-num-input"
+            step="0.5"
+            value="2"
+            aria-label="首项精确值"
+          />
+        </div>
+      </div>
+      <div class="math-field" id="mathSeqStepLabel">
+        <label class="math-slider-label" for="mathSeqStepNum">
+          <span class="math-slider-name">公差 d</span>
+        </label>
+        <div class="math-param-row">
+          <input type="range" id="mathSeqStep" min="-5" max="5" step="0.5" value="3" />
+          <input
+            type="number"
+            id="mathSeqStepNum"
+            class="math-num-input"
+            step="0.5"
+            value="3"
+            aria-label="公差或公比精确值"
+          />
+        </div>
+      </div>
+      <div class="math-field">
+        <label class="math-slider-label" for="mathSeqNNum">
+          <span class="math-slider-name">项数 n</span>
+        </label>
+        <div class="math-param-row">
+          <input type="range" id="mathSeqN" min="3" max="16" step="1" value="8" />
+          <input
+            type="number"
+            id="mathSeqNNum"
+            class="math-num-input"
+            min="3"
+            max="40"
+            step="1"
+            value="8"
+            aria-label="项数精确值"
+          />
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="stage stage-math stage-math-overlay">
+    <div id="mathSeqStage" class="math-board-host">
+      <div id="mathSeqBoard" class="jxgbox math-jxg" aria-label="数列图象"></div>
+    </div>
+    <article
+      class="math-float-card math-float-card-formula"
+      data-math-card="seq-f"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>公式</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <div id="mathSeqFormulas" class="math-float-features"></div>
+      </div>
+    </article>
+    <article
+      class="math-float-card math-float-card-table"
+      data-math-card="seq-list"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>前 n 项</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <div id="mathSeqList" class="math-float-features"></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- 立体几何 -->
+<section id="panel-math-solid" class="panel" role="tabpanel" hidden>
+  <aside class="sidebar side-drawer" data-drawer-key="math-solid">
+    <div class="side-drawer-head">
+      <h2>立体几何</h2>
+      <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+    </div>
+    <div class="side-drawer-body">
+      <div class="math-field">
+        <span class="math-field-label">几何体</span>
+        <div class="math-chip-row" role="group" aria-label="几何体类型">
+          <button type="button" class="chip active" data-math-solid="box">长方体</button>
+          <button type="button" class="chip" data-math-solid="cube">正方体</button>
+          <button type="button" class="chip" data-math-solid="pyramid">正四棱锥</button>
+        </div>
+      </div>
+      <div class="math-field">
+        <label class="math-slider-label" for="mathSolidANum">
+          <span class="math-slider-name">棱长 a</span>
+        </label>
+        <div class="math-param-row">
+          <input type="range" id="mathSolidA" min="0.6" max="4.5" step="0.1" value="2.4" />
+          <input
+            type="number"
+            id="mathSolidANum"
+            class="math-num-input"
+            min="0.1"
+            max="20"
+            step="0.1"
+            value="2.4"
+            aria-label="棱长 a 精确值"
+          />
+        </div>
+      </div>
+      <div class="math-field" id="mathSolidBRow">
+        <label class="math-slider-label" for="mathSolidBNum">
+          <span class="math-slider-name">宽 b</span>
+        </label>
+        <div class="math-param-row">
+          <input type="range" id="mathSolidB" min="0.6" max="4.5" step="0.1" value="1.6" />
+          <input
+            type="number"
+            id="mathSolidBNum"
+            class="math-num-input"
+            min="0.1"
+            max="20"
+            step="0.1"
+            value="1.6"
+            aria-label="宽 b 精确值"
+          />
+        </div>
+      </div>
+      <div class="math-field" id="mathSolidCLabel">
+        <label class="math-slider-label" for="mathSolidCNum">
+          <span class="math-slider-name">高 c</span>
+        </label>
+        <div class="math-param-row">
+          <input type="range" id="mathSolidC" min="0.6" max="4.5" step="0.1" value="1.2" />
+          <input
+            type="number"
+            id="mathSolidCNum"
+            class="math-num-input"
+            min="0.1"
+            max="20"
+            step="0.1"
+            value="1.2"
+            aria-label="高 c 精确值"
+          />
+        </div>
+      </div>
+    </div>
+  </aside>
+  <div class="stage stage-math stage-math-3d stage-math-overlay">
+    <div id="mathSolidStage" class="math-board-host">
+      <div id="mathSolidCanvasHost" class="math-solid-canvas" aria-label="立体几何视图"></div>
+    </div>
+    <article
+      class="math-float-card math-float-card-formula"
+      data-math-card="solid-f"
+      data-collapsed="false"
+    >
+      <header class="math-float-card-head">
+        <h3>公式</h3>
+        <button
+          type="button"
+          class="math-float-card-toggle"
+          data-math-card-toggle
+          aria-expanded="true"
+          title="收起"
+        >
+          −
+        </button>
+      </header>
+      <div class="math-float-card-body">
+        <div id="mathSolidFormulas" class="math-float-features"></div>
+      </div>
+    </article>
+  </div>
+</section>
+
+<!-- 课堂 -->
+<section id="panel-math-ai" class="panel" role="tabpanel" hidden>
+  <aside class="sidebar ai-sidebar side-drawer" data-drawer-key="math-ai">
+    <div class="side-drawer-head">
+      <h2>课堂</h2>
+      <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
+    </div>
+    <div class="side-drawer-body">
+      <div id="mathAiNavList" class="ai-nav-list" role="list"></div>
+    </div>
+  </aside>
+  <div class="stage stage-ai stage-math-ai">
+    <!-- 概念讲解 -->
+    <div id="mathAiSectionExplain" class="ai-section">
+      <header class="quiz-section-head">
+        <h3>概念讲解</h3>
+      </header>
+      <div class="math-lesson-layout">
+        <div class="math-lesson-topics" id="mathExplainTopics" aria-label="讲解主题"></div>
+        <div class="math-lesson-main">
+          <p id="mathExplainTopicMeta" class="math-side-lead"></p>
+          <label class="math-field" for="mathExplainFocus">
+            <span class="math-field-label">想搞清的点（可选）</span>
+            <textarea
+              id="mathExplainFocus"
+              class="math-lesson-focus"
+              rows="3"
+              placeholder="例如：判别式 Δ 与图象交点个数的关系；顶点式怎么由一般式配方得到…"
+            ></textarea>
+          </label>
+          <div class="math-lesson-actions">
+            <button type="button" class="btn primary" id="btnMathExplain">生成讲解</button>
+            <button type="button" class="btn ghost" id="btnMathExplainOpenLab" hidden>
+              打开实验台
+            </button>
+            <p class="quiz-status" id="mathExplainStatus" aria-live="polite"></p>
+          </div>
+          <div id="mathExplainLabActions" class="math-explain-lab-actions" hidden></div>
+          <article id="mathExplainBody" class="math-lesson-body" aria-live="polite">
+            <p class="math-empty">
+              选择左侧主题，点击「生成讲解」。公式会用数学排版显示；讲解后可一键把示范参数推到实验台。
             </p>
-            <label class="field">
-              <span>描述</span>
-              <textarea
-                id="mathFnAiPrompt"
-                rows="4"
-                placeholder="例如：过原点、斜率为 2 的一次函数；或 y = sin(2x)"
-              ></textarea>
-            </label>
-            <p class="settings-status" id="mathFnAiStatus" aria-live="polite"></p>
-            <div class="settings-actions">
-              <button type="button" class="btn primary" id="btnMathFnAiSubmit">生成并添加</button>
-              <button type="button" class="btn ghost" id="btnMathFnAiCancel">取消</button>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <!-- 智能出题 -->
+    <div id="mathAiSectionQuiz" class="ai-section" hidden>
+      <div id="mathQuizConfig" class="quiz-config">
+        <header class="quiz-section-head">
+          <h3>智能出题</h3>
+        </header>
+        <div class="quiz-field">
+          <span class="quiz-label">年级范围</span>
+          <div class="quiz-chips" id="mathQuizGrades" role="group" aria-label="年级"></div>
+        </div>
+        <div class="quiz-field">
+          <span class="quiz-label">章节 / 主题 <em>（可多选）</em></span>
+          <div class="quiz-topics" id="mathQuizTopics" role="group" aria-label="主题"></div>
+        </div>
+        <div class="quiz-field quiz-field-toolbar">
+          <div class="quiz-toolbar-diff">
+            <span class="quiz-label">难度</span>
+            <div class="quiz-chips" id="mathQuizDifficulty" role="group" aria-label="难度"></div>
+          </div>
+          <div class="quiz-toolbar-count">
+            <span class="quiz-label">题量</span>
+            <div class="quiz-count-row quiz-count-row-compact">
+              <input type="range" id="mathQuizCount" min="1" max="10" value="5" />
+              <strong id="mathQuizCountLabel">5</strong>
             </div>
           </div>
         </div>
-
-        <!-- 添加函数弹窗：预设 + 表达式 + 专属键盘 -->
-        <div class="modal-backdrop" id="mathFnAddBackdrop" aria-hidden="true"></div>
-        <div
-          class="modal-panel math-fn-add-modal"
-          id="mathFnAddModal"
-          role="dialog"
-          aria-labelledby="mathFnAddTitle"
-          aria-hidden="true"
-        >
-          <div class="modal-head">
-            <h2 id="mathFnAddTitle">添加函数</h2>
-            <button type="button" class="settings-close" id="btnMathFnAddClose" aria-label="关闭">
-              ×
+        <div class="math-side-card math-quiz-lab-card">
+          <p class="math-side-card-title">实验台状态（P1）</p>
+          <p id="mathQuizLabContext" class="math-side-hint">—</p>
+          <div class="math-lesson-actions">
+            <button type="button" class="btn ghost btn-sm" id="btnMathQuizRefreshLab">
+              刷新状态
             </button>
           </div>
-          <div class="modal-body">
-            <p class="math-field-label">选择预设</p>
-            <div id="mathGraphPresets" class="math-chip-row" role="group" aria-label="函数类型"></div>
-
-            <p class="math-field-label math-fn-add-or">或输入表达式</p>
-            <div class="math-fn-expr-row">
-              <input
-                type="text"
-                id="mathFnExprInput"
-                class="math-fn-expr-input math-expr-input"
-                placeholder="如 0.5x^2-x-1.5 或 sin(x)"
-                autocomplete="off"
-                spellcheck="false"
-                inputmode="none"
-              />
-            </div>
-            <p class="math-fn-expr-status" id="mathFnExprStatus" aria-live="polite"></p>
-
-            <div class="math-expr-keypad" id="mathFnExprKeypad" aria-label="表达式键盘">
-              <div class="math-expr-keypad-row">
-                <button type="button" class="math-expr-key" data-expr-key="sin(">sin</button>
-                <button type="button" class="math-expr-key" data-expr-key="cos(">cos</button>
-                <button type="button" class="math-expr-key" data-expr-key="tan(">tan</button>
-                <button type="button" class="math-expr-key" data-expr-key="ln(">ln</button>
-                <button type="button" class="math-expr-key" data-expr-key="log(">log</button>
-              </div>
-              <div class="math-expr-keypad-row">
-                <button type="button" class="math-expr-key" data-expr-key="sqrt(">√</button>
-                <button type="button" class="math-expr-key" data-expr-key="abs(">| |</button>
-                <button type="button" class="math-expr-key" data-expr-key="^">^</button>
-                <button type="button" class="math-expr-key" data-expr-key="(">(</button>
-                <button type="button" class="math-expr-key" data-expr-key=")">)</button>
-              </div>
-              <div class="math-expr-keypad-row">
-                <button type="button" class="math-expr-key" data-expr-key="7">7</button>
-                <button type="button" class="math-expr-key" data-expr-key="8">8</button>
-                <button type="button" class="math-expr-key" data-expr-key="9">9</button>
-                <button type="button" class="math-expr-key" data-expr-key="/">÷</button>
-                <button type="button" class="math-expr-key is-var" data-expr-key="x">x</button>
-              </div>
-              <div class="math-expr-keypad-row">
-                <button type="button" class="math-expr-key" data-expr-key="4">4</button>
-                <button type="button" class="math-expr-key" data-expr-key="5">5</button>
-                <button type="button" class="math-expr-key" data-expr-key="6">6</button>
-                <button type="button" class="math-expr-key" data-expr-key="*">×</button>
-                <button type="button" class="math-expr-key" data-expr-key="pi">π</button>
-              </div>
-              <div class="math-expr-keypad-row">
-                <button type="button" class="math-expr-key" data-expr-key="1">1</button>
-                <button type="button" class="math-expr-key" data-expr-key="2">2</button>
-                <button type="button" class="math-expr-key" data-expr-key="3">3</button>
-                <button type="button" class="math-expr-key" data-expr-key="-">−</button>
-                <button type="button" class="math-expr-key" data-expr-key="e">e</button>
-              </div>
-              <div class="math-expr-keypad-row">
-                <button type="button" class="math-expr-key is-wide" data-expr-key="0">0</button>
-                <button type="button" class="math-expr-key" data-expr-key=".">.</button>
-                <button type="button" class="math-expr-key" data-expr-key="+">+</button>
-                <button type="button" class="math-expr-key is-action" data-expr-key="⌫">⌫</button>
-              </div>
-              <div class="math-expr-keypad-row">
-                <button type="button" class="math-expr-key is-action is-wide" data-expr-key="清空">清空</button>
-                <button type="button" class="math-expr-key is-action is-wide" data-expr-key="确定">添加</button>
-              </div>
-            </div>
-
-            <div class="settings-actions math-fn-add-actions">
-              <button type="button" class="btn ghost" id="btnMathFnAddCancel">取消</button>
-              <button type="button" class="btn primary" id="btnMathFnExprAdd">添加表达式</button>
-            </div>
-          </div>
         </div>
-
-        <!-- 编辑函数弹窗：名称 / 表达式 / 预设系数 / 独立定义域 -->
-        <div class="modal-backdrop" id="mathFnEditBackdrop" aria-hidden="true"></div>
-        <div
-          class="modal-panel math-fn-edit-modal"
-          id="mathFnEditModal"
-          role="dialog"
-          aria-labelledby="mathFnEditTitle"
-          aria-hidden="true"
-        >
-          <div class="modal-head">
-            <h2 id="mathFnEditTitle">编辑函数</h2>
-          </div>
-          <div class="modal-body">
-            <p class="math-field-label" for="mathFnEditName">名称</p>
-            <input type="text" id="mathFnEditName" class="math-fn-expr-input" maxlength="20" autocomplete="off" aria-label="函数名称" />
-            <p class="math-edit-hint">1–20 个字符；重复名称允许，用颜色区分</p>
-
-            <div id="mathFnEditExprWrap" hidden>
-              <p class="math-field-label" for="mathFnEditExpr">表达式</p>
-              <input type="text" id="mathFnEditExpr" class="math-fn-expr-input math-expr-input" autocomplete="off" aria-label="自定义表达式" />
-            </div>
-
-            <div id="mathFnEditCoeffs" hidden>
-              <p class="math-field-label" for="mathFnEditPreset">类型</p>
-              <select id="mathFnEditPreset" class="math-fn-preset-select" aria-label="函数类型"></select>
-              <div class="math-edit-coeffs">
-                <div class="math-field">
-                  <label class="math-slider-label" for="mathFnEditA"><span class="math-slider-name">a</span></label>
-                  <input type="number" id="mathFnEditA" class="math-num-input" step="0.1" aria-label="a 系数" />
-                </div>
-                <div class="math-field">
-                  <label class="math-slider-label" for="mathFnEditB"><span class="math-slider-name">b</span></label>
-                  <input type="number" id="mathFnEditB" class="math-num-input" step="0.1" aria-label="b 系数" />
-                </div>
-                <div class="math-field">
-                  <label class="math-slider-label" for="mathFnEditC"><span class="math-slider-name">c</span></label>
-                  <input type="number" id="mathFnEditC" class="math-num-input" step="0.1" aria-label="c 系数" />
-                </div>
-              </div>
-            </div>
-
-            <p class="math-field-label" for="mathFnEditDomainMode">定义域</p>
-            <select id="mathFnEditDomainMode" class="math-fn-preset-select" aria-label="定义域模式">
-              <option value="viewport">跟随视口</option>
-              <option value="custom">自定义</option>
-            </select>
-            <div id="mathFnEditDomainWrap" class="math-edit-domain" hidden>
-              <input type="number" id="mathFnEditDomainMin" class="math-num-input" aria-label="定义域最小值" placeholder="min" />
-              <span aria-hidden="true">至</span>
-              <input type="number" id="mathFnEditDomainMax" class="math-num-input" aria-label="定义域最大值" placeholder="max" />
-            </div>
-            <p class="math-edit-status" id="mathFnEditStatus" aria-live="polite"></p>
-
-            <div class="settings-actions math-fn-add-actions">
-              <button type="button" class="btn ghost" id="btnMathFnEditCancel">取消</button>
-              <button type="button" class="btn primary" id="btnMathFnEditSubmit">保存</button>
-            </div>
-          </div>
+        <div class="quiz-actions">
+          <button type="button" class="btn primary" id="btnMathQuizGenerate">按主题出题</button>
+          <button type="button" class="btn ghost" id="btnMathQuizFromLab">按当前实验台出题</button>
+          <p class="quiz-status" id="mathQuizConfigStatus" aria-live="polite"></p>
         </div>
+      </div>
+
+      <div id="mathQuizPaper" class="quiz-paper" hidden>
+        <header class="quiz-paper-head">
+          <div>
+            <h3>练习中</h3>
+            <p id="mathQuizPaperMeta" class="quiz-paper-meta"></p>
+          </div>
+          <div class="quiz-paper-actions">
+            <button type="button" class="btn ghost" id="btnMathQuizBackConfig">重新出题</button>
+            <button type="button" class="btn primary" id="btnMathQuizSubmit">交卷</button>
+          </div>
+        </header>
+        <div id="mathQuizQuestions" class="quiz-questions"></div>
+      </div>
+
+      <div id="mathQuizResult" class="quiz-result" hidden>
+        <header class="quiz-paper-head">
+          <div>
+            <h3>本场结果</h3>
+            <p id="mathQuizScoreLine" class="quiz-paper-meta"></p>
+          </div>
+          <div class="quiz-paper-actions">
+            <button type="button" class="btn primary" id="btnMathQuizAgain">再出一套</button>
+          </div>
+        </header>
+        <div id="mathQuizResultList" class="quiz-result-list"></div>
+      </div>
+    </div>
+
+    <!-- 随机点名 -->
+    <div id="mathAiSectionRollcall" class="ai-section" hidden>
+      <header class="quiz-section-head">
+        <h3>随机点名</h3>
+      </header>
+      <div class="rollcall-layout">
+        <div class="rollcall-stage">
+          <div class="rollcall-deck" aria-live="polite">
+            <div class="rollcall-card">
+              <span class="rollcall-card-label">准备就绪</span>
+              <strong class="rollcall-card-name" id="mathRollcallCardName">点名</strong>
+            </div>
+          </div>
+          <div class="rollcall-actions">
+            <button type="button" class="btn primary" id="btnMathRollcallSpin">开始点名</button>
+            <button type="button" class="btn ghost" id="btnMathRollcallAgain" hidden>
+              再来一次
+            </button>
+          </div>
+          <p class="quiz-status" id="mathRollcallStatus" aria-live="polite"></p>
+        </div>
+        <div class="rollcall-manage">
+          <h4>班级名单</h4>
+          <div class="rollcall-add-row">
+            <input
+              type="text"
+              id="mathRollcallNameInput"
+              placeholder="输入姓名"
+              autocomplete="off"
+            />
+            <button type="button" class="btn primary btn-sm" id="btnMathRollcallAdd">添加</button>
+          </div>
+          <ul id="mathRollcallStudentList" class="rollcall-student-list"></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AI 生成函数弹窗（对标化学 AI 生成分子） -->
+<div class="modal-backdrop" id="mathFnAiBackdrop" aria-hidden="true"></div>
+<div
+  class="modal-panel math-fn-ai-modal"
+  id="mathFnAiModal"
+  role="dialog"
+  aria-labelledby="mathFnAiTitle"
+  aria-hidden="true"
+>
+  <div class="modal-head">
+    <h2 id="mathFnAiTitle">AI 生成函数</h2>
+    <button type="button" class="settings-close" id="btnMathFnAiClose" aria-label="关闭">×</button>
+  </div>
+  <div class="modal-body">
+    <p class="settings-hint">
+      用中文描述想画的函数，例如「开口向上、顶点在 (1,-2) 的二次函数」「振幅 2 的正弦波」。
+      将生成可上画布的预设参数或安全表达式。
+    </p>
+    <label class="field">
+      <span>描述</span>
+      <textarea
+        id="mathFnAiPrompt"
+        rows="4"
+        placeholder="例如：过原点、斜率为 2 的一次函数；或 y = sin(2x)"
+      ></textarea>
+    </label>
+    <p class="settings-status" id="mathFnAiStatus" aria-live="polite"></p>
+    <div class="settings-actions">
+      <button type="button" class="btn primary" id="btnMathFnAiSubmit">生成并添加</button>
+      <button type="button" class="btn ghost" id="btnMathFnAiCancel">取消</button>
+    </div>
+  </div>
+</div>
+
+<!-- 添加函数弹窗：预设 + 表达式 + 专属键盘 -->
+<div class="modal-backdrop" id="mathFnAddBackdrop" aria-hidden="true"></div>
+<div
+  class="modal-panel math-fn-add-modal"
+  id="mathFnAddModal"
+  role="dialog"
+  aria-labelledby="mathFnAddTitle"
+  aria-hidden="true"
+>
+  <div class="modal-head">
+    <h2 id="mathFnAddTitle">添加函数</h2>
+    <button type="button" class="settings-close" id="btnMathFnAddClose" aria-label="关闭">×</button>
+  </div>
+  <div class="modal-body">
+    <p class="math-field-label">选择预设</p>
+    <div id="mathGraphPresets" class="math-chip-row" role="group" aria-label="函数类型"></div>
+
+    <p class="math-field-label math-fn-add-or">或输入表达式</p>
+    <div class="math-fn-expr-row">
+      <input
+        type="text"
+        id="mathFnExprInput"
+        class="math-fn-expr-input math-expr-input"
+        placeholder="如 0.5x^2-x-1.5 或 sin(x)"
+        autocomplete="off"
+        spellcheck="false"
+        inputmode="none"
+      />
+    </div>
+    <p class="math-fn-expr-status" id="mathFnExprStatus" aria-live="polite"></p>
+
+    <div class="math-expr-keypad" id="mathFnExprKeypad" aria-label="表达式键盘">
+      <div class="math-expr-keypad-row">
+        <button type="button" class="math-expr-key" data-expr-key="sin(">sin</button>
+        <button type="button" class="math-expr-key" data-expr-key="cos(">cos</button>
+        <button type="button" class="math-expr-key" data-expr-key="tan(">tan</button>
+        <button type="button" class="math-expr-key" data-expr-key="ln(">ln</button>
+        <button type="button" class="math-expr-key" data-expr-key="log(">log</button>
+      </div>
+      <div class="math-expr-keypad-row">
+        <button type="button" class="math-expr-key" data-expr-key="sqrt(">√</button>
+        <button type="button" class="math-expr-key" data-expr-key="abs(">| |</button>
+        <button type="button" class="math-expr-key" data-expr-key="^">^</button>
+        <button type="button" class="math-expr-key" data-expr-key="(">(</button>
+        <button type="button" class="math-expr-key" data-expr-key=")">)</button>
+      </div>
+      <div class="math-expr-keypad-row">
+        <button type="button" class="math-expr-key" data-expr-key="7">7</button>
+        <button type="button" class="math-expr-key" data-expr-key="8">8</button>
+        <button type="button" class="math-expr-key" data-expr-key="9">9</button>
+        <button type="button" class="math-expr-key" data-expr-key="/">÷</button>
+        <button type="button" class="math-expr-key is-var" data-expr-key="x">x</button>
+      </div>
+      <div class="math-expr-keypad-row">
+        <button type="button" class="math-expr-key" data-expr-key="4">4</button>
+        <button type="button" class="math-expr-key" data-expr-key="5">5</button>
+        <button type="button" class="math-expr-key" data-expr-key="6">6</button>
+        <button type="button" class="math-expr-key" data-expr-key="*">×</button>
+        <button type="button" class="math-expr-key" data-expr-key="pi">π</button>
+      </div>
+      <div class="math-expr-keypad-row">
+        <button type="button" class="math-expr-key" data-expr-key="1">1</button>
+        <button type="button" class="math-expr-key" data-expr-key="2">2</button>
+        <button type="button" class="math-expr-key" data-expr-key="3">3</button>
+        <button type="button" class="math-expr-key" data-expr-key="-">−</button>
+        <button type="button" class="math-expr-key" data-expr-key="e">e</button>
+      </div>
+      <div class="math-expr-keypad-row">
+        <button type="button" class="math-expr-key is-wide" data-expr-key="0">0</button>
+        <button type="button" class="math-expr-key" data-expr-key=".">.</button>
+        <button type="button" class="math-expr-key" data-expr-key="+">+</button>
+        <button type="button" class="math-expr-key is-action" data-expr-key="⌫">⌫</button>
+      </div>
+      <div class="math-expr-keypad-row">
+        <button type="button" class="math-expr-key is-action is-wide" data-expr-key="清空">
+          清空
+        </button>
+        <button type="button" class="math-expr-key is-action is-wide" data-expr-key="确定">
+          添加
+        </button>
+      </div>
+    </div>
+
+    <div class="settings-actions math-fn-add-actions">
+      <button type="button" class="btn ghost" id="btnMathFnAddCancel">取消</button>
+      <button type="button" class="btn primary" id="btnMathFnExprAdd">添加表达式</button>
+    </div>
+  </div>
+</div>
+
+<!-- 编辑函数弹窗：名称 / 表达式 / 预设系数 / 独立定义域 -->
+<div class="modal-backdrop" id="mathFnEditBackdrop" aria-hidden="true"></div>
+<div
+  class="modal-panel math-fn-edit-modal"
+  id="mathFnEditModal"
+  role="dialog"
+  aria-labelledby="mathFnEditTitle"
+  aria-hidden="true"
+>
+  <div class="modal-head">
+    <h2 id="mathFnEditTitle">编辑函数</h2>
+  </div>
+  <div class="modal-body">
+    <p class="math-field-label" for="mathFnEditName">名称</p>
+    <input
+      type="text"
+      id="mathFnEditName"
+      class="math-fn-expr-input"
+      maxlength="20"
+      autocomplete="off"
+      aria-label="函数名称"
+    />
+    <p class="math-edit-hint">1–20 个字符；重复名称允许，用颜色区分</p>
+
+    <div id="mathFnEditExprWrap" hidden>
+      <p class="math-field-label" for="mathFnEditExpr">表达式</p>
+      <input
+        type="text"
+        id="mathFnEditExpr"
+        class="math-fn-expr-input math-expr-input"
+        autocomplete="off"
+        aria-label="自定义表达式"
+      />
+    </div>
+
+    <div id="mathFnEditCoeffs" hidden>
+      <p class="math-field-label" for="mathFnEditPreset">类型</p>
+      <select id="mathFnEditPreset" class="math-fn-preset-select" aria-label="函数类型"></select>
+      <div class="math-edit-coeffs">
+        <div class="math-field">
+          <label class="math-slider-label" for="mathFnEditA"
+            ><span class="math-slider-name">a</span></label
+          >
+          <input
+            type="number"
+            id="mathFnEditA"
+            class="math-num-input"
+            step="0.1"
+            aria-label="a 系数"
+          />
+        </div>
+        <div class="math-field">
+          <label class="math-slider-label" for="mathFnEditB"
+            ><span class="math-slider-name">b</span></label
+          >
+          <input
+            type="number"
+            id="mathFnEditB"
+            class="math-num-input"
+            step="0.1"
+            aria-label="b 系数"
+          />
+        </div>
+        <div class="math-field">
+          <label class="math-slider-label" for="mathFnEditC"
+            ><span class="math-slider-name">c</span></label
+          >
+          <input
+            type="number"
+            id="mathFnEditC"
+            class="math-num-input"
+            step="0.1"
+            aria-label="c 系数"
+          />
+        </div>
+      </div>
+    </div>
+
+    <p class="math-field-label" for="mathFnEditDomainMode">定义域</p>
+    <select id="mathFnEditDomainMode" class="math-fn-preset-select" aria-label="定义域模式">
+      <option value="viewport">跟随视口</option>
+      <option value="custom">自定义</option>
+    </select>
+    <div id="mathFnEditDomainWrap" class="math-edit-domain" hidden>
+      <input
+        type="number"
+        id="mathFnEditDomainMin"
+        class="math-num-input"
+        aria-label="定义域最小值"
+        placeholder="min"
+      />
+      <span aria-hidden="true">至</span>
+      <input
+        type="number"
+        id="mathFnEditDomainMax"
+        class="math-num-input"
+        aria-label="定义域最大值"
+        placeholder="max"
+      />
+    </div>
+    <p class="math-edit-status" id="mathFnEditStatus" aria-live="polite"></p>
+
+    <div class="settings-actions math-fn-add-actions">
+      <button type="button" class="btn ghost" id="btnMathFnEditCancel">取消</button>
+      <button type="button" class="btn primary" id="btnMathFnEditSubmit">保存</button>
+    </div>
+  </div>
+</div>

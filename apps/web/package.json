@@ -14,7 +14,8 @@
     "animejs": "^4.5.0",
     "canvas-confetti": "^1.9.4",
     "jsxgraph": "^1.13.1",
-    "katex": "^0.18.1"
+    "katex": "^0.18.1",
+    "@xiaohuang/ui": "*"
   },
   "devDependencies": {
     "three": "^0.172.0",

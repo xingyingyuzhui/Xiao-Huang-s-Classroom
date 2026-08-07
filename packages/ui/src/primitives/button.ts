@@ -4,6 +4,10 @@ import { applyStates, setText } from '../contract.js';
 export interface ButtonProps extends BaseProps {
   kind?: 'primary' | 'secondary' | 'ghost' | 'danger';
   size?: 'sm' | 'md' | 'lg';
+  /** 附加 class（真实消费方保留既有样式时使用） */
+  className?: string;
+  /** 原生 tooltip（title 属性） */
+  title?: string;
   onClick?: () => void;
 }
 
@@ -13,6 +17,7 @@ export function createButton(initial: ButtonProps = {}): UiController<ButtonProp
   const element = document.createElement('button');
   element.type = 'button';
   element.className = 'ui-btn';
+  if (initial.className) element.classList.add(initial.className);
 
   let props: ButtonProps = { ...initial };
   let clickHandler: ((payload: unknown) => void) | null = null;
@@ -29,6 +34,7 @@ export function createButton(initial: ButtonProps = {}): UiController<ButtonProp
     if (props.disabled) element.setAttribute('disabled', '');
     else element.removeAttribute('disabled');
     if (props['aria-label']) element.setAttribute('aria-label', props['aria-label']);
+    if (props.title) element.setAttribute('title', props.title);
   };
   const onClick = () => {
     if (props.disabled || props.loading) return;
