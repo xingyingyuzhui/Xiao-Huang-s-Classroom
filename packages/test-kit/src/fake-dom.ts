@@ -9,6 +9,7 @@ export interface FakeElement {
   children: unknown[];
   value: string;
   checked: boolean;
+  disabled: boolean;
   textContent: string;
   innerHTML: string;
   dataset: Record<string, string>;
@@ -18,6 +19,7 @@ export interface FakeElement {
   getAttribute(name: string): string | null;
   remove(): void;
   appendChild(child: unknown): void;
+  append(...children: unknown[]): void;
   replaceChildren(...children: unknown[]): void;
   classList: {
     classes: Set<string>;
@@ -42,6 +44,7 @@ export function makeFakeElement(id: string): FakeElement {
     children: [],
     value: '',
     checked: false,
+    disabled: false,
     textContent: '',
     innerHTML: '',
     dataset: {},
@@ -60,6 +63,9 @@ export function makeFakeElement(id: string): FakeElement {
     remove() {},
     appendChild(child) {
       el.children.push(child);
+    },
+    append(...children) {
+      el.children.push(...children);
     },
     replaceChildren(...children) {
       el.children = [...children];
@@ -109,6 +115,21 @@ export function makeFakeElement(id: string): FakeElement {
       return (el.listeners[type] || []).length;
     },
   };
+  let textValue = '';
+  Object.defineProperty(el, 'textContent', {
+    get() {
+      const kids = el.children
+        .map((c) =>
+          typeof c === 'string' ? c : ((c as { textContent?: string }).textContent ?? ''),
+        )
+        .join('');
+      return textValue + kids;
+    },
+    set(value: string) {
+      textValue = String(value ?? '');
+      el.children = [];
+    },
+  });
   Object.defineProperty(el, 'className', {
     get() {
       return [...el.classList.classes].join(' ');

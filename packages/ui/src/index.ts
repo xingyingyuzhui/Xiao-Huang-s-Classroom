@@ -7,3 +7,6 @@ export * from './overlays/toast.js';
 export * from './layout/tabs.js';
 export * from './layout/stack.js';
 export * from './feedback/status.js';
+export * from './domain-ui/number-input.js';
+export * from './domain-ui/tool-group.js';
+export * from './classroom-ui/readout-card.js';
