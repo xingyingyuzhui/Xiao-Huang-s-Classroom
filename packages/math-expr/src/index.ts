@@ -3,7 +3,7 @@
  * 支持：数字、x、+ - * / ^、括号、sin cos tan ln log abs sqrt exp、pi e
  */
 
-export const MATH_EXPR_FN_NAMES = Object.freeze([
+export const MATH_EXPR_FN_NAMES: readonly string[] = Object.freeze([
   'sin',
   'cos',
   'tan',
@@ -14,12 +14,14 @@ export const MATH_EXPR_FN_NAMES = Object.freeze([
   'exp',
 ]);
 
+export type MathExprResult =
+  | { ok: true; src: string; fn: (x: number) => number | null }
+  | { ok: false; error: string };
+
 /**
  * 规范化 + 白名单检查 + 编译（可求值）
- * @param {string} raw
- * @returns {{ ok: true, src: string, fn: (x: number) => number | null } | { ok: false, error: string }}
  */
-export function compileMathExpr(raw) {
+export function compileMathExpr(raw: unknown): MathExprResult {
   let s = String(raw ?? '').trim();
   if (!s) return { ok: false, error: '请输入表达式' };
   const src = s.replace(/^[yY]\s*=\s*/, '');
@@ -56,10 +58,9 @@ export function compileMathExpr(raw) {
   body = body.replace(/\bsqrt\b/gi, 'Math.sqrt');
   body = body.replace(/\bexp\b/gi, 'Math.exp');
 
-  /** @type {(x: number) => number} */
-  let compiled;
+  let compiled: (x: number) => number;
   try {
-    compiled = new Function('x', `"use strict"; return (${body});`);
+    compiled = new Function('x', `"use strict"; return (${body});`) as (x: number) => number;
   } catch {
     return { ok: false, error: '表达式无法解析' };
   }
@@ -88,19 +89,16 @@ export function compileMathExpr(raw) {
 
 /**
  * 仅校验语法/白名单（服务端 AI 落盘前用；与 compile 规则一致）
- * @param {string} raw
- * @returns {{ ok: true, expr: string } | { ok: false, error: string }}
  */
-export function validateMathExprSyntax(raw) {
+export function validateMathExprSyntax(raw: unknown):
+  | { ok: true; expr: string }
+  | { ok: false; error: string } {
   const r = compileMathExpr(raw);
   if (!r.ok) return { ok: false, error: r.error };
   return { ok: true, expr: r.src };
 }
 
-/**
- * @param {string} raw
- */
-export function formatExprLabel(raw) {
+export function formatExprLabel(raw: unknown): string {
   const s = String(raw ?? '').trim();
   if (!s) return 'y = ?';
   if (/^[yY]\s*=/.test(s)) return s;

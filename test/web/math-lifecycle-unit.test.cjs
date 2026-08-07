@@ -10,7 +10,7 @@ const {
   compileMathExpr,
   validateMathExprSyntax,
   formatExprLabel,
-} = require(path.join(root, 'packages/math-expr/index.cjs'));
+} = require('@xiaohuang/math-expr');
 
 test('shared math-expr: compile polynomials and sin', () => {
   const poly = compileMathExpr('0.5x^2-x-1.5');

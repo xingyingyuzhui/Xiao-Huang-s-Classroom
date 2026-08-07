@@ -195,6 +195,10 @@ test('math-expr package is dual-published and wired', () => {
     fs.readFileSync(path.join(root, 'packages/math-expr/package.json'), 'utf8'),
   );
   assert.equal(pkg.name, '@xiaohuang/math-expr');
+  // 双产物契约：require 与 import 入口都指向 dist 且类型声明存在
+  assert.match(pkg.exports['.'].require, /dist\/index\.cjs/);
+  assert.match(pkg.exports['.'].import, /dist\/index\.js/);
+  assert.match(pkg.exports['.'].types, /dist\/index\.d\.ts/);
   const webPkg = JSON.parse(
     fs.readFileSync(path.join(root, 'apps/web/package.json'), 'utf8'),
   );
