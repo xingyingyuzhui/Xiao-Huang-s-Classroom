@@ -12,7 +12,6 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const stylesDir = path.join(root, 'apps/web/src/shared/styles');
-const themesDir = path.join(stylesDir, 'themes');
 const allowlistFile = path.join(root, 'tooling/architecture/theme-color-allowlist.json');
 
 const allowlist = JSON.parse(fs.readFileSync(allowlistFile, 'utf8'));
@@ -35,7 +34,6 @@ function collect(dir, out = []) {
 }
 
 const HEX_COLOR = /#[0-9a-fA-F]{3,8}\b/g;
-const RGB_COLOR = /\b(?:rgb|rgba|hsl|hsla)\([^)]*\)/g;
 
 for (const file of collect(stylesDir)) {
   scanned += 1;

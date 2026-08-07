@@ -30,6 +30,7 @@ export function err<E>(error: E): { ok: false; error: E } & ResultMethods<never,
     ok: false,
     error,
     map<U>(_fn: (v: never) => U) {
+      void _fn;
       return err(error);
     },
     unwrap(): never {

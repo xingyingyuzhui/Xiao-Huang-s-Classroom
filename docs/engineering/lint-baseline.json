@@ -1,19 +1,17 @@
 {
-  "capturedAt": "2026-08-07T14:47:16.758Z",
-  "total": 1167,
+  "capturedAt": "2026-08-07T17:47:05.139Z",
+  "total": 1021,
   "perRule": {
-    "import/no-dynamic-require": 1,
-    "(parse-error)": 2,
-    "no-unused-vars": 119,
-    "@typescript-eslint/no-unused-vars": 128,
-    "@typescript-eslint/no-require-imports": 159,
+    "no-unused-vars": 123,
+    "@typescript-eslint/no-unused-vars": 132,
     "preserve-caught-error": 3,
     "import/no-unresolved": 1,
-    "no-undef": 714,
+    "no-undef": 721,
     "no-useless-assignment": 28,
     "no-useless-escape": 5,
     "no-constant-condition": 1,
     "no-control-regex": 1,
+    "@typescript-eslint/no-require-imports": 1,
     "no-regex-spaces": 4,
     "no-dupe-keys": 1
   }

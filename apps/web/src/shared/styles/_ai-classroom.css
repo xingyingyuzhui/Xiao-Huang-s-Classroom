@@ -1141,6 +1141,7 @@ select.lab-input,
 .lab-script-meta .field {
   display: grid;
   gap: 0.2rem;
+  margin-bottom: 0;
 }
 .lab-script-meta .field span,
 .lab-step-editor .field span {
@@ -1148,9 +1149,7 @@ select.lab-input,
   font-weight: 700;
   color: var(--text-secondary);
 }
-.lab-script-meta .field {
-  margin-bottom: 0;
-}
+
 .lab-step-editor .field {
   margin-bottom: 0;
 }

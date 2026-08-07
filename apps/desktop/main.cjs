@@ -219,7 +219,7 @@ async function startBackend() {
   if (!fs.existsSync(serverEntry)) {
     throw new Error(`找不到后端入口: ${serverEntry}`);
   }
-  // eslint-disable-next-line import/no-dynamic-require, global-require
+  // serverEntry 是打包/开发双路径的运行时变量：CJS require 动态加载（.cjs 已豁免 no-require-imports）
   const { startServer, shutdown } = require(serverEntry);
   shutdownServer = shutdown;
   const result = await startServer({ openBrowser: false, host: '127.0.0.1' });

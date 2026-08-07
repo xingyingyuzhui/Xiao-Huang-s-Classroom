@@ -31,6 +31,12 @@
 
   /* 3D 画布清屏色（与 Three.scene.background 同步） */
   --stage-3d-bg: #ffffff;
+  --s-block: var(--zone-s);
+  --p-block: var(--zone-p);
+  --d-block: var(--zone-d);
+  --ds-block: var(--zone-ds);
+  --f-block: var(--zone-f);
+  --noble-block: var(--zone-noble);
 }
 
 @media (max-width: 1100px) {
@@ -44,11 +50,4 @@
 }
 
 /* 旧名别名（兼容） */
-:root {
-  --s-block: var(--zone-s);
-  --p-block: var(--zone-p);
-  --d-block: var(--zone-d);
-  --ds-block: var(--zone-ds);
-  --f-block: var(--zone-f);
-  --noble-block: var(--zone-noble);
-}
+

@@ -61,4 +61,11 @@ export default tseslint.config(
       'no-empty': ['error', { allowEmptyCatch: true }],
     },
   },
+  {
+    // Server/Desktop 是 CJS 运行时：require() 是正当语法（ESM 规则不适用）
+    files: ['apps/server/**/*.{js,cjs,mjs}', 'apps/desktop/**/*.{js,cjs,mjs}'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'off',
+    },
+  },
 );

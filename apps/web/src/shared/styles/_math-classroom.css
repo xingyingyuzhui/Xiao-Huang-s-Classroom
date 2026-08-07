@@ -489,6 +489,7 @@
   font-variant-numeric: tabular-nums;
   text-align: right;
   box-shadow: var(--shadow-print-sm);
+  cursor: pointer;
 }
 
 .math-num-input:focus {
@@ -562,10 +563,6 @@
 .math-num-key.is-action {
   font-size: 0.92rem;
   font-weight: 700;
-}
-
-.math-num-input {
-  cursor: pointer;
 }
 
 .math-check {
@@ -1117,6 +1114,9 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  --math-fab-bottom: 2.35rem; /* 贴 JSXGraph 导航条上方 */
+  --math-fab-size: 2.15rem;
+  --math-fab-gap: 0.4rem;
 }
 
 .math-board-caption {
@@ -1149,13 +1149,6 @@
   pointer-events: none;
   background: color-mix(in srgb, var(--bg, #f4f4f4) 82%, transparent);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--bg, #f4f4f4) 55%, transparent);
-}
-
-/* 右下角 FAB 槽：笔记 + 坐标轴设置 同一行、贴导航条上方 */
-.math-board-host {
-  --math-fab-bottom: 2.35rem; /* 贴 JSXGraph 导航条上方 */
-  --math-fab-size: 2.15rem;
-  --math-fab-gap: 0.4rem;
 }
 
 /* 右下角 FAB 共用槽：笔记 | 坐标轴设置 同一行 */

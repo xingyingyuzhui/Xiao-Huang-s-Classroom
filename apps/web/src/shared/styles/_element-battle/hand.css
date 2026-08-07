@@ -244,11 +244,12 @@ button.bc:disabled {
 }
 
 .bc.is-large .bc-symbol {
-  font-size: 2.65rem;
+  font-size: 2.35rem; /* 合并重复块：后声明值生效 */
+  margin-top: 0.45rem;
 }
 
 .bc.is-large .bc-power b {
-  font-size: 1.35rem;
+  font-size: 1.15rem; /* 合并重复块：后声明值生效 */
 }
 
 .bc.is-large .bc-name {
@@ -461,10 +462,7 @@ button.bc:disabled {
   text-shadow: 0 2px 0 color-mix(in srgb, #fff 40%, transparent);
 }
 
-.bc.is-large .bc-symbol {
-  font-size: 2.35rem;
-  margin-top: 0.45rem;
-}
+
 
 .bc-name {
   font-size: 0.78rem;
@@ -554,9 +552,7 @@ button.bc:disabled {
   text-shadow: 0 0 12px color-mix(in srgb, var(--accent) 35%, transparent);
 }
 
-.bc.is-large .bc-power b {
-  font-size: 1.15rem;
-}
+
 
 .bc-hint {
   margin-top: 0.15rem;

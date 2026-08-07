@@ -4,6 +4,7 @@
   flex: 1;
   min-height: 0;
   max-height: 100%;
+  position: relative;
 }
 
 .panel.active {
@@ -58,9 +59,7 @@
 }
 
 /* 按需加载占位：绝对覆盖，不参与 grid 占位（避免挤出真实内容行） */
-.panel {
-  position: relative;
-}
+
 .panel-loading {
   position: absolute;
   inset: 0;

@@ -62,16 +62,32 @@ export function isValidDefaultPage(subjectId: string, pageId: string): boolean {
   return allowedDefaultPageIds(subjectId).has(pageId);
 }
 
-function normalizeAi(raw: Record<string, any> | null | undefined) {
+export interface SubjectAiSettings {
+  apiBase: string;
+  apiKey: string;
+  model: string;
+}
+
+export interface SubjectSettingsEntry {
+  brand: { title: string; iconDataUrl: string | null };
+  defaultPage: string;
+  ai: SubjectAiSettings;
+  electronOrder?: number[];
+}
+
+export type SubjectSettingsMap = Record<string, SubjectSettingsEntry>;
+
+function normalizeAi(raw: Record<string, unknown> | null | undefined): SubjectAiSettings {
+  const model = typeof raw?.model === 'string' ? raw.model : '';
   return {
-    apiBase: raw?.apiBase || DEFAULT_AI.apiBase,
-    apiKey: raw?.apiKey || '',
-    model: ALLOWED_MODELS.has(raw?.model as string) ? (raw?.model as string) : DEFAULT_AI.model,
+    apiBase: typeof raw?.apiBase === 'string' ? raw.apiBase : DEFAULT_AI.apiBase,
+    apiKey: typeof raw?.apiKey === 'string' ? raw.apiKey : '',
+    model: ALLOWED_MODELS.has(model) ? model : DEFAULT_AI.model,
   };
 }
 
-export function createDefaultSubjectSettings(): Record<string, any> {
-  const out: Record<string, any> = {};
+export function createDefaultSubjectSettings(): SubjectSettingsMap {
+  const out: SubjectSettingsMap = {};
   for (const subjectId of READY_SUBJECT_IDS) {
     const meta = SUBJECT_TAB_CATALOG[subjectId];
     if (!meta) continue;
@@ -90,7 +106,7 @@ export function createDefaultSubjectSettings(): Record<string, any> {
   return out;
 }
 
-export function normalizeSubjectSettings(raw: unknown): Record<string, any> {
+export function normalizeSubjectSettings(raw: unknown): SubjectSettingsMap {
   const defaults = createDefaultSubjectSettings();
   const out = JSON.parse(JSON.stringify(defaults));
 
@@ -127,7 +143,7 @@ export function normalizeSubjectSettings(raw: unknown): Record<string, any> {
 export function readSubjectAiFromMap(
   subjectSettings: unknown,
   subjectId = 'chemistry',
-): Record<string, any> {
+): SubjectAiSettings {
   const map = normalizeSubjectSettings(subjectSettings);
   return map[subjectId]?.ai ?? { ...DEFAULT_AI };
 }

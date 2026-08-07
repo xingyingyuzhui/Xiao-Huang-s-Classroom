@@ -319,6 +319,9 @@
 /* 实验探究无顶栏大标题，抽屉+详情直接占满 */
 .stage-ai:has(#aiSectionLab:not([hidden])) .lab-section-head {
   display: none;
+  margin-bottom: 0.65rem;
+  padding-bottom: 0.5rem;
+  flex-shrink: 0;
 }
 
 .lab-nav-list {
@@ -642,11 +645,7 @@
   min-height: 0;
 }
 
-.stage-ai:has(#aiSectionLab:not([hidden])) .lab-section-head {
-  margin-bottom: 0.65rem;
-  padding-bottom: 0.5rem;
-  flex-shrink: 0;
-}
+
 
 /* 防止 .lab-layout 的 display:grid 盖掉 hidden（历史双面板 bug） */
 .lab-layout[hidden],
