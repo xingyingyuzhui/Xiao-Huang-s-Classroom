@@ -30,7 +30,7 @@
     "dist:win": "npm run build:frontend && npm run stage:electron && electron-builder --win nsis --x64",
     "dist:mac": "npm run build:frontend && npm run stage:electron && electron-builder --mac dmg --arm64 -c.electronDist=node_modules/electron/dist",
     "dist:electron": "npm run build:frontend && npm run stage:electron && electron-builder -c.electronDist=node_modules/electron/dist",
-    "typecheck": "echo 'typecheck: 待 Program 1 Task 1.2 接入 tsc' && exit 0",
+    "typecheck": "turbo run typecheck",
     "lint": "eslint \"scripts/**/*.mjs\" \"packages/**/*.js\" \"test/shared/*.cjs\"",
     "lint:all": "eslint .",
     "lint:baseline": "node scripts/lint-baseline.mjs",
