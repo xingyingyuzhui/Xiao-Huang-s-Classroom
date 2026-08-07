@@ -15,7 +15,11 @@
     "canvas-confetti": "^1.9.4",
     "jsxgraph": "^1.13.1",
     "katex": "^0.18.1",
-    "@xiaohuang/ui": "*"
+    "@xiaohuang/ui": "*",
+    "@xiaohuang/subject-kit": "*",
+    "@xiaohuang/design-tokens": "*",
+    "@xiaohuang/contracts": "*",
+    "@xiaohuang/domain-core": "*"
   },
   "devDependencies": {
     "three": "^0.172.0",
