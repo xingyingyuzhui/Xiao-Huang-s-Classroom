@@ -35,8 +35,10 @@ export function getBoardToolDef(id, tools = DEFAULT_BOARD_TOOLS) {
  *   el: HTMLElement | null,
  *   dispose: () => void,
  *   getTool: () => string,
- *   setTool: (id: string) => void,
+ *   setTool: (id: string, setOpts?: { toggle?: boolean, oneShot?: boolean }) => void,
  *   setHint: (text: string) => void,
+ *   isCollapsed: () => boolean,
+ *   setCollapsed: (collapsed: boolean) => void,
  * }}
  */
 export function attachBoardToolStrip(opts) {
@@ -49,6 +51,8 @@ export function attachBoardToolStrip(opts) {
       getTool: () => 'select',
       setTool() {},
       setHint() {},
+      isCollapsed: () => false,
+      setCollapsed() {},
     };
   }
 
@@ -63,29 +67,64 @@ export function attachBoardToolStrip(opts) {
     /* */
   }
 
+  const panelId = `math-board-tool-panel-${Math.random().toString(36).slice(2, 9)}`;
   const wrap = document.createElement('div');
   wrap.className = 'math-board-tool-strip';
   wrap.setAttribute('role', 'toolbar');
   wrap.setAttribute('aria-label', '画板作图工具');
+  // 箭头在工具列顶部；收起后只保留当前选中工具 + 下箭头
+  // 注意：隐藏其它工具必须靠 CSS（.is-collapsed .btn:not(.is-on)），
+  // 不能只设 HTML hidden——.math-board-tool-btn 的 display:inline-flex 会盖掉 hidden。
   wrap.innerHTML = `
-    <div class="math-board-tool-strip-btns">
-      ${tools
-        .map(
-          (t) => `
-        <button type="button" class="math-board-tool-btn${t.id === active ? ' is-on' : ''}"
-          data-tool="${t.id}" title="${t.label}" aria-label="${t.label}" aria-pressed="${t.id === active ? 'true' : 'false'}">
-          <span class="math-board-tool-label">${t.label}</span>
-        </button>`,
-        )
-        .join('')}
+    <div class="math-board-tool-strip-panel" id="${panelId}" data-role="panel">
+      <div class="math-board-tool-strip-btns">
+        <button type="button" class="math-board-tool-collapse" data-role="collapse"
+          aria-expanded="true" aria-controls="${panelId}" title="收起工具" aria-label="收起工具">
+          <span class="math-board-tool-collapse-arrow" aria-hidden="true">▲</span>
+        </button>
+        ${tools
+          .map(
+            (t) => `
+          <button type="button" class="math-board-tool-btn${t.id === active ? ' is-on' : ''}"
+            data-tool="${t.id}" title="${t.label}" aria-label="${t.label}" aria-pressed="${t.id === active ? 'true' : 'false'}">
+            <span class="math-board-tool-label">${t.label}</span>
+          </button>`,
+          )
+          .join('')}
+      </div>
+      <p class="math-board-tool-hint" data-role="hint" hidden></p>
     </div>
-    <p class="math-board-tool-hint" data-role="hint" hidden></p>
   `;
 
   // 固定在画板右下（CSS 竖排叠在 FAB 上方）
   host.appendChild(wrap);
 
   const hintEl = /** @type {HTMLElement} */ (wrap.querySelector('[data-role="hint"]'));
+  const collapseBtn = /** @type {HTMLButtonElement} */ (wrap.querySelector('[data-role="collapse"]'));
+  /** @type {string} */
+  let stickyHint = '';
+  let collapsed = false;
+
+  function paintHint() {
+    if (!hintEl) return;
+    if (collapsed) {
+      hintEl.hidden = true;
+      return;
+    }
+    if (stickyHint) {
+      hintEl.hidden = false;
+      hintEl.textContent = stickyHint;
+      return;
+    }
+    const def = getBoardToolDef(active, tools);
+    if (def?.hint && active !== 'select') {
+      hintEl.hidden = false;
+      hintEl.textContent = def.hint;
+      return;
+    }
+    hintEl.hidden = true;
+    hintEl.textContent = '';
+  }
 
   function syncButtons() {
     wrap.querySelectorAll('.math-board-tool-btn').forEach((btn) => {
@@ -94,14 +133,21 @@ export function attachBoardToolStrip(opts) {
       btn.classList.toggle('is-on', on);
       btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     });
-    const def = getBoardToolDef(active, tools);
-    if (def?.hint && active !== 'select') {
-      hintEl.hidden = false;
-      hintEl.textContent = def.hint;
-    } else if (!hintEl.dataset.sticky) {
-      hintEl.hidden = true;
-      hintEl.textContent = '';
+    paintHint();
+  }
+
+  function syncCollapse() {
+    wrap.dataset.collapsed = collapsed ? 'true' : 'false';
+    wrap.classList.toggle('is-collapsed', collapsed);
+    if (collapseBtn) {
+      collapseBtn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+      collapseBtn.title = collapsed ? '展开工具' : '收起工具';
+      collapseBtn.setAttribute('aria-label', collapsed ? '展开工具' : '收起工具');
+      const arrow = collapseBtn.querySelector('.math-board-tool-collapse-arrow');
+      // 展开态：▲ 向上收起；收起态：▼ 向下展开
+      if (arrow) arrow.textContent = collapsed ? '▼' : '▲';
     }
+    syncButtons();
   }
 
   /**
@@ -116,7 +162,7 @@ export function attachBoardToolStrip(opts) {
     } else {
       active = id;
     }
-    delete hintEl.dataset.sticky;
+    stickyHint = '';
     syncButtons();
     opts.onChange?.(active, setOpts);
   }
@@ -126,25 +172,39 @@ export function attachBoardToolStrip(opts) {
    */
   function setHint(text) {
     const t = String(text || '').trim();
-    if (!t) {
-      delete hintEl.dataset.sticky;
-      syncButtons();
-      return;
-    }
-    hintEl.dataset.sticky = '1';
-    hintEl.hidden = false;
-    hintEl.textContent = t;
+    stickyHint = t;
+    paintHint();
   }
 
   wrap.addEventListener('click', (ev) => {
-    const btn = /** @type {HTMLElement} */ (ev.target).closest?.('[data-tool]');
+    const raw = /** @type {EventTarget | null} */ (ev.target);
+    const target = raw instanceof Element ? raw : raw?.parentElement;
+    if (!target || !wrap.contains(target)) return;
+
+    const collapse = target.closest('[data-role="collapse"]');
+    if (collapse && wrap.contains(collapse)) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      collapsed = !collapsed;
+      syncCollapse();
+      return;
+    }
+
+    const btn = target.closest('[data-tool]');
     if (!btn || !wrap.contains(btn)) return;
     ev.preventDefault();
     ev.stopPropagation();
+
+    // 收起态点当前工具：只展开列表，方便切换（不改工具）
+    if (collapsed) {
+      collapsed = false;
+      syncCollapse();
+      return;
+    }
     setTool(btn.getAttribute('data-tool') || 'select');
   });
 
-  syncButtons();
+  syncCollapse();
 
   return {
     el: wrap,
@@ -158,6 +218,11 @@ export function attachBoardToolStrip(opts) {
     getTool: () => active,
     setTool,
     setHint,
+    isCollapsed: () => collapsed,
+    setCollapsed(next) {
+      collapsed = Boolean(next);
+      syncCollapse();
+    },
   };
 }
 

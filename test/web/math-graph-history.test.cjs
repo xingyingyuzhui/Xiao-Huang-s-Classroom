@@ -73,6 +73,25 @@ test('undo keeps the annotations written after the action', async () => {
   assert.equal(doc.annotations.strokes[0].id, 's9', 'undo must not roll back annotations');
 });
 
+test('undo/redo preserves schemaVersion, id, and title', async () => {
+  const { store, history } = await makeHistory();
+  assert.equal(store.getDocument().schemaVersion, 1);
+  assert.equal(store.getDocument().id, 'd');
+  assert.equal(store.getDocument().title, 't');
+  store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
+  history.undo();
+  const afterUndo = store.getDocument();
+  assert.equal(afterUndo.schemaVersion, 1, 'undo must keep schemaVersion for persistence');
+  assert.equal(afterUndo.id, 'd');
+  assert.equal(afterUndo.title, 't');
+  history.redo();
+  const afterRedo = store.getDocument();
+  assert.equal(afterRedo.schemaVersion, 1);
+  assert.equal(afterRedo.id, 'd');
+  assert.equal(afterRedo.title, 't');
+  assert.equal(afterRedo.functions[0].visible, false);
+});
+
 test('redo restores the later structural document and keeps annotations', async () => {
   const { store, history } = await makeHistory();
   store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });

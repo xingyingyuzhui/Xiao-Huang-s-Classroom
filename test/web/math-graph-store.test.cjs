@@ -161,6 +161,55 @@ test('reducer cascades function removal to constructions referencing it', async 
   assert.deepEqual(next.constructions.map((c) => c.id), ['c1']);
 });
 
+test('reducer cascades function removal to points constrained on that function', async () => {
+  const { reduceGraphDocument } = await storeModule();
+  const doc = {
+    ...richDocument(),
+    functions: [
+      ...richDocument().functions,
+      { id: 'f3', name: '', kind: 'preset', preset: 'abs', expr: '', coeffs: { a: 1, b: 0, c: 0 }, color: '#333', visible: true, locked: false, domain: { mode: 'viewport' } },
+    ],
+    points: [
+      { id: 'p1', name: 'A', x: 1, y: 2, showCoords: true, locked: false, constraint: { kind: 'free' } },
+      {
+        id: 'pFollow',
+        name: 'F',
+        x: 0,
+        y: 0,
+        showCoords: true,
+        locked: false,
+        constraint: { kind: 'followFunction', functionId: 'f3', anchorX: 1 },
+      },
+      {
+        id: 'pFeature',
+        name: 'V',
+        x: 0,
+        y: 0,
+        showCoords: true,
+        locked: false,
+        constraint: { kind: 'followFeature', functionId: 'f3', feature: 'vertex', featureIndex: 0 },
+      },
+      {
+        id: 'pIx',
+        name: 'I',
+        x: 0,
+        y: 0,
+        showCoords: true,
+        locked: false,
+        constraint: { kind: 'intersection', targetIds: ['f1', 'f3'], nearX: 0 },
+      },
+    ],
+    constructions: [
+      { id: 'c1', kind: 'segment', pointIds: ['p1', 'pFollow'], locked: false, visible: true, extend: false },
+      { id: 'cTangent', kind: 'tangent', pointIds: ['pFollow'], fnId: 'f3', locked: false, visible: true, extend: false },
+    ],
+  };
+  const next = reduceGraphDocument(doc, { type: 'function/remove', payload: { id: 'f3' } });
+  assert.deepEqual(next.functions.map((f) => f.id), ['f1', 'f2']);
+  assert.deepEqual(next.points.map((p) => p.id), ['p1'], 'only free points survive');
+  assert.deepEqual(next.constructions.map((c) => c.id), [], 'constructions of doomed points also cascade');
+});
+
 test('annotations/replace does not touch structure and keeps history out via meta', async () => {
   const { reduceGraphDocument } = await storeModule();
   const doc = richDocument();
@@ -254,6 +303,33 @@ test('cancel transaction restores the starting document and notifies once', asyn
   store.cancelTransaction();
   assert.equal(store.getDocument(), before, 'cancel must restore the starting document');
   assert.deepEqual(seen, ['transaction/cancel'], 'exactly one restore notification');
+});
+
+test('cancel transaction reprojects previous document via beforeCommit', async () => {
+  const { createGraphStore } = await storeModule();
+  const { createDefaultGraphDocument } = await documentModule();
+  const doc = createDefaultGraphDocument({});
+  const calls = [];
+  const store = createGraphStore(doc, {
+    beforeCommit: (ctx) => {
+      calls.push({
+        preview: Boolean(ctx.preview),
+        actionType: ctx.action?.type,
+        candidateVisible: ctx.candidate?.functions?.[0]?.visible,
+        previousVisible: ctx.previous?.functions?.[0]?.visible,
+      });
+      return { ok: true };
+    },
+  });
+  store.beginTransaction();
+  store.dispatch({ type: 'function/update', payload: { id: doc.functions[0].id, patch: { visible: false } } });
+  assert.ok(calls.some((c) => c.preview && c.candidateVisible === false));
+  store.cancelTransaction();
+  const cancelCall = calls.find((c) => c.actionType === 'transaction/cancel');
+  assert.ok(cancelCall, 'cancel must invoke beforeCommit to re-sync runtime');
+  assert.equal(cancelCall.candidateVisible, true, 'cancel projects back to start document');
+  assert.equal(cancelCall.previousVisible, false, 'previous is last preview geometry');
+  assert.equal(store.getDocument().functions[0].visible, true);
 });
 
 test('empty transaction commit is a no-op without notifications', async () => {

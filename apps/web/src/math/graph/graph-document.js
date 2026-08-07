@@ -135,7 +135,8 @@ function normalizeFunctionRecord(fn, index, seenIds) {
 /**
  * 点样式（semantic stroke/fill/label；colorSlot 由主题解析，explicitColor 仅用户自定义时存在）
  * @param {any} style
- */function normalizePointStyle(style) {
+ */
+function normalizePointStyle(style) {
   if (!style || typeof style !== 'object') {
     return {
       stroke: { colorSlot: null, explicitColor: null, opacity: 1 },
@@ -283,14 +284,14 @@ function normalizeConstructionRecord(construction, index, seenIds) {
     ...(typeof construction.label === 'string'
       ? { label: construction.label }
       : {}),
-    // 割线：x1/x2 为曲线上两个横坐标；showDelta 控制 Δx/Δy 标签
+    // 割线：x1/x2 为曲线上两个横坐标；showDelta 控制 Δx/Δy 标签（显式 false 也必须保留）
     ...(Number.isFinite(Number(construction.x1))
       ? { x1: Number(construction.x1) }
       : {}),
     ...(Number.isFinite(Number(construction.x2))
       ? { x2: Number(construction.x2) }
       : {}),
-    ...(construction.showDelta === true ? { showDelta: true } : {}),
+    ...(kind === 'secant' ? { showDelta: construction.showDelta !== false } : {}),
   };
 }
 

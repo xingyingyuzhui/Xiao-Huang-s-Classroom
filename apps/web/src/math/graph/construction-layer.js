@@ -27,12 +27,22 @@ export function createConstructionLayer(context) {
     },
 
     /**
-     * 文档构造更新（extend 等）。
+     * 文档构造更新（extend / 割线锚点等）。
+     * 割线 x1/x2/showDelta 变更：detach + 按文档记录重建，保证 glider 与量测标签一致。
      * @param {any} record
      */
     update(record) {
       const existing = context.getConstructions().find((rec) => rec.id === record?.id);
       if (!existing) return false;
+
+      if (existing.kind === 'secant' || record?.kind === 'secant') {
+        const host = context.makeHost();
+        detachConstr(existing, host.getBoard());
+        host.setConstructions(context.getConstructions().filter((rec) => rec.id !== existing.id));
+        createConstructionFromDocument(host, record);
+        return true;
+      }
+
       if (record.extend !== undefined && existing.extend !== record.extend) {
         existing.extend = record.extend;
         const ray = existing.els?.find((el) => el?._mathExtendRay);

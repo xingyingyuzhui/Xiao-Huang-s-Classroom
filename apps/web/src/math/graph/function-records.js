@@ -10,6 +10,27 @@ function finiteOr(value, fallback) {
 }
 
 /**
+ * 采样区间：自定义定义域覆盖视口/全局函数域。
+ * @param {any} fn
+ * @param {number} viewportMin
+ * @param {number} viewportMax
+ * @returns {[number, number]}
+ */
+export function resolveFunctionSampleRange(fn, viewportMin, viewportMax) {
+  let x0 = Number.isFinite(viewportMin) ? viewportMin : -10;
+  let x1 = Number.isFinite(viewportMax) ? viewportMax : 10;
+  if (fn?.domain?.mode === 'custom') {
+    const dMin = Number(fn.domain.min);
+    const dMax = Number(fn.domain.max);
+    if (Number.isFinite(dMin) && Number.isFinite(dMax)) {
+      x0 = dMin;
+      x1 = dMax;
+    }
+  }
+  return [Math.min(x0, x1), Math.max(x0, x1)];
+}
+
+/**
  * @param {{ id: string, color: string, preset?: string | null, coeffs?: any }} options
  */
 export function createPresetFunctionRecord(options) {

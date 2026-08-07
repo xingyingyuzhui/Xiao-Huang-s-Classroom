@@ -45,7 +45,6 @@ export function createFunctionListView(options) {
       ? `${typeLabel}<span class="math-fn-card-sub-dot" aria-hidden="true">·</span>${typeTip}`
       : typeLabel;
     const stateHints = [];
-    if (!fn.visible) stateHints.push('已隐藏');
     if (fn.locked) stateHints.push('已锁定');
     const hintText = stateHints.length
       ? `<span class="math-fn-card-hints">${stateHints.map((h) => `<em>${h}</em>`).join('')}</span>`
@@ -53,7 +52,7 @@ export function createFunctionListView(options) {
     const menuOpen = openMenuId === fn.id;
     return `
     <div class="math-fn-card${selected ? ' is-active' : ''}${editMode ? ' is-editing' : ''}${!fn.visible ? ' is-hidden' : ''}${fn.locked ? ' is-locked' : ''}" data-fn-id="${escapeHtml(fn.id)}" style="--fn-color:${escapeHtml(fn.color)}">
-      <button type="button" class="math-fn-card-toggle" data-fn-toggle="${escapeHtml(fn.id)}" title="${fn.visible ? '隐藏' : '显示'}" aria-label="${fn.visible ? `隐藏 ${fn.name || '函数'}` : `显示 ${fn.name || '函数'}`}" aria-pressed="${fn.visible ? 'true' : 'false'}">${fn.visible ? '👁' : '—'}</button>
+      <button type="button" class="math-fn-card-toggle" data-fn-toggle="${escapeHtml(fn.id)}" title="${fn.visible ? '隐藏' : '显示'}" aria-label="${fn.visible ? `隐藏 ${fn.name || '函数'}` : `显示 ${fn.name || '函数'}`}" aria-pressed="${fn.visible ? 'true' : 'false'}">${fn.visible ? '隐藏' : '显示'}</button>
       <button type="button" class="math-fn-card-del" data-fn-del="${escapeHtml(fn.id)}" title="删除" aria-label="删除">×</button>
       <button type="button" class="math-fn-card-main" data-fn-id="${escapeHtml(fn.id)}">
         <span class="math-fn-card-swatch" aria-hidden="true"></span>
@@ -70,9 +69,6 @@ export function createFunctionListView(options) {
           <button type="button" role="menuitem" data-fn-action="edit" data-fn-action-id="${escapeHtml(fn.id)}">编辑</button>
           <button type="button" role="menuitem" data-fn-action="duplicate" data-fn-action-id="${escapeHtml(fn.id)}">复制</button>
           <button type="button" role="menuitem" data-fn-action="lock" data-fn-action-id="${escapeHtml(fn.id)}">${fn.locked ? '解锁' : '锁定'}</button>
-          <button type="button" role="menuitem" data-fn-action="up" data-fn-action-id="${escapeHtml(fn.id)}">上移</button>
-          <button type="button" role="menuitem" data-fn-action="down" data-fn-action-id="${escapeHtml(fn.id)}">下移</button>
-          <button type="button" role="menuitem" data-fn-action="delete" data-fn-action-id="${escapeHtml(fn.id)}">删除</button>
         </div>` : ''}
       </div>
     </div>`;
@@ -167,8 +163,21 @@ export function createFunctionListView(options) {
     render(lastState.functions, lastState.activeId, lastState.editMode);
   }
 
+  /** 点击菜单/菜单按钮之外的任意位置时收起菜单（含函数列表外部；
+   *  捕获阶段监听，避免画布层 stopPropagation 拦截冒泡） */
+  function onDocumentClick(event) {
+    if (!openMenuId) return;
+    const target = /** @type {HTMLElement | null} */ (event.target);
+    if (!target) return;
+    if (target.closest?.('.math-fn-menu') || target.closest?.('[data-fn-menu]')) return;
+    openMenuId = null;
+    renderLast();
+  }
+
+  const doc = typeof document !== 'undefined' ? document : null;
   root.addEventListener('click', onClick);
   root.addEventListener('keydown', onKeyDown);
+  if (doc) doc.addEventListener('click', onDocumentClick, true);
 
   return {
     /** @param {any[]} functions @param {string | null} activeId @param {boolean} [editMode] */
@@ -179,6 +188,7 @@ export function createFunctionListView(options) {
     dispose() {
       root.removeEventListener('click', onClick);
       root.removeEventListener('keydown', onKeyDown);
+      if (doc) doc.removeEventListener('click', onDocumentClick, true);
     },
   };
 }

@@ -2,7 +2,7 @@
  * FunctionEditor：函数编辑表单（重命名 / 表达式 / 预设系数 / 独立定义域）。
  *
  * 校验规则：
- * - 名称 trim 后 1–20 字符；空名回退「函数」。
+ * - 名称 trim 后 1–20 字符；空名拒绝提交。
  * - 自定义表达式只有完整编译成功后才允许提交。
  * - domain 自定义模式 min < max（提交时排序由 normalize 兜底）。
  */
@@ -10,12 +10,15 @@
 import { GRAPH_PRESETS, defaultCoeffsFor } from './model.js';
 import { createCustomFunctionRecord } from './function-records.js';
 
-/** @param {string} value */
-function validName(value) {
+/**
+ * @param {string} value
+ * @returns {{ ok: true, name: string } | { ok: false, error: string }}
+ */
+function parseName(value) {
   const name = String(value || '').trim();
-  if (!name) return null;
-  if (name.length > 20) return '名称最多 20 个字符';
-  return name;
+  if (!name) return { ok: false, error: '请输入名称' };
+  if (name.length > 20) return { ok: false, error: '名称最多 20 个字符' };
+  return { ok: true, name };
 }
 
 /**
@@ -84,16 +87,12 @@ export function createFunctionEditor(options) {
   function submit() {
     if (!editing) return;
     const status = root?.querySelector('#mathFnEditStatus');
-    const name = validName(root?.querySelector('#mathFnEditName')?.value);
-    if (name === null) {
-      if (status) status.textContent = '请输入名称';
+    const nameResult = parseName(root?.querySelector('#mathFnEditName')?.value);
+    if (!nameResult.ok) {
+      if (status) status.textContent = nameResult.error;
       return;
     }
-    if (typeof name === 'string' && name.length > 20) {
-      if (status) status.textContent = name;
-      return;
-    }
-    const patch = { name };
+    const patch = { name: nameResult.name };
     if (editing.kind === 'custom') {
       const raw = root?.querySelector('#mathFnEditExpr')?.value || '';
       const result = createCustomFunctionRecord({ id: editing.id, raw });

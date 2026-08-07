@@ -60,6 +60,10 @@ export function constructionDocumentRecord(rec) {
     'extend',
     'locked',
     'visible',
+    // 割线锚点与 Δ 标签开关（与 normalizeConstructionRecord 对齐）
+    'x1',
+    'x2',
+    'showDelta',
   ]) {
     if (rec[key] !== undefined) out[key] = rec[key];
   }

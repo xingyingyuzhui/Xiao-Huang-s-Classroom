@@ -102,7 +102,8 @@
 }
 
 .side-drawer.is-collapsed .side-drawer-head h2,
-.side-drawer.is-collapsed .side-drawer-body {
+.side-drawer.is-collapsed .side-drawer-body,
+.side-drawer.is-collapsed .math-history-controls {
   display: none !important;
 }
 

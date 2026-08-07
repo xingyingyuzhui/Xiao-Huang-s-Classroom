@@ -229,6 +229,42 @@ test('point layer add is idempotent for already-created runtime points', async (
   assert.equal(records.length, 2);
 });
 
+test('point layer update projects document coordinates onto runtime element', async () => {
+  const { createPointLayer } = await import(
+    pathToFileURL(path.join(root, 'apps/web/src/math/graph/point-layer.js')).href,
+  );
+  let px = 1;
+  let py = 2;
+  const el = {
+    X: () => px,
+    Y: () => py,
+    moveTo(coords) {
+      px = coords[0];
+      py = coords[1];
+    },
+    on() {},
+    board: { update() {} },
+    name: 'A',
+  };
+  const records = [{ id: 'p1', el, followTargetId: null, intersectFnIds: null, showCoords: true, baseName: 'A' }];
+  const layer = createPointLayer({
+    controller: {
+      createFromDocument() {
+        return null;
+      },
+      delete() {},
+      setShowCoords() {},
+    },
+    getRecords: () => records,
+  });
+  const updated = layer.update({ id: 'p1', name: 'A', x: 7, y: -3, constraint: { kind: 'free' }, showCoords: true });
+  assert.ok(updated);
+  assert.equal(px, 7);
+  assert.equal(py, -3);
+  assert.equal(el.X(), 7);
+  assert.equal(el.Y(), -3);
+});
+
 test('construction layer add/update/remove works against fake host', async () => {
   const { createConstructionLayer } = await import(
     pathToFileURL(path.join(root, 'apps/web/src/math/graph/construction-layer.js')).href,

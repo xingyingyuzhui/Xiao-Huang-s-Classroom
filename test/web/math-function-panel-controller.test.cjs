@@ -147,7 +147,7 @@ test('render emits cards with visibility toggle and menu', async () => {
   assert.ok(root.querySelector('[data-fn-menu="f1"]'));
   // 隐藏态提示（不只靠颜色）：html 层断言
   assert.match(root.innerHTML, /is-hidden/);
-  assert.match(root.innerHTML, /已隐藏/);
+  assert.doesNotMatch(root.innerHTML, /已隐藏/);
 });
 
 test('click delegation fires select, toggle and menu actions once per click', async () => {

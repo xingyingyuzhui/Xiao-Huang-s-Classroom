@@ -1,10 +1,30 @@
 /**
  * PointLayer：文档点记录 → runtime 点元素的投影。
  *
- * Task 7 阶段：包裹 user-points 控制器，提供按文档记录的
- * add / remove / 幂等保护；拖动坐标由 JSXGraph 实时维护，
- * drag end 经 onPointMoved 回写文档（point/update）。
+ * 包裹 user-points 控制器，提供按文档记录的 add / update / remove；
+ * 拖动坐标由 JSXGraph 实时维护，drag end 经 onPointMoved 回写文档（point/update）；
+ * undo/redo 等文档驱动坐标变更经 update 回写到板面元素。
  */
+
+/**
+ * @param {any} element
+ * @param {number} x
+ * @param {number} y
+ */
+function moveBoardPoint(element, x, y) {
+  if (!element) return;
+  try {
+    if (typeof element.setPositionDirectly === 'function') {
+      element.setPositionDirectly(1, [x, y]);
+    } else if (typeof element.moveTo === 'function') {
+      element.moveTo([x, y], 0);
+    } else if (typeof element.setPosition === 'function') {
+      element.setPosition(1, [x, y]);
+    }
+  } catch {
+    /* partially disposed point */
+  }
+}
 
 /**
  * @param {{
@@ -27,12 +47,39 @@ export function createPointLayer(context) {
     },
 
     /**
-     * 文档点更新：拖动坐标已由 JSXGraph 实时维护；
-     * 样式等补丁在此应用（Task 8 补样式回写）。
-     * @param {any} _record
+     * 文档点更新：投影坐标（及可选 showCoords）到 runtime 元素。
+     * 约束 kind 变化时走删除+重建更安全；此处仅处理坐标/标签显隐。
+     * @param {any} record
      */
-    update(_record) {
-      return null;
+    update(record) {
+      if (!record || typeof record.id !== 'string') return null;
+      const existing = findRecord(record.id);
+      if (!existing) return null;
+
+      const x = Number(record.x);
+      const y = Number(record.y);
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        moveBoardPoint(existing.el, x, y);
+        try {
+          existing.el?.board?.update?.();
+        } catch {
+          /* best-effort board refresh */
+        }
+      }
+
+      if (typeof record.showCoords === 'boolean' && record.showCoords !== existing.showCoords) {
+        context.controller.setShowCoords?.(existing.el, record.showCoords);
+      }
+      if (typeof record.name === 'string' && record.name && record.name !== existing.baseName) {
+        existing.baseName = record.name;
+        if (existing.el) existing.el._mathBaseName = record.name;
+        try {
+          existing.el?._mathLiveLabelTick?.();
+        } catch {
+          /* label refresh is best-effort */
+        }
+      }
+      return existing;
     },
 
     /**

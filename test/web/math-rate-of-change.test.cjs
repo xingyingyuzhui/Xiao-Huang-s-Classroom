@@ -94,3 +94,45 @@ test('secant records round-trip through the document', async () => {
   assert.equal(hydrated.document.constructions[0].x2, 2);
   assert.equal('els' in hydrated.document.constructions[0], false);
 });
+
+test('secant showDelta false and x1/x2 survive normalize and constructionDocumentRecord', async () => {
+  const { normalizeGraphDocument } = await import(
+    pathToFileURL(path.join(root, 'apps/web/src/math/graph/graph-document.js')).href,
+  );
+  const { constructionDocumentRecord } = await import(
+    pathToFileURL(path.join(root, 'apps/web/src/math/graph/construction/restore.js')).href,
+  );
+  const doc = {
+    schemaVersion: 1,
+    id: 'd',
+    title: 't',
+    functions: [{ id: 'f1', name: '', kind: 'preset', preset: 'quadratic', expr: '', coeffs: { a: 1, b: 0, c: 0 }, color: '#111', visible: true, locked: false, domain: { mode: 'viewport' } }],
+    points: [],
+    constructions: [
+      { id: 'c1', kind: 'secant', fnId: 'f1', x1: -2, x2: 3.5, showDelta: false, locked: false, visible: true, extend: false },
+    ],
+    view: { boundingBox: [-8, 8, 8, -8], axes: {} },
+    presentation: { activeFunctionId: 'f1', compare: null },
+    annotations: { version: 1, strokes: [] },
+    meta: { createdAt: '', updatedAt: '' },
+  };
+  const normalized = normalizeGraphDocument(doc);
+  assert.equal(normalized.ok, true, normalized.message);
+  assert.equal(normalized.document.constructions[0].showDelta, false);
+  assert.equal(normalized.document.constructions[0].x1, -2);
+  assert.equal(normalized.document.constructions[0].x2, 3.5);
+
+  // runtime 记录常带 els；提交桥必须保留锚点字段
+  const runtimeRec = {
+    ...normalized.document.constructions[0],
+    els: [{}, {}],
+    x1: -2,
+    x2: 3.5,
+    showDelta: false,
+  };
+  const committed = constructionDocumentRecord(runtimeRec);
+  assert.equal(committed.x1, -2);
+  assert.equal(committed.x2, 3.5);
+  assert.equal(committed.showDelta, false);
+  assert.equal('els' in committed, false);
+});

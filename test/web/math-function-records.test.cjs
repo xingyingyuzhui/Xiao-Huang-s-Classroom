@@ -40,3 +40,13 @@ test('custom function record returns validation errors without a partial record'
   assert.equal('evalFn' in valid.record, false);
   assert.equal('curve' in valid.record, false);
 });
+
+test('resolveFunctionSampleRange prefers custom domain over viewport', async () => {
+  const { resolveFunctionSampleRange } = await records();
+  assert.deepEqual(resolveFunctionSampleRange({ domain: { mode: 'viewport' } }, -8, 8), [-8, 8]);
+  assert.deepEqual(
+    resolveFunctionSampleRange({ domain: { mode: 'custom', min: 10, max: -2 } }, -8, 8),
+    [-2, 10],
+  );
+  assert.deepEqual(resolveFunctionSampleRange({}, Number.NaN, Number.NaN), [-10, 10]);
+});

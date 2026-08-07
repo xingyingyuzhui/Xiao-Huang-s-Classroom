@@ -31,39 +31,6 @@
   border-color: var(--danger, var(--stamp));
 }
 
-.math-history-controls {
-  display: flex;
-  gap: 0.25rem;
-  margin-left: auto;
-  margin-right: 0.35rem;
-}
-
-.math-history-btn {
-  appearance: none;
-  border: var(--ui-stroke) solid var(--border-ink);
-  background: var(--card-elevated);
-  color: var(--text-primary);
-  border-radius: 8px;
-  width: 30px;
-  height: 30px;
-  padding: 0;
-  text-align: center;
-  cursor: pointer;
-  font: inherit;
-  font-size: 1.05rem;
-  line-height: 1;
-  box-shadow: var(--shadow-print-sm);
-}
-
-.math-history-btn:hover:not(:disabled) {
-  background: var(--diagram-soft);
-}
-
-.math-history-btn:disabled {
-  opacity: 0.42;
-  cursor: default;
-}
-
 .math-fn-toolbar {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
@@ -198,6 +165,9 @@
   cursor: pointer;
   font: inherit;
   box-shadow: var(--shadow-print-sm);
+  /* 内部内容收入独立层叠上下文，避免盖住右上角操作按钮 */
+  position: relative;
+  z-index: 0;
 }
 
 .math-fn-card-main:hover {
@@ -809,14 +779,82 @@
 
 .math-value-table th,
 .math-value-table td {
-  padding: 0.25rem 0.35rem;
-  border-bottom: 1px solid color-mix(in srgb, var(--border-ink) 35%, transparent);
-  text-align: right;
+  padding: 0.25rem 0.5rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ink) 32%, transparent);
+  border-left: 1px solid color-mix(in srgb, var(--border-ink) 38%, transparent);
+  text-align: center;
+  vertical-align: middle;
 }
 
 .math-value-table th:first-child,
 .math-value-table td:first-child {
-  text-align: left;
+  border-left: none;
+}
+
+.math-value-table thead th {
+  border-bottom-width: 2px;
+  color: var(--text-secondary);
+  font-weight: 700;
+}
+
+/*
+ * 对应表：列中线对齐。
+ * 竖线不用 cell border-left（会通栏连成一整条），改用 ::before
+ * 只画在行内文字区，和关键特征 feat-row 的「一段一段」一致。
+ * 表头与 tbody 之间保留完整横线。
+ */
+.math-float-card-table .math-value-table th,
+.math-float-card-table .math-value-table td,
+.math-float-card-table .math-value-table-lg th,
+.math-float-card-table .math-value-table-lg td {
+  position: relative;
+  text-align: center;
+  vertical-align: middle;
+  border-left: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ink) 26%, transparent);
+  padding: 0.42rem 0.15rem;
+}
+
+.math-float-card-table .math-value-table tbody tr:last-child th,
+.math-float-card-table .math-value-table tbody tr:last-child td,
+.math-float-card-table .math-value-table-lg tbody tr:last-child th,
+.math-float-card-table .math-value-table-lg tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.math-float-card-table .math-value-table th:first-child,
+.math-float-card-table .math-value-table td:first-child,
+.math-float-card-table .math-value-table-lg th:first-child,
+.math-float-card-table .math-value-table-lg td:first-child {
+  padding-right: 0.7rem;
+}
+
+.math-float-card-table .math-value-table th:last-child,
+.math-float-card-table .math-value-table td:last-child,
+.math-float-card-table .math-value-table-lg th:last-child,
+.math-float-card-table .math-value-table-lg td:last-child {
+  padding-left: 0.7rem;
+}
+
+/* 与 .math-float-feat-row span 同色；上下缩进使竖线在行间断开 */
+.math-float-card-table .math-value-table th:last-child::before,
+.math-float-card-table .math-value-table td:last-child::before,
+.math-float-card-table .math-value-table-lg th:last-child::before,
+.math-float-card-table .math-value-table-lg td:last-child::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.42rem;
+  bottom: 0.42rem;
+  width: 1px;
+  background: color-mix(in srgb, var(--border-ink) 38%, transparent);
+  pointer-events: none;
+}
+
+/* 表头 / 内容分界横线（完整通栏，比行间线略重） */
+.math-float-card-table .math-value-table thead th,
+.math-float-card-table .math-value-table-lg thead th {
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ink) 38%, transparent);
 }
 
 /* 舞台 */
@@ -887,6 +925,9 @@
 .math-float-card-features {
   top: 0.75rem;
   left: 0.75rem;
+  /* 壳层跟对应表一致（纸面底 + 轻模糊）；长宽仍用基类 max-width/max-height */
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  backdrop-filter: blur(6px);
 }
 
 .math-float-card-table {
@@ -894,6 +935,9 @@
   left: 0.75rem;
   max-width: min(260px, calc(100% - 1.5rem));
   max-height: min(36vh, 260px);
+  /* 对应表：底色贴画布纸面，表格本身以线条呈现 */
+  background: color-mix(in srgb, var(--paper) 86%, transparent);
+  backdrop-filter: blur(6px);
 }
 
 .math-float-card-head {
@@ -978,24 +1022,36 @@
 
 .math-float-features {
   display: grid;
-  gap: 0.4rem;
+  gap: 0;
 }
 
 .math-float-feat-row {
   display: grid;
-  gap: 0.15rem;
-  padding: 0.5rem 0.55rem;
-  border-radius: 9px;
-  background: color-mix(in srgb, var(--note-soft) 70%, transparent);
-  border: 1px solid color-mix(in srgb, var(--ink) 10%, transparent);
+  grid-template-columns: var(--feat-label-w, max-content) 1fr;
+  align-items: baseline;
+  gap: 0 0.7rem;
+  padding: 0.42rem 0.1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--border-ink) 26%, transparent);
   font-size: 0.95rem;
   line-height: 1.4;
+}
+
+.math-float-feat-row:last-child {
+  border-bottom: none;
 }
 
 .math-float-feat-row strong {
   font-size: 0.82rem;
   color: var(--text-secondary);
   letter-spacing: 0.02em;
+  white-space: nowrap;
+  text-align: left;
+}
+
+.math-float-feat-row span {
+  padding-left: 0.7rem;
+  border-left: 1px solid color-mix(in srgb, var(--border-ink) 38%, transparent);
+  text-align: left;
 }
 
 /* 浮层内沿用 stat-row 时略放大 */
@@ -1120,7 +1176,7 @@
   max-width: calc(100% - 1.25rem);
 }
 
-/* 作图迷你工具条：竖排贴右缘，叠在 FAB 槽正上方 */
+/* 作图迷你工具条：竖排贴右缘，叠在 FAB 槽正上方；顶部 ▲/▼ 收起为当前工具 */
 .math-board-tool-strip {
   position: absolute;
   right: 10px;
@@ -1139,6 +1195,14 @@
   max-width: min(calc(100% - 1.25rem), 18rem);
 }
 
+.math-board-tool-strip-panel {
+  display: flex;
+  flex-direction: row-reverse;
+  align-items: flex-end;
+  gap: 0.35rem;
+  max-width: inherit;
+}
+
 .math-board-tool-strip-btns {
   display: flex;
   flex-direction: column;
@@ -1152,6 +1216,55 @@
   background: color-mix(in srgb, var(--card-elevated) 94%, transparent);
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
   backdrop-filter: blur(6px);
+}
+
+/* 顶栏小箭头：与工具按钮同宽，高度略矮 */
+.math-board-tool-collapse {
+  appearance: none;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 2.6rem;
+  height: 1.35rem;
+  min-height: 1.35rem;
+  margin: 0 0 0.06rem;
+  padding: 0;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-secondary, var(--ink));
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-family: inherit;
+}
+
+.math-board-tool-collapse:hover,
+.math-board-tool-collapse:focus-visible {
+  outline: none;
+  border-color: color-mix(in srgb, var(--stamp, #b45309) 45%, transparent);
+  color: var(--stamp, #b45309);
+  background: color-mix(in srgb, var(--stamp, #b45309) 10%, transparent);
+}
+
+.math-board-tool-collapse-arrow {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* 收起：只剩箭头 + 当前工具（用 CSS 隐藏，避免 display:inline-flex 盖掉 [hidden]） */
+.math-board-tool-strip.is-collapsed .math-board-tool-strip-btns {
+  gap: 0.1rem;
+}
+
+.math-board-tool-strip.is-collapsed .math-board-tool-btn:not(.is-on) {
+  display: none !important;
 }
 
 .math-board-tool-btn {
@@ -2200,19 +2313,25 @@
 
 .math-fn-card-toggle {
   appearance: none;
-  border: none;
-  background: transparent;
+  border: var(--ui-stroke) solid color-mix(in srgb, var(--border-ink) 45%, transparent);
+  background: var(--paper);
   color: var(--text-secondary);
-  font-size: 0.85rem;
+  font-size: 0.78rem;
+  line-height: 1;
   cursor: pointer;
   position: absolute;
   top: 0.35rem;
-  right: 1.6rem;
-  padding: 0.15rem 0.3rem;
+  right: 0.5rem;
+  padding: 0.22rem 0.45rem;
+  border-radius: 7px;
+  box-shadow: var(--shadow-print-sm);
+  white-space: nowrap;
+  z-index: 1;
 }
 
 .math-fn-card-toggle:hover {
   color: var(--stamp, #b45309);
+  border-color: color-mix(in srgb, var(--stamp, #b45309) 55%, transparent);
 }
 
 .math-fn-card-menu-btn {
@@ -2253,7 +2372,10 @@
 }
 
 .math-fn-card-more {
-  position: relative;
+  position: absolute;
+  right: 0.5rem;
+  top: 1.68rem;
+  z-index: 1;
 }
 
 .math-fn-menu {

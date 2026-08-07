@@ -8,9 +8,16 @@
  *   由 reducer 以 document/replace 语义应用，且不会再被本模块记录。
  */
 
-/** 结构快照（剔除 annotations 与 meta）。@param {any} document */
+/**
+ * 结构快照（剔除 annotations 与 meta）。
+ * 保留 schemaVersion / id / title，避免 undo 后 autosave 丢身份字段而重走 legacy 迁移。
+ * @param {any} document
+ */
 function structuralSnapshot(document) {
   return {
+    schemaVersion: document.schemaVersion,
+    id: document.id,
+    title: document.title,
     functions: document.functions,
     points: document.points,
     constructions: document.constructions,
@@ -77,7 +84,14 @@ export function createGraphHistory(store, options = {}) {
     const current = store.getDocument();
     store.dispatch({
       type: 'history/restore',
-      payload: { document: { ...target, annotations: current.annotations, meta: current.meta } },
+      payload: {
+        document: {
+          ...current,
+          ...target,
+          annotations: current.annotations,
+          meta: current.meta,
+        },
+      },
       meta: { record: false },
     });
   }

@@ -151,8 +151,15 @@ export function createGraphRuntimeSyncAdapter(context) {
       // 变化的那一条曲线重建；先卸依赖对象（跟随点/交点/构造），重建后按文档恢复
       context.detachFunctionDependents(id);
       context.detachFnCurve(fn);
-      if (fn.visible) context.createFunctionCurve(fn);
-      context.rebindFunctionDependents(id, doc);
+      if (fn.visible) {
+        context.createFunctionCurve(fn);
+        // 依赖只在曲线存在时恢复；隐藏期间保持卸下，避免跟随点悬浮/重建失败
+        context.rebindFunctionDependents(id, doc);
+      }
+      // 活动函数显隐切换：刷新特征点/渐近线（隐藏时清除，显示时重绘）
+      if (id === state.activeFnId && 'visible' in (ctx.action?.payload?.patch || {})) {
+        context.refreshActiveMarks();
+      }
     }
 
     state.activeFnId =
@@ -187,6 +194,19 @@ export function createGraphRuntimeSyncAdapter(context) {
 export function arraysNearEqual(a, b) {
   if (!Array.isArray(a) || !Array.isArray(b) || a.length !== b.length) return false;
   return a.every((value, i) => Math.abs(Number(value) - Number(b[i])) < 1e-9);
+}
+
+/**
+ * 特征卡：把 label 列宽统一为最长项，保证竖线对齐（跨行 max-content）。
+ * @param {HTMLElement | null} el
+ */
+export function alignFeatureLabelWidths(el) {
+  if (!el) return;
+  let w = 0;
+  for (const row of el.querySelectorAll('.math-float-feat-row > strong')) {
+    w = Math.max(w, row.getBoundingClientRect().width);
+  }
+  if (w > 0) el.style.setProperty('--feat-label-w', `${Math.ceil(w)}px`);
 }
 
 /**

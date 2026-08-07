@@ -48,13 +48,14 @@ import {
 import { GRAPH_BOARD_TOOLS } from './tool-definitions.js';
 import { createUserPointController } from './user-points.js';
 import { createFunctionPanelController } from './function-panel.js';
-import { createPresetFunctionRecord } from './function-records.js';
+import { createPresetFunctionRecord, resolveFunctionSampleRange } from './function-records.js';
 import { createDefaultGraphDocument } from './graph-document.js';
 import { createGraphStore } from './graph-store.js';
 import { createGraphHistory } from './graph-history.js';
 import { createGraphHistoryController } from './graph-history-controller.js';
 import { createGraphPersistence, createGraphPersistenceController } from './graph-persistence.js';
 import {
+  alignFeatureLabelWidths,
   createGraphCommitBridge,
   createGraphRuntimeSyncAdapter,
   createGraphViewBridge,
@@ -65,6 +66,7 @@ import { createProbeController } from './probe-controller.js';
 import { describePresetTransform } from './transform-model.js';
 import { createNumericAnalysisRunner } from './numeric-analysis-runner.js';
 import { constructionDocumentRecord } from './construction/restore.js';
+import { detachConstr } from './construction/records.js';
 import { createSecantConstruction } from './construction/render-lines.js';
 import {
   evaluateGraphFunction as evalFnY,
@@ -74,6 +76,7 @@ import {
   recomputeFunctionIntersection,
 } from './function-analysis.js';
 import {
+  curveFollowTargetId,
   defaultFollowTol,
   featureFollowTargetId,
   findClosestFollowTarget,
@@ -1040,10 +1043,7 @@ function createFnCurve(fn) {
   const board = state.board;
   if (!board || !fn || !fn.visible) return null;
   const c = colors();
-  const x0 = Number.isFinite(state.fXMin) ? state.fXMin : -10;
-  const x1 = Number.isFinite(state.fXMax) ? state.fXMax : 10;
-  const xLo = Math.min(x0, x1);
-  const xHi = Math.max(x0, x1);
+  const [xLo, xHi] = resolveFunctionSampleRange(fn, state.fXMin, state.fXMax);
   const stroke = fn.color || c.stamp;
   const curve = board.create(
     'functiongraph',
@@ -1066,13 +1066,14 @@ function createFnCurve(fn) {
   return curve;
 }
 
-/** 重绘活动预设函数的渐近线 + 特征点（先清除旧 marks/asy） */
+/** 重绘活动预设函数的特征点/渐近线（先清除旧 marks；隐藏时只清除） */
 function paintActiveFeatureMarks() {
   const board = state.board;
   if (!board) return;
   clearExtras(board);
   const c = colors();
   const act = activeFn();
+  if (!act || act.visible === false) return;
   if (act?.kind === 'preset' && act.preset) {
     const preset = /** @type {any} */ (act.preset);
     const coeffs = act.coeffs;
@@ -1303,9 +1304,8 @@ function renderCustomNumericFeatures(fn, featuresEl) {
   } catch {
     /* viewport default */
   }
-  featuresEl.innerHTML =
-    '<div class="math-float-feat-row"><strong>分析中…</strong><span>数值近似</span></div>';
-  state.numericRequest = state.numericRunner?.analyze?.({
+  featuresEl.innerHTML = '<div class="math-float-feat-row"><strong>分析中…</strong><span>数值近似</span></div>';
+  alignFeatureLabelWidths(featuresEl); state.numericRequest = state.numericRunner?.analyze?.({
     record: fn,
     interval: [xMin, xMax],
     resolveEvaluator: (rec) => (x) => evalFnY(rec, x),
@@ -1326,7 +1326,7 @@ function renderCustomNumericFeatures(fn, featuresEl) {
           : []),
         '<div class="math-float-feat-row is-warn"><strong>提示</strong><span>当前结果为数值近似，部分特征可能未识别</span></div>',
       ];
-      featuresEl.innerHTML = rows.join('');
+      featuresEl.innerHTML = rows.join(''); alignFeatureLabelWidths(featuresEl);
     },
   });
 }
@@ -1408,7 +1408,7 @@ function paintReadouts() {
           `<div class="math-float-feat-row"><strong>${f.kind}</strong><span>${f.text}</span></div>`,
       )
       .join('');
-    renderCompareInfo(fn, featuresEl);
+    alignFeatureLabelWidths(featuresEl); renderCompareInfo(fn, featuresEl);
   }
   if (tableEl) {
     const rows = valueTable(preset, coeffs);
@@ -2064,6 +2064,10 @@ export function initGraphUI() {
 
   syncSliders();
   rebuildCurve();
+  // 加载文档几何到画布（在 rebuildCurve 后，跟随点才能解析到已建曲线）
+  for (const rec of loadedDoc.points || []) pointLayer.add(rec);
+  for (const rec of loadedDoc.constructions || []) constructionLayer.add(rec);
+  paintActiveFeatureMarks(); reregisterSelectable();
   bindReadoutCards();
   renderFnList();
   syncParamPanel();

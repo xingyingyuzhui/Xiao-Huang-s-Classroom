@@ -35,6 +35,23 @@ function removeConstructionsClosure(document, rootId, options = {}) {
 }
 
 /**
+ * 点约束是否依赖指定函数（跟随曲线/特征点/交点）。
+ * @param {any} point
+ * @param {string} functionId
+ */
+function pointDependsOnFunction(point, functionId) {
+  const constraint = point?.constraint;
+  if (!constraint || typeof constraint !== 'object') return false;
+  if (constraint.kind === 'followFunction' || constraint.kind === 'followFeature') {
+    return constraint.functionId === functionId;
+  }
+  if (constraint.kind === 'intersection') {
+    return Array.isArray(constraint.targetIds) && constraint.targetIds.includes(functionId);
+  }
+  return false;
+}
+
+/**
  * @param {any} document
  * @param {object} action
  */
@@ -90,16 +107,30 @@ export function reduceGraphDocument(document, action) {
     case 'function/remove': {
       const id = action.payload?.id;
       if (!document.functions.some((f) => f.id === id)) return document;
-      const withoutConstructions = removeConstructionsClosure(document, id);
-      const functions = withoutConstructions.functions.filter((f) => f.id !== id);
+      // 级联：引用该函数的构造 + 约束依赖该函数的点（及其下游构造）
+      let next = removeConstructionsClosure(document, id);
+      const doomedPoints = next.points
+        .filter((point) => pointDependsOnFunction(point, id))
+        .map((point) => point.id);
+      for (const pointId of doomedPoints) {
+        next = removeConstructionsClosure(next, pointId);
+      }
+      if (doomedPoints.length) {
+        const doomed = new Set(doomedPoints);
+        next = {
+          ...next,
+          points: next.points.filter((point) => !doomed.has(point.id)),
+        };
+      }
+      const functions = next.functions.filter((f) => f.id !== id);
       const presentation =
-        withoutConstructions.presentation?.activeFunctionId === id
+        next.presentation?.activeFunctionId === id
           ? {
-              ...withoutConstructions.presentation,
+              ...next.presentation,
               activeFunctionId: functions.length ? functions[0].id : null,
             }
-          : withoutConstructions.presentation;
-      return { ...withoutConstructions, functions, presentation };
+          : next.presentation;
+      return { ...next, functions, presentation };
     }
 
     case 'function/reorder': {
@@ -345,7 +376,22 @@ export function createGraphStore(initialDocument, options = {}) {
 
     cancelTransaction() {
       if (!transaction) return current;
+      // preview 期间 board 可能已按 candidate 投影；cancel 后 document 仍是 previous，
+      // 必须把 runtime 从 lastPreview 拉回 previous，否则 dispose/取消后板面与文档分叉。
+      const lastPreview = transaction.candidate;
+      const start = transaction.previous;
       transaction = null;
+      if (lastPreview !== start) {
+        try {
+          beforeCommit({
+            previous: lastPreview,
+            candidate: start,
+            action: { type: 'transaction/cancel', meta: { transaction: true } },
+          });
+        } catch {
+          /* best-effort runtime restore */
+        }
+      }
       notify(current, { type: 'transaction/cancel', meta: { transaction: true } }, true);
       return current;
     },

@@ -158,6 +158,16 @@ test('graph board tools v1 strip and construction lifecycle are wired', () => {
   assert.match(tools, /math-board-tool-label/);
   assert.match(css, /\.math-board-tool-label/);
   assert.doesNotMatch(tools, /math-board-tool-icon/);
+  assert.match(tools, /math-board-tool-collapse/);
+  assert.match(tools, /▲/);
+  assert.match(tools, /▼/);
+  assert.match(css, /\.math-board-tool-collapse/);
+  assert.match(css, /\.math-board-tool-strip\.is-collapsed/);
+  // 收起必须用 CSS 隐藏非当前工具（display:inline-flex 会盖掉 HTML hidden）
+  assert.match(
+    css,
+    /\.math-board-tool-strip\.is-collapsed\s+\.math-board-tool-btn:not\(\.is-on\)\s*\{[^}]*display:\s*none\s*!important/,
+  );
 });
 
 test('other jsx labs bind theme restyle', () => {
