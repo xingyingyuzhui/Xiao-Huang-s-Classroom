@@ -9,23 +9,18 @@ const {
 } = require('@xiaohuang/subject-settings');
 const { loadSubjectSettings } = require('../services/settings-service');
 
-const MAX_ICON_DATA_URL = 700 * 1024;
+// R5.1：业务规则收敛到 TS domain policy（src/domain/settings-policy.ts，
+// tsup 产物 dist/domain/settings-policy.js；route 不再重复实现）
+const {
+  MAX_ICON_DATA_URL,
+  maskApiKey,
+  isMaskedKey,
+  validateIconDataUrl,
+} = require('../../dist/domain/settings-policy.js');
 
 const DEFAULT_THEME = { id: 'default' };
 
 const MASKED_KEY_PLACEHOLDER = '__MASKED_API_KEY__';
-
-function maskApiKey(key) {
-  if (!key) return MASKED_KEY_PLACEHOLDER;
-  if (key.length < 10) return MASKED_KEY_PLACEHOLDER;
-  return key.slice(0, 4) + '***' + key.slice(-2);
-}
-
-function isMaskedKey(key) {
-  if (typeof key !== 'string' || !key) return false;
-  if (key === MASKED_KEY_PLACEHOLDER) return true;
-  return /^.{1,8}\*\*\*.{0,8}$/.test(key) && key.includes('***');
-}
 
 function deepMerge(base, patch) {
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
@@ -71,18 +66,6 @@ function readSettingValue(key) {
   } catch {
     return null;
   }
-}
-
-function validateIconDataUrl(url) {
-  if (url == null || url === '') return null;
-  const s = String(url);
-  if (s.length > MAX_ICON_DATA_URL) {
-    throw new Error('图标过大（请压缩到约 500KB 以内）');
-  }
-  if (!/^data:image\/(png|jpeg|jpg|webp|gif);base64,/i.test(s)) {
-    throw new Error('图标格式无效（仅支持 png/jpeg/webp/gif data URL）');
-  }
-  return s;
 }
 
 function loadSubjectSettingsFromDb() {

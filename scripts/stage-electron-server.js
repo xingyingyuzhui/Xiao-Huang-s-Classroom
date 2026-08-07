@@ -21,7 +21,7 @@ const stageServer = join(stageRoot, 'server');
 const srcServer = join(root, 'apps', 'server');
 const srcCode = join(srcServer, 'src');
 
-const COPY_DIRS = ['db', 'routes', 'seed', 'utils', 'services', 'public'];
+const COPY_DIRS = ['db', 'routes', 'seed', 'utils', 'services', 'public', 'dist/domain'];
 const COPY_FILES = ['index.js', 'paths.js'];
 
 function rimraf(p) {
