@@ -34,19 +34,19 @@
 
 > rollback point：无代码改动，纯记录。
 
-## Task 0.1 基线数据记录
+- [x] **Task 0.1：基线数据记录**
 - **Files:** `docs/engineering/baseline-2026-08-07.md`（新建）
 - **Steps:** 记录上表完整数据：测试矩阵、bundle 明细、文件规模、依赖图摘要、三个数据位置（Web 开发 `apps/server/data`、Electron `userData/data`、pkg 邻近 `data`）现状。
 - **Verify:** `node --test` 全绿；文档数据与实测一致。
 - **Commit:** `docs(eng): freeze engineering baseline (Program 0)`
 
-## Task 0.2 行为兼容清单与用户数据备份策略
+- [x] **Task 0.2：行为兼容清单与用户数据备份策略**
 - **Files:** `docs/engineering/behavior-compatibility.md`（新建）
 - **Steps:** 列出不可变行为：大厅全出血、书籍 intro/cover-dissolve 转场、`/api/...` 路径、五主题、化学实验行为、函数画布合同、Electron 用户数据路径、`chem-theme-change` 事件名。列出每个数据位置的备份/恢复策略（迁移前复制 + checksum）。
 - **Verify:** 文档评审通过；覆盖 spec §3.8 与 §21 要求。
 - **Commit:** `docs(eng): record behavior compatibility and backup policy`
 
-## Task 0.3 旧债登记表
+- [x] **Task 0.3：旧债登记表**
 - **Files:** `docs/engineering/debt-registry.md`（新建）
 - **Steps:** 登记允许暂存的旧债（手工维护的 .js/.cjs 双份、`pkg`、module 级 DOM 捕获、`innerHTML` 遗留、index.js 残余逻辑），每条注明删除条件与责任 Program。
 - **Verify:** 每条有 Program 归属；无"永远不删"条目。
@@ -58,55 +58,55 @@
 
 > rollback point：Task 1.1 前 HEAD。全仓验收：`npm run quality` 全绿 + `npm test` 全绿 + `npm run build` 通过。
 
-## Task 1.1 根脚本与 Node 基线
+- [x] **Task 1.1：根脚本与 Node 基线**
 - **Files:** `package.json`（engines/scripts）、`.nvmrc`、`.node-version`、`tooling/` 目录骨架
 - **Test（先写失败）:** `test/shared/root-scripts-contract.test.cjs`：断言根 `quality`/`lint`/`format`/`typecheck`/`test`/`build` 脚本存在且语义一致（每个 workspace 同名脚本或显式空配置）。
 - **Steps:** 根 `engines.node = ">=20"`；`.nvmrc` = `20`；根脚本 `quality` 汇总（先阶段为空跑，随后 Task 逐项接入）；`tooling/architecture|performance|release/` 目录 + 各 README。
 - **Verify:** `npm run quality`（当前阶段=test+build）通过；contract 测试过。
 - **Commit:** `feat(eng): add root scripts and Node baseline (P1)`
 
-## Task 1.2 TypeScript 配置体系
+- [x] **Task 1.2：TypeScript 配置体系**
 - **Files:** `tsconfig.base.json`、`tsconfig.web.json`、`tsconfig.node.json`、`tsconfig.electron.json`（根）、各 workspace `tsconfig.json`（先只做类型检查骨架，不开 allowJs）、`tooling/config/README.md`
 - **Test:** `test/shared/tsconfig-contract.test.cjs`：断言 strict 系五选项全部开启（`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`noImplicitOverride`、`useUnknownInCatchVariables`、`noFallthroughCasesInSwitch`），且没有任何 `strict:false` 覆盖。
 - **Steps:** 写基座 config；workspace 引用；`npx tsc -p tsconfig.node.json --noEmit` 对 packages 空跑（无 TS 源时通过）。
 - **Verify:** contract 测试过；`npx tsc --noEmit`（空）通过。
 - **Commit:** `feat(eng): add strict TypeScript config matrix (P1)`
 
-## Task 1.3 ESLint Flat Config + typescript-eslint
+- [x] **Task 1.3：ESLint Flat Config + typescript-eslint**
 - **Files:** `eslint.config.mjs`、`tooling/config/eslint/`（规则集）、`docs/engineering/lint-baseline.md`
 - **Test:** `test/shared/lint-config-contract.test.cjs`：断言 flat config 存在、typescript-eslint 已接入、`no-explicit-any` 等关键规则开启、基线清单文件存在。
 - **Steps:** 安装 `eslint @eslint/js typescript-eslint`（根 devDeps）；flat config 覆盖 JS/TS；先对 `packages/*` 与新 TS 文件 lint；旧 JS 基线问题登记 `lint-baseline.md`（计数，不阻塞）；`lint` 不允许新增 warning。
 - **Verify:** `npm run lint`（阶段范围）通过；contract 测试过。
 - **Commit:** `feat(eng): add ESLint flat config with TS rules (P1)`
 
-## Task 1.4 Prettier + Stylelint
+- [x] **Task 1.4：Prettier + Stylelint**
 - **Files:** `.prettierrc.json`、`.prettierignore`、`.stylelintrc.json`、`stylelint.config` 覆盖 `apps/web/src/shared/styles/**`
 - **Test:** `test/shared/format-config-contract.test.cjs`：断言配置存在、stylelint 关键规则（selector 层级、token 变量）开启。
 - **Steps:** 安装 `prettier stylelint stylelint-config-standard`；`format` 脚本（`prettier --write` 仅新 TS/JSON/MD；CSS 用 stylelint 检查不改动）；本轮不整仓格式化（避免掩盖逻辑改动）。
 - **Verify:** contract 测试过；`npm run format:check` 对新增文件通过。
 - **Commit:** `feat(eng): add prettier and stylelint configs (P1)`
 
-## Task 1.5 Turborepo 任务图
+- [x] **Task 1.5：Turborepo 任务图**
 - **Files:** `turbo.json`、根 `package.json` scripts（build/test/typecheck/lint 委托 turbo）、`tooling/config/README.md` 更新
 - **Test:** `test/shared/turbo-contract.test.cjs`：断言 turbo.json 存在且包含 build/test/typecheck/lint 任务与缓存输出。
 - **Steps:** 安装 `turbo`（根 devDep）；`turbo.json` 定义任务图（dependsOn `^build`、缓存 `.turbo` 或默认）；根脚本切换为 `turbo run ...`；`npm run build`/`npm test` 行为不变。
 - **Verify:** `npm run build` 与 `npm test` 全绿（与 Task 1.1 前一致）；contract 测试过。
 - **Commit:** `feat(eng): add turborepo task graph (P1)`
 
-## Task 1.6 架构门禁脚本
+- [x] **Task 1.6：架构门禁脚本**
 - **Files:** `tooling/architecture/check-dependencies.mjs`、`tooling/architecture/rules.json`、`test/shared/module-boundaries.test.cjs`（扩展）
 - **Test（先写失败）:** 现有 `module-boundaries.test.cjs` 扩展断言：`packages/*` 不反向导入 `apps/*`；Server 不导入 Web 源码；`export *` 白名单（`draw-tools.js` 显式导出）保持。
 - **Steps:** rules.json 声明目录规则；脚本扫描 import 图并输出违规（exit 1）；接入 `npm run lint:arch`。
 - **Verify:** `npm run lint:arch` 通过；新违规为 0。
 - **Commit:** `feat(eng): add architecture boundary gate (P1)`
 
-## Task 1.7 CI 门禁
+- [x] **Task 1.7：CI 门禁**
 - **Files:** `.github/workflows/quality.yml`（新建）
 - **Steps:** PR 工作流按 spec §18.1 顺序：format check → lint → typecheck → architecture → unit/contract tests → server integration → web build → bundle budget（先记录不阻塞）→ dependency scan（先记录）。
 - **Verify:** workflow YAML 解析通过（`npx actionlint` 若可用，否则人工评审）；本地按同顺序手动跑通。
 - **Commit:** `ci(eng): add quality gate workflow (P1)`
 
-## Task 1.8 pkg 过渡 smoke 与退役门
+- [x] **Task 1.8：pkg 过渡 smoke 与退役门**
 - **Files:** `scripts/pkg-smoke.mjs`、`docs/engineering/pkg-retirement-gate.md`
 - **Test:** `test/server/electron-stage.test.cjs` 保留；新增 `pkg-smoke` 合同测试断言退役门文档存在且列出等价验收项（Electron portable 启动/用户数据导入/API/AI 设置/离线功能）。
 - **Steps:** 记录当前 `pkg` 产物可用状态；退役门文档列出验收清单与删除条件（spec §6.4）。
@@ -122,49 +122,49 @@
 
 > rollback point：Task 2.1 前 HEAD。全仓验收：现有测试全绿 + 新 packages 各自 `npm test` 通过 + `npm run build` 通过。
 
-## Task 2.1 packages/config 与 tsup 构建基座
+- [x] **Task 2.1：packages/config 与 tsup 构建基座**
 - **Files:** `packages/config/package.json`、`tsup.config`、`packages/config/README.md`；根 devDeps：`tsup`、`typescript`、`vitest`
 - **Test:** `packages/config` 自带 smoke：`tsup --dryRun` 或 build 产物存在。
 - **Steps:** `packages/config` 聚合共享 tsconfig/eslint 片段（从 Program 1 基座抽取）；`tsup` 双产物（ESM+CJS+d.ts）配置模板；各 package 引入。
 - **Verify:** 一个空包（config 自身）能 build 出 ESM/CJS/d.ts。
 - **Commit:** `feat(eng): add packages/config with tsup build base (P2)`
 
-## Task 2.2 packages/domain-core
+- [x] **Task 2.2：packages/domain-core**
 - **Files:** `packages/domain-core/src/{result,errors,ids,clock,serialization,cancellation}.ts`、`packages/domain-core/package.json`、`packages/domain-core/test/*.test.ts`
 - **Test（先写失败）:** `result.test.ts`（ok/err 判定、map、unwrap）；`errors.test.ts`（AppError 稳定错误码、分类枚举）；`serialization.test.ts`（clone/normalize）；`cancellation.test.ts`（disposable 合同、幂等）。
 - **Steps:** 实现 `Result<T,E>`、`AppError` + 错误码枚举（spec §7.3 八类）、branded ID 工具、`Clock/IdAllocator/RandomSource` 接口、serializable clone/normalize、`Disposable` 合同。包不依赖 DOM/Node/Express/Electron/Three/JSXGraph。
 - **Verify:** `vitest run`（该包）全绿；`npm run build -w @xiaohuang/domain-core` 出双产物。
 - **Commit:** `feat(eng): add domain-core package (P2)`
 
-## Task 2.3 packages/contracts（Zod schema）
+- [x] **Task 2.3：packages/contracts（Zod schema）**
 - **Files:** `packages/contracts/src/{api,events,persistence,ipc,subject,settings}.ts`、`packages/contracts/package.json`、`packages/contracts/test/*.test.ts`；根 devDeps：`zod`
 - **Test（先写失败）:** 每个 schema 的 parse 正/反例（合法文档通过、非法被拒）；version 常量存在。
 - **Steps:** 先建模持久化 GraphDocumentV2 schema（从 graph-document.js 规范化逻辑提炼，保证现有文档可 parse）与 settings schema；API/event/IPC/subject schema 先声明类型骨架 + 版本号；Web/Server 共用。
 - **Verify:** contracts 包测试全绿；现有全仓测试不回归（新包未接入生产路径，只做纯增量）。
 - **Commit:** `feat(eng): add contracts package with zod schemas (P2)`
 
-## Task 2.4 packages/test-kit
+- [x] **Task 2.4：packages/test-kit**
 - **Files:** `packages/test-kit/src/{fake-dom,fake-board,fake-storage,fake-clock,fake-timer,fake-raf,fake-fetch,fake-repository,fake-ipc}.ts`、`packages/test-kit/package.json`、`packages/test-kit/test/*.test.ts`
 - **Test（先写失败）:** fake-clock 手动推进；fake-timer 到期执行；fake-storage 持久化/清空；fake-raf 手动帧。
 - **Steps:** 从 `test/web/math-graph-mount-controller.test.cjs` 的 fake 经验提炼成可复用包（fake DOM 元素/listener、ResizeObserver、FileReader、URL、board、storage、clock、timer、RAF、fetch、repository、IPC）。
 - **Verify:** test-kit 测试全绿。
 - **Commit:** `feat(eng): add test-kit package (P2)`
 
-## Task 2.5 math-expr 迁移 TypeScript
+- [x] **Task 2.5：math-expr 迁移 TypeScript**
 - **Files:** `packages/math-expr/**`（源码迁 TS）、`packages/math-expr/tsup.config`、`packages/math-expr/package.json`（exports ESM/CJS/d.ts）、`test/shared/math-expr-contract.test.cjs`
 - **Test（先写失败）:** contract 测试断言 `require('@xiaohuang/math-expr')` 与 `import` 均可用且行为一致（双产物）。
 - **Steps:** 源码 `src/*.ts`；tsup 构建；`package.json#exports` 稳定入口；消费方（web/server）import 路径不变（包名不变）。
 - **Verify:** 全仓测试全绿（含 expr 相关）；`npm run build -w @xiaohuang/math-expr` 双产物 + d.ts。
 - **Commit:** `feat(eng): migrate math-expr to TypeScript (P2)`
 
-## Task 2.6 subject-settings 迁移 TypeScript
+- [x] **Task 2.6：subject-settings 迁移 TypeScript**
 - **Files:** `packages/subject-settings/**`、`packages/subject-settings/tsup.config`、`packages/subject-settings/package.json`、`test/shared/subject-settings-contract.test.cjs`
 - **Test（先写失败）:** contract 测试断言双产物 + schema 行为不变。
 - **Steps:** 同 2.5 流程；settings schema 同步进 contracts 包（单一来源，禁止双份）。
 - **Verify:** `test/shared/subject-settings-contract.test.cjs` 全过；全仓不回归。
 - **Commit:** `feat(eng): migrate subject-settings to TypeScript (P2)`
 
-## Task 2.7 错误模型接入试点
+- [x] **Task 2.7：错误模型接入试点**
 - **Files:** `apps/server/src/services/chemistry/*` 或首个样板 service 使用 `domain-core` 错误码；`packages/contracts` 错误映射表
 - **Test:** 一个 service 的失败路径断言错误码稳定（不依赖消息文本）。
 - **Steps:** 选一个薄 service（如 settings 读取）接入 `Result` + 错误码；验证错误码在 HTTP 响应中稳定。
