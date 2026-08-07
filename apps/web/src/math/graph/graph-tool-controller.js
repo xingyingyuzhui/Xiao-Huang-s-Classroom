@@ -321,8 +321,57 @@ export function createGraphToolController(context) {
     state.toolStrip?.setHint?.('请继续点选第二条对象');
   }
 
+  async function addPointAt(usrX, usrY) {
+    const state = getState();
+    if (!state.board) return;
+    let x = usrX;
+    let y = usrY;
+    /** @type {string | null} */
+    let followTargetId = null;
+    /** @type {[string, string] | null} */
+    let intersectFnIds = null;
+    // 1) 优先：靠近两函数交点 → 询问是否成为交点
+    const ix = context.findFunctionIntersectionNear(state.functions, x, y, context.followTol?.());
+    if (ix) {
+      const okIx = await context.appConfirm(
+        `该位置靠近「${context.fnDisplayLabel(ix.fnA)}」与「${context.fnDisplayLabel(ix.fnB)}」的交点，是否成为交点？`,
+        { title: '函数交点', okText: '成为交点', cancelText: '否' },
+      );
+      if (okIx) {
+        intersectFnIds = [ix.fnA.id, ix.fnB.id];
+        x = ix.x;
+        y = ix.y;
+        context.createUserPoint(x, y, { intersectFnIds, showCoords: true });
+        context.reregisterSelectable();
+        state.board.update();
+        return;
+      }
+    }
+    // 2) 否则：靠近单条曲线 → 询问是否跟随
+    const hit = context.hitFollowNear(x, y);
+    if (hit) {
+      const ok = await context.appConfirm(`该位置靠近「${hit.target.label || '曲线'}」，是否让点跟随？`, {
+        title: '跟随对象',
+        okText: '跟随',
+        cancelText: '自由点',
+      });
+      if (ok) {
+        followTargetId = hit.target.id;
+        const sn = hit.target.snap(x, y);
+        if (sn) {
+          x = sn.x;
+          y = sn.y;
+        }
+      }
+    }
+    context.createUserPoint(x, y, { followTargetId, showCoords: true });
+    context.reregisterSelectable();
+    state.board.update();
+  }
+
   return {
     handleToolTap,
+    addPointAt,
     clearToolPick,
     finishOneShotToolIfDone,
     cancel() {

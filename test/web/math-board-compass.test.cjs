@@ -21,7 +21,7 @@ test('board-compass module exports attach + dismiss', () => {
 });
 
 test('graph wires compass one-shot back to select', () => {
-  const src = ['index.js', 'user-points.js']
+  const src = ['index.js', 'graph-tool-controller.js', 'graph-mount-controller.js', 'user-points.js']
     .map((file) => fs.readFileSync(path.join(root, 'apps/web/src/math/graph', file), 'utf8'))
     .join('\n');
   assert.match(src, /toolOneShot/);

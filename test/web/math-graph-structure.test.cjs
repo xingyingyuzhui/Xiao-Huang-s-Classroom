@@ -52,8 +52,8 @@ test('graph orchestrator delegates function collection UI and record creation', 
   assert.match(orchestrator, /createGraphToolController/);
   assert.match(orchestrator, /createGraphFunctionRuntime/);
   assert.ok(
-    orchestrator.split('\n').length < 1600,
-    'graph/index.js 必须保持编排入口（Task 8 checkpoint 1: <1600；继续向 <1000 / <700 收紧）',
+    orchestrator.split('\n').length < 700,
+    'graph/index.js 必须保持编排入口（Task 8 最终阈值 <700）',
   );
 });
 

@@ -8,6 +8,7 @@
 import { keyFeatures } from './model.js';
 import { resolveFunctionColor } from '../shared/math-theme.js';
 import { resolveFunctionSampleRange } from './function-records.js';
+import { detachBoardObject } from '../shared/board-lifecycle.js';
 
 /**
  * @param {{
@@ -21,6 +22,21 @@ import { resolveFunctionSampleRange } from './function-records.js';
  *   asymptotes: (preset: string, coeffs: any) => any[],
  *   clearExtras: (board: any) => void,
  *   schedulePointLabelFusion: () => void,
+ *   curveRebuildTask: any,
+ *   withPreservedViewport: (board: any, fn: () => void) => void,
+ *   snapshotUserPoints: () => any[],
+ *   snapshotConstructions: (host: any) => any[],
+ *   clearAllConstructions: (host: any) => void,
+ *   removeUserPointEls: () => void,
+ *   restoreUserPoints: (saved: any[]) => void,
+ *   restoreConstructions: (host: any, saved: any[], opts?: any) => void,
+ *   autoIntersectNewLine: (host: any, rec: any) => void,
+ *   lineLikeElOf: (rec: any) => any,
+ *   reregisterSelectable: () => void,
+ *   renderFnList: () => void,
+ *   syncParamPanel: () => void,
+ *   paintReadouts: () => void,
+ *   mirrorActiveToLegacy: () => void,
  * }} context
  */
 export function createGraphFunctionRuntime(context) {
@@ -170,5 +186,125 @@ export function createGraphFunctionRuntime(context) {
     paintActiveFeatureMarks();
   }
 
-  return { createFnCurve, detachFnCurve, removeAllFnCurves, paintActiveFeatureMarks, refreshActiveMarks };
+function rebuildCurve() {
+  curveRebuildTask.cancel();
+  const board = state.board;
+  if (!board) return;
+  // 生命周期：重建包 withPreservedViewport，避免镜头被图例/fullUpdate 打回
+  withPreservedViewport(board, () => {
+    const savedUsers = snapshotUserPoints();
+    const savedConstr = snapshotConstructions(makeDrawHost());
+    clearAllConstructions(makeDrawHost());
+    removeUserPointEls();
+    clearExtras(board);
+    removeAllFnCurves(board);
+    state.curve = null;
+
+    for (const fn of state.functions) {
+      createFnCurve(fn);
+    }
+
+    mirrorActiveToLegacy();
+    paintActiveFeatureMarks();
+
+    restoreUserPoints(savedUsers);
+    restoreConstructions(makeDrawHost(), savedConstr, { notify: false });
+    // 曲线重建后：补齐线/垂线与函数的交点（已有则跳过）
+    {
+      const host = makeDrawHost();
+      for (const rec of host.getConstructions().slice()) {
+        if (!rec || rec.kind === 'intersect') continue;
+        if (!lineLikeElOf(rec)) continue;
+        try {
+          autoIntersectNewLine(host, rec);
+        } catch {
+          /* */
+        }
+      }
+    }
+    reregisterSelectable();
+    renderFnList();
+    syncParamPanel();
+    paintReadouts();
+    try {
+      board.update();
+    } catch {
+      /* */
+    }
+    schedulePointLabelFusion();
+    try {
+      // refresh 契约：skipViewport，不重置镜头
+      board._mathAxisLegend?.refresh?.();
+    } catch {
+      /* */
+    }
+  });
 }
+  /** 参考曲线：同色虚线低透明度；签名不变则跳过重建。 */
+  function applyReferenceCurveFromDocument(doc) {
+    const state = getState();
+    const ref = doc?.presentation?.compare?.reference;
+    const board = state.board;
+    if (!board) return;
+    const key = ref
+      ? JSON.stringify({ kind: ref.kind, preset: ref.preset, expr: ref.expr, coeffs: ref.coeffs })
+      : null;
+    if (key === lastReferenceKey) return;
+    lastReferenceKey = key;
+    if (state.referenceCurve) {
+      detachBoardObject(board, state.referenceCurve);
+      state.referenceCurve = null;
+    }
+    if (!ref) return;
+    const xLo = Math.min(
+      Number.isFinite(state.fXMin) ? state.fXMin : -10,
+      Number.isFinite(state.fXMax) ? state.fXMax : 10,
+    );
+    const xHi = Math.max(
+      Number.isFinite(state.fXMin) ? state.fXMin : -10,
+      Number.isFinite(state.fXMax) ? state.fXMax : 10,
+    );
+    try {
+      state.referenceCurve = board.create(
+        'functiongraph',
+        [
+          (x) => {
+            const y = evalFnY(ref, x);
+            return y == null ? NaN : y;
+          },
+          xLo,
+          xHi,
+        ],
+        {
+          strokeColor: resolveFunctionColor(ref),
+          strokeWidth: 2,
+          dash: 3,
+          strokeOpacity: 0.45,
+          highlight: false,
+          withLabel: false,
+          name: '参考曲线',
+        },
+      );
+    } catch {
+      state.referenceCurve = null;
+    }
+  }
+
+  function resetReferenceKey() {
+    lastReferenceKey = null;
+  }
+
+  return {
+    rebuildCurve,
+    createFnCurve,
+    detachFnCurve,
+    removeAllFnCurves,
+    paintActiveFeatureMarks,
+    refreshActiveMarks,
+    applyReferenceCurveFromDocument,
+    resetReferenceKey,
+  };
+}
+
+/** 参考曲线签名防抖（模块级；resetReferenceKey 由 dispose 调用） */
+let lastReferenceKey = null;

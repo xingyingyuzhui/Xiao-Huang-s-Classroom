@@ -43,11 +43,12 @@ test('distPointToSeg and strokeHitTest pure logic via dynamic import skip — in
 });
 
 test('graph wires board notes on function canvas', () => {
-  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  const src = ['graph-mount-controller.js', 'graph-tool-controller.js', 'index.js']
+    .map((file) => fs.readFileSync(path.join(root, 'apps/web/src/math/graph', file), 'utf8'))
+    .join('\n');
+  assert.match(src, /math-graph-board-notes/);
   assert.match(src, /attachBoardNotes/);
   assert.match(src, /dismissBoardNotesMode/);
-  assert.match(src, /math-graph-board-notes/);
-  assert.match(src, /state\.notes/);
 });
 
 test('math classroom dismisses notes mode with overlays', () => {

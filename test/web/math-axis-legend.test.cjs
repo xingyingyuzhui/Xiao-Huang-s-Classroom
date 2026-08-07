@@ -45,7 +45,7 @@ test('axis-legend-settings module exports attach and dismiss', () => {
 });
 
 test('graph rebuilds curve from function domain settings', () => {
-  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/graph-mount-controller.js'), 'utf8');
   assert.match(src, /onAxisSettingsChange/);
   assert.match(src, /fXMin/);
   assert.match(src, /fXMax/);
@@ -60,14 +60,15 @@ test('jsx-board wires axis settings by default', () => {
 });
 
 test('graph provides legend items for main curve', () => {
-  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/index.js'), 'utf8');
-  assert.match(src, /getLegendItems/);
-  assert.match(src, /axisSettingsHost/);
-  assert.match(src, /_mathAxisLegend\?\.refresh/);
-  // 重建曲线保留视窗 + 换肤契约
-  assert.match(src, /withPreservedViewport/);
-  assert.match(src, /bindMathThemeRestyle/);
-  assert.match(src, /resolveFunctionColor/);
+  const mountSrc = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/graph-mount-controller.js'), 'utf8');
+  const fnRuntimeSrc = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/graph-function-runtime.js'), 'utf8');
+  assert.match(mountSrc, /getLegendItems/);
+  assert.match(mountSrc, /axisSettingsHost/);
+  assert.match(mountSrc, /bindMathThemeRestyle/);
+  assert.match(mountSrc, /resolveFunctionColor/);
+  // 重建曲线保留视窗 + 图例 refresh 契约（rebuildCurve 在 function-runtime 模块）
+  assert.match(fnRuntimeSrc, /withPreservedViewport/);
+  assert.match(fnRuntimeSrc, /_mathAxisLegend\?\.refresh/);
 });
 
 test('math classroom dismisses axis legend bubble with overlays', () => {

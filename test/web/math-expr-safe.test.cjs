@@ -68,8 +68,12 @@ test('graph sidebar multi-fn list markup and wiring', () => {
   assert.match(records, /compileMathExpr/);
   assert.match(graph, /state\.functions/);
   assert.match(graph, /listFollowTargets/);
+  const toolSrc = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-tool-controller.js'),
+    'utf8',
+  );
   assert.match(graph, /findFunctionIntersectionNear/);
-  assert.match(graph, /成为交点/);
+  assert.match(toolSrc, /成为交点/);
   assert.match(panel, /applyExpressionKey/);
   // 删除：先 detach 曲线再 filter，避免幽灵曲线（曲线生命周期在 function-runtime 模块）
   assert.match(fnRuntime, /function detachFnCurve/);
