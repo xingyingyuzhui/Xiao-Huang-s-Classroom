@@ -2,7 +2,7 @@
  * 学科大厅：3D 书场选科（各学科可进教室壳）
  */
 
-import { SUBJECTS, getSubject } from './catalog.js';
+import { subjectManifests, getSubjectMeta } from './manifest.js';
 import { createBookshelfStage } from './bookshelf/stage.js';
 
 /**
@@ -41,10 +41,10 @@ export function createSubjectHub({ select, onEnterSubject, onRevealHub }) {
         enterBtn: /** @type {HTMLElement | null} */ (enterBtn),
         lockNote: /** @type {HTMLElement | null} */ (lockNote),
         pageFxRoot: /** @type {HTMLElement | null} */ (pageFxRoot),
-        subjects: SUBJECTS,
+        subjects: subjectManifests(),
         onEnterSubject: (id) => {
           if (entering) return;
-          const meta = getSubject(id);
+          const meta = getSubjectMeta(id);
           if (!meta || meta.status !== 'ready') return;
           entering = true;
           onEnterSubject(id);

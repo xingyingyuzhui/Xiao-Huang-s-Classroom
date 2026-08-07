@@ -9,7 +9,7 @@ import { initSideDrawers } from '../shared/ui/side-drawer.js';
 import { createSubjectHub } from '../subjects/hub.js';
 import { bindSubjectChrome } from '../subjects/chrome.js';
 import { getCurrentSubjectId, setCurrentSubjectId } from '../subjects/session.js';
-import { getSubject } from '../subjects/catalog.js';
+import { getSubjectMeta as getSubject } from '../subjects/manifest.js';
 import {
   createClassroomRegistry,
   syncClassroomTabChrome,

@@ -14,7 +14,11 @@ import { createBiologyClassroom } from './biology-classroom.js';
 import { createMathClassroom } from './math-classroom.js';
 
 /** @type {Record<string, (deps: { select: (sel: string) => Element | null }) => import('./types.js').SubjectClassroom>} */
-const CLASSROOM_FACTORIES = {
+/** 工厂 id 清单（纯数据，不连带 DOM/HTML 加载；测试与调用方校验用） */
+export const CLASSROOM_FACTORY_IDS = Object.freeze(['chemistry', 'physics', 'biology', 'math']);
+
+/** 公开工厂接口（R4.1）：按 subjectId 返回 classroom 控制器工厂 */
+export const CLASSROOM_FACTORIES = {
   chemistry: createChemistryClassroom,
   physics: createPhysicsClassroom,
   biology: createBiologyClassroom,

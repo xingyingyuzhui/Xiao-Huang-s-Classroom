@@ -8,6 +8,10 @@
 import { getDefaultTabId, getSubjectTabMeta } from '@xiaohuang/subject-settings';
 import { SUBJECTS } from './catalog.js';
 
+/** 已注册 classroom 工厂 id（纯数据；与 registry.CLASSROOM_FACTORY_IDS 一致，
+ *  结构测试锁定；避免动态 import registry 连带 DOM/HTML 加载） */
+const CLASSROOM_FACTORY_IDS = Object.freeze(['chemistry', 'physics', 'biology', 'math']);
+
 /** 可进入 manifest 的学科（化学/数学）；物理/生物为 locked placeholder */
 const READY_MANIFEST_IDS = new Set(['chemistry', 'math']);
 
@@ -37,6 +41,13 @@ export function subjectManifest(subjectId) {
     cover: {
       variants: ['v1', 'v2', 'v3', 'v4', 'v5'],
     },
+    // 视觉透传（hub 3D 书场渲染需要；单一数据源仍是 catalog）
+    name: meta.name,
+    en: meta.en,
+    desc: meta.desc,
+    blurb: meta.blurb,
+    modules: meta.modules,
+    book: meta.book,
     classroom: {
       id: subjectId,
       defaultPanel: getDefaultTabId(subjectId),
@@ -48,6 +59,8 @@ export function subjectManifest(subjectId) {
         if (!factory) throw new Error(`未注册 classroom 工厂: ${subjectId}`);
         return factory({ select: (sel) => document.querySelector(sel) });
       },
+      /** 工厂注册检查（纯数据，不触发 DOM/HTML 加载） */
+      hasFactory: async () => CLASSROOM_FACTORY_IDS.includes(subjectId),
     },
   };
 }
@@ -55,4 +68,13 @@ export function subjectManifest(subjectId) {
 /** 全部 manifest（按 catalog 顺序）。 */
 export function subjectManifests() {
   return SUBJECTS.map((s) => subjectManifest(s.id)).filter(Boolean);
+}
+
+/**
+ * 兼容入口（R4.1）：hub/chrome/shell 统一从 manifest 取学科元数据。
+ * 只转发 manifest 数据，不维护第二份状态。
+ * @param {string} subjectId
+ */
+export function getSubjectMeta(subjectId) {
+  return subjectManifest(subjectId);
 }

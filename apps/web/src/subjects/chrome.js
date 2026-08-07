@@ -2,7 +2,7 @@
  * 顶栏学科标签 + 设置入口「学科大厅」
  */
 
-import { getSubject } from './catalog.js';
+import { getSubjectMeta as getSubject } from './manifest.js';
 
 /**
  * @param {object} opts
