@@ -27,7 +27,8 @@ const MIGRATIONS = [];
  */
 function readSchemaVersion(db) {
   const row = db.queryOne('PRAGMA user_version');
-  return Number(row?.value ?? 0);
+  const raw = row ? (row.value ?? row.user_version ?? 0) : 0;
+  return Number(raw) || 0;
 }
 
 /**
