@@ -1,0 +1,47 @@
+name: quality
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Format check
+        run: npm run format:check
+
+      - name: Lint (new code scope)
+        run: npm run lint
+
+      - name: Lint CSS (new code scope)
+        run: npm run lint:css
+
+      - name: Architecture boundaries
+        run: npm run lint:arch
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit & contract tests
+        run: npm test
+
+      - name: Web build
+        run: npm run build
+
+      - name: Lint baseline (no new issues)
+        run: npm run lint:baseline
+
+      - name: Diff check
+        run: git diff --check

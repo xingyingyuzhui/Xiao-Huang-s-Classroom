@@ -34,3 +34,4 @@ dist-electron/
 !.claude/skills/
 !.claude/skills/**
 .tmp-ref-books/
+.turbo
