@@ -407,52 +407,52 @@ Electron main/preload TS + IPC schema + 启动状态机 + stage manifest；pkg �
 
 > rollback point：Task 7.1 前 HEAD。全仓验收即 spec §23 完成定义。
 
-## Task 7.1 测试 runner 迁移（Vitest 按目录）
+- [x] **Task 7.1：测试 runner 迁移（Vitest 按目录）**
 - **Files:** 首批迁移目录的 `*.test.ts`（Vitest）与 `vitest.config.ts`、`vitest.workspace.ts`
 - **Test:** 迁移目录新旧用例不重复（结构断言删除旧 runner 重复文件）。
 - **Steps:** 按目录迁移（建议先 server domain + packages）；每个目录完成后删除对应 `node:test` 重复用例；`npm test` 与 `npm run test:vitest` 都绿。
 - **Verify:** 全仓测试数不下降。
 - **Commit:** `test(eng): migrate first test directory to vitest (P7)`
 
-## Task 7.2 覆盖率阈值分层
+- [x] **Task 7.2：覆盖率阈值分层**
 - **Files:** `vitest.config.ts` 覆盖率配置、`docs/engineering/coverage-baseline.md`
 - **Steps:** domain/contracts/store/migrations/service 分层阈值；记录基线；达标目录不回退。
 - **Verify:** `npm run coverage` 输出分层报告。
 - **Commit:** `test(eng): add layered coverage thresholds (P7)`
 
-## Task 7.3 性能预算进 CI
+- [x] **Task 7.3：性能预算进 CI**
 - **Files:** `tooling/performance/budget.mjs`、`budget.json`、`test/shared/budget-contract.test.cjs`
 - **Steps:** 记录当前 bundle 基线；预算脚本接入 CI；变更需写明理由。
 - **Verify:** budget 脚本对当前产物通过（预算=基线+容忍）。
 - **Commit:** `feat(eng): add performance budget gate (P7)`
 
-## Task 7.4 安全合同补全
+- [x] **Task 7.4：安全合同补全**
 - **Files:** `test/server/http-security-headers.test.cjs`（扩展）、CORS 配置检查
 - **Steps:** headers/CORS/body 限制合同测试补全；AI key 与路径脱敏断言。
 - **Verify:** 安全测试绿。
 - **Commit:** `test(eng): close security contract tests (P7)`
 
-## Task 7.5 可观测性
+- [x] **Task 7.5：可观测性**
 - **Files:** `apps/server/src/lib/logger.ts`、`apps/web/src/shared/logging.js`、`docs/engineering/logging-fields.md`
 - **Test:** 结构化字段断言（timestamp/level/scope/requestId/errorCode/durationMs）；脱敏断言。
 - **Steps:** 统一字段；错误码跨端一致。
 - **Verify:** 日志测试绿。
 - **Commit:** `feat(eng): unify structured logging fields (P7)`
 
-## Task 7.6 资源清单
+- [x] **Task 7.6：资源清单**
 - **Files:** `tooling/architecture/asset-manifest.mjs`、`docs/engineering/asset-registry.md`
 - **Test:** 构建检查缺失资源/孤儿资源/重复大文件/错误主题映射。
 - **Steps:** 从 `apps/web/public/assets/` 建立清单。
 - **Verify:** 检查脚本对现状通过（或登记豁免）。
 - **Commit:** `feat(eng): add asset registry and checks (P7)`
 
-## Task 7.7 文档与 skill 收口
+- [x] **Task 7.7：文档与 skill 收口**
 - **Files:** 根 `AGENTS.md`、项目 skill（`xiaohuang-classroom`）、包级 `AGENTS.md`、ADR 目录
 - **Steps:** 按新工程体系更新：架构图、边界、新学科接入流程、质量门禁说明；ADR 记录 Turborepo/TS/tsup/Zod 等重大取舍。
 - **Verify:** 文档与代码一致（CI 检查关键文档存在）。
 - **Commit:** `docs(eng): update agent contracts for engineering system (P7)`
 
-## Task 7.8 JS allowlist 清零与最终验收
+- [x] **Task 7.8：JS allowlist 清零与最终验收**
 - **Files:** `docs/engineering/js-allowlist.md`（每阶段维护）、最终清理提交
 - **Steps:** 检查生产源码 JS 残留（允许：第三方桥、工具脚本）；逐项迁移或明确豁免；跑 spec §23 全部完成定义项。
 - **Verify:** `npm run quality` + `npm test` + `npm run build` + `npm run lint:arch` 全绿；`git diff --check` 无输出；生成目录/用户数据未改动。
