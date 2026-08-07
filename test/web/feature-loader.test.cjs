@@ -256,3 +256,29 @@ test('runFeatureLoad-like lifecycle always hides overlay after success or cancel
   assert.equal(errEl.hidden, false);
   assert.match(errEl.textContent, /chunk load failed/);
 });
+
+test('feature loader: status transitions align with subject-kit protocol', async () => {
+  const { createFeatureLoader } = await import('../../apps/web/src/app/feature-loader.js');
+  const loader = createFeatureLoader();
+  assert.equal(loader.getStatus('x'), 'idle');
+
+  const p = loader.load('x', async () => ({ ok: 1 }));
+  assert.equal(loader.getStatus('x'), 'loading');
+  await p;
+  assert.equal(loader.getStatus('x'), 'ready');
+
+  const failing = loader.load('bad', async () => {
+    throw new Error('boom');
+  });
+  await failing.catch(() => {});
+  assert.equal(loader.getStatus('bad'), 'error');
+});
+
+test('feature loader: disposeAll clears cache and status', async () => {
+  const { createFeatureLoader } = await import('../../apps/web/src/app/feature-loader.js');
+  const loader = createFeatureLoader();
+  await loader.load('x', async () => ({ ok: 1 }));
+  loader.disposeAll();
+  assert.equal(loader.has('x'), false);
+  assert.equal(loader.getStatus('x'), 'idle');
+});
