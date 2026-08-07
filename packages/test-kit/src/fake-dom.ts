@@ -4,11 +4,25 @@
  */
 export interface FakeElement {
   id: string;
+  className: string;
   hidden: boolean;
   value: string;
+  checked: boolean;
   textContent: string;
   innerHTML: string;
   dataset: Record<string, string>;
+  attributes: Record<string, string>;
+  setAttribute(name: string, value: string): void;
+  removeAttribute(name: string): void;
+  getAttribute(name: string): string | null;
+  remove(): void;
+  classList: {
+    classes: Set<string>;
+    add(...names: string[]): void;
+    remove(...names: string[]): void;
+    toggle(name: string, force?: boolean): boolean;
+    contains(name: string): boolean;
+  };
   style: { properties: Record<string, string>; setProperty(k: string, v: string): void };
   listeners: Record<string, Array<(event?: unknown) => void>>;
   addEventListener(type: string, fn: (event?: unknown) => void): void;
@@ -20,11 +34,51 @@ export interface FakeElement {
 export function makeFakeElement(id: string): FakeElement {
   const el: FakeElement = {
     id,
+    className: '',
     hidden: false,
     value: '',
+    checked: false,
     textContent: '',
     innerHTML: '',
     dataset: {},
+    attributes: {},
+    setAttribute(name, value) {
+      el.attributes[name] = String(value);
+    },
+    removeAttribute(name) {
+      delete el.attributes[name];
+    },
+    getAttribute(name) {
+      return Object.prototype.hasOwnProperty.call(el.attributes, name)
+        ? (el.attributes[name] ?? null)
+        : null;
+    },
+    remove() {},
+    classList: {
+      classes: new Set<string>(),
+      add(...names) {
+        for (const n of names) this.classes.add(n);
+      },
+      remove(...names) {
+        for (const n of names) this.classes.delete(n);
+      },
+      toggle(name, force) {
+        if (force === undefined) {
+          if (this.classes.has(name)) {
+            this.classes.delete(name);
+            return false;
+          }
+          this.classes.add(name);
+          return true;
+        }
+        if (force) this.classes.add(name);
+        else this.classes.delete(name);
+        return force;
+      },
+      contains(name) {
+        return this.classes.has(name);
+      },
+    },
     style: {
       properties: {},
       setProperty(k, v) {
@@ -45,6 +99,14 @@ export function makeFakeElement(id: string): FakeElement {
       return (el.listeners[type] || []).length;
     },
   };
+  Object.defineProperty(el, 'className', {
+    get() {
+      return [...el.classList.classes].join(' ');
+    },
+    set(value: string) {
+      el.classList.classes = new Set(String(value).split(/\s+/).filter(Boolean));
+    },
+  });
   return el;
 }
 
