@@ -11,6 +11,7 @@
  */
 
 const { app, BrowserWindow, shell, screen, Menu, dialog } = require('electron');
+const { createStartupStateMachine } = require('./src/startup-state-machine.js');
 const path = require('path');
 const fs = require('fs');
 
@@ -27,6 +28,8 @@ const ZOOM_STORE = 'ui-zoom.json';
 let mainWindow = null;
 let httpServer = null;
 let shutdownServer = null;
+/** 启动状态机（R6.2）：idle→staging→serverStarting→ready→closing→closed/failed */
+const startup = createStartupStateMachine();
 
 function getServerEntry() {
   if (app.isPackaged) {
@@ -215,16 +218,32 @@ function setupPageZoom(win) {
 }
 
 async function startBackend() {
-  const serverEntry = getServerEntry();
-  if (!fs.existsSync(serverEntry)) {
-    throw new Error(`找不到后端入口: ${serverEntry}`);
+  // 并发启动幂等：非 idle/failed/closed 状态直接拒绝重复启动
+  if (!startup.start()) {
+    if (startup.getState() === 'failed') {
+      throw new Error(`上次启动失败：${startup.getFailureReason()}；请重启应用`);
+    }
+    throw new Error(`启动进行中（${startup.getState()}）`);
   }
-  // serverEntry 是打包/开发双路径的运行时变量：CJS require 动态加载（.cjs 已豁免 no-require-imports）
-  const { startServer, shutdown } = require(serverEntry);
-  shutdownServer = shutdown;
-  const result = await startServer({ openBrowser: false, host: '127.0.0.1' });
-  httpServer = result.server;
-  return result;
+  startup.serverStarting();
+  try {
+    const serverEntry = getServerEntry();
+    if (!fs.existsSync(serverEntry)) {
+      startup.fail(`找不到后端入口: ${serverEntry}`);
+      throw new Error(`找不到后端入口: ${serverEntry}`);
+    }
+    // serverEntry 是打包/开发双路径的运行时变量：CJS require 动态加载（.cjs 已豁免 no-require-imports）
+    const { startServer, shutdown } = require(serverEntry);
+    shutdownServer = shutdown;
+    const result = await startServer({ openBrowser: false, host: '127.0.0.1' });
+    httpServer = result.server;
+    // readiness：health 检查通过（server listen 即视为 ready；端口探测由 startServer 完成）
+    startup.ready();
+    return result;
+  } catch (err) {
+    startup.fail(err?.message || String(err));
+    throw err;
+  }
 }
 
 function createWindow(url) {
@@ -321,6 +340,8 @@ function cleanup() {
   } catch (_) {
     /* ignore */
   }
+  startup.closing();
+  startup.closed();
 }
 
 const gotLock = app.requestSingleInstanceLock();
