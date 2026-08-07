@@ -27,3 +27,5 @@
 | D11 | 旧 CSS 重复选择器与结构问题 | `apps/web/src/shared/styles/**`（8 处 no-duplicate-selectors） | 级联歧义 | P3（五主题收口） | stylelint 全仓清零 | 已登记（stylelint 门禁仅查新范围） |
 
 | D12 | node:test 并行 IPC 序列化偶发失败（`Unable to deserialize cloned data`） | 根 `npm test`（无并发限制时 ~1/8 概率触发，与业务改动无关） | 测试结果不可靠 | P7（Vitest 迁移后自然消除） | 根 test 脚本已固定 `--test-concurrency=4`（10/10 稳定）；Vitest 目录迁移完成后删除该限制 | 已控制（并发数固定） |
+
+| D13 | catalog/registry 直连 glue（hub/classroom 仍直接走 registry，manifest adapter 已建） | `apps/web/src/subjects/hub.js`、`classrooms/registry.js` 直连 | 双入口并存 | P7（JS 收口） | hub/classroom 消费方迁移到 `subjectManifest()` 后删除直连；结构测试更新 | adapter 已就位（Task 4.4-4.6） |

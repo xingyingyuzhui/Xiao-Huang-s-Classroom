@@ -246,42 +246,42 @@ ui/design-tokens 两包全绿；至少 1 个真实面板使用 ui 组件；五�
 > rollback point：Task 4.1 前 HEAD。冲突区：与 Program 3 不得并行修改 classroom DOM。
 > 顺序：先协议后接入；化学先、数学次、物理/生物 placeholder；最后删旧 glue。
 
-## Task 4.1 packages/subject-kit
+- [x] **Task 4.1：packages/subject-kit**
 - **Files:** `packages/subject-kit/src/{manifest,feature-loader,lifecycle}.ts`、`packages/subject-kit/package.json`、`packages/subject-kit/test/*.test.ts`
 - **Test（先写失败）:** `SubjectManifest`/`ClassroomManifest`/`FeatureModule` 类型合同；`FeatureLoader` 并发去重、取消过时、mount generation、dispose 前一实例（fake 计时）。
 - **Steps:** 按 spec §10.1/§10.2/§9.2 定义协议；loader 实现。
 - **Verify:** subject-kit 测试全绿；双产物构建。
 - **Commit:** `feat(eng): add subject-kit contracts and loader (P4)`
 
-## Task 4.2 app session
+- [x] **Task 4.2：app session**
 - **Files:** `apps/web/src/app/session.js`（或 TS 试点）、`apps/web/src/app/error-boundary.js`、`test/web/app-session.test.cjs`
 - **Test（先写失败）:** surface/subjectId/panelId/transition 状态机；dialog 状态；边界失败不级联（fake feature 抛错只影响本面板）。
 - **Steps:** 轻量 session（不进领域状态）；分层错误边界（boot/classroom/panel/renderer-fatal）。
 - **Verify:** app-session 测试全绿。
 - **Commit:** `feat(eng): add app session and error boundaries (P4)`
 
-## Task 4.3 feature loader 统一接入
+- [x] **Task 4.3：feature loader 统一接入**
 - **Files:** `apps/web/src/app/feature-loader.js`（替换/包装现有 loader）、`apps/web/src/app/boot.js`、`test/web/feature-loader.test.cjs`（扩展）
 - **Test（先写失败）:** 现有 feature-loader 测试扩展：mount generation 防旧异步回写、loading/error/retry。
 - **Steps:** 现有 web 内 loader（`subjects/classrooms/math-classroom.js` 等使用）改为 subject-kit 协议；保持行为。
 - **Verify:** 全仓测试全绿（hub/classroom 相关）。
 - **Commit:** `feat(eng): unify feature loader protocol (P4)`
 
-## Task 4.4 化学 classroom 接入 manifest（adapter）
+- [x] **Task 4.4：化学 classroom 接入 manifest（adapter）**
 - **Files:** `apps/web/src/subjects/catalog.js`（包装为 manifest adapter）、`apps/web/src/subjects/classrooms/registry.js`、化学 classroom 入口
 - **Test（先写失败）:** manifest contract 测试：化学 classroom 的默认面板/catalog/loader/设置项与现状一致。
 - **Steps:** 写 adapter 包装现有 catalog/registry（不改 feature 内部）；manifest 生效。
 - **Verify:** subject-hub 与化学测试全绿。
 - **Commit:** `feat(eng): adapt chemistry classroom to manifest (P4)`
 
-## Task 4.5 数学 classroom 接入 manifest（adapter）
+- [x] **Task 4.5：数学 classroom 接入 manifest（adapter）**
 - **Files:** `apps/web/src/subjects/classrooms/math-classroom.js`（包装）、`apps/web/src/math/AGENTS.md` 更新
 - **Test（先写失败）:** 数学 classroom manifest 合同：函数画布 mount/dispose 合同保持（graph 测试全绿即证明）。
 - **Steps:** adapter 包装；保留函数画布合同。
 - **Verify:** 全部 math 测试全绿。
 - **Commit:** `feat(eng): adapt math classroom to manifest (P4)`
 
-## Task 4.6 物理/生物 placeholder 接入协议
+- [x] **Task 4.6：物理/生物 placeholder 接入协议**
 - **Files:** `apps/web/src/subjects/catalog.js` 中 physics/biology 条目（可见不可点，沿用现有行为）
 - **Test:** subject-hub 测试断言 placeholder 状态与进入行为不变。
 - **Steps:** placeholder 走 manifest 协议（status: locked/preview）。
