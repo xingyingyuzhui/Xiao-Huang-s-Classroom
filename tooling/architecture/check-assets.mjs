@@ -43,7 +43,7 @@ function coversComplete() {
   if (!fs.existsSync(dir)) return;
   for (const subject of ['chemistry', 'math', 'physics', 'biology']) {
     for (let v = 1; v <= 5; v += 1) {
-      const found = fs.readdirSync(dir).some((n) => n.includes(`${subject}-v${v}`));
+      const found = fs.readdirSync(dir).some((n) => n.startsWith(subject) && n.includes(`-v${v}`));
       if (!found) violations.push(`主题封面缺失: ${subject}-v${v}`);
     }
   }
