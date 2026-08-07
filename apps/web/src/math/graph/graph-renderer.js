@@ -31,6 +31,9 @@ function diffRecords(beforeList, afterList) {
   for (const [id, record] of afterById) {
     if (!beforeById.has(id)) {
       add.push(record);
+    } else if (beforeById.get(id) === record) {
+      // reducer 保持未变化记录的对象引用 → 无需字段比较
+      continue;
     } else if (!recordsEqual(beforeById.get(id), record)) {
       update.push({ id, record });
     }
@@ -63,6 +66,31 @@ export function computeGraphRenderPlan(previous, current) {
   const viewChanged = !recordsEqual(previous.view || {}, current.view || {});
   const activeFunctionChanged =
     previous.presentation?.activeFunctionId !== current.presentation?.activeFunctionId;
+  const activeMathChanged =
+    activeFunctionVisualChanged(previous, current) || activeFunctionChanged;
+  // UI diff flags：函数列表只在集合/顺序/名称/颜色/显隐/锁定变化时重渲染
+  const fnListKey = JSON.stringify(
+    (current.functions || []).map((f) => [
+      f.id,
+      f.name,
+      f.colorSlot,
+      f.explicitColor,
+      f.visible,
+      f.locked,
+    ]),
+  );
+  const prevFnListKey = JSON.stringify(
+    (previous.functions || []).map((f) => [
+      f.id,
+      f.name,
+      f.colorSlot,
+      f.explicitColor,
+      f.visible,
+      f.locked,
+    ]),
+  );
+  const functionListChanged = fnListKey !== prevFnListKey;
+  const readoutsChanged = activeMathChanged;
 
   // 被 update 的函数 → 依赖它的构造需要刷新（数值重算/位置重算）
   const dependencyRefreshIds = [];
@@ -89,6 +117,9 @@ export function computeGraphRenderPlan(previous, current) {
     constructions,
     viewChanged,
     activeFunctionChanged,
+    activeMathChanged,
+    functionListChanged,
+    readoutsChanged,
     dependencyRefreshIds,
     addOrder,
     removeOrder,
@@ -202,9 +233,10 @@ export function applyGraphRuntimePlan(context, plan, ctx) {
     // ── 5) 参考曲线（compare.reference，签名防抖由调用方负责） ──
     context.applyReference?.(doc);
 
-    context.renderFnList();
-    context.syncParamPanel();
-    context.paintReadouts();
+    // ── 6) UI 按 diff flags 条件刷新（无关 action 不重绘列表/读数） ──
+    if (plan.functionListChanged) context.renderFnList();
+    if (plan.activeMathChanged) context.syncParamPanel();
+    if (plan.readoutsChanged) context.paintReadouts();
     return { ok: true };
 }
 

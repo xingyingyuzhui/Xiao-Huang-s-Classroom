@@ -283,7 +283,9 @@ test('successful publish projects exactly once and updates store', async () => {
   assert.equal(store.getDocument().functions[0].coeffs.a, 2);
   const createCalls = runtime.calls.filter(([c]) => c === 'create-curve').length;
   assert.equal(createCalls, 1, 'one curve rebuild per update');
-  assert.ok(runtime.calls.some(([c]) => c === 'render-list'));
+  // UI diff flags：coeffs 变化不重渲染函数列表，只刷新读数
+  assert.equal(runtime.calls.some(([c]) => c === 'render-list'), false);
+  assert.ok(runtime.calls.some(([c]) => c === 'paint-readouts'));
   // 仅显隐切换：隐藏不重建曲线（visible 是属性投影）
   runtime.calls.length = 0;
   const vis = store.dispatchResult({

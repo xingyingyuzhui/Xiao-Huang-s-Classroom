@@ -1458,6 +1458,22 @@ function openCoeffTransaction() {
   }, 300);
 }
 
+/** 滑杆高频输入：同帧内合并为一次 dispatch/apply（frame batching）。 */
+let pendingCoeff = null;
+let coeffFrame = null;
+function flushCoeffFrame() {
+  coeffFrame = null;
+  const patch = pendingCoeff;
+  pendingCoeff = null;
+  if (!patch) return;
+  const fn = activeFn();
+  if (!fn || fn.kind !== 'preset' || fn.locked || !state.graphStore) return;
+  openCoeffTransaction();
+  state.graphStore.dispatch({
+    type: 'function/update',
+    payload: { id: fn.id, patch: { coeffs: { ...fn.coeffs, ...patch } } },
+  });
+}
 function setCoeffs(next) {
   const fn = activeFn();
   if (!fn || fn.kind !== 'preset' || fn.locked) return;
@@ -1468,11 +1484,10 @@ function setCoeffs(next) {
     rebuildCurve();
     return;
   }
-  openCoeffTransaction();
-  state.graphStore.dispatch({
-    type: 'function/update',
-    payload: { id: fn.id, patch: { coeffs: { ...fn.coeffs, ...next } } },
-  });
+  pendingCoeff = { ...(pendingCoeff || {}), ...next };
+  if (coeffFrame == null) {
+    coeffFrame = requestAnimationFrame(flushCoeffFrame);
+  }
 }
 
 function ensurePreset(id) {
@@ -1980,6 +1995,11 @@ export function resizeGraph() {
 
 export function disposeGraph() {
   curveRebuildTask.cancel();
+  if (coeffFrame != null) {
+    cancelAnimationFrame(coeffFrame);
+    coeffFrame = null;
+    flushCoeffFrame();
+  }
   if (state.coeffTxTimer != null) {
     clearTimeout(state.coeffTxTimer);
     state.coeffTxTimer = null;

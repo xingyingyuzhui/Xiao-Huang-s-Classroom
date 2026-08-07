@@ -441,10 +441,7 @@ test('函数列表在集合/顺序/名称/颜色/显隐/锁定变化时 render�
   }
 });
 
-test(
-  'TODO(Task 7): 只改 coeffs → 函数列表 render 0 次',
-  { skip: 'TODO(Task 7 Step 4): applyGraphRuntimePlan 目前无条件 renderFnList；待 plan 增加 functionListChanged flag 后去掉 skip' },
-  async () => {
+test('只改 coeffs → 函数列表 render 0 次', async () => {
     const { store, counters, mount, dispatchOk } = await setup();
     mount();
     counters.reset();
@@ -484,10 +481,7 @@ test('值表/特征在 active function 数学定义或 active id 变化时 rende
   assert.equal(counters.refreshActiveMarks, 1);
 });
 
-test(
-  'TODO(Task 7): 只改 inactive 函数 coeffs → 值表/特征 render 0 次',
-  { skip: 'TODO(Task 7 Step 4): applyGraphRuntimePlan 目前无条件 paintReadouts；待 plan 增加 readoutsChanged/activeMathChanged flag 后去掉 skip' },
-  async () => {
+test('只改 inactive 函数 coeffs → 值表/特征 render 0 次', async () => {
     const { store, counters, mount, dispatchOk } = await setup();
     mount();
     dispatchOk({ type: 'function/add', payload: { function: fn('f2', { name: 'f2' }) } });
@@ -503,10 +497,7 @@ test(
 
 // ───────────────────────── 不变量 5：point move 不重绘列表和值表 ─────────────────────────
 
-test(
-  'TODO(Task 7): point move 不重绘函数列表和值表',
-  { skip: 'TODO(Task 7 Step 4): applyGraphRuntimePlan 目前无条件 renderFnList/paintReadouts；待 plan 增加 functionListChanged/readoutsChanged flag 后去掉 skip（createFnCurve===0 部分由「point coordinate update」测试覆盖并通过）' },
-  async () => {
+test('point move 不重绘函数列表和值表', async () => {
     const { store, counters, mount, dispatchOk } = await setup();
     mount();
     dispatchOk({ type: 'point/add', payload: { point: freePoint('U1', 0, 0) } });
