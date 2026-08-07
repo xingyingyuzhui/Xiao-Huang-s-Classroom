@@ -56,10 +56,12 @@ import { createGraphIdAllocator } from './graph-id-allocator.js';
 import { createGraphPersistence, createGraphPersistenceController } from './graph-persistence.js';
 import {
   alignFeatureLabelWidths,
+  applyGraphRuntimePlan,
+  computeGraphRenderPlan,
   createGraphCommitBridge,
-  createGraphRuntimeSyncAdapter,
   createGraphViewBridge,
 } from './graph-renderer.js';
+import { createGraphDocumentRenderer } from './graph-document-renderer.js';
 import { createPointLayer } from './point-layer.js';
 import { createConstructionLayer } from './construction-layer.js';
 import { createProbeController } from './probe-controller.js';
@@ -1569,23 +1571,34 @@ const viewBridge = createGraphViewBridge({
   getState: () => state,
 });
 
-/** beforeCommit 适配器：把 candidate 文档投影到既有 runtime（plan 驱动，增量）。 */
-const syncRuntimeFromDocument = createGraphRuntimeSyncAdapter({
+/** production renderer：增量投影 + 全量恢复（失败进入 fatal 只读）。 */
+const rendererContext = {
   getState: () => state,
-  createFunctionCurve: createFnCurve,
+  createFnCurve,
   detachFnCurve,
   detachFunctionDependents,
   rebindFunctionDependents,
-  refreshActiveMarks,
-  mirrorActiveToLegacy,
+  clearAllRuntime: () => {
+    if (state.referenceCurve) { detachBoardObject(state.board, state.referenceCurve); state.referenceCurve = null; }
+    clearAllConstructions(makeDrawHost());
+    removeUserPointEls(); clearExtras(state.board); removeAllFnCurves(state.board);
+  },
   pointLayer,
   constructionLayer,
+  refreshActiveMarks,
+  mirrorActiveToLegacy,
   applyView: (view) => viewBridge.applyViewFromDocument(view),
   applyReference: applyReferenceCurveFromDocument,
   renderFnList,
   syncParamPanel,
   paintReadouts,
-});
+  computePlan: (previous, candidate) => computeGraphRenderPlan(previous, candidate),
+  applyIncremental: (plan, previous, candidate, action, preview) =>
+    applyGraphRuntimePlan(rendererContext, plan, { previous, candidate, action, preview }),
+  onFatal: () => { state.toolStrip?.setHint?.('渲染失败：画布进入只读状态，请刷新页面'); state.rendererFatal = true; },
+};
+const graphRenderer = createGraphDocumentRenderer(rendererContext);
+const syncRuntimeFromDocument = graphRenderer.beforeCommit;
 
 /** 滑条/参数输入：300ms 静默窗口合并成一条历史 */
 function openCoeffTransaction() {
@@ -1747,32 +1760,13 @@ export function initGraphUI() {
     /* */
   }
 
-  // 默认一条二次（无持久化文档时）
+  // 文档底座：函数集合作为首个接入 store 的行为（历史/事务链路）；
+  // 函数/活动 id/镜像由首次 fullRender 从 store 文档建立
   state.idAllocator = createGraphIdAllocator(loadedDoc);
-  if (!state.functions.length) {
-    const id = state.idAllocator.nextFunctionId();
-    state.functions.push(
-      createPresetFunctionRecord({
-        id,
-        preset: 'quadratic',
-        colorSlot: 0,
-      }),
-    );
-    state.activeFnId = id;
-  }
-  // 持久化文档覆盖默认函数（函数记录已是规范形状）
-  if (loadedDoc.functions.length) {
-    state.functions = loadedDoc.functions.map((fn) => ({ ...fn }));
-    state.activeFnId =
-      loadedDoc.presentation.activeFunctionId ?? state.functions[0]?.id ?? null;
-  }
-  mirrorActiveToLegacy();
-  state.startCoeffs = { ...state.coeffs };
-
-  // 文档底座：函数集合作为首个接入 store 的行为（历史/事务链路）
   state.graphStore?.dispose?.();
   state.graphStore = createGraphStore(loadedDoc, {
     beforeCommit: syncRuntimeFromDocument,
+    recoverRuntime: (doc) => graphRenderer.recover(doc),
   });
   state.graphHistory?.dispose?.();
   state.graphHistory = createGraphHistory(state.graphStore);
@@ -2061,11 +2055,9 @@ export function initGraphUI() {
     ?.addEventListener('click', () => void state.persistenceController.reset());
 
   syncSliders();
-  rebuildCurve();
-  // 加载文档几何到画布（在 rebuildCurve 后，跟随点才能解析到已建曲线）
-  for (const rec of loadedDoc.points || []) pointLayer.add(rec);
-  for (const rec of loadedDoc.constructions || []) constructionLayer.add(rec);
-  paintActiveFeatureMarks(); reregisterSelectable();
+  // 首次投影：production renderer 从 store 文档全量渲染
+  graphRenderer.fullRender(state.graphStore.getDocument());
+  state.startCoeffs = { ...state.coeffs };
   bindReadoutCards();
   renderFnList();
   syncParamPanel();

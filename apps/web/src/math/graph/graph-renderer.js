@@ -105,7 +105,7 @@ export function computeGraphRenderPlan(previous, current) {
  *
  * @param {{
  *   getState: () => any,
- *   createFunctionCurve: (fn: any) => void,
+ *   createFnCurve: (fn: any) => void,
  *   detachFnCurve: (fn: any) => void,
  *   detachFunctionDependents: (fnId: string) => void,
  *   rebindFunctionDependents: (fnId: string, doc: any) => void,
@@ -120,14 +120,19 @@ export function computeGraphRenderPlan(previous, current) {
  * }} context
  * @returns {(ctx: { previous: any, candidate: any, preview?: boolean }) => { ok: boolean }}
  */
-export function createGraphRuntimeSyncAdapter(context) {
-  return function syncRuntimeFromDocument(ctx) {
-    const state = context.getState();
-    const doc = ctx.candidate;
-    if (!doc || !Array.isArray(doc.functions)) return { ok: false };
-    const plan = computeGraphRenderPlan(ctx.previous, doc);
+/**
+ * 把 render plan 投影到既有 runtime（增量；失败由 production renderer 全量恢复）。
+ * 适配器不拥有文档真值；只负责让画板/UI 与文档一致。
+ * @param {any} context
+ * @param {any} plan
+ * @param {{ previous: any, candidate: any, action: any, preview?: boolean }} ctx
+ */
+export function applyGraphRuntimePlan(context, plan, ctx) {
+  const state = context.getState();
+  const doc = ctx.candidate;
+  if (!doc || !Array.isArray(doc.functions)) return { ok: false };
 
-    // ── 1) 函数：remove → add → update（依赖按序重绑） ──
+  // ── 1) 函数：remove → add → update（依赖按序重绑） ──
     for (const id of plan.functions.remove) {
       context.detachFunctionDependents(id);
       const record = state.functions.find((fn) => fn.id === id);
@@ -143,7 +148,7 @@ export function createGraphRuntimeSyncAdapter(context) {
     });
     for (const record of plan.functions.add) {
       const fn = state.functions.find((f) => f.id === record.id);
-      if (fn && !fn.curve) context.createFunctionCurve(fn);
+      if (fn && !fn.curve) context.createFnCurve(fn);
     }
     for (const { id } of plan.functions.update) {
       const fn = state.functions.find((f) => f.id === id);
@@ -152,7 +157,7 @@ export function createGraphRuntimeSyncAdapter(context) {
       context.detachFunctionDependents(id);
       context.detachFnCurve(fn);
       if (fn.visible) {
-        context.createFunctionCurve(fn);
+        context.createFnCurve(fn);
         // 依赖只在曲线存在时恢复；隐藏期间保持卸下，避免跟随点悬浮/重建失败
         context.rebindFunctionDependents(id, doc);
       }
@@ -187,6 +192,30 @@ export function createGraphRuntimeSyncAdapter(context) {
     context.syncParamPanel();
     context.paintReadouts();
     return { ok: true };
+}
+
+/**
+ * @param {{
+ *   getState: () => any,
+ *   createFnCurve: (fn: any) => void,
+ *   detachFnCurve: (fn: any) => void,
+ *   detachFunctionDependents: (fnId: string) => void,
+ *   rebindFunctionDependents: (fnId: string, doc: any) => void,
+ *   refreshActiveMarks: () => void,
+ *   mirrorActiveToLegacy: () => void,
+ *   pointLayer: any,
+ *   constructionLayer: any,
+ *   applyView: (view: any) => void,
+ *   renderFnList: () => void,
+ *   syncParamPanel: () => void,
+ *   paintReadouts: () => void,
+ * }} context
+ * @returns {(ctx: { previous: any, candidate: any, preview?: boolean }) => { ok: boolean }}
+ */
+export function createGraphRuntimeSyncAdapter(context) {
+  return function syncRuntimeFromDocument(ctx) {
+    const plan = computeGraphRenderPlan(ctx.previous, ctx.candidate);
+    return applyGraphRuntimePlan(context, plan, ctx);
   };
 }
 
