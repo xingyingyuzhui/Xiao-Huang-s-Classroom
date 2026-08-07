@@ -181,55 +181,55 @@
 > rollback point：Task 3.1 前 HEAD。冲突区：不得与 Program 4 并行修改 classroom DOM。
 > 纪律：先 token inventory 再写组件；禁止空壳组件（每个组件必须被至少一个真实消费方或 catalog 使用）。
 
-## Task 3.1 设计令牌清单（inventory）
+- [x] **Task 3.1：设计令牌清单（inventory）**
 - **Files:** `docs/engineering/token-inventory.md`
 - **Steps:** 从 `apps/web/src/shared/styles/themes/*/tokens.css` 提取全部语义令牌（color/surface/border/text/accent/danger/success/spacing/radius/shadow/z/typography/motion/size/canvas），记录五主题值差异与缺失项。
 - **Verify:** 文档覆盖五主题全部 token；标注不一致项。
 - **Commit:** `docs(eng): inventory design tokens across five themes (P3)`
 
-## Task 3.2 packages/design-tokens
+- [x] **Task 3.2：packages/design-tokens**
 - **Files:** `packages/design-tokens/src/{color,spacing,typography,motion,size}.ts`、`packages/design-tokens/package.json`、`packages/design-tokens/test/*.test.ts`
 - **Test（先写失败）:** 每个 token 族在五主题都有值；语义名唯一；canvas palette 覆盖 math 曲线八色。
 - **Steps:** 语义令牌定义为 TS 常量 + 类型；五主题值表；与 `tokens.css` 对照测试（读取 CSS 文件断言一致，防漂移）。
 - **Verify:** design-tokens 测试全绿；`npm run build` 双产物。
 - **Commit:** `feat(eng): add design-tokens package (P3)`
 
-## Task 3.3 packages/ui primitives
+- [x] **Task 3.3：packages/ui primitives**
 - **Files:** `packages/ui/src/primitives/{button,input,select,checkbox,slider,icon}.ts`、`packages/ui/package.json`、`packages/ui/test/*.test.ts`、`packages/ui/tsup.config`
 - **Test（先写失败）:** fake DOM 下：mount/update/dispose 合同、disabled/loading/error 状态、键盘焦点、文本安全输出（恶意文本不产生属性/CSS 注入）。
 - **Steps:** typed DOM factory + `UiController<Props, Events>` 合同（spec §8.1）；每个组件支持五主题 token（CSS 变量）与 touch 尺寸。
 - **Verify:** ui 包测试全绿；双产物构建。
 - **Commit:** `feat(eng): add ui primitives package (P3)`
 
-## Task 3.4 packages/ui overlays + layout + feedback
+- [x] **Task 3.4：packages/ui overlays + layout + feedback**
 - **Files:** `packages/ui/src/overlays/{dialog,drawer,popover,tooltip,toast}.ts`、`packages/ui/src/layout/{stack,grid,toolbar,panel,card,tabs}.ts`、`packages/ui/src/feedback/{loading,empty,error,progress}.ts`、对应测试
 - **Test（先写失败）:** overlay 焦点陷阱/ESC 关闭/Escape 释放；tabs 键盘导航；feedback 状态渲染。
 - **Steps:** 按 primitives 的同一合同实现；全部组件进 catalog（Task 3.6 前至少 fake-DOM 测试覆盖）。
 - **Verify:** ui 包测试全绿。
 - **Commit:** `feat(eng): add overlays layout feedback components (P3)`
 
-## Task 3.5 domain/classroom UI 组件
+- [x] **Task 3.5：domain/classroom UI 组件**
 - **Files:** `packages/ui/src/domain-ui/{property-editor,tool-group,number-input,style-picker}.ts`、`packages/ui/src/classroom-ui/{classroom-header,panel-host,readout-card}.ts`、对应测试
 - **Test（先写失败）:** PropertyEditor 提交/取消；NumberInput 键盘与步进；ReadoutCard 空/长文本。
 - **Steps:** 同前合同；参考现有 math 面板交互实现。
 - **Verify:** ui 包测试全绿。
 - **Commit:** `feat(eng): add domain and classroom ui components (P3)`
 
-## Task 3.6 UI catalog 开发页
+- [x] **Task 3.6：UI catalog 开发页**
 - **Files:** `apps/web/src/dev/catalog/main.js`、`apps/web/src/dev/catalog/`（组件状态矩阵）、路由挂载（仅 dev 态，不进正式导航）
 - **Test:** catalog 模块可加载（dev build）；结构测试断言不进入主包路径。
 - **Steps:** 展示全组件五主题对照、焦点状态、长文本/错误态。
 - **Verify:** `npm run build` 通过且 catalog 为独立 chunk；测试绿。
 - **Commit:** `feat(eng): add dev ui catalog page (P3)`
 
-## Task 3.7 真实组件迁移试点
+- [x] **Task 3.7：真实组件迁移试点**
 - **Files:** 一个真实 feature 面板（建议函数画布参数滑杆区或化学设置面板）改用 `packages/ui` 组件
 - **Test（先写失败）:** 该 feature 现有 contract 测试继续通过（行为不变），新增组件级测试。
 - **Steps:** 替换一个真实消费方；行为合同测试全绿；旧实现删除（不留双轨）。
 - **Verify:** 相关 feature 测试全绿；`npm run build` 通过。
 - **Commit:** `feat(eng): migrate first real panel to ui package (P3)`
 
-## Task 3.8 五主题收口与 legacy CSS 检查
+- [x] **Task 3.8：五主题收口与 legacy CSS 检查**
 - **Files:** `tooling/architecture/check-theme-tokens.mjs`、`docs/engineering/css-legacy-list.md`
 - **Test:** theme-token 检查脚本：feature 样式不得硬编码主题色（允许清单外显式色走 design-tokens 解析）。
 - **Steps:** 检查脚本接入 `npm run lint:arch`；登记遗留硬编码清单；删除条件=迁入 token。
