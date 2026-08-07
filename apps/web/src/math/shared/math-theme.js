@@ -99,19 +99,6 @@ export function getMathBoardChrome() {
 }
 
 /**
- * 按列表序号把曲线色对齐当前主题色板（换肤 / 重建时必调）
- * @param {Array<{ color?: string }>} functions
- * @param {string[]} [palette]
- */
-export function remintFunctionColors(functions, palette = getMathFnPalette()) {
-  if (!Array.isArray(functions) || !palette?.length) return;
-  functions.forEach((fn, i) => {
-    if (!fn) return;
-    fn.color = palette[i % palette.length];
-  });
-}
-
-/**
  * 第 n 条新函数应取的颜色
  * @param {number} indexZeroBased
  */
@@ -119,4 +106,48 @@ export function colorForFnIndex(indexZeroBased) {
   const palette = getMathFnPalette();
   const i = Math.max(0, Number(indexZeroBased) || 0);
   return palette[i % palette.length];
+}
+
+/**
+ * 严格颜色校验：只接受并规范化 CSS hex（#RGB/#RGBA/#RRGGBB/#RRGGBBAA）。
+ * 拒绝 named color、rgb()/hsl()、var()、分号、括号、URL 等任何可注入形式。
+ * @param {unknown} value
+ * @returns {string | null} 规范化后的小写 hex（3/4 位扩展为 6/8 位），非法返回 null
+ */
+export function normalizeHexColor(value) {
+  if (typeof value !== 'string') return null;
+  const raw = value.trim().toLowerCase();
+  const match = /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/.exec(raw);
+  if (!match) return null;
+  const hex = match[1];
+  if (hex.length === 3 || hex.length === 4) {
+    return `#${hex.split('').map((ch) => ch + ch).join('')}`;
+  }
+  return `#${hex}`;
+}
+
+/**
+ * colorSlot 规范化：非负整数，超界回绕到色板长度内。
+ * @param {unknown} value
+ * @param {number} paletteLength
+ * @returns {number}
+ */
+export function normalizeColorSlot(value, paletteLength = 8) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n < 0) return 0;
+  const len = Math.max(1, Math.floor(paletteLength) || 1);
+  return Math.floor(n) % len;
+}
+
+/**
+ * 函数曲线颜色解析（唯一入口）：explicitColor 严格校验通过优先；
+ * 否则按 colorSlot 取当前主题色板。换肤时主题色板变化即可，不修改文档。
+ * @param {any} record
+ * @param {string[]} [palette]
+ * @returns {string}
+ */
+export function resolveFunctionColor(record, palette = getMathFnPalette()) {
+  const explicit = normalizeHexColor(record?.explicitColor);
+  if (explicit) return explicit;
+  return palette[normalizeColorSlot(record?.colorSlot, palette.length)];
 }

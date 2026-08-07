@@ -55,7 +55,7 @@ test('math-theme module is the palette contract', () => {
   assert.match(src, /export function getMathFnPalette/);
   assert.match(src, /export function getMathGridColor/);
   assert.match(src, /export function getMathBoardChrome/);
-  assert.match(src, /export function remintFunctionColors/);
+  assert.match(src, /export function resolveFunctionColor/);
   assert.match(src, /export function colorForFnIndex/);
   assert.match(src, /--math-fn-/);
 });
@@ -104,7 +104,7 @@ test('graph follows lifecycle contract', () => {
   assert.match(src, /withPreservedViewport/);
   assert.match(src, /detachBoardObject|detachFnCurve/);
   assert.match(src, /bindMathThemeRestyle/);
-  assert.match(src, /remintFunctionColors|remintFnColorsForTheme/);
+  assert.match(src, /resolveFunctionColor/);
   assert.match(src, /colorForFnIndex|getMathBoardChrome/);
   // 删除：先 detach 再 filter
   assert.match(functionPanel, /detachFunctionCurve\(record\)[\s\S]*filter/);

@@ -11,6 +11,8 @@
  * @param {any} record
  * @param {{ resolve: (record: any) => any }} evaluator
  */
+import { resolveFunctionColor } from '../shared/math-theme.js';
+
 export function createFunctionLayerHandle(board, record, evaluator) {
   const evaluatorFn = evaluator.resolve(record);
   const curve = board.create(
@@ -24,7 +26,7 @@ export function createFunctionLayerHandle(board, record, evaluator) {
       10,
     ],
     {
-      strokeColor: record.color,
+      strokeColor: resolveFunctionColor(record),
       strokeWidth: 2.4,
       visible: record.visible !== false,
       name: record.id,
@@ -43,7 +45,7 @@ export function createFunctionLayerHandle(board, record, evaluator) {
       this.evaluator = evaluator.resolve(nextRecord);
       try {
         curve.setAttribute({
-          strokeColor: nextRecord.color,
+          strokeColor: resolveFunctionColor(nextRecord),
           visible: nextRecord.visible !== false,
           strokeWidth: 2.4,
         });

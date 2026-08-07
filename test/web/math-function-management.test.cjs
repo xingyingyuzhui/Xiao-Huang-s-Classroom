@@ -29,7 +29,7 @@ function fn(id, overrides = {}) {
 
 function doc(functions) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions,
@@ -101,7 +101,7 @@ test('rename trims to 1-20 chars at the UI commit layer', async () => {
   );
   // 文档规范化：name 保留字符串；trim 属于 UI 提交层
   const result = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic', name: '  g  ' }],
@@ -142,7 +142,7 @@ test('domain updates sort min/max and viewport mode drops fixed values', async (
     pathToFileURL(path.join(root, 'apps/web/src/math/graph/graph-document.js')).href,
   );
   const normalized = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [fn('f1', { domain: { mode: 'custom', min: 10, max: -10 } })],

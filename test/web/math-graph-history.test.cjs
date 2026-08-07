@@ -19,7 +19,7 @@ async function storeModule() {
 
 function richDocument() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [
@@ -75,18 +75,18 @@ test('undo keeps the annotations written after the action', async () => {
 
 test('undo/redo preserves schemaVersion, id, and title', async () => {
   const { store, history } = await makeHistory();
-  assert.equal(store.getDocument().schemaVersion, 1);
+  assert.equal(store.getDocument().schemaVersion, 2);
   assert.equal(store.getDocument().id, 'd');
   assert.equal(store.getDocument().title, 't');
   store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
   history.undo();
   const afterUndo = store.getDocument();
-  assert.equal(afterUndo.schemaVersion, 1, 'undo must keep schemaVersion for persistence');
+  assert.equal(afterUndo.schemaVersion, 2, 'undo must keep schemaVersion for persistence');
   assert.equal(afterUndo.id, 'd');
   assert.equal(afterUndo.title, 't');
   history.redo();
   const afterRedo = store.getDocument();
-  assert.equal(afterRedo.schemaVersion, 1);
+  assert.equal(afterRedo.schemaVersion, 2);
   assert.equal(afterRedo.id, 'd');
   assert.equal(afterRedo.title, 't');
   assert.equal(afterRedo.functions[0].visible, false);

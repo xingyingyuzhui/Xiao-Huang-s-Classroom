@@ -31,7 +31,7 @@ export function resolveFunctionSampleRange(fn, viewportMin, viewportMax) {
 }
 
 /**
- * @param {{ id: string, color: string, preset?: string | null, coeffs?: any }} options
+ * @param {{ id: string, colorSlot?: number, preset?: string | null, coeffs?: any }} options
  */
 export function createPresetFunctionRecord(options) {
   const preset = GRAPH_PRESETS.some((item) => item.id === options.preset)
@@ -50,7 +50,8 @@ export function createPresetFunctionRecord(options) {
       c: finiteOr(coeffs.c, defaults.c),
     },
     expr: '',
-    color: options.color,
+    colorSlot: Math.max(0, Math.floor(Number(options.colorSlot) || 0)),
+    explicitColor: null,
     visible: true,
     locked: false,
     domain: { mode: 'viewport' },
@@ -58,7 +59,7 @@ export function createPresetFunctionRecord(options) {
 }
 
 /**
- * @param {{ id: string, color: string, raw: string }} options
+ * @param {{ id: string, colorSlot?: number, raw: string }} options
  * @returns {{ ok: boolean, record: any | null, error: string }}
  */
 export function createCustomFunctionRecord(options) {
@@ -76,7 +77,8 @@ export function createCustomFunctionRecord(options) {
       preset: null,
       coeffs: { a: 0, b: 0, c: 0 },
       expr: compiled.src,
-      color: options.color,
+      colorSlot: Math.max(0, Math.floor(Number(options.colorSlot) || 0)),
+      explicitColor: null,
       visible: true,
       locked: false,
       domain: { mode: 'viewport' },
@@ -86,7 +88,7 @@ export function createCustomFunctionRecord(options) {
 
 /**
  * @param {any} spec
- * @param {{ id: string, color: string }} identity
+ * @param {{ id: string, colorSlot?: number }} identity
  */
 export function createFunctionRecordFromAiSpec(spec, identity) {
   if (!spec || typeof spec !== 'object') {

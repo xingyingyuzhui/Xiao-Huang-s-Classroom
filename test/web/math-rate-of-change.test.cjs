@@ -69,7 +69,7 @@ test('secant records round-trip through the document', async () => {
     pathToFileURL(path.join(root, 'apps/web/src/math/graph/graph-document.js')).href,
   );
   const doc = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [{ id: 'f1', name: '', kind: 'preset', preset: 'quadratic', expr: '', coeffs: { a: 1, b: 0, c: 0 }, color: '#111', visible: true, locked: false, domain: { mode: 'viewport' } }],
@@ -103,7 +103,7 @@ test('secant showDelta false and x1/x2 survive normalize and constructionDocumen
     pathToFileURL(path.join(root, 'apps/web/src/math/graph/construction/restore.js')).href,
   );
   const doc = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [{ id: 'f1', name: '', kind: 'preset', preset: 'quadratic', expr: '', coeffs: { a: 1, b: 0, c: 0 }, color: '#111', visible: true, locked: false, domain: { mode: 'viewport' } }],

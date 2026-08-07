@@ -1322,7 +1322,7 @@ git commit -m "feat(math): analyze custom function features numerically"
 - file import 同时接受 V1/V2；export 只写最新版本。
 - 未知更高版本继续拒绝。
 
-Task 14 若不等式以新的 document record kind 持久化，则继续升级 V3；若只作为 V2 已预留且旧 V2 validator 已理解的字段，才能保持 V2。禁止发布两种互不兼容的同版本 schema。
+Task 14 若不等式以新的 document record kind 持久化，则继续升级 V4；若只作为 V3 已预留且旧 V3 validator 已理解的字段，才能保持 V3。禁止发布两种互不兼容的同版本 schema。
 
 - [ ] **Step 6: 测试并提交**
 
@@ -1355,7 +1355,7 @@ git commit -m "feat(math): add safe piecewise functions"
 
 严格不等式虚线边界，非严格不等式实线边界；隐藏/删除函数时区域同步；导入非法 relation 失败。
 
-将不等式 record 引入 `GraphDocumentV3`，补 V2→V3 迁移：V2 函数原样保留、V3 validator 才接受 inequality、storage 依次尝试最新→V2→V1、成功写入 V3 后才清理旧 key；file import 接受 V1/V2/V3，export 只写 V3。禁止仅改 validator 而不升版本。
+将不等式 record 引入 `GraphDocumentV4`，补 V3→V4 迁移：V3 函数原样保留、V4 validator 才接受 inequality、storage 依次尝试最新→V3→V2→V1、成功写入 V4 后才清理旧 key；file import 接受 V1/V2/V3/V4，export 只写 V4。禁止仅改 validator 而不升版本。
 
 - [ ] **Step 3: 实现轻量 SVG/JSXGraph 区域层**
 

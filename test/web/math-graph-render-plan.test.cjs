@@ -35,7 +35,7 @@ function fn(id, overrides = {}) {
 
 function documentWith({ functions = [fn('f1'), fn('f2')], points = [], constructions = [], active = 'f1' } = {}) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions,
@@ -310,7 +310,7 @@ test('legacy geometry round-trips through the document losslessly', async () => 
   const { normalizeGraphDocument, toSerializableGraphDocument, hydrateGraphDocument } = documentModule;
 
   const legacyDoc = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [

@@ -67,7 +67,7 @@ test('graph provides legend items for main curve', () => {
   // 重建曲线保留视窗 + 换肤契约
   assert.match(src, /withPreservedViewport/);
   assert.match(src, /bindMathThemeRestyle/);
-  assert.match(src, /remintFnColorsForTheme|remintFunctionColors/);
+  assert.match(src, /resolveFunctionColor/);
 });
 
 test('math classroom dismisses axis legend bubble with overlays', () => {

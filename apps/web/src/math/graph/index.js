@@ -5,9 +5,8 @@
 
 import { createMathBoard, freeMathBoard, resizeMathBoard } from '../shared/jsx-board.js';
 import {
-  colorForFnIndex,
   getMathBoardChrome,
-  remintFunctionColors,
+  resolveFunctionColor,
 } from '../shared/math-theme.js';
 import {
   bindMathThemeRestyle,
@@ -1034,17 +1033,13 @@ function removeAllFnCurves(_board) {
   }
 }
 
-function remintFnColorsForTheme() {
-  remintFunctionColors(state.functions);
-}
-
 /** 创建单条函数曲线（增量路径与全量重建共用） */
 function createFnCurve(fn) {
   const board = state.board;
   if (!board || !fn || !fn.visible) return null;
   const c = colors();
   const [xLo, xHi] = resolveFunctionSampleRange(fn, state.fXMin, state.fXMax);
-  const stroke = fn.color || c.stamp;
+  const stroke = resolveFunctionColor(fn);
   const curve = board.create(
     'functiongraph',
     [
@@ -1238,7 +1233,6 @@ function rebuildCurve() {
   if (!board) return;
   // 生命周期：重建包 withPreservedViewport，避免镜头被图例/fullUpdate 打回
   withPreservedViewport(board, () => {
-    remintFnColorsForTheme();
     const savedUsers = snapshotUserPoints();
     const savedConstr = snapshotConstructions(makeDrawHost());
     clearAllConstructions(makeDrawHost());
@@ -1464,7 +1458,7 @@ function applyReferenceCurveFromDocument(doc) {
         xHi,
       ],
       {
-        strokeColor: ref.color,
+        strokeColor: resolveFunctionColor(ref),
         strokeWidth: 2,
         dash: 3,
         strokeOpacity: 0.45,
@@ -1722,7 +1716,7 @@ export function initGraphUI() {
         .map((f) => ({
           id: followIdForFn(f.id),
           label: fnDisplayLabel(f),
-          color: f.color,
+          color: resolveFunctionColor(f),
         })),
     onAxisSettingsChange: (st) => {
       if (state.axisSettingsApplying) return;
@@ -1760,7 +1754,7 @@ export function initGraphUI() {
       createPresetFunctionRecord({
         id,
         preset: 'quadratic',
-        color: colorForFnIndex(0),
+        colorSlot: 0,
       }),
     );
     state.activeFnId = id;

@@ -1,4 +1,4 @@
-/** GraphDocumentV1：默认文档、规范化、校验与序列化契约。 */
+/** GraphDocumentV2：默认文档、规范化、校验与序列化契约。 */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -19,12 +19,12 @@ function freezeDeep(value) {
   return value;
 }
 
-test('default document is schema v1 with one quadratic function', async () => {
+test('default document is schema v2 with one quadratic function', async () => {
   const { createDefaultGraphDocument, GRAPH_DOCUMENT_VERSION } = await docModule();
   const doc = createDefaultGraphDocument({ now: () => '2026-08-02T00:00:00.000Z' });
 
-  assert.equal(GRAPH_DOCUMENT_VERSION, 1);
-  assert.equal(doc.schemaVersion, 1);
+  assert.equal(GRAPH_DOCUMENT_VERSION, 2);
+  assert.equal(doc.schemaVersion, 2);
   assert.equal(typeof doc.id, 'string');
   assert.equal(typeof doc.title, 'string');
   assert.equal(doc.functions.length, 1);
@@ -45,7 +45,7 @@ test('default document is schema v1 with one quadratic function', async () => {
 test('normalize removes runtime fields and canonicalizes records', async () => {
   const { normalizeGraphDocument } = await docModule();
   const input = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'doc-1',
     title: 't',
     functions: [
@@ -53,7 +53,8 @@ test('normalize removes runtime fields and canonicalizes records', async () => {
         id: 'f1',
         kind: 'custom',
         expr: 'x^2',
-        color: '#ff0000',
+        colorSlot: 1,
+        explicitColor: null,
         curve: { some: 'jsxgraph' },
         evalFn: () => 0,
         el: null,
@@ -87,7 +88,7 @@ test('normalize removes runtime fields and canonicalizes records', async () => {
 test('normalize clamps non-finite coefficients to defaults', async () => {
   const { normalizeGraphDocument } = await docModule();
   const result = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [
@@ -111,7 +112,7 @@ test('normalize clamps non-finite coefficients to defaults', async () => {
 test('normalize sorts and clamps function domain', async () => {
   const { normalizeGraphDocument } = await docModule();
   const withReversed = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [
@@ -146,7 +147,7 @@ test('normalize sorts and clamps function domain', async () => {
 test('normalize rejects duplicate ids instead of silently overwriting', async () => {
   const { normalizeGraphDocument } = await docModule();
   const result = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [
@@ -168,7 +169,7 @@ test('normalize rejects duplicate ids instead of silently overwriting', async ()
 test('normalize fails cleanly on invalid custom expression', async () => {
   const { normalizeGraphDocument } = await docModule();
   const result = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [{ id: 'f1', kind: 'custom', expr: 'x + (' }],
@@ -187,7 +188,7 @@ test('normalize fails cleanly on invalid custom expression', async () => {
 test('normalize never mutates the input', async () => {
   const { normalizeGraphDocument } = await docModule();
   const input = {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [
@@ -228,7 +229,7 @@ test('unknown schema version fails with a clear error', async () => {
 test('toSerializable document JSON-stringifies without runtime fields', async () => {
   const { normalizeGraphDocument, toSerializableGraphDocument } = await docModule();
   const normalized = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [
@@ -252,13 +253,13 @@ test('toSerializable document JSON-stringifies without runtime fields', async ()
   assert.doesNotThrow(() => JSON.parse(json));
   assert.equal('curve' in serializable.functions[0], false);
   assert.equal('evalFn' in serializable.functions[0], false);
-  assert.equal(serializable.schemaVersion, 1);
+  assert.equal(serializable.schemaVersion, 2);
 });
 
 test('hydrate recompiles custom expressions and fails the whole import on invalid ones', async () => {
   const { hydrateGraphDocument } = await docModule();
   const ok = hydrateGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [
@@ -276,7 +277,7 @@ test('hydrate recompiles custom expressions and fails the whole import on invali
   assert.equal(ok.document.functions.length, 2);
 
   const bad = hydrateGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [{ id: 'f1', kind: 'custom', expr: 'x ^' }],
@@ -295,7 +296,7 @@ test('validateGraphDocument reports validity', async () => {
   const { createDefaultGraphDocument, validateGraphDocument } = await docModule();
   const ok = validateGraphDocument(createDefaultGraphDocument({}));
   assert.equal(ok.ok, true);
-  const bad = validateGraphDocument({ schemaVersion: 1, functions: 'nope' });
+  const bad = validateGraphDocument({ schemaVersion: 2, functions: 'nope' });
   assert.equal(bad.ok, false);
 });
 
@@ -315,10 +316,13 @@ test('point constraints normalize from legacy follow ids and intersect pairs', a
   assert.deepEqual(free, { kind: 'free' });
 
   const doc = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
-    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic' }],
+    functions: [
+      { id: 'f1', kind: 'preset', preset: 'quadratic' },
+      { id: 'f2', kind: 'preset', preset: 'linear' },
+    ],
     points: [
       { id: 'p1', name: 'A', x: 1, y: 2, constraint: { kind: 'followFunction', functionId: 'f1', anchorX: 1 } },
       { id: 'p2', name: 'B', x: 3, y: 4, constraint: { kind: 'followFeature', functionId: 'f1', feature: 'vertex', featureIndex: 0 } },
@@ -342,8 +346,21 @@ test('point constraints normalize from legacy follow ids and intersect pairs', a
   assert.equal(points[0].style.stroke.colorSlot, null);
   assert.equal(points[0].style.fill.opacity, 1);
   assert.equal(points[0].style.size, 3);
-  // 引用不存在的函数仍保留约束（runtime unresolved，不擅自降级）
-  assert.deepEqual(points[2].constraint, { kind: 'intersection', targetIds: ['f1', 'f2'], nearX: 0 });
+  // 交点目标必须存在：缺目标 → 整个文档被引用校验拒绝
+  const dangling = normalizeGraphDocument({
+    schemaVersion: 2,
+    id: 'd',
+    title: 't',
+    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic' }],
+    points: [{ id: 'p3', x: 0, y: 0, constraint: { kind: 'intersection', targetIds: ['f1', 'f2'], nearX: 0 } }],
+    constructions: [],
+    view: { boundingBox: [-8, 8, 8, -8] },
+    presentation: { activeFunctionId: 'f1' },
+    annotations: { version: 1, strokes: [] },
+    meta: {},
+  });
+  assert.equal(dangling.ok, false);
+  assert.equal(dangling.code, 'INVALID_REFERENCE');
 });
 
 test('point style round-trips through legacy mapping', async () => {
@@ -364,18 +381,105 @@ test('point style round-trips through legacy mapping', async () => {
   assert.equal(style.label.fontSize, 16);
 
   const result = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
-    functions: [],
+    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic' }],
     points: [{ id: 'p1', style: { stroke: { explicitColor: '#123456' }, size: 7 } }],
     constructions: [],
     view: { boundingBox: [-8, 8, 8, -8] },
-    presentation: { activeFunctionId: null },
+    presentation: { activeFunctionId: 'f1' },
     annotations: { version: 1, strokes: [] },
     meta: {},
   });
   assert.equal(result.ok, true);
   assert.equal(result.document.points[0].style.stroke.explicitColor, '#123456');
   assert.equal(result.document.points[0].style.size, 7);
+});
+
+test('global invariants: empty functions, cross-type ids, cycles are rejected', async () => {
+  const { normalizeGraphDocument } = await docModule();
+  const base = {
+    id: 'd',
+    title: 't',
+    points: [],
+    constructions: [],
+    view: { boundingBox: [-8, 8, 8, -8] },
+    presentation: {},
+    annotations: { version: 1, strokes: [] },
+    meta: {},
+  };
+
+  // functions 为空
+  const empty = normalizeGraphDocument({ ...base, schemaVersion: 2, functions: [] });
+  assert.equal(empty.ok, false);
+  assert.equal(empty.code, 'INVALID_DOCUMENT');
+
+  // 跨类型 id 重复：函数与点同名
+  const dup = normalizeGraphDocument({
+    ...base,
+    schemaVersion: 2,
+    functions: [{ id: 'x1', kind: 'preset', preset: 'quadratic' }],
+    points: [{ id: 'x1', x: 0, y: 0 }],
+  });
+  assert.equal(dup.ok, false);
+  assert.equal(dup.code, 'INVALID_DOCUMENT');
+
+  // 未知 point constraint kind 回落 free（不拒绝）；未知 construction kind 拒绝
+  const badKind = normalizeGraphDocument({
+    ...base,
+    schemaVersion: 2,
+    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic' }],
+    constructions: [{ id: 'c1', kind: 'warp-drive' }],
+  });
+  assert.equal(badKind.ok, false);
+
+  // 引用环：构造互相依赖
+  const cyclic = normalizeGraphDocument({
+    ...base,
+    schemaVersion: 2,
+    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic' }],
+    constructions: [
+      { id: 'c1', kind: 'perp', pointIds: [], targetConstrId: 'c2' },
+      { id: 'c2', kind: 'perp', pointIds: [], targetConstrId: 'c1' },
+    ],
+  });
+  assert.equal(cyclic.ok, false);
+  assert.equal(cyclic.code, 'INVALID_REFERENCE');
+
+  // custom domain 反序 → 规范化递增
+  const reversed = normalizeGraphDocument({
+    ...base,
+    schemaVersion: 2,
+    functions: [
+      { id: 'f1', kind: 'preset', preset: 'quadratic', domain: { mode: 'custom', min: 5, max: -3 } },
+    ],
+  });
+  assert.equal(reversed.ok, true);
+  assert.deepEqual(reversed.document.functions[0].domain, { mode: 'custom', min: -3, max: 5 });
+});
+
+test('V1 literal color normalizes to colorSlot by position without runtime theme color', async () => {
+  const { normalizeGraphDocument } = await docModule();
+  const result = normalizeGraphDocument({
+    schemaVersion: 2,
+    id: 'd',
+    title: 't',
+    functions: [
+      { id: 'f1', kind: 'preset', preset: 'quadratic', color: '#b45309' },
+      { id: 'f2', kind: 'preset', preset: 'linear', color: '#0f766e' },
+    ],
+    points: [],
+    constructions: [],
+    view: { boundingBox: [-8, 8, 8, -8] },
+    presentation: { activeFunctionId: 'f1' },
+    annotations: { version: 1, strokes: [] },
+    meta: {},
+  });
+  assert.equal(result.ok, true);
+  const fns = result.document.functions;
+  assert.equal('color' in fns[0], false);
+  assert.equal(fns[0].colorSlot, 0);
+  assert.equal(fns[1].colorSlot, 1);
+  assert.equal(fns[0].explicitColor, null);
 });

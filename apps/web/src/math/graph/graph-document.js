@@ -6,11 +6,14 @@
  */
 
 import { compileMathExpr } from '../shared/expr-safe.js';
-import { MATH_FN_PALETTE_FALLBACK } from '../shared/math-theme.js';
 import { GRAPH_PRESETS, defaultCoeffsFor } from './model.js';
 import { createPresetFunctionRecord } from './function-records.js';
+import {
+  GRAPH_CONSTRUCTION_KINDS,
+  validateGraphReferences,
+} from './graph-record-validation.js';
 
-export const GRAPH_DOCUMENT_VERSION = 1;
+export const GRAPH_DOCUMENT_VERSION = 2;
 
 /** 定义域限制：[-1e6, 1e6] */
 export const GRAPH_DOMAIN_LIMIT = 1e6;
@@ -40,11 +43,6 @@ function success(document) {
 function finiteOr(value, fallback) {
   const number = Number(value);
   return Number.isFinite(number) ? number : fallback;
-}
-
-/** @param {number} index */
-function paletteColor(index) {
-  return MATH_FN_PALETTE_FALLBACK[Math.max(0, index) % MATH_FN_PALETTE_FALLBACK.length];
 }
 
 /**
@@ -125,7 +123,9 @@ function normalizeFunctionRecord(fn, index, seenIds) {
     preset,
     expr,
     coeffs,
-    color: typeof fn.color === 'string' && fn.color ? fn.color : paletteColor(index),
+    // V2：colorSlot 按数组位置落主题色板；explicitColor 仅用户显式自定义（当前 UI 无此入口）
+    colorSlot: Number.isInteger(fn.colorSlot) ? Math.max(0, fn.colorSlot) : index,
+    explicitColor: typeof fn.explicitColor === 'string' && fn.explicitColor ? fn.explicitColor : null,
     visible: fn.visible !== false,
     locked: fn.locked === true,
     domain: normalizeDomain(fn.domain, index),
@@ -248,6 +248,9 @@ function normalizeConstructionRecord(construction, index, seenIds) {
   seenIds.add(id);
   const kind = typeof construction.kind === 'string' ? construction.kind : '';
   if (!kind) return failure('INVALID_DOCUMENT', '构造缺少 kind', `${at}.kind`);
+  if (!GRAPH_CONSTRUCTION_KINDS.includes(kind)) {
+    return failure('INVALID_DOCUMENT', '未知的构造类型', `${at}.kind`);
+  }
   return {
     id,
     kind,
@@ -373,6 +376,9 @@ export function normalizeGraphDocument(input, options = {}) {
     if (normalized && normalized.ok === false) return normalized;
     functions.push(normalized);
   }
+  if (!functions.length) {
+    return failure('INVALID_DOCUMENT', 'functions 不能为空', 'functions');
+  }
 
   const seenPointIds = new Set();
   const points = [];
@@ -388,6 +394,23 @@ export function normalizeGraphDocument(input, options = {}) {
     const normalized = normalizeConstructionRecord(input.constructions[i], i, seenConstrIds);
     if (normalized && normalized.ok === false) return normalized;
     constructions.push(normalized);
+  }
+
+  // 跨类型全局 id 唯一：函数/点/构造不得重名
+  const globalSeen = new Set();
+  for (const list of [functions, points, constructions]) {
+    for (const record of list) {
+      if (globalSeen.has(record.id)) {
+        return failure('INVALID_DOCUMENT', `id 跨类型重复：${record.id}`, 'id');
+      }
+      globalSeen.add(record.id);
+    }
+  }
+  // 字符串长度上限（名称/表达式/颜色）
+  for (const fn of functions) {
+    if (fn.name.length > 120 || fn.expr.length > 400) {
+      return failure('INVALID_DOCUMENT', '函数名称或表达式过长', 'functions');
+    }
   }
 
   const annotationsInput = input.annotations || {};
@@ -408,7 +431,7 @@ export function normalizeGraphDocument(input, options = {}) {
   const now = typeof options.now === 'function' ? options.now() : '';
   const metaInput = input.meta && typeof input.meta === 'object' ? input.meta : {};
 
-  return success({
+  const document = {
     schemaVersion: GRAPH_DOCUMENT_VERSION,
     id: typeof input.id === 'string' && input.id ? input.id : 'graph-document',
     title: typeof input.title === 'string' ? input.title : '函数画布',
@@ -428,7 +451,13 @@ export function normalizeGraphDocument(input, options = {}) {
       createdAt: typeof metaInput.createdAt === 'string' ? metaInput.createdAt : now,
       updatedAt: typeof metaInput.updatedAt === 'string' ? metaInput.updatedAt : now,
     },
-  });
+  };
+  // 全局引用校验（id 唯一、引用存在、无环、activeFunctionId 有效）
+  const refs = validateGraphReferences(document);
+  if (!refs.ok) {
+    return failure(refs.code, refs.message, 'references');
+  }
+  return success(document);
 }
 
 /**
@@ -479,7 +508,7 @@ export function createDefaultGraphDocument(options = {}) {
     : 'quadratic';
   const fn = createPresetFunctionRecord({
     id: options.functionId || 'f1',
-    color: paletteColor(0),
+    colorSlot: 0,
     preset: presetId,
     coeffs: options.coeffs,
   });

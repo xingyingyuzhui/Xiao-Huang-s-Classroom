@@ -36,23 +36,36 @@ test('shared math-expr: validateMathExprSyntax matches compile', () => {
   assert.match(formatExprLabel('x^2'), /^y = /);
 });
 
-test('remintFunctionColors aligns list order to palette', () => {
-  /** 与 math-theme.remintFunctionColors 契约一致的纯实现 */
-  function remintFunctionColors(functions, palette) {
-    if (!Array.isArray(functions) || !palette?.length) return;
-    functions.forEach((fn, i) => {
-      if (!fn) return;
-      fn.color = palette[i % palette.length];
-    });
+test('resolveFunctionColor maps colorSlot and validates explicitColor', () => {
+  /** 与 math-theme.resolveFunctionColor 契约一致的纯实现（V2 颜色语义） */
+  function normalizeHexColor(value) {
+    if (typeof value !== 'string') return null;
+    const raw = value.trim().toLowerCase();
+    const match = /^#([0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$/.exec(raw);
+    if (!match) return null;
+    const hex = match[1];
+    return hex.length === 3 || hex.length === 4
+      ? `#${hex.split('').map((ch) => ch + ch).join('')}`
+      : `#${hex}`;
   }
-  const chalk = ['#f0d060', '#7ec8c0', '#8ec5ff'];
-  const def = ['#b45309', '#0f766e', '#2563eb'];
-  const fns = [{ color: chalk[0] }, { color: chalk[1] }, { color: '#ff0000' }];
-  // 全量 remint（当前实现会覆盖所有项）
-  remintFunctionColors(fns, def);
-  assert.equal(fns[0].color, def[0]);
-  assert.equal(fns[1].color, def[1]);
-  assert.equal(fns[2].color, def[2]);
+  function resolveFunctionColor(record, palette) {
+    const explicit = normalizeHexColor(record?.explicitColor);
+    if (explicit) return explicit;
+    return palette[Math.max(0, Math.floor(Number(record?.colorSlot) || 0)) % palette.length];
+  }
+  const palette = ['#b45309', '#0f766e', '#2563eb'];
+  // colorSlot 映射主题色板
+  assert.equal(resolveFunctionColor({ colorSlot: 0, explicitColor: null }, palette), palette[0]);
+  assert.equal(resolveFunctionColor({ colorSlot: 2, explicitColor: null }, palette), palette[2]);
+  // 超界回绕
+  assert.equal(resolveFunctionColor({ colorSlot: 5, explicitColor: null }, palette), palette[2]);
+  // 严格 hex 校验：3/4 位扩展，named/rgb()/var() 拒绝
+  assert.equal(resolveFunctionColor({ colorSlot: 0, explicitColor: '#f00' }, palette), '#ff0000');
+  assert.equal(resolveFunctionColor({ colorSlot: 0, explicitColor: 'red' }, palette), palette[0]);
+  assert.equal(resolveFunctionColor({ colorSlot: 0, explicitColor: 'rgb(1,2,3)' }, palette), palette[0]);
+  assert.equal(resolveFunctionColor({ colorSlot: 0, explicitColor: 'var(--x)' }, palette), palette[0]);
+  // 恶意字符串不能进入返回值
+  assert.equal(resolveFunctionColor({ colorSlot: 0, explicitColor: 'red;background:url(https://x)' }, palette), palette[0]);
 });
 
 test('withPreservedViewport restores bbox (mock board)', () => {

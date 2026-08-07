@@ -108,16 +108,26 @@ export function createFunctionEditor(options) {
         b: Number(root?.querySelector('#mathFnEditB')?.value || 0),
         c: Number(root?.querySelector('#mathFnEditC')?.value || 0),
       };
+      if (!Object.values(coeffs).every(Number.isFinite)) {
+        if (status) status.textContent = '系数必须是有限数值';
+        return;
+      }
       patch.preset = preset;
       patch.coeffs = coeffs;
     }
     const mode = root?.querySelector('#mathFnEditDomainMode')?.value;
     if (mode === 'custom') {
-      patch.domain = {
-        mode: 'custom',
-        min: Number(root?.querySelector('#mathFnEditDomainMin')?.value || -10),
-        max: Number(root?.querySelector('#mathFnEditDomainMax')?.value || 10),
-      };
+      const min = Number(root?.querySelector('#mathFnEditDomainMin')?.value || -10);
+      const max = Number(root?.querySelector('#mathFnEditDomainMax')?.value || 10);
+      if (!Number.isFinite(min) || !Number.isFinite(max)) {
+        if (status) status.textContent = '定义域必须是有限数值';
+        return;
+      }
+      if (Math.min(min, max) === Math.max(min, max)) {
+        if (status) status.textContent = '定义域上下限不能相等';
+        return;
+      }
+      patch.domain = { mode: 'custom', min, max };
     } else {
       patch.domain = { mode: 'viewport' };
     }

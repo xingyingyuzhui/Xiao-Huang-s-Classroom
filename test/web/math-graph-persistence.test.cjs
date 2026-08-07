@@ -58,10 +58,10 @@ function makeFakeTimers() {
 
 function defaultDoc(overrides = {}) {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
-    functions: [{ id: 'f1', name: '', kind: 'preset', preset: 'quadratic', expr: '', coeffs: { a: 1, b: 0, c: 0 }, color: '#111', visible: true, locked: false, domain: { mode: 'viewport' } }],
+    functions: [{ id: 'f1', name: '', kind: 'preset', preset: 'quadratic', expr: '', coeffs: { a: 1, b: 0, c: 0 }, colorSlot: 0, explicitColor: null, visible: true, locked: false, domain: { mode: 'viewport' } }],
     points: [],
     constructions: [],
     view: { boundingBox: [-8, 8, 8, -8], axes: {} },
@@ -109,8 +109,8 @@ test('multiple changes within debounce write only once', async () => {
     clearTimeout: (id) => timers.clearTimeout(id),
   });
   persistence.scheduleSave(defaultDoc());
-  persistence.scheduleSave(defaultDoc({ functions: [{ id: 'f9', kind: 'custom', expr: 'x', color: '#222' }] }));
-  persistence.scheduleSave(defaultDoc({ functions: [{ id: 'f9', kind: 'custom', expr: 'x^2', color: '#222' }] }));
+  persistence.scheduleSave(defaultDoc({ functions: [{ id: 'f9', kind: 'custom', expr: 'x', colorSlot: 0, explicitColor: null }] }));
+  persistence.scheduleSave(defaultDoc({ functions: [{ id: 'f9', kind: 'custom', expr: 'x^2', colorSlot: 0, explicitColor: null }] }));
   assert.equal(writes, 0, 'no write before debounce elapses');
   timers.runAll();
   assert.equal(writes, 1, 'three changes within debounce must produce one write');
@@ -120,7 +120,7 @@ test('multiple changes within debounce write only once', async () => {
 
 test('storage key is pinned', async () => {
   const { GRAPH_STORAGE_KEY } = await persistenceModule();
-  assert.equal(GRAPH_STORAGE_KEY, 'xiaohuang:math:graph-document:v1');
+  assert.equal(GRAPH_STORAGE_KEY, 'xiaohuang:math:graph-document:v2');
 });
 
 test('quota errors degrade to memory state without crashing', async () => {
@@ -149,9 +149,9 @@ test('quota errors degrade to memory state without crashing', async () => {
 test('load parses, migrates and normalizes stored documents', async () => {
   const { persistence, storage } = await makePersistence();
   storage.map.set(
-    'xiaohuang:math:graph-document:v1',
+    'xiaohuang:math:graph-document:v2',
     JSON.stringify({
-      schemaVersion: 1,
+      schemaVersion: 2,
       id: 'stored',
       title: 't',
       functions: [{ id: 'f1', kind: 'preset', preset: 'linear', coeffs: { a: 3, b: 0, c: 0 }, curve: { x: 1 } }],
@@ -171,10 +171,10 @@ test('load parses, migrates and normalizes stored documents', async () => {
 
 test('load falls back to default document on parse errors but reports the error', async () => {
   const { persistence, storage } = await makePersistence();
-  storage.map.set('xiaohuang:math:graph-document:v1', '{broken json');
+  storage.map.set('xiaohuang:math:graph-document:v2', '{broken json');
   const result = persistence.load();
   assert.equal(result.ok, false);
-  assert.equal(result.document.schemaVersion, 1, 'fallback document is usable');
+  assert.equal(result.document.schemaVersion, 2, 'fallback document is usable');
   assert.equal(result.error.code, 'INVALID_DOCUMENT');
 });
 
@@ -190,7 +190,7 @@ test('import rejects dangerous prototype keys', async () => {
 test('import enforces object and size limits', async () => {
   const { persistence } = await makePersistence();
   const many = persistence.importJson(JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: Array.from({ length: 51 }, (_, i) => ({ id: `f${i}`, kind: 'preset', preset: 'quadratic' })),
@@ -216,7 +216,7 @@ test('import rejects unknown versions and invalid expressions without touching s
   assert.equal(tooNew.code, 'UNSUPPORTED_VERSION');
 
   const badExpr = persistence.importJson(JSON.stringify({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [{ id: 'f1', kind: 'custom', expr: 'x + (' }],
@@ -256,14 +256,14 @@ test('flush writes pending saves; dispose flushes', async () => {
   persistence.scheduleSave(defaultDoc({ title: 'two' }));
   persistence.dispose();
   assert.equal(storage.map.size, 1, 'dispose flushes the pending save (one key)');
-  const stored = JSON.parse(storage.map.get('xiaohuang:math:graph-document:v1'));
+  const stored = JSON.parse(storage.map.get('xiaohuang:math:graph-document:v2'));
   assert.equal(stored.title, 'two');
   assert.equal(timers.count(), 0);
 });
 
 test('clear removes the storage key', async () => {
   const { persistence, storage } = await makePersistence();
-  storage.map.set('xiaohuang:math:graph-document:v1', '{}');
+  storage.map.set('xiaohuang:math:graph-document:v2', '{}');
   persistence.clear();
   assert.equal(storage.map.size, 0);
 });

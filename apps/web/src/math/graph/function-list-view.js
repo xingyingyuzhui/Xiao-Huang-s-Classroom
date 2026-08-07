@@ -4,20 +4,18 @@
  * 只负责渲染与发出意图（select / toggleVisible / menu action / edit）；
  * 业务状态与 store 接线由 function-panel.js 负责。
  *
+ * 安全渲染：卡片结构固定，所有用户字段（名称/公式/颜色）通过 DOM API
+ * （createElement / textContent / dataset / setAttribute）赋值，绝不进入
+ * 属性内插或 style 模板字符串；颜色经 resolveFunctionColor 解析为
+ * 主题色板值或严格校验的 hex，写入 CSS custom property。
+ *
  * 键盘：菜单按钮 Enter/Space 打开，Escape 关闭；
  * 连续 render() 不重复绑定（事件委托挂在 root 上）。
  */
 
 import { graphFunctionDisplayLabel } from './function-analysis.js';
 import { GRAPH_PRESETS } from './model.js';
-
-/** @param {unknown} value */
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/"/g, '&quot;');
-}
+import { resolveFunctionColor } from '../shared/math-theme.js';
 
 /**
  * @param {{
@@ -25,7 +23,7 @@ function escapeHtml(value) {
  *   callbacks?: {
  *     onSelect?: (id: string) => void,
  *     onToggleVisible?: (id: string) => void,
- *     onMenu?: (id: string, action: 'edit' | 'duplicate' | 'lock' | 'up' | 'down' | 'delete') => void,
+ *     onMenu?: (id: string, action: string) => void,
  *   },
  * }} options
  */
@@ -35,43 +33,109 @@ export function createFunctionListView(options) {
   /** @type {string | null} */
   let openMenuId = null;
 
+  /** @param {string} tag @param {string} [cls] */
+  function el(tag, cls) {
+    const node = document.createElement(tag);
+    if (cls) node.className = cls;
+    return node;
+  }
+
   function cardFor(fn, activeId, editMode) {
     const selected = fn.id === activeId;
-    const formula = escapeHtml(graphFunctionDisplayLabel(fn));
+    const formula = graphFunctionDisplayLabel(fn);
     const meta = fn.kind === 'custom' ? null : GRAPH_PRESETS.find((p) => p.id === fn.preset);
-    const typeLabel = fn.kind === 'custom' ? '自定义' : escapeHtml(meta?.label || '函数');
-    const typeTip = fn.kind === 'custom' ? '自定义表达式' : escapeHtml(meta?.tip || '');
-    const subtitle = typeTip
-      ? `${typeLabel}<span class="math-fn-card-sub-dot" aria-hidden="true">·</span>${typeTip}`
-      : typeLabel;
-    const stateHints = [];
-    if (fn.locked) stateHints.push('已锁定');
-    const hintText = stateHints.length
-      ? `<span class="math-fn-card-hints">${stateHints.map((h) => `<em>${h}</em>`).join('')}</span>`
-      : '';
+    const typeLabel = fn.kind === 'custom' ? '自定义' : meta?.label || '函数';
+    const typeTip = fn.kind === 'custom' ? '自定义表达式' : meta?.tip || '';
     const menuOpen = openMenuId === fn.id;
-    return `
-    <div class="math-fn-card${selected ? ' is-active' : ''}${editMode ? ' is-editing' : ''}${!fn.visible ? ' is-hidden' : ''}${fn.locked ? ' is-locked' : ''}" data-fn-id="${escapeHtml(fn.id)}" style="--fn-color:${escapeHtml(fn.color)}">
-      <button type="button" class="math-fn-card-toggle" data-fn-toggle="${escapeHtml(fn.id)}" title="${fn.visible ? '隐藏' : '显示'}" aria-label="${fn.visible ? `隐藏 ${fn.name || '函数'}` : `显示 ${fn.name || '函数'}`}" aria-pressed="${fn.visible ? 'true' : 'false'}">${fn.visible ? '隐藏' : '显示'}</button>
-      <button type="button" class="math-fn-card-del" data-fn-del="${escapeHtml(fn.id)}" title="删除" aria-label="删除">×</button>
-      <button type="button" class="math-fn-card-main" data-fn-id="${escapeHtml(fn.id)}">
-        <span class="math-fn-card-swatch" aria-hidden="true"></span>
-        <span class="math-fn-card-body">
-          <strong class="math-fn-card-title" title="${formula}">${formula}</strong>
-          <span class="math-fn-card-sub">${subtitle}${hintText}</span>
-        </span>
-      </button>
-      <div class="math-fn-card-more">
-        <button type="button" class="math-fn-card-menu-btn" data-fn-menu="${escapeHtml(fn.id)}" aria-haspopup="true" aria-expanded="${menuOpen ? 'true' : 'false'}" aria-label="${fn.name || '函数'} 更多操作" title="更多操作">⋯</button>
-        ${menuOpen ? `
-        <div class="math-fn-menu" role="menu" data-fn-menu-panel="${escapeHtml(fn.id)}">
-          <button type="button" role="menuitem" data-fn-action="reference" data-fn-action-id="${escapeHtml(fn.id)}">设为参考</button>
-          <button type="button" role="menuitem" data-fn-action="edit" data-fn-action-id="${escapeHtml(fn.id)}">编辑</button>
-          <button type="button" role="menuitem" data-fn-action="duplicate" data-fn-action-id="${escapeHtml(fn.id)}">复制</button>
-          <button type="button" role="menuitem" data-fn-action="lock" data-fn-action-id="${escapeHtml(fn.id)}">${fn.locked ? '解锁' : '锁定'}</button>
-        </div>` : ''}
-      </div>
-    </div>`;
+
+    const card = el('div', 'math-fn-card');
+    if (selected) card.classList.add('is-active');
+    if (editMode) card.classList.add('is-editing');
+    if (!fn.visible) card.classList.add('is-hidden');
+    if (fn.locked) card.classList.add('is-locked');
+    card.dataset.fnId = fn.id;
+    card.style.setProperty('--fn-color', resolveFunctionColor(fn));
+
+    const toggle = el('button', 'math-fn-card-toggle');
+    toggle.type = 'button';
+    toggle.dataset.fnToggle = fn.id;
+    toggle.title = fn.visible ? '隐藏' : '显示';
+    toggle.setAttribute('aria-label', `${fn.visible ? '隐藏' : '显示'} ${fn.name || '函数'}`);
+    toggle.setAttribute('aria-pressed', fn.visible ? 'true' : 'false');
+    toggle.textContent = fn.visible ? '隐藏' : '显示';
+    card.appendChild(toggle);
+
+    const del = el('button', 'math-fn-card-del');
+    del.type = 'button';
+    del.dataset.fnDel = fn.id;
+    del.title = '删除';
+    del.setAttribute('aria-label', '删除');
+    del.textContent = '×';
+    card.appendChild(del);
+
+    const main = el('button', 'math-fn-card-main');
+    main.type = 'button';
+    main.dataset.fnId = fn.id;
+    const swatch = el('span', 'math-fn-card-swatch');
+    swatch.setAttribute('aria-hidden', 'true');
+    main.appendChild(swatch);
+    const body = el('span', 'math-fn-card-body');
+    const title = el('strong', 'math-fn-card-title');
+    title.textContent = formula;
+    title.title = formula;
+    body.appendChild(title);
+    const sub = el('span', 'math-fn-card-sub');
+    sub.append(typeLabel);
+    if (typeTip) {
+      const dot = el('span', 'math-fn-card-sub-dot');
+      dot.setAttribute('aria-hidden', 'true');
+      dot.textContent = '·';
+      sub.append(dot, typeTip);
+    }
+    if (fn.locked) {
+      const hints = el('span', 'math-fn-card-hints');
+      const em = el('em');
+      em.textContent = '已锁定';
+      hints.appendChild(em);
+      sub.appendChild(hints);
+    }
+    body.appendChild(sub);
+    main.appendChild(body);
+    card.appendChild(main);
+
+    const more = el('div', 'math-fn-card-more');
+    const menuBtn = el('button', 'math-fn-card-menu-btn');
+    menuBtn.type = 'button';
+    menuBtn.dataset.fnMenu = fn.id;
+    menuBtn.setAttribute('aria-haspopup', 'true');
+    menuBtn.setAttribute('aria-expanded', menuOpen ? 'true' : 'false');
+    menuBtn.setAttribute('aria-label', `${fn.name || '函数'} 更多操作`);
+    menuBtn.title = '更多操作';
+    menuBtn.textContent = '⋯';
+    more.appendChild(menuBtn);
+    if (menuOpen) {
+      const menu = el('div', 'math-fn-menu');
+      menu.setAttribute('role', 'menu');
+      menu.dataset.fnMenuPanel = fn.id;
+      const items = [
+        ['reference', '设为参考'],
+        ['edit', '编辑'],
+        ['duplicate', '复制'],
+        ['lock', fn.locked ? '解锁' : '锁定'],
+      ];
+      for (const [action, label] of items) {
+        const item = el('button');
+        item.type = 'button';
+        item.setAttribute('role', 'menuitem');
+        item.dataset.fnAction = action;
+        item.dataset.fnActionId = fn.id;
+        item.textContent = label;
+        menu.appendChild(item);
+      }
+      more.appendChild(menu);
+    }
+    card.appendChild(more);
+    return card;
   }
 
   /**
@@ -81,11 +145,14 @@ export function createFunctionListView(options) {
    */
   function render(functions, activeId, editMode = false) {
     if (!root) return;
+    root.replaceChildren();
     if (!Array.isArray(functions) || !functions.length) {
-      root.innerHTML = '<p class="math-fn-empty">点 ＋ 添加函数到画布</p>';
+      const empty = el('p', 'math-fn-empty');
+      empty.textContent = '点 ＋ 添加函数到画布';
+      root.appendChild(empty);
       return;
     }
-    root.innerHTML = functions.map((fn) => cardFor(fn, activeId, editMode)).join('');
+    for (const fn of functions) root.appendChild(cardFor(fn, activeId, editMode));
   }
 
   /** @param {Event} event */

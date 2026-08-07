@@ -1,14 +1,17 @@
 /**
  * GraphDocument 版本迁移。
  *
- * V1 是首个正式格式；本模块只支持本项目曾经真实存在的数据形态：
- * - schemaVersion === 1：直通。
+ * V1 是首个正式格式（函数色为 literal color）；V2 改为 colorSlot/explicitColor。
+ * - schemaVersion === 2：直通。
+ * - schemaVersion === 1：V1 → V2（color 按数组位置迁为 colorSlot，explicitColor=null）。
  * - 无 schemaVersion 的 legacy 快照：graph lab-bridge 的 params（单预设），
  *   或旧 state.functions 数组形态。
  * - 其它版本：明确拒绝，不拿新格式当旧格式解析。
  */
 
 import { GRAPH_DOCUMENT_VERSION } from './graph-document.js';
+
+export const GRAPH_DOCUMENT_VERSION_V1 = 1;
 
 const DEFAULT_BOUNDING_BOX = /** @type {[number, number, number, number]} */ ([
   -8, 8, 8, -8,
@@ -25,6 +28,38 @@ function success(document) {
 }
 
 /**
+ * V1 函数记录 → V2：color 按位置迁移为 colorSlot，explicitColor 置 null。
+ * 当前 UI 没有函数自定义颜色入口，V1 的 color 都是系统写入的主题色，
+ * 按位置迁移即可无损还原（不猜测字符串是否等于某主题色）。
+ * @param {any} fn
+ * @param {number} index
+ */
+function migrateV1Function(fn, index) {
+  const { color, ...rest } = fn || {};
+  return {
+    ...rest,
+    colorSlot: Number.isInteger(fn.colorSlot) ? Math.max(0, fn.colorSlot) : index,
+    explicitColor:
+      typeof fn.explicitColor === 'string' && fn.explicitColor ? fn.explicitColor : null,
+  };
+}
+
+/**
+ * V1 → V2 迁移：删除 literal color，写入 colorSlot/explicitColor。
+ * @param {any} input
+ */
+function migrateV1ToV2(input) {
+  const functions = Array.isArray(input.functions)
+    ? input.functions.map((fn, index) => migrateV1Function(fn, index))
+    : [];
+  return success({
+    ...input,
+    schemaVersion: GRAPH_DOCUMENT_VERSION,
+    functions,
+  });
+}
+
+/**
  * @param {any} input
  */
 export function migrateGraphDocument(input) {
@@ -33,6 +68,9 @@ export function migrateGraphDocument(input) {
   }
   if (input.schemaVersion === GRAPH_DOCUMENT_VERSION) {
     return success(input);
+  }
+  if (input.schemaVersion === GRAPH_DOCUMENT_VERSION_V1) {
+    return migrateV1ToV2(input);
   }
   if (input.schemaVersion == null) {
     return migrateLegacySnapshot(input);
@@ -79,9 +117,8 @@ function legacyFromSinglePreset(input) {
           b: Number.isFinite(Number(coeffs.b)) ? Number(coeffs.b) : 0,
           c: Number.isFinite(Number(coeffs.c)) ? Number(coeffs.c) : 0,
         },
-        color: typeof input.functions?.[0]?.color === 'string'
-          ? input.functions[0].color
-          : '#b45309',
+        colorSlot: 0,
+        explicitColor: null,
         visible: true,
         locked: false,
         domain: { mode: 'viewport' },
@@ -109,7 +146,8 @@ function legacyFromFunctionList(input) {
       b: Number.isFinite(Number(fn.coeffs?.b)) ? Number(fn.coeffs.b) : 0,
       c: Number.isFinite(Number(fn.coeffs?.c)) ? Number(fn.coeffs.c) : 0,
     },
-    color: typeof fn.color === 'string' && fn.color ? fn.color : '#b45309',
+    colorSlot: index,
+    explicitColor: null,
     visible: fn.visible !== false,
     locked: false,
     domain: { mode: 'viewport' },

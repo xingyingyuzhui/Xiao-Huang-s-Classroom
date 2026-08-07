@@ -14,7 +14,10 @@ import {
 } from './graph-document.js';
 import { migrateGraphDocument } from './graph-document-migrations.js';
 
-export const GRAPH_STORAGE_KEY = 'xiaohuang:math:graph-document:v1';
+export const GRAPH_STORAGE_KEY = 'xiaohuang:math:graph-document:v2';
+
+/** 旧 V1 storage key：读到时迁移写入 V2 后清理 */
+export const GRAPH_STORAGE_KEY_V1 = 'xiaohuang:math:graph-document:v1';
 
 export const GRAPH_IMPORT_LIMITS = {
   maxBytes: 1024 * 1024,
@@ -148,12 +151,21 @@ export function createGraphPersistence(options) {
 
   /**
    * 从 storage 加载并规范化；解析失败回退默认文档但保留错误。
+   * 优先读 V2 key；V1 key 存在且可迁移时写入 V2 后清理旧 key。
    * @returns {{ ok: boolean, document: any, error?: { code: string, message: string } }}
    */
   function load() {
     let raw = null;
+    let usedV1 = false;
     try {
       raw = storage.getItem(key);
+      if (raw == null && key !== GRAPH_STORAGE_KEY_V1) {
+        const v1Raw = storage.getItem(GRAPH_STORAGE_KEY_V1);
+        if (v1Raw != null) {
+          raw = v1Raw;
+          usedV1 = true;
+        }
+      }
     } catch {
       lastStatus = { ok: false, code: 'STORAGE_UNAVAILABLE', message: '无法读取自动保存' };
       return {
@@ -173,6 +185,15 @@ export function createGraphPersistence(options) {
         document: createDefaultGraphDocument({ now }),
         error: { code: parsed.code, message: parsed.message },
       };
+    }
+    if (usedV1) {
+      // V1 迁移成功：写 V2 key 并清理旧 key
+      try {
+        storage.setItem(key, JSON.stringify(toSerializableGraphDocument(parsed.document)));
+        storage.removeItem(GRAPH_STORAGE_KEY_V1);
+      } catch {
+        /* 迁移写入失败不阻断本次会话 */
+      }
     }
     lastStatus = { ok: true };
     return { ok: true, document: parsed.document };

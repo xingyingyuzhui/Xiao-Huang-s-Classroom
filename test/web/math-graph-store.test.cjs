@@ -28,7 +28,7 @@ async function makeStore(overrides = {}) {
 /** 两条预设函数 + 一点 + 一构造的文档 */
 function richDocument() {
   return {
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [

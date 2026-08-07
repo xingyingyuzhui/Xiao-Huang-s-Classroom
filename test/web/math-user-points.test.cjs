@@ -114,7 +114,7 @@ test('document points round-trip through normalize', async () => {
   controller.create(1, 2, { followTargetId: 'graph:fn:f1', showCoords: true });
 
   const result = normalizeGraphDocument({
-    schemaVersion: 1,
+    schemaVersion: 2,
     id: 'd',
     title: 't',
     functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic' }],

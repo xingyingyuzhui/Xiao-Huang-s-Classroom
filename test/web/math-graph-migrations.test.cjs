@@ -13,13 +13,39 @@ async function migrations() {
   );
 }
 
-test('migrate passes a v1 document through unchanged', async () => {
+test('migrate converts a v1 document to v2 and drops literal color', async () => {
   const { migrateGraphDocument } = await migrations();
   const doc = {
     schemaVersion: 1,
     id: 'd',
     title: 't',
-    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic' }],
+    functions: [
+      { id: 'f1', kind: 'preset', preset: 'quadratic', color: '#b45309' },
+      { id: 'f2', kind: 'preset', preset: 'linear', color: '#0f766e' },
+    ],
+    points: [],
+    constructions: [],
+    view: { boundingBox: [-8, 8, 8, -8] },
+    presentation: { activeFunctionId: 'f1' },
+    annotations: { version: 1, strokes: [] },
+    meta: {},
+  };
+  const result = migrateGraphDocument(doc);
+  assert.equal(result.ok, true);
+  assert.equal(result.document.schemaVersion, 2);
+  assert.equal('color' in result.document.functions[0], false);
+  assert.equal(result.document.functions[0].colorSlot, 0);
+  assert.equal(result.document.functions[1].colorSlot, 1);
+  assert.equal(result.document.functions[0].explicitColor, null);
+});
+
+test('migrate passes a v2 document through unchanged', async () => {
+  const { migrateGraphDocument } = await migrations();
+  const doc = {
+    schemaVersion: 2,
+    id: 'd',
+    title: 't',
+    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic', colorSlot: 0, explicitColor: null }],
     points: [],
     constructions: [],
     view: { boundingBox: [-8, 8, 8, -8] },
@@ -40,11 +66,12 @@ test('migrate converts the legacy single-preset snapshot shape', async () => {
   };
   const result = migrateGraphDocument(legacy);
   assert.equal(result.ok, true);
-  assert.equal(result.document.schemaVersion, 1);
+  assert.equal(result.document.schemaVersion, 2);
   assert.equal(result.document.functions.length, 1);
   assert.equal(result.document.functions[0].kind, 'preset');
   assert.equal(result.document.functions[0].preset, 'quadratic');
   assert.deepEqual(result.document.functions[0].coeffs, { a: 1, b: -2, c: 1 });
+  assert.equal(result.document.functions[0].colorSlot, 0);
 });
 
 test('migrate converts a legacy functions array and drops runtime fields', async () => {
@@ -75,7 +102,7 @@ test('migrate converts a legacy functions array and drops runtime fields', async
 
 test('migrate rejects unknown versions and non-object input', async () => {
   const { migrateGraphDocument } = await migrations();
-  const tooNew = migrateGraphDocument({ schemaVersion: 2, functions: [] });
+  const tooNew = migrateGraphDocument({ schemaVersion: 99, functions: [] });
   assert.equal(tooNew.ok, false);
   assert.equal(tooNew.code, 'UNSUPPORTED_VERSION');
 

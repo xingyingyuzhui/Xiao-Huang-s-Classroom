@@ -1,6 +1,5 @@
 /** 函数侧栏、添加弹窗与 AI 函数弹窗控制器。 */
 
-import { colorForFnIndex } from '../shared/math-theme.js';
 import { aiApi } from '../../shared/api/client.js';
 import { appAlert, appConfirm } from '../../shared/ui/app-dialog.js';
 import { GRAPH_PRESETS } from './model.js';
@@ -37,7 +36,7 @@ export function createFunctionPanelController(context) {
 
   const pendingIdentity = () => ({
     id: `f${state.fnSeq}`,
-    color: colorForFnIndex(state.fnSeq),
+    colorSlot: state.fnSeq,
   });
 
   const commitRecord = (record) => {
@@ -117,13 +116,13 @@ export function createFunctionPanelController(context) {
     }
     if (action === 'duplicate') {
       if (!store) return;
-      const color = colorForFnIndex(state.fnSeq);
       const { curve, ...definition } = fn;
       const dup = {
         ...definition,
         id: `f${state.fnSeq}`,
         name: fn.name ? `${fn.name}（副本）` : '',
-        color,
+        colorSlot: state.fnSeq,
+        explicitColor: null,
       };
       state.fnSeq += 1;
       store.dispatch({ type: 'function/duplicate', payload: { sourceId: id, function: dup } });
