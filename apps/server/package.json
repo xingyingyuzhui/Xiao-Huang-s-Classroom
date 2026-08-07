@@ -13,10 +13,11 @@
   },
   "dependencies": {
     "@xiaohuang/math-expr": "0.0.1",
-    "@xiaohuang/subject-settings": "0.0.1",
+    "@xiaohuang/subject-settings": "*",
     "sql.js": "^1.10.0",
     "cors": "^2.8.5",
-    "express": "^4.18.2"
+    "express": "^4.18.2",
+    "@xiaohuang/domain-core": "*"
   },
   "devDependencies": {
     "pkg": "^5.8.1"

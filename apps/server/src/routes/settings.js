@@ -7,6 +7,7 @@ const {
   createDefaultSubjectSettings,
   normalizeSubjectSettings,
 } = require('@xiaohuang/subject-settings');
+const { loadSubjectSettings } = require('../services/settings-service');
 
 const MAX_ICON_DATA_URL = 700 * 1024;
 
@@ -85,8 +86,11 @@ function validateIconDataUrl(url) {
 }
 
 function loadSubjectSettingsFromDb() {
-  const raw = readSettingValue('subjectSettings');
-  return normalizeSubjectSettings(raw && typeof raw === 'object' ? raw : {});
+  const result = loadSubjectSettings({
+    queryOne: (sql, params) => queryOne(sql, params),
+  });
+  // 失败时回退默认（route 层容错；错误已由 service 记录，不静默）
+  return result.ok ? result.value : normalizeSubjectSettings({});
 }
 
 function maskSubjectSettingsForClient(subjectSettings) {
@@ -101,11 +105,7 @@ function maskSubjectSettingsForClient(subjectSettings) {
 
 function mergeSubjectAi(oldAi, patchAi) {
   let nextAi = deepMerge(oldAi, patchAi);
-  if (
-    patchAi.apiKey === undefined ||
-    patchAi.apiKey === null ||
-    isMaskedKey(patchAi.apiKey)
-  ) {
+  if (patchAi.apiKey === undefined || patchAi.apiKey === null || isMaskedKey(patchAi.apiKey)) {
     nextAi.apiKey = oldAi.apiKey || '';
   }
   const { base, rejected } = normalizeApiBase(nextAi.apiBase);
@@ -143,9 +143,7 @@ function applySubjectSettingsPatch(patchSubjects) {
     }
 
     if (subjectId === 'chemistry' && Array.isArray(subPatch.electronOrder)) {
-      base.electronOrder = subPatch.electronOrder
-        .map(Number)
-        .filter((n) => Number.isFinite(n));
+      base.electronOrder = subPatch.electronOrder.map(Number).filter((n) => Number.isFinite(n));
     }
   }
   return normalizeSubjectSettings(current);

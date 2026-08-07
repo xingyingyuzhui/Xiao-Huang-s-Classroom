@@ -14,9 +14,6 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@xiaohuang/subject-settings': fileURLToPath(
-        new URL('../../packages/subject-settings/index.js', import.meta.url),
-      ),
       'jsxgraph/distrib/jsxgraph.css': fileURLToPath(
         new URL('../../node_modules/jsxgraph/distrib/jsxgraph.css', import.meta.url),
       ),
