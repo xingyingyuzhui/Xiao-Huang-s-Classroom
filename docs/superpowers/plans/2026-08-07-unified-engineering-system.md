@@ -305,49 +305,49 @@ ui/design-tokens 两包全绿；至少 1 个真实面板使用 ui 组件；五�
 > rollback point：Task 5.1 前 HEAD。冲突区：与 Program 6 不得并行修改 server 生产路径。
 > 纪律：v1 兼容不破坏；v2 与 v1 复用同一 service/repository；禁止复制业务逻辑。
 
-## Task 5.1 Server TypeScript 化（composition 骨架）
+- [x] **Task 5.1：Server TypeScript 化（composition 骨架）**
 - **Files:** `apps/server/tsconfig.json`、`apps/server/tsup.config.js`、`apps/server/src/index.ts`（先建骨架 + 现有 `src/index.js` adapter 保留）、`apps/server/package.json`（build:server 用 tsup 出 CJS）
 - **Test（先写失败）:** server 构建产物为 CJS 且可 `require()`；现有 server 测试全绿（适配器保持行为）。
 - **Steps:** tsup CJS 产物（目标 ES2022/Node 18 兼容子集）；`index.ts` 只 re-export adapter 入口；逐步迁文件（按依赖序）。
 - **Verify:** `npm run build:frontend`（server 静态化）与 server 测试全绿；pkg smoke 保持。
 - **Commit:** `feat(eng): add server TS composition skeleton (P5)`
 
-## Task 5.2 分层样板：settings 端点 route/service/repository
+- [x] **Task 5.2：分层样板：settings 端点 route/service/repository**
 - **Files:** `apps/server/src/routes/settings.ts`、`apps/server/src/services/settings.ts`、`apps/server/src/repositories/settings.ts`（SQLite 实现）、`apps/server/src/domain/settings-policy.ts`、`apps/server/src/db/{connection,migration,transaction}.ts`、对应测试 `test/server/settings-layers.test.cjs`
 - **Test（先写失败）:** route 不依赖 Express 细节（注入 req/res 或 handler）；repository 不返回未规范化行；domain 纯函数可测。
 - **Steps:** 以 settings 为样板完整分层；v1 route adapter 调 service 并转旧响应形状（兼容不变）。
 - **Verify:** server 测试全绿；现有 settings API contract 测试不变。
 - **Commit:** `feat(eng): layer settings endpoint route/service/repository (P5)`
 
-## Task 5.3 API v1 合同测试补全
+- [x] **Task 5.3：API v1 合同测试补全**
 - **Files:** `test/server/server-api-contracts.test.cjs`（扩展至全部公开 v1 端点）
 - **Test（先写失败）:** 每个 v1 端点的 URL/状态码/响应字段快照。
 - **Steps:** 遍历现有路由清单，补合同测试。
 - **Verify:** 全部 server 测试绿。
 - **Commit:** `test(eng): freeze v1 api contracts (P5)`
 
-## Task 5.4 /api/v2 规范响应 + 首个 v2 端点
+- [x] **Task 5.4：/api/v2 规范响应 + 首个 v2 端点**
 - **Files:** `apps/server/src/routes/v2/settings.ts`、`apps/server/src/lib/api-response.ts`、`apps/web/src/shared/api/client.js`（v2 客户端方法）、`packages/contracts/src/api.ts`（v2 schema）、`test/server/api-v2-settings.test.cjs`
 - **Test（先写失败）:** v2 响应形状 `{success,data,requestId}`；schema parse；与 v1 行为一致（同一 service）。
 - **Steps:** 同 Task 完成：schema + route + client + 测试；v2 端点与 v1 复用 service。
 - **Verify:** v2 测试绿；v1 测试不变。
 - **Commit:** `feat(eng): add first v2 endpoint with shared schema (P5)`
 
-## Task 5.5 数据库 migration 框架
+- [x] **Task 5.5：数据库 migration 框架**
 - **Files:** `apps/server/src/db/migrations/`、`apps/server/src/db/migrator.ts`、`apps/server/src/db/backup.ts`、`test/server/db-migrations.test.cjs`
 - **Test（先写失败）:** schema version table；迁移 up/precondition/postcondition；版本高于应用最大 → 只读失败；backup 到临时文件 + checksum + 原子 rename；restore 失败保留原 DB。
 - **Steps:** 按 spec §11.3 实现；三类数据位置发现逻辑（dev/Electron userData/pkg 邻近）。
 - **Verify:** migration 测试全绿；现有 DB 数据不动（只读验证）。
 - **Commit:** `feat(eng): add versioned db migration framework (P5)`
 
-## Task 5.6 Seed versioning
+- [x] **Task 5.6：Seed versioning**
 - **Files:** `apps/server/src/seed/`、`apps/server/src/db/seed.ts`、`test/server/seed-versioning.test.cjs`
 - **Test（先写失败）:** 幂等 upsert；内容版本记录；与 migration 分离。
 - **Steps:** 现有 seed（labs、quiz bank）改为 versioned 幂等。
 - **Verify:** seed 测试绿；`npm run sync:labs-seed` 幂等执行。
 - **Commit:** `feat(eng): version seed data with idempotent upsert (P5)`
 
-## Task 5.7 AI adapter 统一
+- [x] **Task 5.7：AI adapter 统一**
 - **Files:** `apps/server/src/services/ai/*`（provider adapter/retry/rate-limit/schema parse/redacted log）、`packages/contracts/src/ai.ts`、`test/server/ai-adapter.test.cjs`
 - **Test（先写失败）:** timeout/cancellation；retry 策略；响应 schema parse 失败 → `AI_*` 错误码；日志脱敏（不含 key/prompt）。
 - **Steps:** 包装现有 AI 服务；行为不变。

@@ -29,3 +29,5 @@
 | D12 | node:test 并行 IPC 序列化偶发失败（`Unable to deserialize cloned data`） | 根 `npm test`（无并发限制时 ~1/8 概率触发，与业务改动无关） | 测试结果不可靠 | P7（Vitest 迁移后自然消除） | 根 test 脚本已固定 `--test-concurrency=4`（10/10 稳定）；Vitest 目录迁移完成后删除该限制 | 已控制（并发数固定） |
 
 | D13 | catalog/registry 直连 glue（hub/classroom 仍直接走 registry，manifest adapter 已建） | `apps/web/src/subjects/hub.js`、`classrooms/registry.js` 直连 | 双入口并存 | P7（JS 收口） | hub/classroom 消费方迁移到 `subjectManifest()` 后删除直连；结构测试更新 | adapter 已就位（Task 4.4-4.6） |
+
+| D14 | Server 源码仍为 JS（tsup 骨架已建，src/index.js 为 Electron/pkg 权威入口） | `apps/server/src/**`（51 文件） | 双轨/类型缺失 | P6（pkg 退役后） | pkg 退役（Task 6.5）后按依赖序迁 TS，tsup CJS 产物替代 src 直引 | 骨架就位（Task 5.1） |
