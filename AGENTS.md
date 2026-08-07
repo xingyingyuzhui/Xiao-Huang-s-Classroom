@@ -39,3 +39,26 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 - Chemistry lab work prioritizes a state-driven engine with chemistry logic separated from rendering; experiments should be configuration-driven rather than one-off page stacks.
 - Chemistry web modules: feature packages under `apps/web/src/chemistry/{periodic-table,molecule,molar,electron,battle,ai-classroom,chem,shared}/`; classroom mount/partials under `apps/web/src/subjects/classrooms/`.
 - Math web modules: `apps/web/src/math/{graph,plane,trig,sequence,solid,classroom,shared}/`; classroom shell `subjects/classrooms/math-classroom.js`. **Board theme/lifecycle contract:** `apps/web/src/math/AGENTS.md`（`math-theme.js` + `board-lifecycle.js`；换肤 `chem-theme-change`；禁止 border-soft 当网格）。**表达式：** `@xiaohuang/math-expr`（前后端共用，勿再复制白名单）。
+
+## 统一工程体系（2026-08-07 迁移后）
+
+**质量门禁（根脚本）：** `npm run quality`（test+build）为主入口；`lint`（新代码范围）+ `lint:all`（全仓 baseline 不增长）+ `lint:arch`（依赖方向）+ `lint:theme-tokens`（主题分支禁硬编码色）+ `lint:assets`（资源引用/封面/重复大文件）+ `budget`（bundle 预算）+ `format:check` + `typecheck`。CI（`.github/workflows/quality.yml`）按此顺序门禁。
+
+**TypeScript 包矩阵（`packages/*`，tsup 双产物 + d.ts + strict）：**
+
+| 包                               | 职责                                                                                                                            |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| `config`                         | 共享 tsup/eslint 基座、`APP_VERSION`                                                                                            |
+| `domain-core`                    | Result/AppError 稳定错误码/branded ID/Clock/IdAllocator/Disposable                                                              |
+| `contracts`                      | Zod schema：API v2 响应/GraphDocumentV2/IPC allowlist/subject manifest/settings                                                 |
+| `test-kit`                       | fake DOM/storage/clock/timer/RAF/fetch（组件与控制器测试）                                                                      |
+| `design-tokens`                  | 语义令牌 × 五主题（由 tokens.css 生成值表，防漂移）                                                                             |
+| `ui`                             | typed DOM 组件（button/icon/checkbox/number-input/tool-group/tabs/dialog/toast/stack/status/readout-card），`UiController` 合同 |
+| `subject-kit`                    | SubjectManifest/ClassroomManifest/FeatureModule/MountableController + FeatureLoader                                             |
+| `math-expr` / `subject-settings` | 已 TS 化，双产物                                                                                                                |
+
+**架构纪律：** `apps → packages` 单向；Server 不导入 Web；禁止 `export *`（裸）；主题分支只声明语义变量不直接用色；所有外部边界（HTTP/localStorage/DB/IPC/AI 输出）经 Schema 校验；错误用 `domain-core` 稳定错误码（`VALIDATION_*`/`PERSISTENCE_*`/`AI_*`/`RENDERER_*` 等），禁止 catch 后静默。
+
+**DB/发布：** migration 框架（`apps/server/src/db/migrator.js`，PRAGMA user_version + backup/restore 原子流程）；seed versioning（`seed-versioning.js` 幂等 upsert）；pkg 便携版为过渡产物（退役门 `docs/engineering/pkg-retirement-gate.md`，Electron portable 等价验收后删除）。API v2 规范响应 `{success,data|error,requestId}`（`/api/v2/...`），与 v1 复用同一 service。
+
+**生命周期：** 可挂载模块实现对称合同（mount/show/hide/relayout/syncTheme/dispose）；disposer 逆序容错幂等；高频输入 frame 合并（`shared/frame-task.js`）。
