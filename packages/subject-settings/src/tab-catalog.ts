@@ -2,7 +2,22 @@
  * 各学科 Tab / 默认页元数据（唯一数据源）
  */
 
-const CHEMISTRY_TABS = [
+export interface SubjectTabMeta {
+  id: string;
+  label: string;
+  panelId: string;
+}
+
+export interface SubjectCatalogEntry {
+  name: string;
+  defaultTabId: string;
+  showTabBar: boolean;
+  hasElectronOrder?: boolean;
+  ai: boolean;
+  tabs: SubjectTabMeta[];
+}
+
+export const CHEMISTRY_TABS: SubjectTabMeta[] = [
   { id: 'table', label: '元素周期表', panelId: 'panel-table' },
   { id: 'molecule', label: '3D 分子', panelId: 'panel-molecule' },
   { id: 'molar', label: '计算', panelId: 'panel-molar' },
@@ -11,7 +26,7 @@ const CHEMISTRY_TABS = [
   { id: 'ai', label: '课堂', panelId: 'panel-ai' },
 ];
 
-const MATH_TABS = [
+export const MATH_TABS: SubjectTabMeta[] = [
   { id: 'graph', label: '函数画布', panelId: 'panel-math-graph' },
   { id: 'plane', label: '直线与圆', panelId: 'panel-math-plane' },
   { id: 'trig', label: '三角函数', panelId: 'panel-math-trig' },
@@ -23,7 +38,7 @@ const MATH_TABS = [
 const HOME_TAB = [{ id: 'home', label: '首页', panelId: 'panel-subject-home' }];
 
 /** @type {Record<string, { name: string, defaultTabId: string, showTabBar: boolean, hasElectronOrder?: boolean, ai: boolean, tabs: Array<{ id: string, label: string, panelId: string }> }>} */
-export const SUBJECT_TAB_CATALOG = {
+export const SUBJECT_TAB_CATALOG: Record<string, SubjectCatalogEntry> = {
   chemistry: {
     name: '化学',
     defaultTabId: 'table',
