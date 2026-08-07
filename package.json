@@ -44,10 +44,12 @@
     "lint:theme-tokens": "node tooling/architecture/check-theme-tokens.mjs",
     "lint:assets": "node tooling/architecture/check-assets.mjs",
     "budget": "node tooling/performance/budget.mjs",
-    "test:vitest": "turbo run test"
+    "test:vitest": "turbo run test",
+    "coverage": "turbo run coverage"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
+    "@vitest/coverage-v8": "^4.1.10",
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8",
     "eslint": "^10.8.0",
