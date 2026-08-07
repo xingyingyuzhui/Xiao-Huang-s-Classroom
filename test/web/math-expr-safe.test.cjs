@@ -45,6 +45,10 @@ test('graph sidebar multi-fn list markup and wiring', () => {
     path.join(root, 'apps/web/src/math/graph/function-records.js'),
     'utf8',
   );
+  const fnRuntime = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-function-runtime.js'),
+    'utf8',
+  );
   const css = fs.readFileSync(
     path.join(root, 'apps/web/src/shared/styles/_math-classroom.css'),
     'utf8',
@@ -67,8 +71,10 @@ test('graph sidebar multi-fn list markup and wiring', () => {
   assert.match(graph, /findFunctionIntersectionNear/);
   assert.match(graph, /成为交点/);
   assert.match(panel, /applyExpressionKey/);
-  // 删除：先 detach 曲线再 filter，避免幽灵曲线
-  assert.match(graph, /function detachFnCurve/);
+  // 删除：先 detach 曲线再 filter，避免幽灵曲线（曲线生命周期在 function-runtime 模块）
+  assert.match(fnRuntime, /function detachFnCurve/);
+  assert.match(fnRuntime, /function createFnCurve/);
+  assert.match(fnRuntime, /function paintActiveFeatureMarks/);
   assert.match(panel, /detachFunctionCurve\(record\)/);
   assert.match(panel, /function remove[\s\S]*detachFunctionCurve[\s\S]*filter/);
 });

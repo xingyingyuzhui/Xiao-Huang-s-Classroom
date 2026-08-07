@@ -199,8 +199,14 @@ test('graph registers fusion refresh and feature marks', () => {
     path.join(root, 'apps/web/src/math/graph/index.js'),
     'utf8',
   );
+  const fnRuntime = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-function-runtime.js'),
+    'utf8',
+  );
   assert.match(graphSrc, /point-label-fusion/);
-  assert.match(graphSrc, /_mathFeatureMark/);
   assert.match(graphSrc, /_mathRefreshPointLabelFusion/);
   assert.match(graphSrc, /_mathSchedulePointLabelFusion|_mathRefreshPointLabelFusion/);
+  // 特征点/渐近线绘制已随曲线生命周期移入 function-runtime 模块
+  assert.match(fnRuntime, /paintActiveFeatureMarks/);
+  assert.match(fnRuntime, /_mathFeatureMark/);
 });

@@ -47,9 +47,13 @@ test('graph orchestrator delegates function collection UI and record creation', 
   assert.doesNotMatch(orchestrator, /function renderFnList\s*\(/);
   assert.doesNotMatch(orchestrator, /function bindFnListUi\s*\(/);
   assert.doesNotMatch(orchestrator, /function showAiFnModal\s*\(/);
+  // 拆分后只允许装配与公共入口；readouts/曲线/工具逻辑在独立模块
+  assert.match(orchestrator, /createGraphDocumentRenderer/);
+  assert.match(orchestrator, /createGraphToolController/);
+  assert.match(orchestrator, /createGraphFunctionRuntime/);
   assert.ok(
-    orchestrator.split('\n').length < 2200,
-    'graph/index.js should stay a thin orchestration entry (plan: <900 after Task 8/17 splits)',
+    orchestrator.split('\n').length < 1600,
+    'graph/index.js 必须保持编排入口（Task 8 checkpoint 1: <1600；继续向 <1000 / <700 收紧）',
   );
 });
 

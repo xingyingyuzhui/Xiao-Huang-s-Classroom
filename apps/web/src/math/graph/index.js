@@ -54,6 +54,8 @@ import { createGraphHistory } from './graph-history.js';
 import { createGraphHistoryController } from './graph-history-controller.js';
 import { createGraphIdAllocator } from './graph-id-allocator.js';
 import { createGraphReadouts } from './graph-readouts.js';
+import { createGraphFunctionRuntime } from './graph-function-runtime.js';
+import { createGraphToolController } from './graph-tool-controller.js';
 import { createGraphPersistence, createGraphPersistenceController } from './graph-persistence.js';
 import {
   alignFeatureLabelWidths,
@@ -512,23 +514,6 @@ function makeDrawHost() {
   };
 }
 
-function clearToolPick() {
-  state.toolPick = null;
-  const tool = state.toolStrip?.getTool?.() || 'select';
-  const def = getBoardToolDef(tool);
-  state.toolStrip?.setHint?.(tool === 'select' ? '' : def?.hint || '');
-}
-
-/** 罗盘一次性工具：无进行中步骤时回到「选择」 */
-function finishOneShotToolIfDone() {
-  if (!state.toolOneShot) return;
-  if (state.toolPick) return;
-  state.toolOneShot = false;
-  if ((state.toolStrip?.getTool?.() || 'select') !== 'select') {
-    state.toolStrip?.setTool?.('select', { toggle: false, oneShot: true });
-  }
-}
-
 /**
  * @param {any} el
  */
@@ -594,346 +579,49 @@ function resolveCurveFromTap(hit, usrX, usrY) {
 /**
  * @param {{ usrX: number, usrY: number, hit: any, event: PointerEvent }} ctx
  */
-async function handleToolTap(ctx) {
-  if (!state.board || state.notes?.isActive?.()) return;
-  const tool = state.toolStrip?.getTool?.() || 'select';
-  if (tool === 'select') return;
-
-  try {
-    await handleToolTapBody(ctx, tool);
-  } finally {
-    finishOneShotToolIfDone();
-  }
-}
-
-/**
- * @param {{ usrX: number, usrY: number, hit: any, event: PointerEvent }} ctx
- * @param {string} tool
- */
-async function handleToolTapBody(ctx, tool) {
-  const host = makeDrawHost();
-  const { usrX, usrY, hit } = ctx;
-
-  if (tool === 'point') {
-    await addPointAt(usrX, usrY);
-    return;
-  }
-
-  if (tool === 'delete') {
-    // 优先删点，再删作图线
-    const delHit =
-      hit ||
-      null;
-    if (delHit?._mathUserPoint) {
-      const rec = findUserRec(delHit);
-      if (rec) removeUserPointById(rec.id);
-      clearToolPick();
-      return;
-    }
-    if (delHit?._mathConstrId) {
-      removeConstructionById(delHit._mathConstrId);
-      clearToolPick();
-      return;
-    }
-    // 再扫一遍：靠近用户点
-    for (const rec of state.userPoints) {
-      try {
-        const dx = Number(rec.el.X()) - usrX;
-        const dy = Number(rec.el.Y()) - usrY;
-        const unit = Math.abs(Number(state.board.unitX) || 40);
-        if (Math.hypot(dx, dy) * unit < 16) {
-          removeUserPointById(rec.id);
-          clearToolPick();
-          return;
-        }
-      } catch {
-        /* */
-      }
-    }
-    state.toolStrip?.setHint?.('请点中要删除的点或线');
-    return;
-  }
-
-  if (tool === 'segment' || tool === 'line') {
-    const pick = state.toolPick;
-    let rec = findUserRec(hit);
-    if (!rec && isCurveEl(hit)) {
-      rec = ensureUserPointFromHit(hit, usrX, usrY);
-    }
-    if (!rec) {
-      const near = nearestFnAt(usrX, usrY);
-      if (near) {
-        rec = createUserPoint(usrX, near.y, {
-          followTargetId: followIdForFn(near.fn.id),
-          showCoords: true,
-        });
-      } else {
-        rec = createUserPoint(usrX, usrY, { showCoords: true });
-      }
+/** 工具 tap/pick 状态机（transient；正式对象走 Store action） */
+const graphToolController = createGraphToolController({
+  getState: () => state,
+  makeDrawHost,
+  findUserRec,
+  ensureUserPointFromHit,
+  resolveCurveFromTap,
+  nearestFnAt,
+  createUserPoint,
+  removeUserPointById,
+  commitPointDocument,
+  commitConstructionDocument,
+  removeConstructionById,
+  setUserPointFollowTarget,
+  reregisterSelectable,
+  evalFnY,
+  fnDisplayLabel,
+  getBoardToolDef,
+  addPointAt: (x, y) => {
+    const rec = createUserPoint(x, y, { showCoords: true });
+    if (rec) {
+      commitPointDocument({ ...rec, x, y, constraint: { kind: 'free' } });
       reregisterSelectable();
     }
-    if (!rec) {
-      state.toolStrip?.setHint?.('请点选或落一个点');
-      return;
-    }
-    if (!pick || pick.tool !== tool) {
-      state.toolPick = { tool, pointId: rec.id };
-      state.toolStrip?.setHint?.(`已选 ${rec.baseName || rec.id}，再点第二个点`);
-      return;
-    }
-    if (pick.pointId === rec.id) {
-      state.toolStrip?.setHint?.('请选择不同的第二个点');
-      return;
-    }
-    const p1 = host.findUserEl(pick.pointId);
-    const p2 = rec.el;
-    if (p1 && p2) {
-      commitConstructionDocument(createSegmentOrLine(host, tool, p1, p2, [pick.pointId, rec.id]));
-    }
-    clearToolPick();
-    return;
-  }
-
-  if (tool === 'tangent') {
-    // 一键：点曲线附近 → 造贴线点 + 切线；靠近顶点则绑特征跟随
-    let anchorEl = findUserRec(hit)?.el || null;
-    let fn = null;
-    if (anchorEl) {
-      const resolved = resolveTangentAnchor(anchorEl, host);
-      if (resolved) {
-        fn = resolved.fn;
-        anchorEl = resolved.pt;
-      }
-    }
-    if (!fn) {
-      fn = resolveCurveFromTap(hit, usrX, usrY);
-    }
-    if (!fn) {
-      state.toolStrip?.setHint?.('请点在曲线附近');
-      return;
-    }
-    const followTargetId = pickTangentFollowTargetId(fn, usrX, usrY, followTol());
-    if (!anchorEl) {
-      const y = evalFnY(fn, usrX);
-      const up = createUserPoint(usrX, y == null ? usrY : y, {
-        followTargetId,
-        showCoords: true,
-      });
-      anchorEl = up?.el;
-      reregisterSelectable();
-    } else {
-      const rec = findUserRec(anchorEl);
-      if (rec && followTargetId && rec.followTargetId !== followTargetId) {
-        const parsed = parseFeatureFollowTargetId(followTargetId);
-        if (parsed) {
-          void setUserPointFollowTarget(anchorEl, followTargetId);
-        }
-      }
-    }
-    const pid = userPointIdOf(anchorEl);
-    if (!anchorEl || !pid) {
-      state.toolStrip?.setHint?.('无法在此处创建切点');
-      return;
-    }
-    commitConstructionDocument(createTangent(host, anchorEl, fn, pid));
-    clearToolPick();
-    return;
-  }
-
-  if (tool === 'perp-axis') {
-    const pick = state.toolPick;
-    if (!pick || pick.tool !== 'perp-axis') {
-      let rec = findUserRec(hit);
-      if (!rec) {
-        const near = nearestFnAt(usrX, usrY);
-        if (near) {
-          rec = createUserPoint(usrX, near.y, {
-            followTargetId: followIdForFn(near.fn.id),
-            showCoords: true,
-          });
-        } else {
-          rec = createUserPoint(usrX, usrY, { showCoords: true });
-        }
-        reregisterSelectable();
-      }
-      if (!rec) {
-        state.toolStrip?.setHint?.('先点一个点');
-        return;
-      }
-      state.toolPick = { tool: 'perp-axis', pointId: rec.id };
-      state.toolStrip?.setHint?.('再点坐标轴 / 直线 / 曲线');
-      return;
-    }
-    const pt = host.findUserEl(pick.pointId);
-    if (!pt) {
-      clearToolPick();
-      return;
-    }
-
-    // 优先：已有直线/线段/切线 → 作垂足
-    const lineHit = isLineLike(hit) ? hit : null;
-    if (lineHit && hit._mathConstrId) {
-      commitConstructionDocument(createPerpToLine(host, pt, lineHit, pick.pointId, hit._mathConstrId));
-      clearToolPick();
-      return;
-    }
-
-    // 靠近坐标轴（优先于曲线，避免轴附近曲线抢命中）
-    const distToX = Math.abs(usrY);
-    const distToY = Math.abs(usrX);
-    const axisTol = Math.max(0.35, followTol() * 1.2);
-    if (Math.min(distToX, distToY) <= axisTol) {
-      const axis = distToX <= distToY ? 'x' : 'y';
-      commitConstructionDocument(createPerpToAxis(host, pt, axis, pick.pointId));
-      clearToolPick();
-      return;
-    }
-
-    // 曲线：从点向曲线作垂线（垂足）；若点已在曲线上则作法线
-    const fnHit = resolveCurveFromTap(hit, usrX, usrY);
-    if (fnHit) {
-      commitConstructionDocument(createPerpToFn(host, pt, fnHit, pick.pointId));
-      clearToolPick();
-      return;
-    }
-
-    // 默认：离哪条轴更近垂向哪条
-    const axis = distToX <= distToY ? 'x' : 'y';
-    commitConstructionDocument(createPerpToAxis(host, pt, axis, pick.pointId));
-    clearToolPick();
-    return;
-  }
-
-  if (tool === 'secant') {
-    await handleSecantTap(host, ctx);
-    return;
-  }
-
-  if (tool === 'intersect') {
-    await handleIntersectTap(host, ctx);
-  }
-}
-
-/**
- * 割线工具：点曲线选函数 → 点第一个 x → 点第二个 x。
- * 端点 A/B 是函数上的 glider；拖动后松手提交 construction/update（一条历史）。
- * @param {ReturnType<typeof makeDrawHost>} host
- * @param {{ usrX: number, usrY: number, hit: any }} ctx
- */
-async function handleSecantTap(host, ctx) {
-  const { usrX, usrY, hit } = ctx;
-  const fnHit = resolveCurveFromTap(hit, usrX, usrY);
-  const pick = state.toolPick;
-
-  if (!pick || pick.tool !== 'secant') {
-    if (!fnHit) {
-      state.toolStrip?.setHint?.('请点在曲线附近选择函数');
-      return;
-    }
-    state.toolPick = { tool: 'secant', fnId: fnHit.id, x1: usrX };
-    state.toolStrip?.setHint?.(
-      `已选「${fnDisplayLabel(fnHit)}」，再点一个 x 作为 B 点`,
-    );
-    return;
-  }
-
-  if (!fnHit || fnHit.id !== pick.fnId) {
-    state.toolStrip?.setHint?.('请在同一曲线上选择第二个 x');
-    return;
-  }
-  const rec = createSecantConstruction(host, {
-    kind: 'secant',
-    fnId: pick.fnId,
-    x1: pick.x1,
-    x2: usrX,
-    showDelta: true,
-  });
-  if (rec) {
-    commitConstructionDocument(rec);
-    // 拖动端点 → 松手提交 x1/x2（一次拖动一条历史）
-    for (const el of rec.els || []) {
-      const which = el._mathSecantX;
-      if (!which) continue;
-      if (typeof el.on !== 'function') continue;
-      el.on('up', () => {
-        if (!state.graphStore) return;
-        const ax = Number(rec.els.find((e) => e._mathSecantX === 'x1')?.X?.() ?? rec.x1);
-        const bx = Number(rec.els.find((e) => e._mathSecantX === 'x2')?.X?.() ?? rec.x2);
-        state.graphStore.dispatch({
-          type: 'construction/update',
-          payload: { id: rec.id, patch: { x1: ax, x2: bx } },
-        });
-      });
-    }
-  }
-  clearToolPick();
-}
-
-/**
- * @param {ReturnType<typeof makeDrawHost>} host
- * @param {{ usrX: number, usrY: number, hit: any, event: PointerEvent }} ctx
- */
-async function handleIntersectTap(host, ctx) {
-  const { usrX, usrY, hit } = ctx;
-  const pick = state.toolPick;
-  const fnHit = resolveCurveFromTap(hit, usrX, usrY);
-  const lineHit = isLineLike(hit) ? hit : null;
-
-  if (!pick || pick.tool !== 'intersect') {
-    if (fnHit) {
-      state.toolPick = { tool: 'intersect', kind: 'curve', fnId: fnHit.id };
-      state.toolStrip?.setHint?.(
-        `已选「${fnDisplayLabel(fnHit)}」，再点另一条曲线`,
-      );
-      return;
-    }
-    if (lineHit && hit._mathConstrId) {
-      state.toolPick = {
-        tool: 'intersect',
-        kind: 'line',
-        constrId: hit._mathConstrId,
-        el: hit,
-      };
-      state.toolStrip?.setHint?.('已选直线，再选另一条直线');
-      return;
-    }
-    state.toolStrip?.setHint?.('请点在曲线附近');
-    return;
-  }
-
-  if (pick.kind === 'curve') {
-    if (!fnHit) {
-      state.toolStrip?.setHint?.('请再点另一条曲线');
-      return;
-    }
-    if (fnHit.id === pick.fnId) {
-      state.toolStrip?.setHint?.('请选择另一条不同的曲线');
-      return;
-    }
-    // 交点 GraphPoint 已由 createUserPoint 包装器提交（constraint: intersection）
-    const made = createFnIntersection(host, pick.fnId, fnHit.id);
-    if (!made) {
-      void appAlert('这两条曲线在定义域附近暂无交点', { title: '交点' });
-    }
-    clearToolPick();
-    reregisterSelectable();
-    return;
-  }
-
-  if (pick.kind === 'line' && lineHit && hit._mathConstrId) {
-    if (hit._mathConstrId === pick.constrId) {
-      state.toolStrip?.setHint?.('请选择另一条直线');
-      return;
-    }
-    commitConstructionDocument(createLineIntersection(host, pick.el, hit, [
-      pick.constrId,
-      hit._mathConstrId,
-    ]));
-    clearToolPick();
-    return;
-  }
-  state.toolStrip?.setHint?.('请继续点选第二条对象');
-}
+  },
+  createSegmentOrLine,
+  createTangent,
+  createFnIntersection,
+  createLineIntersection,
+  createSecantConstruction,
+  createPerpToAxis,
+  isLineLike,
+  pickTangentFollowTargetId,
+  parseFeatureFollowTargetId,
+  curveFollowTargetId,
+  userPointIdOf,
+  followTol,
+  resolveTangentAnchor,
+  appAlert,
+});
+const handleToolTap = graphToolController.handleToolTap;
+const clearToolPick = graphToolController.clearToolPick;
+const finishOneShotToolIfDone = graphToolController.finishOneShotToolIfDone;
 
 function bindEscToSelect() {
   if (state.escBound) return;
@@ -1021,219 +709,7 @@ async function addPointAt(usrX, usrY) {
   state.board.update();
 }
 
-/**
- * 从画板卸掉某条函数曲线（删除前必须先调，避免 filter 后变成幽灵曲线）
- * @param {FnRec | null | undefined} fn
- */
-function detachFnCurve(fn) {
-  if (!fn) return;
-  if (fn.curve) {
-    detachBoardObject(state.board, fn.curve);
-    fn.curve = null;
-  }
-}
-
-function removeAllFnCurves(_board) {
-  const list = state.functions.slice();
-  for (const fn of list) {
-    detachFnCurve(fn);
-  }
-}
-
-/** 创建单条函数曲线（增量路径与全量重建共用） */
-function createFnCurve(fn) {
-  const board = state.board;
-  if (!board || !fn || !fn.visible) return null;
-  const c = colors();
-  const [xLo, xHi] = resolveFunctionSampleRange(fn, state.fXMin, state.fXMax);
-  const stroke = resolveFunctionColor(fn);
-  const curve = board.create(
-    'functiongraph',
-    [
-      (x) => {
-        const y = evalFnY(fn, x);
-        return y == null ? NaN : y;
-      },
-      xLo,
-      xHi,
-    ],
-    {
-      strokeColor: stroke,
-      strokeWidth: fn.id === state.activeFnId ? 3.2 : 2.4,
-      name: fn.id,
-    },
-  );
-  fn.curve = curve;
-  curve._mathFnId = fn.id;
-  return curve;
-}
-
-/** 重绘活动预设函数的特征点/渐近线（先清除旧 marks；隐藏时只清除） */
-function paintActiveFeatureMarks() {
-  const board = state.board;
-  if (!board) return;
-  clearExtras(board);
-  const c = colors();
-  const act = activeFn();
-  if (!act || act.visible === false) return;
-  if (act?.kind === 'preset' && act.preset) {
-    const preset = /** @type {any} */ (act.preset);
-    const coeffs = act.coeffs;
-    for (const asy of asymptotes(preset, coeffs)) {
-      if (asy.type === 'vertical') {
-        state.asy.push(
-          board.create(
-            'line',
-            [
-              [asy.value, -20],
-              [asy.value, 20],
-            ],
-            {
-              straightFirst: true,
-              straightLast: true,
-              strokeColor: c.diagram,
-              dash: 2,
-              strokeWidth: 1.5,
-              name: asy.label || '渐近线',
-            },
-          ),
-        );
-      } else {
-        state.asy.push(
-          board.create(
-            'line',
-            [
-              [-20, asy.value],
-              [20, asy.value],
-            ],
-            {
-              straightFirst: true,
-              straightLast: true,
-              strokeColor: c.diagram,
-              dash: 2,
-              strokeWidth: 1.5,
-              name: asy.label || '渐近线',
-            },
-          ),
-        );
-      }
-    }
-    // 特征点去重：顶点落在原点/零点时合并标签，避免「顶点」「零点」叠字
-    /** @type {Array<{ x: number, y: number, kinds: string[] }>} */
-    const markSlots = [];
-    const MERGE_EPS = 1e-6;
-    for (const feat of keyFeatures(preset, coeffs)) {
-      if (feat.x == null || feat.y == null) continue;
-      if (!Number.isFinite(feat.x) || !Number.isFinite(feat.y)) continue;
-      const kind = String(feat.kind || '点');
-      const hit = markSlots.find(
-        (s) => Math.hypot(s.x - feat.x, s.y - feat.y) <= MERGE_EPS,
-      );
-      if (hit) {
-        if (!hit.kinds.includes(kind)) hit.kinds.push(kind);
-      } else {
-        markSlots.push({ x: feat.x, y: feat.y, kinds: [kind] });
-      }
-    }
-    for (const slot of markSlots) {
-      const atOrigin = Math.hypot(slot.x, slot.y) <= MERGE_EPS;
-      let name = slot.kinds.join('·');
-      // 落在原点：合并语义，只保留一个标签（避免「顶点」「零点」叠在一起）
-      if (atOrigin) {
-        const hasV = slot.kinds.includes('顶点');
-        const hasZ = slot.kinds.includes('零点');
-        if (hasV && hasZ) name = '顶点·零点（原点）';
-        else if (hasV) name = '顶点（原点）';
-        else if (hasZ) name = '零点（原点）';
-        else if (slot.kinds.includes('截距')) name = `${slot.kinds.join('·')}（原点）`;
-      }
-      // 原点附近标签略偏右上，减轻压轴
-      const labelOffset = atOrigin ? [14, 16] : [14, 14];
-      const pt = board.create('point', [slot.x, slot.y], {
-        name,
-        size: 4,
-        fillColor: c.diagram,
-        strokeColor: c.pointRing,
-        fixed: true,
-        withLabel: true,
-        label: boardLabelAttrs({
-          offset: labelOffset,
-          strokeColor: c.ink,
-          color: c.ink,
-        }),
-      });
-      pt._mathBaseName = name;
-      pt._mathShowCoords = true;
-      pt._mathCanFollow = false;
-      pt._mathFeatureMark = true;
-      applyBoardLabel(pt, {
-        baseName: name,
-        text: () => formatElementCoordsLabel(pt, name),
-        offset: labelOffset,
-      });
-      bindLiveLabel(pt, () => formatElementCoordsLabel(pt, name));
-      state.marks.push(pt);
-    }
-  }
-}
-
-/**
- * 卸载某函数的所有 runtime 依赖对象（跟随点 / 函数交点 / 依赖构造）。
- * 必须在重建该函数曲线前调用。
- * @param {string} fnId
- */
-function detachFunctionDependents(fnId) {
-  const board = state.board;
-  if (!board) return;
-  for (const rec of state.userPoints.slice()) {
-    const tid = rec.followTargetId;
-    const isFollow =
-      tid === curveFollowTargetId(fnId) ||
-      parseFeatureFollowTargetId(tid)?.fnId === fnId;
-    const isIntersection = rec.intersectFnIds?.includes(fnId);
-    if (!isFollow && !isIntersection) continue;
-    try {
-      board.removeObject(rec.el);
-    } catch {
-      /* */
-    }
-    state.userPoints = state.userPoints.filter((r) => r.id !== rec.id);
-  }
-  for (const rec of state.constructions.slice()) {
-    if (rec.fnId !== fnId && !rec.fnIds?.includes(fnId)) continue;
-    detachConstr(rec, board);
-    state.constructions = state.constructions.filter((c) => c.id !== rec.id);
-  }
-  reregisterSelectable();
-}
-
-/**
- * 函数曲线重建后，按文档记录恢复其依赖（顺序：跟随点 → 函数交点 → 构造）。
- * @param {string} fnId
- * @param {any} doc
- */
-function rebindFunctionDependents(fnId, doc) {
-  for (const pt of doc.points || []) {
-    const constraint = pt.constraint;
-    if (!constraint || typeof constraint !== 'object') continue;
-    const depends =
-      (constraint.kind === 'followFunction' && constraint.functionId === fnId) ||
-      (constraint.kind === 'followFeature' && constraint.functionId === fnId) ||
-      (constraint.kind === 'intersection' && constraint.targetIds?.includes(fnId));
-    if (depends) pointLayer.add(pt);
-  }
-  for (const rec of doc.constructions || []) {
-    if (rec.fnId !== fnId && !rec.fnIds?.includes(fnId)) continue;
-    constructionLayer.add(rec);
-  }
-  reregisterSelectable();
-}
-
-/** 活动函数变化 / 活动函数参数变化后刷新特征点与渐近线 */
-function refreshActiveMarks() {
-  paintActiveFeatureMarks();
-}
-
+/** 函数画布重建（参数变化 / 换肤 / 全量重建） */
 function rebuildCurve() {
   curveRebuildTask.cancel();
   const board = state.board;
@@ -1324,6 +800,24 @@ function syncSliders() {
   if (bName) bName.textContent = L[1];
   if (cName) cName.textContent = L[2];
 }
+
+/** 函数曲线/特征点/渐近线投影（颜色经主题解析，不写文档） */
+const functionRuntime = createGraphFunctionRuntime({
+  getState: () => state,
+  evalFnY,
+  colors,
+  activeFn,
+  boardLabelAttrs,
+  applyBoardLabel,
+  formatElementCoordsLabel,
+  asymptotes,
+  clearExtras,
+  schedulePointLabelFusion,
+});
+const createFnCurve = functionRuntime.createFnCurve;
+const detachFnCurve = functionRuntime.detachFnCurve;
+const removeAllFnCurves = functionRuntime.removeAllFnCurves;
+const refreshActiveMarks = functionRuntime.refreshActiveMarks;
 
 /** 特征卡/值表/探针读数：DOM 输出（业务真值仍在文档） */
 const readouts = createGraphReadouts({
