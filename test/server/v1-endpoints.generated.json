@@ -1,0 +1,210 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/molecules"
+  },
+  {
+    "method": "GET",
+    "path": "/api/molecules/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/molecules"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/molecules/:id"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/molecules/order"
+  },
+  {
+    "method": "GET",
+    "path": "/api/settings"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/settings"
+  },
+  {
+    "method": "GET",
+    "path": "/api/quiz/stats"
+  },
+  {
+    "method": "POST",
+    "path": "/api/quiz/sessions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/quiz/wrong-book"
+  },
+  {
+    "method": "POST",
+    "path": "/api/quiz/wrong-book/:id/attempt"
+  },
+  {
+    "method": "PATCH",
+    "path": "/api/quiz/sessions/:id/summary"
+  },
+  {
+    "method": "GET",
+    "path": "/api/offline-quiz/years"
+  },
+  {
+    "method": "GET",
+    "path": "/api/offline-quiz/list"
+  },
+  {
+    "method": "POST",
+    "path": "/api/offline-quiz/generate"
+  },
+  {
+    "method": "POST",
+    "path": "/api/offline-quiz/submit"
+  },
+  {
+    "method": "GET",
+    "path": "/api/reactions"
+  },
+  {
+    "method": "GET",
+    "path": "/api/reactions/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/reactions"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/reactions/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/students"
+  },
+  {
+    "method": "POST",
+    "path": "/api/students"
+  },
+  {
+    "method": "POST",
+    "path": "/api/students/import"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/students/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/students/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/mastery"
+  },
+  {
+    "method": "GET",
+    "path": "/api/lesson-packs"
+  },
+  {
+    "method": "GET",
+    "path": "/api/lesson-packs/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/lesson-packs"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/lesson-packs/:id"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/lesson-packs/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/lesson-packs/:id/export"
+  },
+  {
+    "method": "POST",
+    "path": "/api/lesson-packs/import"
+  },
+  {
+    "method": "GET",
+    "path": "/api/labs"
+  },
+  {
+    "method": "GET",
+    "path": "/api/labs/export"
+  },
+  {
+    "method": "POST",
+    "path": "/api/labs/import"
+  },
+  {
+    "method": "POST",
+    "path": "/api/labs/reset-builtin"
+  },
+  {
+    "method": "POST",
+    "path": "/api/labs/reorder"
+  },
+  {
+    "method": "GET",
+    "path": "/api/labs/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/labs"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/labs/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/labs/:id/reset"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/labs/:id"
+  },
+  {
+    "method": "GET",
+    "path": "/api/balance-scripts"
+  },
+  {
+    "method": "GET",
+    "path": "/api/balance-scripts/export"
+  },
+  {
+    "method": "POST",
+    "path": "/api/balance-scripts/import"
+  },
+  {
+    "method": "POST",
+    "path": "/api/balance-scripts/reorder"
+  },
+  {
+    "method": "GET",
+    "path": "/api/balance-scripts/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/balance-scripts"
+  },
+  {
+    "method": "PUT",
+    "path": "/api/balance-scripts/:id"
+  },
+  {
+    "method": "POST",
+    "path": "/api/balance-scripts/:id/reset"
+  },
+  {
+    "method": "DELETE",
+    "path": "/api/balance-scripts/:id"
+  }
+]
