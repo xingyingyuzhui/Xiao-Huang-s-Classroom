@@ -81,8 +81,8 @@
 4. **换肤**  
    监听 `chem-theme-change`（`bindMathThemeRestyle`）：  
    - `restyleMathBoard(board)`  
-   - 多曲线 lab：`remintFunctionColors(state.functions)` + 必要 rebuild  
-   禁止：各 lab 私自读一堆 CSS 变量拼色。
+   - 多曲线 lab：曲线颜色经 `resolveFunctionColor(record)` 动态解析（V2 `colorSlot`/`explicitColor`），换肤只触发 rebuild，**不修改 GraphDocument/不进入历史/不落盘**。  
+   禁止：各 lab 私自读一堆 CSS 变量拼色；禁止把 literal 主题色写回文档。
 
 5. **网格色**  
    只通过 `getMathGridColor()` / `restyleMathBoard` 写入；网格元素是 curve，设 `strokeColor`。
@@ -92,10 +92,20 @@
 - [ ] 创建 board：`createMathBoard`（内部已 restyle）
 - [ ] dispose：卸 theme 监听、compass/notes、`freeMathBoard`
 - [ ] 换肤：`bindMathThemeRestyle(() => state.board, { onAfterRestyle })`
-- [ ] 多曲线：颜色只用 `colorForFnIndex` / `remintFunctionColors`
+- [ ] 多曲线：颜色只用 `resolveFunctionColor`（colorSlot 解析）
 - [ ] 删除几何对象：先 detach
 - [ ] 全量重建：包 `withPreservedViewport`
 - [ ] 需要主题 token：改**全部**主题 `tokens.css`，并跑契约测试
+
+## 函数画布工程合同（2026-08-07 审查修复后）
+
+- **单一真值**：GraphDocumentV2（`colorSlot`/`explicitColor`）是函数/点/构造/视口/样式/跟随/标签的唯一业务真值；runtime-first 修改一律先形成 GraphAction。
+- **原子投影**：production renderer（`graph-document-renderer.js`）经 staging → 增量 apply → 失败 `fullRender(previous)` 恢复；恢复也失败进入 fatal 只读。Store/History/Persistence 不得观察到失败 candidate。
+- **依赖闭包**：函数参数变化按 `graph-dependency-plan.js` 的传递闭包（函数 → 跟随点/交点 → 构造，跨类型拓扑）刷新；活动特征按 `activeFunctionVisualChanged` diff 刷新，不按 action shape 判断。
+- **性能不变量**：滑杆高频输入由 `setCoeffs` frame batching 合并（每帧最多一次 dispatch/apply，一次手势一条 history）；UI 渲染按 render plan 的 `functionListChanged/readoutsChanged` flags 条件触发。
+- **入口约束**：`apps/web/src/math/graph/index.js` < 700 行，只做装配与薄代理；readouts/函数曲线与特征/工具状态机/挂载生命周期/跟随目标解析分别在 `graph-readouts.js`、`graph-function-runtime.js`、`graph-tool-controller.js`、`graph-mount-controller.js`、`graph-follow-targets.js`。
+- **ID 分配**：所有新对象 id 来自 `graph-id-allocator.js`（文档级扫描），禁止散落的自增计数器。
+- **历史语义**：undo/redo 只在 restore 成功后移动栈；transaction cancel 从 `lastAppliedDocument` 恢复，失败返回 fatal。
 
 ## AI
 
