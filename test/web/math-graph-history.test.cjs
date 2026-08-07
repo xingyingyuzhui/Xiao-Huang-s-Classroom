@@ -17,6 +17,12 @@ async function storeModule() {
   );
 }
 
+async function documentModule() {
+  return import(
+    pathToFileURL(path.join(root, 'apps/web/src/math/graph/graph-document.js')).href,
+  );
+}
+
 function richDocument() {
   return {
     schemaVersion: 2,
@@ -204,4 +210,61 @@ test('history exposes subscribe/clear/dispose and never serializes', async () =>
   history.dispose();
   store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
   assert.equal(notified, afterUnsubscribe, 'disposed history must not listen');
+});
+
+test('undo does not move the stack when restore fails', async () => {
+  const { createGraphStore } = await storeModule();
+  const { createGraphHistory } = await historyModule();
+  const { createDefaultGraphDocument } = await documentModule();
+  const doc = createDefaultGraphDocument({});
+  let failRestore = false;
+  const store = createGraphStore(doc, {
+    beforeCommit: (ctx) => {
+      if (ctx.action?.type === 'history/restore' && failRestore) return { ok: false };
+      return { ok: true };
+    },
+  });
+  const history = createGraphHistory(store);
+  store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
+  assert.equal(history.canUndo(), true);
+
+  // 第一次 restore 失败：栈不动
+  failRestore = true;
+  assert.equal(history.undo(), false);
+  assert.equal(history.canUndo(), true, 'stack must not move on failed restore');
+  assert.equal(history.canRedo(), false);
+
+  // 第二次成功：栈才移动
+  failRestore = false;
+  assert.equal(history.undo(), true);
+  assert.equal(history.canUndo(), false);
+  assert.equal(history.canRedo(), true);
+  assert.equal(store.getDocument().functions[0].visible, true);
+});
+
+test('redo does not move the stack when restore fails', async () => {
+  const { createGraphStore } = await storeModule();
+  const { createGraphHistory } = await historyModule();
+  const { createDefaultGraphDocument } = await documentModule();
+  const doc = createDefaultGraphDocument({});
+  let failRestore = false;
+  const store = createGraphStore(doc, {
+    beforeCommit: (ctx) => {
+      if (ctx.action?.type === 'history/restore' && failRestore) return { ok: false };
+      return { ok: true };
+    },
+  });
+  const history = createGraphHistory(store);
+  store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
+  history.undo();
+  assert.equal(history.canRedo(), true);
+
+  failRestore = true;
+  assert.equal(history.redo(), false);
+  assert.equal(history.canRedo(), true, 'redo stack must not move on failed restore');
+  assert.equal(history.canUndo(), false);
+
+  failRestore = false;
+  assert.equal(history.redo(), true);
+  assert.equal(store.getDocument().functions[0].visible, false);
 });

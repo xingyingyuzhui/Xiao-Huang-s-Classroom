@@ -289,7 +289,8 @@ test('transaction coalesces preview dispatches into one commit', async () => {
   assert.deepEqual(seen, [], 'previews must not publish');
   const committed = store.commitTransaction();
   assert.deepEqual(seen, ['transaction/commit']);
-  assert.equal(committed.functions[0].coeffs.a, 4.9);
+  assert.equal(committed.ok, true);
+  assert.equal(committed.document.functions[0].coeffs.a, 4.9);
   assert.equal(store.getDocument().functions[0].coeffs.a, 4.9);
 });
 
@@ -357,4 +358,62 @@ test('subscribe returns an unsubscribe and dispose clears listeners', async () =
   store.dispose();
   store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
   assert.equal(count, 1);
+});
+
+test('reorder rejects duplicate, partial and missing permutations', async () => {
+  const { store } = await makeStore();
+  const before = store.getDocument();
+  // 重复 id
+  store.dispatch({ type: 'function/reorder', payload: { ids: ['f1', 'f1'] } });
+  assert.equal(store.getDocument(), before);
+  // 缺一个 id
+  store.dispatch({ type: 'function/reorder', payload: { ids: ['f1'] } });
+  assert.equal(store.getDocument(), before);
+  // 不存在 id
+  store.dispatch({ type: 'function/reorder', payload: { ids: ['f1', 'missing'] } });
+  assert.equal(store.getDocument(), before);
+  // 合法重排仍可用
+  store.dispatch({ type: 'function/duplicate', payload: { sourceId: 'f1', function: { id: 'f2', kind: 'preset', preset: 'linear', colorSlot: 1, explicitColor: null, visible: true, locked: false, domain: { mode: 'viewport' }, coeffs: { a: 1, b: 0, c: 0 }, expr: '' } } });
+  const result = store.dispatch({ type: 'function/reorder', payload: { ids: ['f2', 'f1'] } });
+  assert.deepEqual(result.functions.map((f) => f.id), ['f2', 'f1']);
+});
+
+test('dispatchResult distinguishes noop, invalid and failed renders', async () => {
+  const { store } = await makeStore();
+  const noop = store.dispatchResult({ type: 'function/update', payload: { id: 'f1', patch: { visible: true } } });
+  assert.equal(noop.ok, false);
+  assert.equal(noop.reason, 'NOOP');
+  const ok = store.dispatchResult({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
+  assert.equal(ok.ok, true);
+  assert.equal(ok.document.functions[0].visible, false);
+});
+
+test('transaction cancel returns recovery result and skips publish on fatal', async () => {
+  const calls = [];
+  let failRecover = false;
+  let failCancelRestore = false;
+  const { store } = await makeStore({
+    beforeCommit: (ctx) => {
+      calls.push([ctx.previous?.functions?.[0]?.visible, ctx.candidate?.functions?.[0]?.visible, Boolean(ctx.preview)]);
+      if (ctx.action?.type === 'transaction/cancel' && failCancelRestore) return { ok: false };
+      return { ok: true };
+    },
+    recoverRuntime: () => ({ ok: !failRecover }),
+  });
+  store.beginTransaction();
+  store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
+  const cancelled = store.cancelTransaction();
+  assert.equal(cancelled.ok, true);
+  assert.equal(cancelled.fatal, undefined);
+  // 恢复调用：lastApplied(false) → base(true)，且不是 preview
+  assert.deepEqual(calls[calls.length - 1], [false, true, false]);
+
+  // fatal：恢复失败（beforeCommit 拒 + recover 失败）→ ok:false, fatal:true
+  failCancelRestore = true;
+  failRecover = true;
+  store.beginTransaction();
+  store.dispatch({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } });
+  const fatal = store.cancelTransaction();
+  assert.equal(fatal.ok, false);
+  assert.equal(fatal.fatal, true);
 });

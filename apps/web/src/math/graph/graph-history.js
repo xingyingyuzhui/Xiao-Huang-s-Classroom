@@ -79,10 +79,10 @@ export function createGraphHistory(store, options = {}) {
     record(event.previous, event.current);
   });
 
-  /** 恢复目标结构快照，与当前批注合并；meta 保持当前文档。 @param {object} target */
+  /** 恢复目标结构快照，与当前批注合并；meta 保持当前文档。 @param {object} target @returns {boolean} */
   function restoreDocument(target) {
     const current = store.getDocument();
-    store.dispatch({
+    const result = store.dispatch({
       type: 'history/restore',
       payload: {
         document: {
@@ -94,25 +94,29 @@ export function createGraphHistory(store, options = {}) {
       },
       meta: { record: false },
     });
+    // dispatch 失败时返回 previous（与目标结构不同）→ 不移动栈
+    return Boolean(result) && structuralKey(result) === structuralKey(target);
   }
 
   return {
-    /** @returns {boolean} */
+    /** @returns {boolean} 仅在 restore 成功后才移动栈 */
     undo() {
-      const entry = undoStack.pop();
+      const entry = undoStack.at(-1);
       if (!entry) return false;
+      if (!restoreDocument(entry.before)) return false;
+      undoStack.pop();
       redoStack.push(entry);
-      restoreDocument(entry.before);
       notify();
       return true;
     },
 
-    /** @returns {boolean} */
+    /** @returns {boolean} 仅在 restore 成功后才移动栈 */
     redo() {
-      const entry = redoStack.pop();
+      const entry = redoStack.at(-1);
       if (!entry) return false;
+      if (!restoreDocument(entry.after)) return false;
+      redoStack.pop();
       undoStack.push(entry);
-      restoreDocument(entry.after);
       notify();
       return true;
     },

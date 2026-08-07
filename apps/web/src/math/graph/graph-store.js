@@ -138,6 +138,12 @@ export function reduceGraphDocument(document, action) {
       if (!Array.isArray(ids)) return document;
       const currentIds = document.functions.map((f) => f.id);
       if (ids.length !== currentIds.length) return document;
+      // 每个 id 恰好一次：拒绝重复/缺失
+      const seen = new Set();
+      for (const id of ids) {
+        if (typeof id !== 'string' || seen.has(id)) return document;
+        seen.add(id);
+      }
       const byId = new Map(document.functions.map((f) => [f.id, f]));
       for (const id of ids) {
         if (!byId.has(id)) return document;
@@ -256,13 +262,15 @@ export function reduceGraphDocument(document, action) {
 
 /**
  * @param {any} initialDocument
- * @param {{ beforeCommit?: (ctx: any) => { ok: boolean } | void }} [options]
+ * @param {{ beforeCommit?: (ctx: any) => { ok: boolean } | void, recoverRuntime?: (document: any) => { ok: boolean } | void }} [options]
  */
 export function createGraphStore(initialDocument, options = {}) {
   const beforeCommit =
     typeof options.beforeCommit === 'function'
       ? options.beforeCommit
       : () => ({ ok: true });
+  const recoverRuntime =
+    typeof options.recoverRuntime === 'function' ? options.recoverRuntime : null;
 
   let current = initialDocument;
   /** @type {Set<(event: any) => void>} */
@@ -305,22 +313,44 @@ export function createGraphStore(initialDocument, options = {}) {
     return candidate;
   }
 
+  /** 发布但跳过 renderer（事务最终 preview 已 apply 时使用）。 */
+  function commitPublished(action, candidate, previous) {
+    if (candidate === previous) {
+      notify(previous, action, false);
+      return candidate;
+    }
+    current = candidate;
+    notify(previous, action, false);
+    return candidate;
+  }
+
   return {
     getDocument: () => current,
 
     /**
      * @param {object} action
+     * @returns {any} 旧兼容：成功返回 candidate 文档，失败返回 previous 文档
      */
     dispatch(action) {
+      return this.dispatchResult(action).document;
+    },
+
+    /**
+     * 显式结果 dispatch：{ok, reason, document}。
+     * reason: 'INVALID_ACTION' | 'RENDER_FAILED' | 'DUPLICATE_ID' | 'NOOP'
+     * @param {object} action
+     */
+    dispatchResult(action) {
       if (transaction) {
-        // 事务内：reducer 计算 preview candidate，允许 renderer 看到 preview，
-        // 但不修改 current、不通知 subscriber。
-        const preview = reduceGraphDocument(transaction.candidate, action);
-        if (preview === transaction.candidate) return transaction.candidate;
+        // 事务内：reducer 计算 preview candidate；renderer 从 lastAppliedDocument 投影。
+        const preview = reduceGraphDocument(transaction.candidateDocument, action);
+        if (preview === transaction.candidateDocument) {
+          return { ok: false, reason: 'NOOP', document: transaction.candidateDocument };
+        }
         let check;
         try {
           check = beforeCommit({
-            previous: transaction.previous,
+            previous: transaction.lastAppliedDocument,
             candidate: preview,
             action,
             preview: true,
@@ -328,13 +358,39 @@ export function createGraphStore(initialDocument, options = {}) {
         } catch {
           check = { ok: false };
         }
-        if (!check || check.ok === false) return transaction.candidate;
-        transaction.candidate = preview;
-        return preview;
+        if (!check || check.ok === false) {
+          return {
+            ok: false,
+            reason: check?.code === 'RENDER_FAILED' ? 'RENDER_FAILED' : 'INVALID_ACTION',
+            document: transaction.candidateDocument,
+          };
+        }
+        // preview 成功：同时推进 candidate 与 lastApplied
+        transaction.candidateDocument = preview;
+        transaction.lastAppliedDocument = preview;
+        return { ok: true, reason: 'OK', document: preview };
       }
       const previous = current;
       const candidate = reduceGraphDocument(previous, action);
-      return publish(action, candidate, previous);
+      if (candidate === previous) {
+        return { ok: false, reason: 'NOOP', document: previous };
+      }
+      let check;
+      try {
+        check = beforeCommit({ previous, candidate, action });
+      } catch {
+        check = { ok: false };
+      }
+      if (!check || check.ok === false) {
+        return {
+          ok: false,
+          reason: check?.code === 'RENDER_FAILED' ? 'RENDER_FAILED' : 'INVALID_ACTION',
+          document: previous,
+        };
+      }
+      current = candidate;
+      notify(previous, action, false);
+      return { ok: true, reason: 'OK', document: candidate };
     },
 
     /**
@@ -359,41 +415,94 @@ export function createGraphStore(initialDocument, options = {}) {
       return publish(action, nextDocument, previous);
     },
 
+    /**
+     * 显式结果版 replace：{ok, reason, document}；ok 才表示已发布。
+     * @param {any} nextDocument
+     */
+    replaceDocumentResult(nextDocument) {
+      if (!nextDocument || typeof nextDocument !== 'object') {
+        return { ok: false, reason: 'INVALID_ACTION', document: current };
+      }
+      const previous = current;
+      const action = { type: 'document/replace', payload: { document: nextDocument } };
+      if (nextDocument === previous) {
+        return { ok: true, reason: 'NOOP', document: current };
+      }
+      const published = publish(action, nextDocument, previous);
+      return published === nextDocument
+        ? { ok: true, reason: 'OK', document: nextDocument }
+        : { ok: false, reason: 'RENDER_FAILED', document: previous };
+    },
+
     beginTransaction() {
       if (transaction) return;
-      transaction = { previous: current, candidate: current };
+      transaction = {
+        baseDocument: current,
+        candidateDocument: current,
+        lastAppliedDocument: current,
+      };
     },
 
+    /**
+     * 提交事务：runtime 已处于 lastAppliedDocument === candidateDocument 时
+     * 只发布 base → candidate，不再重复调用 renderer。
+     * @returns {{ ok: boolean, reason?: string, document: any }}
+     */
     commitTransaction() {
-      if (!transaction) return current;
-      const { previous, candidate } = transaction;
+      if (!transaction) return { ok: false, reason: 'NO_TRANSACTION', document: current };
+      const { baseDocument, candidateDocument, lastAppliedDocument } = transaction;
       transaction = null;
-      if (candidate === previous) return current;
+      if (candidateDocument === baseDocument) {
+        return { ok: true, reason: 'NOOP', document: baseDocument };
+      }
       const action = { type: 'transaction/commit', meta: { transaction: true } };
-      const published = publish(action, candidate, previous);
-      return published === candidate ? candidate : current;
+      const alreadyApplied = lastAppliedDocument === candidateDocument;
+      const published = alreadyApplied
+        ? commitPublished(action, candidateDocument, baseDocument)
+        : publish(action, candidateDocument, baseDocument);
+      return published === candidateDocument
+        ? { ok: true, reason: 'OK', document: candidateDocument }
+        : { ok: false, reason: 'RENDER_FAILED', document: baseDocument };
     },
 
+    /**
+     * 取消事务：从最后一次成功投影恢复到 base；恢复失败进入 fatal。
+     * @returns {{ ok: boolean, fatal?: boolean, document: any }}
+     */
     cancelTransaction() {
-      if (!transaction) return current;
-      // preview 期间 board 可能已按 candidate 投影；cancel 后 document 仍是 previous，
-      // 必须把 runtime 从 lastPreview 拉回 previous，否则 dispose/取消后板面与文档分叉。
-      const lastPreview = transaction.candidate;
-      const start = transaction.previous;
+      if (!transaction) return { ok: false, document: current };
+      const { baseDocument, candidateDocument, lastAppliedDocument } = transaction;
       transaction = null;
-      if (lastPreview !== start) {
+      // 尚未 apply 的 pending candidate 直接丢弃：从 lastApplied 恢复到 base
+      const restoreTarget = baseDocument;
+      let restored = true;
+      if (lastAppliedDocument !== restoreTarget) {
+        let check;
         try {
-          beforeCommit({
-            previous: lastPreview,
-            candidate: start,
+          check = beforeCommit({
+            previous: lastAppliedDocument,
+            candidate: restoreTarget,
             action: { type: 'transaction/cancel', meta: { transaction: true } },
           });
         } catch {
-          /* best-effort runtime restore */
+          check = { ok: false };
+        }
+        restored = Boolean(check && check.ok !== false);
+        if (!restored && typeof recoverRuntime === 'function') {
+          try {
+            const recovery = recoverRuntime(restoreTarget);
+            restored = Boolean(recovery && recovery.ok !== false);
+          } catch {
+            restored = false;
+          }
         }
       }
+      if (!restored) {
+        // fatal：不通知普通 subscriber，保留可诊断状态
+        return { ok: false, fatal: true, document: current };
+      }
       notify(current, { type: 'transaction/cancel', meta: { transaction: true } }, true);
-      return current;
+      return { ok: true, document: baseDocument };
     },
 
     dispose() {
