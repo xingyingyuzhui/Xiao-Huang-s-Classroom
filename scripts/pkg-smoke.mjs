@@ -19,7 +19,9 @@ const failures = [];
 const info = [];
 
 if (!fs.existsSync(exePath)) {
-  info.push(`pkg 产物不存在：${path.relative(root, exePath)}（当前平台为 ${process.platform}，Windows 产物需在 Windows/CI 构建）`);
+  info.push(
+    `pkg 产物不存在：${path.relative(root, exePath)}（当前平台为 ${process.platform}，Windows 产物需在 Windows/CI 构建）`,
+  );
 } else {
   const stat = fs.statSync(exePath);
   info.push(`pkg 产物存在：${(stat.size / 1024 / 1024).toFixed(1)} MB`);

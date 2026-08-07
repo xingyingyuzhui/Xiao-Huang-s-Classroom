@@ -8,21 +8,21 @@
 - 五主题共 **71 个语义令牌**，全部主题全覆盖（0 缺失）。
 - 分类：
 
-| 族 | 令牌 | 说明 |
-|---|---|---|
-| surface/paper | `paper` `paper-deep` `bg-body` `bg-body-deep` `card-bg` `card-elevated` `stage-3d-bg` | 画布与卡片底 |
-| text/ink | `ink` `ink-soft` `ink-lab` `text-primary` `text-secondary` `text-muted` | 文字层级 |
-| border | `border` `border-soft` `border-ink` `topbar-border` | 边框 |
-| accent/brand | `stamp` `stamp-soft` `diagram` `diagram-soft` `accent` `accent-hover` `accent-soft` `flame` `flame-soft` `btn-primary` `btn-primary-hover` `btn-primary-border` | 品牌/操作色 |
-| note/warn | `note` `note-soft` | 提示 |
-| shadow | `shadow-sm` `shadow-md` `shadow-float` `shadow-print` `shadow-print-sm` `shadow-inset-glass` | 层级阴影 |
-| canvas (math) | `math-fn-1..8` `math-point-ring` `math-grid` | 多曲线色板/描边/网格 |
-| zone (chem) | `zone-s` `zone-p` `zone-d` `zone-ds` `zone-f` `zone-noble` | 元素分区色 |
-| radius | `radius-box` `radius-card` `radius-control` | 圆角 |
-| spacing | `gap-size` `f-gap-size` | 间距 |
-| stroke | `ui-stroke` `ui-stroke-strong` | 线宽 |
-| typography | `font-display` `font-latin` `font-cjk` `font-serif-cjk` `font-mono` `font-main` | 字体 |
-| chrome | `topbar-bg` `topbar-border` `topbar-shadow` `bg-image` `body-noise-opacity` `brand-eyebrow-display` | 壳层装饰 |
+| 族            | 令牌                                                                                                                                                            | 说明                 |
+| ------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------- |
+| surface/paper | `paper` `paper-deep` `bg-body` `bg-body-deep` `card-bg` `card-elevated` `stage-3d-bg`                                                                           | 画布与卡片底         |
+| text/ink      | `ink` `ink-soft` `ink-lab` `text-primary` `text-secondary` `text-muted`                                                                                         | 文字层级             |
+| border        | `border` `border-soft` `border-ink` `topbar-border`                                                                                                             | 边框                 |
+| accent/brand  | `stamp` `stamp-soft` `diagram` `diagram-soft` `accent` `accent-hover` `accent-soft` `flame` `flame-soft` `btn-primary` `btn-primary-hover` `btn-primary-border` | 品牌/操作色          |
+| note/warn     | `note` `note-soft`                                                                                                                                              | 提示                 |
+| shadow        | `shadow-sm` `shadow-md` `shadow-float` `shadow-print` `shadow-print-sm` `shadow-inset-glass`                                                                    | 层级阴影             |
+| canvas (math) | `math-fn-1..8` `math-point-ring` `math-grid`                                                                                                                    | 多曲线色板/描边/网格 |
+| zone (chem)   | `zone-s` `zone-p` `zone-d` `zone-ds` `zone-f` `zone-noble`                                                                                                      | 元素分区色           |
+| radius        | `radius-box` `radius-card` `radius-control`                                                                                                                     | 圆角                 |
+| spacing       | `gap-size` `f-gap-size`                                                                                                                                         | 间距                 |
+| stroke        | `ui-stroke` `ui-stroke-strong`                                                                                                                                  | 线宽                 |
+| typography    | `font-display` `font-latin` `font-cjk` `font-serif-cjk` `font-mono` `font-main`                                                                                 | 字体                 |
+| chrome        | `topbar-bg` `topbar-border` `topbar-shadow` `bg-image` `body-noise-opacity` `brand-eyebrow-display`                                                             | 壳层装饰             |
 
 ## 语义映射建议（→ design-tokens 族）
 

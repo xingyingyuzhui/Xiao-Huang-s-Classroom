@@ -7,13 +7,13 @@
 
 ## 等价验收清单（Electron portable 必须全部满足）
 
-| # | 验收项 | 验收方法 | 状态 |
-|---|---|---|---|
-| E1 | 便携启动：解压后无安装直接启动，无黑色控制台 | `scripts/electron-portable-smoke.mjs`（Program 6 建） | [ ] |
-| E2 | 用户数据导入：旧 `pkg` 邻近 `data` 目录的数据被识别/迁移 | 迁移框架测试（Program 5）+ smoke | [ ] |
-| E3 | API 等价：`/api/...` v1 端点行为一致 | server API contract 测试（Program 5 Task 5.3） | [ ] |
-| E4 | AI 设置等价：AI Key 配置与请求行为一致 | AI adapter 测试（Program 5 Task 5.7） | [ ] |
-| E5 | 离线功能等价：本地题库/实验/离线模式可用 | offline-quiz 与 labs 测试 | [ ] |
+| #   | 验收项                                                   | 验收方法                                              | 状态 |
+| --- | -------------------------------------------------------- | ----------------------------------------------------- | ---- |
+| E1  | 便携启动：解压后无安装直接启动，无黑色控制台             | `scripts/electron-portable-smoke.mjs`（Program 6 建） | [ ]  |
+| E2  | 用户数据导入：旧 `pkg` 邻近 `data` 目录的数据被识别/迁移 | 迁移框架测试（Program 5）+ smoke                      | [ ]  |
+| E3  | API 等价：`/api/...` v1 端点行为一致                     | server API contract 测试（Program 5 Task 5.3）        | [ ]  |
+| E4  | AI 设置等价：AI Key 配置与请求行为一致                   | AI adapter 测试（Program 5 Task 5.7）                 | [ ]  |
+| E5  | 离线功能等价：本地题库/实验/离线模式可用                 | offline-quiz 与 labs 测试                             | [ ]  |
 
 ## 删除条件（全部满足才可执行 Program 6 Task 6.5）
 

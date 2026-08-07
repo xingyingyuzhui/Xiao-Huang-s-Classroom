@@ -42,7 +42,8 @@
     "lint:arch": "node tooling/architecture/check-dependencies.mjs",
     "pkg:smoke": "node scripts/pkg-smoke.mjs",
     "lint:theme-tokens": "node tooling/architecture/check-theme-tokens.mjs",
-    "lint:assets": "node tooling/architecture/check-assets.mjs"
+    "lint:assets": "node tooling/architecture/check-assets.mjs",
+    "budget": "node tooling/performance/budget.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
