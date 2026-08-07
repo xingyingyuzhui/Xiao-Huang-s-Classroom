@@ -52,6 +52,7 @@ export interface FakeDocument {
   elements: Map<string, FakeElement>;
   getElementById(id: string): FakeElement | null;
   register(id: string): FakeElement;
+  createElement(tag: string): FakeElement;
   totalListeners(): number;
 }
 
@@ -66,6 +67,9 @@ export function createFakeDocument(): FakeDocument {
       const el = makeFakeElement(id);
       elements.set(id, el);
       return el;
+    },
+    createElement(tag) {
+      return makeFakeElement(`el-${tag}`);
     },
     totalListeners() {
       let n = 0;
