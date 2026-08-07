@@ -8,6 +8,7 @@
 
 import { constructionsDependingOn } from './construction/dependency-closure.js';
 import { constructionDocumentRecord } from './construction/restore.js';
+import { activeFunctionVisualChanged, graphDependentsOf } from './graph-dependency-plan.js';
 
 export { applyFunctionPlan } from './function-layer.js';
 
@@ -153,24 +154,35 @@ export function applyGraphRuntimePlan(context, plan, ctx) {
     for (const { id } of plan.functions.update) {
       const fn = state.functions.find((f) => f.id === id);
       if (!fn) continue;
-      // 变化的那一条曲线重建；先卸依赖对象（跟随点/交点/构造），重建后按文档恢复
-      context.detachFunctionDependents(id);
-      context.detachFnCurve(fn);
-      if (fn.visible) {
-        context.createFnCurve(fn);
-        // 依赖只在曲线存在时恢复；隐藏期间保持卸下，避免跟随点悬浮/重建失败
-        context.rebindFunctionDependents(id, doc);
+      // 完整传递闭包：函数 → 跟随点/交点 → 依赖构造（跨类型拓扑）
+      const deps = graphDependentsOf(doc, [id]);
+      // 1) 按依赖逆序拆除下游 runtime（最下游 point/construction 先删）
+      for (const entry of deps.removeOrder || []) {
+        if (entry.type === 'construction') context.constructionLayer.remove(entry.id);
+        else if (entry.type === 'point') context.pointLayer.remove(entry.id);
       }
-      // 活动函数显隐切换：刷新特征点/渐近线（隐藏时清除，显示时重绘）
-      if (id === state.activeFnId && 'visible' in (ctx.action?.payload?.patch || {})) {
-        context.refreshActiveMarks();
+      // 2) 重建曲线（隐藏期间不建，依赖保持卸下）
+      context.detachFnCurve(fn);
+      if (fn.visible) context.createFnCurve(fn);
+      // 3) 按文档拓扑恢复下游（point → construction）
+      if (fn.visible) {
+        for (const entry of deps.addOrder || []) {
+          const rec =
+            entry.type === 'point'
+              ? (doc.points || []).find((p) => p.id === entry.id)
+              : (doc.constructions || []).find((c) => c.id === entry.id);
+          if (!rec) continue;
+          if (entry.type === 'point') context.pointLayer.add(rec);
+          else context.constructionLayer.add(rec);
+        }
       }
     }
 
     state.activeFnId =
       doc.presentation?.activeFunctionId ?? state.functions[0]?.id ?? null;
     context.mirrorActiveToLegacy();
-    if (plan.activeFunctionChanged) context.refreshActiveMarks();
+    // 活动特征刷新按 diff：数学定义/domain/visibility 变化即刷新（history/import 同样生效）
+    if (activeFunctionVisualChanged(ctx.previous, doc)) context.refreshActiveMarks();
 
     // ── 2) 点：按文档记录增删（layer 幂等） ──
     for (const record of plan.points.add) context.pointLayer.add(record);

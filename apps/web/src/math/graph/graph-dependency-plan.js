@@ -248,3 +248,31 @@ export function graphDependentsOf(document, rootIds) {
 export function graphRemoveOrder(document) {
   return graphTopologicalOrder(document).reverse();
 }
+
+
+/**
+ * 活动函数“视觉数学定义”变化判断（纯 diff，不按 action shape）：
+ * 数学定义（kind/preset/coeffs/domain）或 visibility 变化 → true；
+ * 仅名称/锁定/颜色槽位变化 → false。history restore / import / commit 同样生效。
+ * @param {any} previous
+ * @param {any} current
+ */
+export function activeFunctionVisualChanged(previous, current) {
+  const prevFn =
+    (typeof previous?.presentation?.activeFunctionId === 'string' &&
+      (previous.functions || []).find((f) => f.id === previous.presentation.activeFunctionId)) ||
+    (previous?.functions || [])[0] ||
+    null;
+  const currFn =
+    (typeof current?.presentation?.activeFunctionId === 'string' &&
+      (current.functions || []).find((f) => f.id === current.presentation.activeFunctionId)) ||
+    (current?.functions || [])[0] ||
+    null;
+  if (!prevFn || !currFn) return prevFn !== currFn;
+  if (prevFn.id !== currFn.id) return true;
+  if (prevFn.visible !== currFn.visible) return true;
+  if (prevFn.kind !== currFn.kind || prevFn.preset !== currFn.preset) return true;
+  if (JSON.stringify(prevFn.coeffs || {}) !== JSON.stringify(currFn.coeffs || {})) return true;
+  if (JSON.stringify(prevFn.domain || {}) !== JSON.stringify(currFn.domain || {})) return true;
+  return false;
+}
