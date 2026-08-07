@@ -185,10 +185,25 @@ export function graphTopologicalOrder(document) {
 }
 
 /**
- * 传递依赖闭包：给定根 id，返回所有直接/间接下游（不含根自身）。
+ * 传递依赖闭包：给定根 id，返回所有直接/间接下游（不含根自身）的类型分桶，
+ * 以及覆盖闭包全集（根 + 下游）的跨类型 add/remove 顺序。
+ *
+ * 顺序固定（add/remove 均跨 point/construction 混排，不按类型分桶）：
+ * - addOrder：functions 根节点先创建，其余 point/construction 按跨类型拓扑序列混排
+ *   （上游先），例如 point → line construction → intersection point → perpendicular。
+ * - removeOrder：addOrder 严格反转，先最下游 point/construction，最后 function。
+ *
+ * 依赖来源只有 GraphDocument refs/constraints（constructionRefs/pointConstraintRefs），
+ * 不从 JSXGraph element 或 runtime flags 猜测。
  * @param {any} document
  * @param {string[]} rootIds
- * @returns {{ pointIds: string[], constructionIds: string[], functionIds: string[] }}
+ * @returns {{
+ *   pointIds: string[],
+ *   constructionIds: string[],
+ *   functionIds: string[],
+ *   removeOrder: Array<{ type: 'function' | 'point' | 'construction', id: string }>,
+ *   addOrder: Array<{ type: 'function' | 'point' | 'construction', id: string }>,
+ * }}
  */
 export function graphDependentsOf(document, rootIds) {
   const { nodeById } = buildGraphDependencyIndex(document);
@@ -201,13 +216,16 @@ export function graphDependentsOf(document, rootIds) {
   }
   const roots = new Set(rootIds.filter((id) => typeof id === 'string'));
   const out = { pointIds: [], constructionIds: [], functionIds: [] };
-  const visited = new Set();
+  // closure = 根 + 全部直接/间接下游；visited 防止环/重复入队
+  const closure = new Set(roots);
+  const visited = new Set(roots);
   const queue = [...roots];
   while (queue.length) {
     const id = queue.shift();
     for (const dep of dependents.get(id) || []) {
       if (visited.has(dep)) continue;
       visited.add(dep);
+      closure.add(dep);
       const node = nodeById.get(dep);
       if (!node) continue;
       if (node.type === 'point') out.pointIds.push(dep);
@@ -216,7 +234,10 @@ export function graphDependentsOf(document, rootIds) {
       queue.push(dep);
     }
   }
-  return out;
+  // addOrder：复用确定性跨类型拓扑序，截取闭包子图；removeOrder 严格反转。
+  const addOrder = graphTopologicalOrder(document).filter((entry) => closure.has(entry.id));
+  const removeOrder = addOrder.slice().reverse();
+  return { ...out, removeOrder, addOrder };
 }
 
 /**
