@@ -2,7 +2,8 @@
 
 > Program 1 Task 1.8 产物。`pkg`（Node 18 单文件 Windows）是**过渡兼容产物**，不是目标工程体系的一部分；
 > Electron Windows `portable` 是其正式替代品。本文件定义等价验收清单与删除条件（spec §6.4）。
-> 状态：未开始 → 逐项勾选 → 全部通过后由独立提交删除 pkg（Program 6 Task 6.5）。
+> 状态：2026-08-07 记录——E1–E5 需 Windows 产物执行，本机（macOS）不可执行；
+> 退役门就位、pkg smoke 保持，等价验收待 Windows CI/环境执行后勾选（不伪造）。
 
 ## 等价验收清单（Electron portable 必须全部满足）
 

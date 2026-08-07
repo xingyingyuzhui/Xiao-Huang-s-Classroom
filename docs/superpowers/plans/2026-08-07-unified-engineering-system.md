@@ -363,21 +363,21 @@ v1 合同冻结；首个 v2 端点 + client + schema 同 Task 落地；migration
 
 > rollback point：Task 6.1 前 HEAD。冲突区：与 Program 5 不得并行修改 server 生产路径。
 
-## Task 6.1 Main/Preload TypeScript 化 + IPC allowlist
+- [x] **Task 6.1：Main/Preload TypeScript 化 + IPC allowlist**
 - **Files:** `apps/desktop/src/main/*.ts`、`apps/desktop/src/preload/*.ts`、`apps/desktop/tsconfig.json`、`apps/desktop/tsup.config.js`（CJS）、`packages/contracts/src/ipc.ts`、`test/server/electron-stage.test.cjs`（扩展）
 - **Test（先写失败）:** IPC allowlist schema：未登记 channel 被拒；preload 不暴露任意 Node。
 - **Steps:** main/preload 迁 TS；context isolation 确认开启；IPC 经 schema。
 - **Verify:** electron-stage smoke 全绿；`npm run build` 通过。
 - **Commit:** `feat(eng): migrate electron main/preload to TS with IPC schema (P6)`
 
-## Task 6.2 启动状态机
+- [x] **Task 6.2：启动状态机**
 - **Files:** `apps/desktop/src/main/startup.ts`、`apps/desktop/src/main/lifecycle.ts`、`test/server/electron-startup.test.cjs`
 - **Test（先写失败）:** idle→staging→serverStarting→ready→closing→closed；并发启动幂等；健康检查就绪（不靠固定延时）；失败不遗留进程。
 - **Steps:** 按 spec §12.2 实现状态机；端口与数据目录显式传递。
 - **Verify:** startup 测试绿（fake server 进程）。
 - **Commit:** `feat(eng): add electron startup state machine (P6)`
 
-## Task 6.3 Stage manifest 与完整性
+- [x] **Task 6.3：Stage manifest 与完整性**
 - **Files:** `scripts/stage-electron-server.js`（扩展输出 manifest）、`tooling/release/stage-manifest.mjs`、`test/server/electron-stage.test.cjs`（扩展）
 - **Test（先写失败）:** manifest 记录文件/hash/版本/构建时间；打包前完整性校验失败退出。
 - **Steps:** stage 时生成 manifest；pack 前校验。
