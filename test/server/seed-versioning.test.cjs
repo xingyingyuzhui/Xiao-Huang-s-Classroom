@@ -63,3 +63,16 @@ test('seed 与 migration 分离：seed 版本表独立于 schema version', async
     assert.equal(v2.user_version ?? v2.value, MAX_SCHEMA_VERSION, 'schema version 保持');
   });
 });
+
+test('启动 seed（builtin-molecules）走统一版本框架：同版本跳过主体、性质补齐保留', async () => {
+  const { syncBuiltinMolecules } = require(path.join(root, 'apps/server/src/seed/import-builtin.js'));
+  await withDb(async () => {
+    const first = syncBuiltinMolecules();
+    assert.ok(first.inserted > 0, '首次导入内置分子');
+    const second = syncBuiltinMolecules();
+    assert.equal(second.inserted, 0, '同版本不重复插入');
+    assert.ok(second.propertiesUpdated >= 0);
+    const row = query('SELECT content_version FROM seed_versions WHERE seed_key = ?', ['builtin-molecules'])[0];
+    assert.equal(row.content_version, '2', 'seed_versions 记录内容版本');
+  });
+});

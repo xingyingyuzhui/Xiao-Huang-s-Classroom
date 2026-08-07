@@ -1,26 +1,9 @@
 const { queryOne, run, runBatch } = require('../db/sqlite');
+const { applySeed } = require('../db/seed-versioning');
 const { BUILTIN_MOLECULES } = require('./builtin-molecules');
 
 /** 升版本时同步内置数据；custom=1 的教师/学生自建数据永不覆盖。 */
 const BUILTIN_MOLECULES_VERSION = 2;
-
-function readSeedVersion() {
-  const row = queryOne(
-    "SELECT value FROM settings WHERE key = 'builtin_molecules_version'",
-  );
-  try {
-    return Number(JSON.parse(row?.value ?? '0')) || 0;
-  } catch {
-    return Number(row?.value) || 0;
-  }
-}
-
-function writeSeedVersion() {
-  run(
-    'INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)',
-    ['builtin_molecules_version', JSON.stringify(BUILTIN_MOLECULES_VERSION)],
-  );
-}
 
 function insertBuiltinMolecule(mol, index) {
   run(
@@ -90,30 +73,47 @@ function backfillBuiltinProperties(mol) {
  * - 每次启动均补齐空的物理/化学性质，兼容早期数据库。
  */
 function syncBuiltinMolecules() {
-  const forceUpdate = readSeedVersion() < BUILTIN_MOLECULES_VERSION;
   const result = { inserted: 0, updated: 0, propertiesUpdated: 0, skippedCustom: 0 };
 
-  runBatch(() => {
-    BUILTIN_MOLECULES.forEach((mol, index) => {
-      const existing = queryOne('SELECT custom FROM molecules WHERE id = ?', [mol.id]);
-      if (!existing) {
-        insertBuiltinMolecule(mol, index);
-        result.inserted += 1;
-        return;
-      }
-      if (Number(existing.custom)) {
-        result.skippedCustom += 1;
-        return;
-      }
-      if (forceUpdate) {
-        result.updated += Number(updateBuiltinMolecule(mol)?.changes || 0);
-      } else {
-        result.propertiesUpdated += Number(backfillBuiltinProperties(mol)?.changes || 0);
-      }
+  // R5.3：统一 seed versioning 框架（seed_versions 表；同版本跳过、版本变化重放）
+  const { applied } = applySeed(
+    { queryOne, run, exec: (sql) => runBatch(() => { run(sql); }) },
+    'builtin-molecules',
+    String(BUILTIN_MOLECULES_VERSION),
+    () => {
+      const forceUpdate = true; // applySeed 只在版本变化时调用本函数
+      runBatch(() => {
+        BUILTIN_MOLECULES.forEach((mol, index) => {
+          const existing = queryOne('SELECT custom FROM molecules WHERE id = ?', [mol.id]);
+          if (!existing) {
+            insertBuiltinMolecule(mol, index);
+            result.inserted += 1;
+            return;
+          }
+          if (Number(existing.custom)) {
+            result.skippedCustom += 1;
+            return;
+          }
+          if (forceUpdate) {
+            result.updated += Number(updateBuiltinMolecule(mol)?.changes || 0);
+          } else {
+            result.propertiesUpdated += Number(backfillBuiltinProperties(mol)?.changes || 0);
+          }
+        });
+      });
+    },
+  );
+  if (!applied) {
+    // 同版本跳过主体重放；但早期 DB 仍补性质（兼容既有数据库）
+    runBatch(() => {
+      BUILTIN_MOLECULES.forEach((mol) => {
+        const existing = queryOne('SELECT custom FROM molecules WHERE id = ?', [mol.id]);
+        if (existing && !Number(existing.custom)) {
+          result.propertiesUpdated += Number(backfillBuiltinProperties(mol)?.changes || 0);
+        }
+      });
     });
-    writeSeedVersion();
-  });
-
+  }
   return result;
 }
 
