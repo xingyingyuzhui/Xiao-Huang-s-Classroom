@@ -34,15 +34,26 @@ function readJson(rel) {
   return JSON.parse(fs.readFileSync(file, 'utf8'));
 }
 
+/** 解析 extends 链，返回合并后的 compilerOptions（子配置覆盖父配置）。 */
+function mergedCompilerOptions(rel, stack = []) {
+  const cfg = readJson(rel);
+  const inherited = {};
+  for (const ext of [].concat(cfg.extends || [])) {
+    const parentRel = path.relative(root, path.resolve(path.dirname(path.join(root, rel)), String(ext)));
+    Object.assign(inherited, mergedCompilerOptions(parentRel, stack.concat(rel)));
+  }
+  return { ...inherited, ...(cfg.compilerOptions || {}) };
+}
+
 test('根 tsconfig 矩阵存在：base/web/node/electron', () => {
   for (const name of ['tsconfig.base.json', 'tsconfig.web.json', 'tsconfig.node.json', 'tsconfig.electron.json']) {
     assert.ok(fs.existsSync(path.join(root, name)), `${name} 必须存在`);
   }
   // node 侧严格基线含 DOM 无关；web 侧可含 DOM lib，但严格选项一致
   for (const name of ['tsconfig.base.json', 'tsconfig.web.json', 'tsconfig.node.json', 'tsconfig.electron.json']) {
-    const cfg = readJson(name);
+    const opts = mergedCompilerOptions(name);
     for (const opt of REQUIRED_STRICT_OPTIONS) {
-      assert.equal(cfg.compilerOptions?.[opt], true, `${name} 必须开启 ${opt}`);
+      assert.equal(opts[opt], true, `${name} 必须开启 ${opt}（含 extends 继承）`);
     }
   }
 });
