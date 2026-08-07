@@ -34,13 +34,24 @@ function escapeHtml(value) {
 export function createFunctionPanelController(context) {
   const { state } = context;
 
-  const pendingIdentity = () => ({
-    id: `f${state.fnSeq}`,
-    colorSlot: state.fnSeq,
-  });
+  const nextFnId = () => {
+    const allocator = context.idAllocator?.();
+    if (allocator) return allocator.nextFunctionId();
+    // 无 allocator（极旧路径）时退回随机唯一 id，绝不与文档冲突
+    return `f${Math.floor(Math.random() * 1e6)}`;
+  };
+  /** 槽位由 allocator identity 派生（fN → N-1），身份与颜色不再共用同一真值 */
+  const slotForFnId = (id) => {
+    const m = /^f(\d+)$/.exec(String(id));
+    return m ? Number(m[1]) - 1 : 0;
+  };
+
+  const pendingIdentity = () => {
+    const id = nextFnId();
+    return { id, colorSlot: slotForFnId(id) };
+  };
 
   const commitRecord = (record) => {
-    state.fnSeq += 1;
     const store = context.store?.();
     if (store) {
       store.dispatch({ type: 'function/add', payload: { function: record } });
@@ -117,14 +128,14 @@ export function createFunctionPanelController(context) {
     if (action === 'duplicate') {
       if (!store) return;
       const { curve, ...definition } = fn;
+      const dupId = nextFnId();
       const dup = {
         ...definition,
-        id: `f${state.fnSeq}`,
+        id: dupId,
         name: fn.name ? `${fn.name}（副本）` : '',
-        colorSlot: state.fnSeq,
+        colorSlot: slotForFnId(dupId),
         explicitColor: null,
       };
-      state.fnSeq += 1;
       store.dispatch({ type: 'function/duplicate', payload: { sourceId: id, function: dup } });
       return;
     }

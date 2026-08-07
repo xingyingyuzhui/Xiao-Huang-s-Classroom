@@ -52,6 +52,7 @@ import { createDefaultGraphDocument } from './graph-document.js';
 import { createGraphStore } from './graph-store.js';
 import { createGraphHistory } from './graph-history.js';
 import { createGraphHistoryController } from './graph-history-controller.js';
+import { createGraphIdAllocator } from './graph-id-allocator.js';
 import { createGraphPersistence, createGraphPersistenceController } from './graph-persistence.js';
 import {
   alignFeatureLabelWidths,
@@ -140,7 +141,7 @@ export const MAIN_CURVE_FOLLOW_ID = 'graph:main';
  * }} FnRec
  */
 
-/** @type {{ board: any, curve: any, marks: any[], asy: any[], coeffs: any, startCoeffs: any, preset: string, ro: ResizeObserver | null, styleBind: any, userPoints: UserPointRec[], constructions: any[], constrSeq: number, toolStrip: any, toolPointer: { dispose: () => void } | null, toolPick: any, compass: { dispose: () => void } | null, notes: { dispose: () => void, isActive: () => boolean, setActive: (on: boolean) => void, redraw: () => void } | null, pointSeq: number, fXMin: number, fXMax: number, axisSettingsApplying: boolean, functions: FnRec[], activeFnId: string | null, fnSeq: number, editMode: boolean, themeHandle: any, escBound: boolean, graphStore: any, graphHistory: any, historyController: any, coeffTxTimer: any }} */
+/** @type {{ board: any, curve: any, marks: any[], asy: any[], coeffs: any, startCoeffs: any, preset: string, ro: ResizeObserver | null, styleBind: any, userPoints: UserPointRec[], constructions: any[], toolStrip: any, toolPointer: { dispose: () => void } | null, toolPick: any, compass: { dispose: () => void } | null, notes: { dispose: () => void, isActive: () => boolean, setActive: (on: boolean) => void, redraw: () => void } | null, fXMin: number, fXMax: number, axisSettingsApplying: boolean, functions: FnRec[], activeFnId: string | null, idAllocator: any, editMode: boolean, themeHandle: any, escBound: boolean, graphStore: any, graphHistory: any, historyController: any, coeffTxTimer: any }} */
 const state = {
   board: null,
   curve: null,
@@ -153,13 +154,11 @@ const state = {
   styleBind: null,
   userPoints: [],
   constructions: [],
-  constrSeq: 1,
   toolStrip: null,
   toolPointer: null,
   toolPick: null,
   compass: null,
   notes: null,
-  pointSeq: 1,
   fXMin: -10,
   fXMax: 10,
   axisSettingsApplying: false,
@@ -167,7 +166,7 @@ const state = {
   toolOneShot: false,
   functions: [],
   activeFnId: null,
-  fnSeq: 1,
+  idAllocator: null,
   editMode: false,
   themeHandle: null,
   escBound: false,
@@ -418,7 +417,7 @@ const pointsCtrl = createUserPointController({
   setRecords: (records) => {
     state.userPoints = records;
   },
-  nextId: () => `U${state.pointSeq++}`,
+  nextId: () => state.idAllocator?.nextPointId() || `U${Math.floor(Math.random() * 1e6)}`,
   getColors: colors,
   resolveFollowTarget,
   recomputeIntersection,
@@ -491,7 +490,7 @@ function makeDrawHost() {
     findFnByCurve: (curve) => state.functions.find((f) => f.curve === curve) || null,
     recomputeIntersection,
     createUserPoint,
-    nextConstrId: () => `C${state.constrSeq++}`,
+    nextConstrId: () => state.idAllocator?.nextConstructionId() || `C${Math.floor(Math.random() * 1e6)}`,
     listSnapTargets: () => listSnapTargets(),
     onChanged: () => {
       reregisterSelectable();
@@ -1550,6 +1549,7 @@ const {
   paintReadouts,
   syncSliders,
   store: () => state.graphStore,
+  idAllocator: () => state.idAllocator,
 });
 
 const pointLayer = createPointLayer({
@@ -1748,8 +1748,9 @@ export function initGraphUI() {
   }
 
   // 默认一条二次（无持久化文档时）
+  state.idAllocator = createGraphIdAllocator(loadedDoc);
   if (!state.functions.length) {
-    const id = `f${state.fnSeq++}`;
+    const id = state.idAllocator.nextFunctionId();
     state.functions.push(
       createPresetFunctionRecord({
         id,
@@ -2002,7 +2003,10 @@ export function initGraphUI() {
   // 项目：导入 / 导出 / 重置
   state.persistenceController = createGraphPersistenceController({
     persistence: state.graphPersistence,
-    store: () => state.graphStore,
+    store: () => ({
+      ...state.graphStore,
+      reseedAllocator: (doc) => state.idAllocator?.reseed(doc),
+    }),
     history: () => state.graphHistory,
     defaultDocument: () =>
       createDefaultGraphDocument({

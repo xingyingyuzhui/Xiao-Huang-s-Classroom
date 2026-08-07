@@ -313,7 +313,8 @@ export function createGraphPersistenceController(context) {
   }
 
   /**
-   * 导入：成功 → 替换文档 + 清空历史（不能 undo 回另一个项目）；失败不改变现状。
+   * 导入：成功 → 替换文档 + 清空历史（不能 undo 回另一个项目）+ 重 seed allocator；
+   * 失败（含 runtime 拒绝 replace）不改变 document/history/allocator。
    */
   async function importJson() {
     const text = await pickJsonFile();
@@ -323,8 +324,14 @@ export function createGraphPersistenceController(context) {
       await alert(result.message || '文件不是有效的函数画布项目', { title: '导入失败' });
       return;
     }
-    store().replaceDocument(result.document);
+    const replaceResult = store().replaceDocumentResult(result.document);
+    if (!replaceResult.ok) {
+      await alert('导入内容无法在当前画布中渲染，已取消导入', { title: '导入失败' });
+      return;
+    }
     history().clear();
+    store().reseedAllocator?.(replaceResult.document);
+    persistence.scheduleSave(replaceResult.document);
   }
 
   /** 导出：只读，不改变历史。 */
