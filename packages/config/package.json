@@ -1,0 +1,32 @@
+{
+  "name": "@xiaohuang/config",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    },
+    "./tsup": "./tsup/base.mjs",
+    "./eslint": "./eslint/base.mjs"
+  },
+  "files": [
+    "dist",
+    "tsup",
+    "eslint",
+    "tsconfig"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3"
+  }
+}
