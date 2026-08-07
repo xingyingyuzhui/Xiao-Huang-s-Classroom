@@ -689,6 +689,26 @@ function initGraphUI() {
   let fileChangeHandler = null;
   let fileReader = null;
   let filePickAborted = false;
+  /** 文件选择任务的唯一 resolve：保证 dispose/取消时 Promise 一定 settle */
+  let settleFilePick = null;
+  /** 统一 settle：同一任务只执行一次；清理 change listener/FileReader 后 resolve。 */
+  const settleFilePickOnce = (value) => {
+    if (!settleFilePick) return;
+    const resolve = settleFilePick;
+    settleFilePick = null;
+    const input = document.getElementById('mathGraphFileInput');
+    if (input && fileChangeHandler) input.removeEventListener('change', fileChangeHandler);
+    fileChangeHandler = null;
+    if (fileReader) {
+      try {
+        fileReader.abort?.();
+      } catch {
+        /* best-effort abort */
+      }
+      fileReader = null;
+    }
+    resolve(value);
+  };
   state.persistenceController = createGraphPersistenceController({
     persistence: state.graphPersistence,
     store: () => ({
@@ -704,37 +724,39 @@ function initGraphUI() {
     confirm: appConfirm,
     alert: (message, opts) => appAlert(message, opts),
     pickJsonFile: () => {
-      const input = /** @type {HTMLInputElement | null} */ (document.getElementById('mathGraphFileInput'));
-      if (!input) return Promise.resolve(null);
+      const input = document.getElementById('mathGraphFileInput');
+      if (!input || filePickAborted) return Promise.resolve(null);
+      // 只允许一个文件选择任务：取消前一个（resolve null + 清理 listener），
+      // 避免遗留多个 change listener 或永久 pending 的旧 Promise
+      if (settleFilePick) settleFilePickOnce(null);
       return new Promise((resolve) => {
-        if (filePickAborted) {
-          resolve(null);
-          return;
-        }
+        settleFilePick = resolve;
         const onChange = () => {
           if (fileChangeHandler) input.removeEventListener('change', fileChangeHandler);
           fileChangeHandler = null;
           const file = input.files?.[0];
           input.value = '';
-          if (!file) {
-            resolve(null);
-            return;
-          }
-          if (filePickAborted) {
-            resolve(null);
+          if (!file || filePickAborted) {
+            settleFilePickOnce(null);
             return;
           }
           const reader = new FileReader();
           fileReader = reader;
           reader.onload = () => {
-            if (filePickAborted) return;
+            // 已被 dispose/新任务接管：旧回调不 settle、不修改状态
+            if (fileReader !== reader) return;
             fileReader = null;
-            resolve(String(reader.result || ''));
+            settleFilePickOnce(String(reader.result || ''));
           };
           reader.onerror = () => {
-            if (filePickAborted) return;
+            if (fileReader !== reader) return;
             fileReader = null;
-            resolve(null);
+            settleFilePickOnce(null);
+          };
+          reader.onabort = () => {
+            if (fileReader !== reader) return;
+            fileReader = null;
+            settleFilePickOnce(null);
           };
           reader.readAsText(file, 'utf-8');
         };
@@ -775,18 +797,10 @@ function initGraphUI() {
     importBtn?.removeEventListener('click', onImportClick);
     exportBtn?.removeEventListener('click', onExportClick);
     resetBtn?.removeEventListener('click', onResetClick);
-    const input = document.getElementById('mathGraphFileInput');
-    if (input && fileChangeHandler) input.removeEventListener('change', fileChangeHandler);
-    fileChangeHandler = null;
     filePickAborted = true;
-    if (fileReader) {
-      try {
-        fileReader.abort?.();
-      } catch {
-        /* best-effort abort */
-      }
-      fileReader = null;
-    }
+    // 等待中的文件选择任务必须 settle（resolve null + 清理 listener/reader），
+    // importJson() 才不会永久 pending
+    settleFilePickOnce(null);
     for (const item of downloadUrls.splice(0)) {
       window.clearTimeout(item.timer);
       try {
@@ -848,37 +862,68 @@ function resizeGraph() {
   state.notes?.redraw?.();
 }
 
-/** 统一生命周期清理：disposer 栈逆序执行；幂等；单个失败不阻断其余。 */
+/**
+ * 统一生命周期清理：disposer 栈逆序执行；幂等；单个失败不阻断其余。
+ * 前置状态/事务收尾逐项容错；disposeAll 与状态归零无论如何都执行（finally）。
+ */
 function disposeGraph() {
   if (disposed) return;
-  curveRebuildTask.cancel();
-  if (coeffFrame != null) {
-    cancelAnimationFrame(coeffFrame);
-    coeffFrame = null;
-    flushCoeffFrame();
-  }
-  if (state.coeffTxTimer != null) {
-    window.clearTimeout(state.coeffTxTimer);
-    state.coeffTxTimer = null;
-    state.graphStore?.cancelTransaction();
-  }
-  hideAddPanel();
-  hideAiFnModal();
-  dismissBoardNotesMode();
-  setPointOptionHooks(null);
-  setStyleIntentBridge(null);
-  if (state.referenceCurve) {
+  const errors = [];
+  const guard = (label, fn) => {
     try {
-      state.board?.removeObject?.(state.referenceCurve);
-    } catch {
-      /* */
+      fn();
+    } catch (err) {
+      errors.push([label, err]);
     }
-    state.referenceCurve = null;
-    resetReferenceKey?.();
+  };
+
+  try {
+    // 必须在资源栈前处理的状态/事务收尾：任何一项抛错都记录并继续
+    guard('curveRebuildTask.cancel', () => curveRebuildTask.cancel());
+    guard('coeffFrame flush', () => {
+      if (coeffFrame != null) {
+        cancelAnimationFrame(coeffFrame);
+        coeffFrame = null;
+        flushCoeffFrame();
+      }
+    });
+    guard('transaction cancel', () => {
+      if (state.coeffTxTimer != null) {
+        window.clearTimeout(state.coeffTxTimer);
+        state.coeffTxTimer = null;
+        state.graphStore?.cancelTransaction();
+      }
+    });
+    guard('hideAddPanel', () => hideAddPanel());
+    guard('hideAiFnModal', () => hideAiFnModal());
+    guard('notes mode', () => dismissBoardNotesMode());
+    guard('point hooks', () => setPointOptionHooks(null));
+    guard('style bridge', () => setStyleIntentBridge(null));
+    if (state.referenceCurve) {
+      try {
+        state.board?.removeObject?.(state.referenceCurve);
+      } catch {
+        /* */
+      }
+      state.referenceCurve = null;
+      resetReferenceKey?.();
+    }
+    state.toolPick = null;
+  } catch (err) {
+    errors.push(['disposeGraph pre-cleanup', err]);
+  } finally {
+    try {
+      disposeAll();
+    } catch (err) {
+      errors.push(['disposeAll', err]);
+    }
+    resetState();
   }
-  state.toolPick = null;
-  disposeAll();
-  // 状态归零（board 由注册的 disposer 释放）
+  if (errors.length) console.error('[graph] dispose errors:', errors);
+}
+
+/** 状态归零（board 由注册的 disposer 释放）；与 disposeAll 解耦，保证无论如何执行。 */
+function resetState() {
   state.curve = null;
   state.marks = [];
   state.asy = [];

@@ -229,3 +229,128 @@ test('活动函数已切换的过期数值分析结果不更新 DOM', async () =
   assert.equal(elements.mathGraphFeatures.innerHTML.includes('分析中'), true);
   restore();
 });
+
+// ───────────────────────── dispose 真正取消数值分析 ─────────────────────────
+
+test('dispose 真正取消数值分析：取消函数恰好调用一次，numericRequest 置 null', async () => {
+  const ctx = await setup();
+  const { readouts, state, restore } = ctx;
+  state.functions = [customFn('f1')];
+  state.activeFnId = 'f1';
+  let cancels = 0;
+  state.numericRunner = {
+    analyze() {
+      return () => {
+        cancels += 1;
+      };
+    },
+  };
+  state.numericRequest = () => {};
+
+  readouts.paintReadouts();
+  assert.equal(typeof state.numericRequest, 'function', '分析任务已登记');
+  readouts.dispose();
+  assert.equal(cancels, 1, 'dispose 调用取消函数一次');
+  assert.equal(state.numericRequest, null, '取消后 numericRequest 置 null');
+  restore();
+});
+
+test('重复 dispose 不重复取消数值分析', async () => {
+  const ctx = await setup();
+  const { readouts, state, restore } = ctx;
+  state.functions = [customFn('f1')];
+  state.activeFnId = 'f1';
+  let cancels = 0;
+  state.numericRunner = {
+    analyze() {
+      return () => {
+        cancels += 1;
+      };
+    },
+  };
+  state.numericRequest = () => {};
+
+  readouts.paintReadouts();
+  readouts.dispose();
+  readouts.dispose();
+  readouts.dispose();
+  assert.equal(cancels, 1, '多次 dispose 只取消一次');
+  restore();
+});
+
+test('取消函数抛错不阻止 frame 取消与 disposed 状态', async () => {
+  const ctx = await setup();
+  const { readouts, scheduler, state, measureCount, restore } = ctx;
+  state.functions = [customFn('f1')];
+  state.activeFnId = 'f1';
+  state.numericRunner = {
+    analyze() {
+      return () => {
+        throw new Error('cancel exploded');
+      };
+    },
+  };
+  state.numericRequest = () => {};
+
+  readouts.paintReadouts();
+  assert.equal(scheduler.pending(), true, '分析中已调度测量 frame');
+  assert.doesNotThrow(() => readouts.dispose(), '取消函数抛错不外泄');
+  assert.equal(scheduler.pending(), false, 'frame 仍被取消');
+  assert.equal(state.numericRequest, null, 'numericRequest 仍置 null');
+  readouts.paintReadouts();
+  scheduler.runFrame();
+  assert.equal(measureCount(), 0, 'disposed 后测量不落 DOM');
+  restore();
+});
+
+test('reset 后可启动新的数值分析且结果正常落 DOM', async () => {
+  const ctx = await setup();
+  const { readouts, state, elements, restore } = ctx;
+  state.functions = [customFn('f1')];
+  state.activeFnId = 'f1';
+  let analyses = 0;
+  let captured = null;
+  state.numericRunner = {
+    analyze(opts) {
+      analyses += 1;
+      captured = opts;
+      return () => {};
+    },
+  };
+  state.numericRequest = () => {};
+
+  readouts.paintReadouts();
+  readouts.dispose();
+  readouts.reset();
+  readouts.paintReadouts();
+  assert.equal(analyses, 2, 'reset 后新挂载发起新分析');
+  captured.onResult({ ok: true, result: { zeros: [{ x: 3 }], extrema: [], discontinuities: [] } });
+  assert.equal(elements.mathGraphFeatures.innerHTML.includes('x≈3'), true, '新分析结果正常落 DOM');
+  restore();
+});
+
+test('旧挂载的分析回调不能覆盖 reset 后新分析的结果', async () => {
+  const ctx = await setup();
+  const { readouts, state, elements, restore } = ctx;
+  state.functions = [customFn('f1')];
+  state.activeFnId = 'f1';
+  const captured = [];
+  state.numericRunner = {
+    analyze(opts) {
+      captured.push(opts);
+      return () => {};
+    },
+  };
+  state.numericRequest = () => {};
+
+  readouts.paintReadouts(); // 旧挂载分析（gen 旧值）
+  readouts.dispose();
+  readouts.reset();
+  readouts.paintReadouts(); // 新挂载分析（同函数同 id）
+  captured[1].onResult({ ok: true, result: { zeros: [{ x: 5 }], extrema: [], discontinuities: [] } });
+  assert.equal(elements.mathGraphFeatures.innerHTML.includes('x≈5'), true, '新结果先落 DOM');
+  captured[0].onResult({ ok: true, result: { zeros: [{ x: 99 }], extrema: [], discontinuities: [] } });
+  assert.equal(elements.mathGraphFeatures.innerHTML.includes('x≈99'), false, '旧 generation 回调被丢弃');
+  assert.equal(elements.mathGraphFeatures.innerHTML.includes('x≈5'), true, 'DOM 保持新结果');
+  restore();
+});

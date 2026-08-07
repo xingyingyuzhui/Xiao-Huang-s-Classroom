@@ -80,6 +80,8 @@ function makeEnv() {
     urls: [],
     revokedUrls: [],
     disposedLog: [],
+    readers: [],
+    importPromises: [],
     rafSeq: 1,
     timerSeq: 1,
   };
@@ -131,13 +133,13 @@ function makeEnv() {
   globalThis.window = fakeWindow;
   globalThis.ResizeObserver = class {
     constructor(cb) {
-      env.observers.push({ cb, disconnected: false });
+      // 每个实例只标记自己，避免一次 disconnect 掩盖旧 observer 未销毁
+      this._entry = { cb, disconnected: false };
+      env.observers.push(this._entry);
     }
     observe() {}
     disconnect() {
-      env.observers.forEach((o) => {
-        o.disconnected = true;
-      });
+      this._entry.disconnected = true;
     }
   };
   globalThis.URL = {
@@ -153,6 +155,8 @@ function makeEnv() {
   globalThis.FileReader = class {
     constructor() {
       this.result = '';
+      this.aborted = false;
+      env.readers.push(this);
     }
     readAsText() {
       // 不触发 onload（模拟用户未完成选择）
@@ -306,12 +310,18 @@ async function makeController(overrides = {}) {
     }),
     createGraphHistoryController: () => ({ dispose: fakeDispose('historyController') }),
     createGraphPersistenceController: (ctx) => ({
-      importJson: async () => {
+      importJson: () => {
         calls.push('importJson');
-        if (ctx.pickJsonFile) {
-          const text = await ctx.pickJsonFile();
-          calls.push(`pick:${text}`);
-        }
+        const p = (async () => {
+          if (ctx.pickJsonFile) {
+            const text = await ctx.pickJsonFile();
+            calls.push(`pick:${text}`);
+            return text;
+          }
+          return null;
+        })();
+        env.importPromises.push(p);
+        return p;
       },
       exportJson: () => {
         calls.push('exportJson');
@@ -482,5 +492,201 @@ test('dispose 后异步回调不修改已销毁状态', async () => {
   // 模拟用户延迟选择文件（change 已在 dispose 时移除）
   const input = elements.get('mathGraphFileInput');
   assert.equal(input.listeners.change?.length || 0, 0);
+  restore();
+});
+
+// ───────────────────────── 文件选择 Promise settle 合同 ─────────────────────────
+
+test('文件选择：点击导入但不选择文件，dispose 后 Promise resolve null', async () => {
+  const { controller, env, elements, restore } = await makeController();
+  controller.initGraphUI();
+  elements.get('btnMathGraphImport').click();
+  const p = env.importPromises.at(-1);
+  controller.disposeGraph();
+  assert.equal(await p, null, 'dispose 后等待中的文件选择 Promise 被 settle 为 null');
+  assert.equal(elements.get('mathGraphFileInput').listeners.change?.length || 0, 0, 'change listener 已移除');
+  restore();
+});
+
+test('文件选择：FileReader 读取中 dispose → reader abort + Promise resolve null', async () => {
+  const { controller, env, elements, restore } = await makeController();
+  controller.initGraphUI();
+  const input = elements.get('mathGraphFileInput');
+  input.files = [{}]; // 模拟用户已选文件
+  elements.get('btnMathGraphImport').click();
+  const changeFn = input.listeners.change?.[0];
+  assert.ok(changeFn, 'pick 后应有 change listener');
+  changeFn({}); // 进入 FileReader 读取阶段
+  const reader = env.readers.at(-1);
+  assert.ok(reader, 'change 后应创建 FileReader');
+  const p = env.importPromises.at(-1);
+  controller.disposeGraph();
+  assert.equal(reader.aborted, true, 'dispose 时 abort 未完成的 FileReader');
+  assert.equal(await p, null, '读取中 dispose → Promise resolve null');
+  restore();
+});
+
+test('文件选择：dispose 后再触发旧 change/load/error 回调不重复 settle 不修改状态', async () => {
+  const { controller, env, elements, restore } = await makeController();
+  controller.initGraphUI();
+  const input = elements.get('mathGraphFileInput');
+  input.files = [{}];
+  elements.get('btnMathGraphImport').click();
+  const oldChange = input.listeners.change?.[0];
+  oldChange({});
+  const reader = env.readers.at(-1);
+  const p = env.importPromises.at(-1);
+  controller.disposeGraph();
+  assert.equal(await p, null, 'dispose 时 settle 一次');
+  // 旧回调在 dispose 后触发：不重复 settle、不重新绑定、不抛错
+  oldChange({});
+  reader.onload({});
+  reader.onerror({});
+  reader.onabort({});
+  assert.equal(input.listeners.change?.length || 0, 0, '旧 change 不重新绑定');
+  assert.equal(reader.aborted, true, 'reader 保持 aborted');
+  restore();
+});
+
+test('文件选择：重新 mount 后可发起新的文件选择并正常 resolve 文本', async () => {
+  const { controller, env, elements, restore } = await makeController();
+  controller.initGraphUI();
+  elements.get('btnMathGraphImport').click();
+  controller.disposeGraph();
+  await env.importPromises.at(-1); // 第一轮任务已 settle
+
+  controller.initGraphUI(); // 重新 mount
+  const input = elements.get('mathGraphFileInput');
+  input.files = [{ name: 'doc.json' }];
+  elements.get('btnMathGraphImport').click();
+  const changeFn = input.listeners.change?.[0];
+  assert.ok(changeFn, '重挂载后重新绑定 change listener');
+  const p = env.importPromises.at(-1);
+  changeFn({});
+  const reader = env.readers.at(-1);
+  reader.result = '{"functions":[]}';
+  reader.onload({});
+  assert.equal(await p, '{"functions":[]}', '新 mount 文件选择正常 resolve 文本');
+  restore();
+});
+
+test('文件选择：连续触发导入只保留一个 change listener，前一个任务被取消', async () => {
+  const { controller, env, elements, restore } = await makeController();
+  controller.initGraphUI();
+  elements.get('btnMathGraphImport').click();
+  elements.get('btnMathGraphImport').click(); // 第二次导入：取消前一个
+  assert.equal(
+    elements.get('mathGraphFileInput').listeners.change?.length || 0,
+    1,
+    '只保留一个 change listener',
+  );
+  assert.equal(await env.importPromises[0], null, '前一个任务被取消并 settle 为 null');
+  controller.disposeGraph();
+  assert.equal(await env.importPromises[1], null, '后一个任务在 dispose 时 settle');
+  restore();
+});
+
+// ───────────────────────── dispose 前置清理容错合同 ─────────────────────────
+
+test('dispose：curveRebuildTask.cancel 抛错，其余资源仍释放', async () => {
+  const { controller, env, elements, calls, restore } = await makeController({
+    curveRebuildTask: { cancel: () => { throw new Error('cancel exploded'); } },
+  });
+  controller.initGraphUI();
+  elements.get('btnMathGraphExport').click();
+  controller.disposeGraph();
+  assert.equal(calls.filter((c) => c === 'freeMathBoard').length, 1, 'board 仍释放');
+  assert.equal(env.revokedUrls.length, env.urls.length, 'object URL 仍 revoke');
+  assert.ok(env.observers.every((o) => o.disconnected), 'observer 仍 disconnect');
+  assert.equal(env.windowListeners.pagehide?.length || 0, 0, 'pagehide 仍移除');
+  assert.equal(elements.get('btnMathGraphExport').listeners.click?.length || 0, 0, '按钮 listener 仍移除');
+  restore();
+});
+
+test('dispose：flushCoeffFrame 抛错（dispatch 抛错），其余资源仍释放', async () => {
+  const { controller, env, elements, calls, state, restore } = await makeController({
+    createGraphStore: () => ({
+      getDocument: () => ({ functions: [], points: [], constructions: [] }),
+      subscribe: () => () => {},
+      dispose: () => {},
+      beginTransaction: () => {},
+      commitTransaction: () => {},
+      cancelTransaction: () => {},
+      dispatch: () => { throw new Error('dispatch exploded'); },
+    }),
+  });
+  controller.initGraphUI();
+  state.functions = [
+    { id: 'f1', kind: 'preset', preset: 'quadratic', coeffs: { a: 1, b: 0, c: 0 }, locked: false },
+  ];
+  state.activeFnId = 'f1';
+  controller.setCoeffs({ a: 5 }); // 登记 pendingCoeff + coeffFrame（fake RAF 不执行）
+  const rafsBefore = env.rafs.length;
+  assert.ok(rafsBefore >= 2, `setCoeffs 已登记 coeff frame（现有 ${rafsBefore} 个：firstFrame + coeffFrame）`);
+  controller.disposeGraph();
+  assert.equal(env.rafs.length, 0, 'coeff frame 与 firstFrame 均已取消');
+  assert.equal(calls.filter((c) => c === 'freeMathBoard').length, 1, 'flush 抛错后 board 仍释放');
+  restore();
+});
+
+test('dispose：cancelTransaction 抛错，其余资源仍释放', async () => {
+  const { controller, env, elements, calls, state, restore } = await makeController({
+    createGraphStore: () => ({
+      getDocument: () => ({ functions: [], points: [], constructions: [] }),
+      subscribe: () => () => {},
+      dispose: () => {},
+      beginTransaction: () => {},
+      commitTransaction: () => {},
+      cancelTransaction: () => { throw new Error('cancelTransaction exploded'); },
+    }),
+  });
+  controller.initGraphUI();
+  state.coeffTxTimer = 1; // 模拟挂起的 transaction debounce timer
+  controller.disposeGraph();
+  assert.equal(env.timers.length, 0, 'timer 清理仍执行');
+  assert.equal(calls.filter((c) => c === 'freeMathBoard').length, 1, 'cancelTransaction 抛错后 board 仍释放');
+  assert.equal(env.windowListeners.pagehide?.length || 0, 0, 'pagehide 仍移除');
+  restore();
+});
+
+test('dispose：弹窗/hook 清理抛错，board/observer/listener 仍释放', async () => {
+  const { controller, env, elements, calls, restore } = await makeController({
+    hideAddPanel: () => { throw new Error('hideAddPanel exploded'); },
+    hideAiFnModal: () => { throw new Error('hideAiFnModal exploded'); },
+    dismissBoardNotesMode: () => { throw new Error('notes mode exploded'); },
+    // 只在 dispose 清理（传 null）时抛错；initGraphUI 设置 hooks 必须正常
+    setPointOptionHooks: (arg) => {
+      if (arg === null) throw new Error('hooks exploded');
+    },
+    setStyleIntentBridge: (arg) => {
+      if (arg === null) throw new Error('bridge exploded');
+    },
+  });
+  controller.initGraphUI();
+  elements.get('btnMathGraphExport').click();
+  controller.disposeGraph();
+  assert.equal(calls.filter((c) => c === 'freeMathBoard').length, 1, 'freeMathBoard 仍执行');
+  assert.ok(env.observers.every((o) => o.disconnected), 'observer 仍 disconnect');
+  assert.equal(env.windowListeners.pagehide?.length || 0, 0, 'pagehide 仍移除');
+  assert.equal(env.revokedUrls.length, env.urls.length, 'URL 仍 revoke');
+  assert.equal(elements.get('btnMathGraphExport').listeners.click?.length || 0, 0, '按钮 listener 仍移除');
+  restore();
+});
+
+test('dispose 抛错后再次 dispose：不重复释放、不重复副作用', async () => {
+  const { controller, env, elements, calls, restore } = await makeController({
+    hideAddPanel: () => { throw new Error('hideAddPanel exploded'); },
+  });
+  controller.initGraphUI();
+  elements.get('btnMathGraphExport').click();
+  controller.disposeGraph();
+  const urlCount = env.urls.length;
+  const revokedCount = env.revokedUrls.length;
+  const freeCount = calls.filter((c) => c === 'freeMathBoard').length;
+  controller.disposeGraph();
+  controller.disposeGraph();
+  assert.equal(calls.filter((c) => c === 'freeMathBoard').length, freeCount, '不重复释放 board');
+  assert.equal(env.urls.length, urlCount, '不产生新 URL');
+  assert.equal(env.revokedUrls.length, revokedCount, '不重复 revoke');
   restore();
 });

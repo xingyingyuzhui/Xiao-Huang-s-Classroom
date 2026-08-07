@@ -43,6 +43,8 @@ export function createGraphReadouts(context) {
   const { getState, evalFnY, fnDisplayLabel, createFrameTask } = context;
   let disposed = false;
   let measureScheduled = false;
+  /** 挂载代数：dispose/reset 递增；旧挂载的分析回调（gen 落后）一律丢弃 */
+  let generation = 0;
   const measureLabels = () => {
     measureScheduled = false;
     if (disposed) return;
@@ -61,6 +63,7 @@ export function createGraphReadouts(context) {
   /** 自定义函数：异步数值特征分析（取消 + 缓存 + 数值近似标记）。 */
   function renderCustomNumericFeatures(fn, featuresEl) {
     const state = getState();
+    const gen = generation;
     if (!featuresEl) return;
     state.numericRequest?.();
     state.numericRequest = null;
@@ -83,7 +86,8 @@ export function createGraphReadouts(context) {
       interval: [xMin, xMax],
       resolveEvaluator: (rec) => (x) => evalFnY(rec, x),
       onResult: (outcome) => {
-        if (disposed) return;
+        // 过期回调（dispose 后 / 旧挂载代数 / 活动函数已切换）一律不更新 DOM
+        if (disposed || gen !== generation) return;
         const active = state.functions.find((f) => f.id === state.activeFnId) || state.functions[0] || null;
         if (active?.id !== fn.id) return;
         if (!outcome?.ok || !outcome.result) {
@@ -218,13 +222,25 @@ export function createGraphReadouts(context) {
     paintReadouts,
     renderProbeReadout,
     dispose() {
+      if (disposed) return;
       disposed = true;
+      generation += 1;
+      // 真正取消后台数值分析：先摘除任务再调用取消函数（抛错也已完成摘除）
+      try {
+        const state = getState();
+        const cancel = state.numericRequest;
+        state.numericRequest = null;
+        cancel?.();
+      } catch {
+        /* 取消函数抛错：记录由调用方处置，不阻断后续清理 */
+      }
       measureTask?.cancel?.();
     },
     /** 重挂载时重新武装（readouts 是模块级单例，跨 mount 复用） */
     reset() {
       disposed = false;
       measureScheduled = false;
+      generation += 1;
     },
   };
 }
