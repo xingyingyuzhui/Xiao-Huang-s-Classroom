@@ -16,6 +16,7 @@ const { initDatabase, closeDatabase, query, run, exec } = require(path.join(
   'apps/server/src/db/sqlite.js',
 ));
 const { applySeed } = require(path.join(root, 'apps/server/src/db/seed-versioning.js'));
+const { MAX_SCHEMA_VERSION } = require(path.join(root, 'apps/server/src/db/migrator.js'));
 
 function withDb(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-seed-test-'));
@@ -56,9 +57,9 @@ test('seed 幂等：同版本只应用一次，内容版本变化时重放', asy
 test('seed 与 migration 分离：seed 版本表独立于 schema version', async () => {
   await withDb(async () => {
     const v = query('PRAGMA user_version')[0];
-    assert.equal(v.user_version ?? v.value, 0, 'seed 应用不改 schema version');
+    assert.equal(v.user_version ?? v.value, MAX_SCHEMA_VERSION, 'seed 应用不改 schema version（保持迁移后的最新版本）');
     applySeed(db, 'quiz-bank', '2026-08-01', () => {});
     const v2 = query('PRAGMA user_version')[0];
-    assert.equal(v2.user_version ?? v2.value, 0, 'schema version 保持');
+    assert.equal(v2.user_version ?? v2.value, MAX_SCHEMA_VERSION, 'schema version 保持');
   });
 });

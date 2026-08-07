@@ -16,10 +16,30 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 
 /** 应用当前支持的 DB schema 最大版本（与 MIGRATIONS 编号一致）。 */
-const MAX_SCHEMA_VERSION = 0;
+const MAX_SCHEMA_VERSION = 1;
 
-/** 迁移注册表：按编号递增；expand 优先（先加表/列），破坏性删除至少延后一版。 */
-const MIGRATIONS = [];
+/**
+ * 迁移注册表：按编号递增；expand 优先（先加表/列），破坏性删除至少延后一版。
+ * 每个 migration：version/up/precondition/postcondition/backwardReadable。
+ */
+const MIGRATIONS = [
+  {
+    version: 1,
+    backwardReadable: true,
+    precondition: () => true,
+    up: `
+      CREATE TABLE IF NOT EXISTS app_meta (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+    `,
+    postcondition: (db) => {
+      const res = db.exec("SELECT name FROM sqlite_master WHERE type='table' AND name='app_meta'");
+      return Boolean(res && res.length && res[0].values && res[0].values.length);
+    },
+  },
+];
 
 /**
  * 读取当前 schema 版本。
@@ -106,6 +126,25 @@ function sha256File(filePath) {
   return hash.digest('hex');
 }
 
+/**
+ * sql.js 实例 → migrator db 接口适配（initDatabase 接入用）。
+ * @param {import('sql.js').Database} sqlJsDb
+ */
+function adaptSqlJsDb(sqlJsDb) {
+  return {
+    exec: (sql) => sqlJsDb.exec(sql),
+    queryOne(sql) {
+      const res = sqlJsDb.exec(sql);
+      if (!res || !res.length || !res[0].values || !res[0].values.length) return null;
+      const cols = res[0].columns;
+      const row = res[0].values[0];
+      const out = {};
+      for (let i = 0; i < cols.length; i += 1) out[cols[i]] = row[i];
+      return out;
+    },
+  };
+}
+
 module.exports = {
   MAX_SCHEMA_VERSION,
   MIGRATIONS,
@@ -114,4 +153,5 @@ module.exports = {
   backupDatabase,
   restoreDatabase,
   sha256File,
+  adaptSqlJsDb,
 };

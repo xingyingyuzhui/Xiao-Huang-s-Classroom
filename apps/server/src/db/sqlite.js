@@ -111,6 +111,19 @@ async function initDatabase(dbFilePath) {
     const initSQL = fs.readFileSync(initSqlFile, 'utf-8');
     db.run(initSQL);
 
+    // 迁移（R5.2）：真实 versioned migration，升级前 checksum backup；
+    // 高版本 DB 拒绝写入（只读失败）。失败原子回滚，不留部分修改。
+    const { migrateToLatest, backupDatabase, adaptSqlJsDb, readSchemaVersion, MAX_SCHEMA_VERSION } = require('./migrator');
+    const beforeVersion = readSchemaVersion(adaptSqlJsDb(db));
+    if (fs.existsSync(dbPath) && fs.statSync(dbPath).size > 0 && beforeVersion < MAX_SCHEMA_VERSION) {
+      // 既有库（含 version=0 旧库）将升级：先创建 checksum backup
+      backupDatabase(dbPath);
+    }
+    const migration = migrateToLatest(adaptSqlJsDb(db));
+    if (!migration.ok) {
+      throw new Error(`数据库迁移失败（${migration.reason}）：请升级应用或恢复备份`);
+    }
+
     try {
       db.run('PRAGMA foreign_keys = ON');
     } catch (e) {
