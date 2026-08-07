@@ -47,7 +47,11 @@ if (snapshot) {
   fs.mkdirSync(path.dirname(snapshotFile), { recursive: true });
   fs.writeFileSync(
     snapshotFile,
-    JSON.stringify({ capturedAt: new Date().toISOString(), total: current.total, perRule: current.perRule }, null, 2) + '\n',
+    JSON.stringify(
+      { capturedAt: new Date().toISOString(), total: current.total, perRule: current.perRule },
+      null,
+      2,
+    ) + '\n',
   );
   console.log(`[lint-baseline] snapshot 已记录：total=${current.total}`);
   process.exit(0);

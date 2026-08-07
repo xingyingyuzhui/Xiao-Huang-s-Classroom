@@ -1,0 +1,9 @@
+node_modules
+dist
+dist-electron
+dist-exe
+.electron-stage
+apps/server/public
+apps/server/data
+apps/server/src/data
+package-lock.json

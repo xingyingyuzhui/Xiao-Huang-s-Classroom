@@ -34,9 +34,11 @@
     "lint": "eslint \"scripts/**/*.mjs\" \"packages/**/*.js\" \"test/shared/*.cjs\"",
     "lint:all": "eslint .",
     "lint:baseline": "node scripts/lint-baseline.mjs",
-    "format": "echo 'format: 待 Program 1 Task 1.4 接入 prettier' && exit 0",
-    "format:check": "echo 'format:check: 待 Program 1 Task 1.4 接入 prettier' && exit 0",
-    "quality": "npm test && npm run build"
+    "format": "prettier --write \".prettierrc.json\" \"tsconfig*.json\" \"tooling/**/*.json\" \"docs/engineering/**/*.md\" \"scripts/*.mjs\"",
+    "format:check": "prettier --check \".prettierrc.json\" \"tsconfig*.json\" \"tooling/**/*.json\" \"docs/engineering/**/*.md\" \"scripts/*.mjs\"",
+    "quality": "npm test && npm run build",
+    "lint:css": "stylelint \"packages/**/*.css\" \"apps/web/src/dev/**/*.css\"",
+    "lint:css:all": "stylelint \"apps/web/src/shared/styles/**/*.css\""
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
