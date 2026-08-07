@@ -1,20 +1,39 @@
 /**
- * 功能模块按需加载器（Program 4 Task 4.3：与 @xiaohuang/subject-kit
- * FeatureLoader 协议对齐的 web adapter）。
+ * Web feature loader（R4.2）：@xiaohuang/subject-kit FeatureLoader 的薄适配。
  *
- * - 缓存：同一功能只加载一次；并发请求只触发一次 import。
- * - 失败清缓存：允许下次重试。
- * - status：idle/loading/ready/error（对齐 subject-kit FeatureLoaderStatus）。
- * - disposeAll：清空缓存与状态（测试/卸载）。
+ * 唯一核心是 subject-kit（并发去重 / mount generation / 旧实例 dispose /
+ * retry / loading-error 状态 / disposeAll）；本模块只做两件事：
+ * 1. factory → FeatureModule 适配（web 语义：factory 返回模块命名空间）。
+ * 2. mod 缓存：首次 factory 成功后的模块对象复用（r1.mod === r2.mod）。
  *
  * 过期保护（快速切 Tab）由 main.js 的 switchSeq 负责，
  * 不要用「全局 load 序号」判断过期——否则 A→B→A 再进会误判 stale。
  */
+import { createFeatureLoader as createKitLoader } from '@xiaohuang/subject-kit';
+
 export function createFeatureLoader() {
-  /** @type {Map<string, Promise<{ mod: any }>>} */
-  const cache = new Map();
-  /** @type {Map<string, 'idle' | 'loading' | 'ready' | 'error'>} */
-  const statuses = new Map();
+  /** factory 注册表（load(name, factory) 语义） */
+  const factories = new Map();
+  /** 模块缓存：factory 成功后的命名空间对象（适配层，非 loader 核心） */
+  const modCache = new Map();
+
+  const kit = createKitLoader({
+    root: () => null,
+    load: async (name) => {
+      const factory = factories.get(name);
+      if (!factory) {
+        throw new Error(`未注册 factory: ${name}`);
+      }
+      return {
+        async mount() {
+          if (!modCache.has(name)) {
+            modCache.set(name, await factory());
+          }
+          return { mod: modCache.get(name), mount() {}, dispose() {} };
+        },
+      };
+    },
+  });
 
   return {
     /**
@@ -22,50 +41,38 @@ export function createFeatureLoader() {
      * @param {() => Promise<any>} factory
      * @returns {Promise<{ mod: any }>}
      */
-    load(name, factory) {
-      if (cache.has(name)) {
-        return /** @type {Promise<{ mod: any }>} */ (cache.get(name));
-      }
-      statuses.set(name, 'loading');
-      const p = factory()
-        .then((mod) => {
-          statuses.set(name, 'ready');
-          return { mod };
-        })
-        .catch((err) => {
-          cache.delete(name);
-          statuses.set(name, 'error');
-          throw err;
-        });
-      cache.set(name, p);
-      return p;
+    async load(name, factory) {
+      factories.set(name, factory);
+      const controller = await kit.load(name);
+      return { mod: /** @type {any} */ (controller).mod };
     },
 
     /** 是否已有进行中或已完成的加载（含失败重试前的缓存） */
     has(name) {
-      return cache.has(name);
+      return factories.has(name) || kit.getStatus(name) !== 'idle';
     },
 
-    /** 加载状态（对齐 subject-kit FeatureLoaderStatus） */
+    /** 加载状态（subject-kit FeatureLoaderStatus） */
     getStatus(name) {
-      return statuses.get(name) ?? 'idle';
+      return kit.getStatus(name);
     },
 
     /** 测试 / 调试：强制清缓存 */
     clear(name) {
       if (name == null) {
-        cache.clear();
-        statuses.clear();
+        factories.clear();
+        modCache.clear();
       } else {
-        cache.delete(name);
-        statuses.delete(name);
+        factories.delete(name);
+        modCache.delete(name);
       }
     },
 
-    /** 清空全部缓存与状态（卸载/测试） */
+    /** 释放全部实例（subject-kit disposeAll + 适配层缓存清理） */
     disposeAll() {
-      cache.clear();
-      statuses.clear();
+      kit.disposeAll();
+      factories.clear();
+      modCache.clear();
     },
   };
 }
