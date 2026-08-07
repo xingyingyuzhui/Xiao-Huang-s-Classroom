@@ -106,7 +106,7 @@ test('v1 GET 端点合同：URL/状态码/响应字段冻结', async () => {
     const cases = [
       { url: '/api/settings', expect: (j) => Array.isArray(j) || typeof j === 'object' },
       { url: '/api/labs', expect: (j) => Array.isArray(j?.data?.labs), shape: 'data.labs[]' },
-      { url: '/api/offline-quiz/years', expect: (j) => Array.isArray(j.years) || Array.isArray(j) },
+      { url: '/api/offline-quiz/years', expect: (j) => Array.isArray(j?.data?.years), shape: 'data.years[]' },
       { url: '/api/lesson-packs', expect: () => true },
     ];
     for (const c of cases) {
