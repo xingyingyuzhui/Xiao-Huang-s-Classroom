@@ -549,6 +549,7 @@ html[data-theme='blackboard'] .bookshelf-detail-status {
 /* 像素：硬边半透面板 · 无大圆角 */
 html[data-theme='pixel'] .bookshelf-detail {
   --detail-card-bg: color-mix(in srgb, #1a2228 78%, transparent);
+  --detail-card-bg-deep: #1e272e;
   --detail-card-border: #2f3542;
   --detail-card-glow: transparent;
   --detail-ink: #f1f5f9;
@@ -560,11 +561,11 @@ html[data-theme='pixel'] .bookshelf-detail {
   --detail-blur: 0px;
   border-width: 3px;
   box-shadow:
-    6px 6px 0 #2f3542,
+    6px 6px 0 var(--detail-card-border),
     0 22px 40px rgba(0, 0, 0, 0.28);
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
-  background: color-mix(in srgb, #1e272e 86%, transparent);
+  background: color-mix(in srgb, var(--detail-card-bg-deep) 86%, transparent);
   animation: none;
 }
 
@@ -573,10 +574,11 @@ html[data-theme='pixel'] body.detail-open .bookshelf-detail {
 }
 
 html[data-theme='pixel'] .bookshelf-detail-actions {
+  --detail-actions-bg: #0f1418;
   border-radius: 0;
-  border: 2px solid #2f3542;
-  box-shadow: 4px 4px 0 #2f3542;
-  background: color-mix(in srgb, #0f1418 70%, transparent);
+  border: 2px solid var(--detail-card-border);
+  box-shadow: 4px 4px 0 var(--detail-card-border);
+  background: color-mix(in srgb, var(--detail-actions-bg) 70%, transparent);
 }
 
 html[data-theme='pixel'] .bookshelf-enter,
@@ -676,11 +678,12 @@ html[data-theme='stationery'] .subject-hub::before {
 }
 
 html[data-theme='stationery'] .bookshelf-hero-word span {
+  --brand-ink: #fff6e8;
   font-family: 'Noto Serif SC', 'Songti SC', 'SimSun', serif;
   font-weight: 700;
   font-size: min(17.2vw, 25.2vh);
   letter-spacing: 0.16em;
-  color: #fff6e8;
+  color: var(--brand-ink);
   -webkit-text-stroke: 0;
   text-shadow: none;
   filter: none;
@@ -705,12 +708,15 @@ html[data-theme='reagent'] .subject-hub::before {
 }
 
 html[data-theme='reagent'] .bookshelf-hero-word span {
+  --brand-ink: #fffcf7;
+  --brand-stroke-a: #b45309;
+  --brand-stroke-b: #7c2d12;
   font-family: 'Noto Sans SC', 'IBM Plex Mono', 'PingFang SC', sans-serif;
   font-weight: 700;
   font-size: min(16.4vw, 24vh);
   letter-spacing: 0.28em;
-  color: #fffcf7;
-  -webkit-text-stroke: 1px color-mix(in srgb, #b45309 70%, #7c2d12);
+  color: var(--brand-ink);
+  -webkit-text-stroke: 1px color-mix(in srgb, var(--brand-stroke-a) 70%, var(--brand-stroke-b));
   text-shadow: none;
   filter: none;
 }
@@ -737,11 +743,12 @@ html[data-theme='blackboard'] .subject-hub::before {
 }
 
 html[data-theme='blackboard'] .bookshelf-hero-word span {
+  --brand-ink: #f0d060;
   font-family: 'Ma Shan Zheng', 'Noto Sans SC', cursive;
   font-weight: 400;
   font-size: min(19vw, 27.5vh);
   letter-spacing: 0.1em;
-  color: #f0d060;
+  color: var(--brand-ink);
   -webkit-text-stroke: 0;
   text-shadow: none;
   filter: none;
