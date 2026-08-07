@@ -23,12 +23,10 @@ export function setText(el: HTMLElement, text: string): void {
   el.textContent = text;
 }
 
-/** 状态 class 应用（is-disabled/is-loading/is-error）。 */
-export function applyStates(
-  el: HTMLElement,
-  props: Pick<BaseProps, 'disabled' | 'loading' | 'error'>,
-): void {
+/** 状态 class 应用（is-disabled/is-loading）。
+ *  注意：is-error 不由这里管理——error 状态类与组件自身 kind/error 语义
+ *  （如 StatusProps.kind='error'）冲突，由各组件显式控制。 */
+export function applyStates(el: HTMLElement, props: Pick<BaseProps, 'disabled' | 'loading'>): void {
   el.classList.toggle('is-disabled', Boolean(props.disabled));
   el.classList.toggle('is-loading', Boolean(props.loading));
-  el.classList.toggle('is-error', Boolean(props.error));
 }

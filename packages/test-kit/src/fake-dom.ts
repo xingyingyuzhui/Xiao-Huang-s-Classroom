@@ -6,6 +6,7 @@ export interface FakeElement {
   id: string;
   className: string;
   hidden: boolean;
+  children: unknown[];
   value: string;
   checked: boolean;
   textContent: string;
@@ -16,6 +17,8 @@ export interface FakeElement {
   removeAttribute(name: string): void;
   getAttribute(name: string): string | null;
   remove(): void;
+  appendChild(child: unknown): void;
+  replaceChildren(...children: unknown[]): void;
   classList: {
     classes: Set<string>;
     add(...names: string[]): void;
@@ -36,6 +39,7 @@ export function makeFakeElement(id: string): FakeElement {
     id,
     className: '',
     hidden: false,
+    children: [],
     value: '',
     checked: false,
     textContent: '',
@@ -54,6 +58,12 @@ export function makeFakeElement(id: string): FakeElement {
         : null;
     },
     remove() {},
+    appendChild(child) {
+      el.children.push(child);
+    },
+    replaceChildren(...children) {
+      el.children = [...children];
+    },
     classList: {
       classes: new Set<string>(),
       add(...names) {
