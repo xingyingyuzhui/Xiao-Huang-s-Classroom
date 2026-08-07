@@ -1,0 +1,462 @@
+[
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#f5fffd"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#ccc"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#f5f5f5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#8a3d00"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#fff0a8"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#432000"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#f0a100"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#9a3500"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#f5f3ef"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#e0e0e0"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#e8f5e9"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#4caf50"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_ai-classroom.css",
+    "color": "#fff3e0"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_app-dialog.css",
+    "color": "#dc2626"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_app-dialog.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_balance-script.css",
+    "color": "#e5e5e5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_balance-script.css",
+    "color": "#f0f4f8"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_balance-script.css",
+    "color": "#ecfdf5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_balance-script.css",
+    "color": "#059669"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_balance-script.css",
+    "color": "#fef2f2"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_balance-script.css",
+    "color": "#dc2626"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_classroom-extra.css",
+    "color": "#f0eeea"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_classroom-extra.css",
+    "color": "#2e7d32"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_classroom-extra.css",
+    "color": "#e8f5e9"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_classroom-extra.css",
+    "color": "#fffaf5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_element-battle/base.css",
+    "color": "#ef4444"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_element-battle/board.css",
+    "color": "#000"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_element-battle/board.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_element-battle/fx.css",
+    "color": "#ef4444"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_element-battle/fx.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_element-battle/hand.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_element-battle/hub.css",
+    "color": "#000"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_element-battle/hub.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_forms.css",
+    "color": "#fffaf5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_forms.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_layout.css",
+    "color": "#888"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_layout.css",
+    "color": "#f7f5f0"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#b45309"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#0f766e"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#b91c1c"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#ccfbf1"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#f4f4f4"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#1c1917"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#000"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#a8a29e"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#c2410c"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#15803d"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#1d4ed8"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#7c3aed"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#e11d48"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#fde68a"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#ccc"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#dc2626"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#fee2e2"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#fecaca"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#991b1b"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_math-classroom.css",
+    "color": "#fffaf5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule-3d.css",
+    "color": "#fffaf5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule-3d.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule-reactions.css",
+    "color": "#fffaf5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule-reactions.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule-reactions.css",
+    "color": "#b91c1c"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule-reactions.css",
+    "color": "#b45309"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule-reactions.css",
+    "color": "#047857"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule-reactions.css",
+    "color": "#0369a1"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_molecule.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_periodic-table.css",
+    "color": "#f5fffd"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_periodic-table.css",
+    "color": "#64748b"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_periodic-table.css",
+    "color": "#475569"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_periodic-table.css",
+    "color": "#94a3b8"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#0a1220"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#93c5fd"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#0c1628"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#ffffff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#f4f7fb"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#e8f0ff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#000"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#061018"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#1a2140"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#f8fafc"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#2a1810"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#f2e0c4"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#c23b22"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#fff6e8"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#f0d8b0"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#1c1610"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#e8d4a8"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#b45309"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#fffcf7"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#0c1a14"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#7ec8c0"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#f0d060"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#eef6f0"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#d8ebe0"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#1a2228"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#2f3542"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#f1f5f9"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#e2e8f0"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#94a3b8"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#ff6b81"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#1e272e"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#0f1418"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#1a120e"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#161310"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#7c2d12"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#0a1713"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_subject-hub.css",
+    "color": "#1dd1a1"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_topbar.css",
+    "color": "#8a5a10"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_topbar.css",
+    "color": "#c9a227"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_topbar.css",
+    "color": "#fff"
+  },
+  {
+    "file": "apps/web/src/shared/styles/_topbar.css",
+    "color": "#fffaf5"
+  },
+  {
+    "file": "apps/web/src/shared/styles/tokens/_shared.css",
+    "color": "#ffffff"
+  }
+]

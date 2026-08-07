@@ -154,11 +154,7 @@ html[data-shell='lab'] .subject-hub {
   background-color: var(--hub-bg-fallback);
   /* 背景略压四周/整体，让书成为更亮的主体 */
   background-image:
-    radial-gradient(
-      72% 68% at 50% 48%,
-      rgba(255, 255, 255, 0) 30%,
-      rgba(12, 22, 40, 0.22) 100%
-    ),
+    radial-gradient(72% 68% at 50% 48%, rgba(255, 255, 255, 0) 30%, rgba(12, 22, 40, 0.22) 100%),
     linear-gradient(
       180deg,
       rgba(8, 16, 32, 0.08) 0%,
@@ -270,16 +266,11 @@ body.transit .bookshelf-hero-word {
   width: min(520px, 42vw);
   max-width: calc(100vw - 2rem);
   box-sizing: border-box;
-  padding: clamp(1.35rem, 2.4vw, 1.85rem) clamp(1.4rem, 2.6vw, 2rem)
-    clamp(1.25rem, 2.2vw, 1.65rem);
+  padding: clamp(1.35rem, 2.4vw, 1.85rem) clamp(1.4rem, 2.6vw, 2rem) clamp(1.25rem, 2.2vw, 1.65rem);
   border-radius: var(--detail-radius);
   border: 1px solid var(--detail-card-border);
   background:
-    linear-gradient(
-      145deg,
-      color-mix(in srgb, #ffffff 10%, transparent) 0%,
-      transparent 42%
-    ),
+    linear-gradient(145deg, color-mix(in srgb, #ffffff 10%, transparent) 0%, transparent 42%),
     var(--detail-card-bg);
   -webkit-backdrop-filter: blur(var(--detail-blur)) saturate(1.2);
   backdrop-filter: blur(var(--detail-blur)) saturate(1.2);
@@ -655,11 +646,7 @@ html[data-theme='default'] .subject-hub,
 html[data-theme='default'] .subject-hub::before,
 :root:not([data-theme]) .subject-hub::before {
   background-image:
-    radial-gradient(
-      72% 68% at 50% 48%,
-      rgba(255, 255, 255, 0) 30%,
-      rgba(4, 8, 18, 0.22) 100%
-    ),
+    radial-gradient(72% 68% at 50% 48%, rgba(255, 255, 255, 0) 30%, rgba(4, 8, 18, 0.22) 100%),
     linear-gradient(
       180deg,
       rgba(8, 16, 32, 0.08) 0%,
@@ -677,11 +664,7 @@ html[data-theme='stationery'] .subject-hub {
 
 html[data-theme='stationery'] .subject-hub::before {
   background-image:
-    radial-gradient(
-      72% 68% at 50% 48%,
-      rgba(255, 255, 255, 0) 30%,
-      rgba(20, 12, 8, 0.28) 100%
-    ),
+    radial-gradient(72% 68% at 50% 48%, rgba(255, 255, 255, 0) 30%, rgba(20, 12, 8, 0.28) 100%),
     linear-gradient(
       180deg,
       rgba(8, 16, 32, 0.08) 0%,
@@ -710,11 +693,7 @@ html[data-theme='reagent'] .subject-hub {
 
 html[data-theme='reagent'] .subject-hub::before {
   background-image:
-    radial-gradient(
-      72% 68% at 50% 48%,
-      rgba(255, 255, 255, 0) 30%,
-      rgba(16, 12, 8, 0.28) 100%
-    ),
+    radial-gradient(72% 68% at 50% 48%, rgba(255, 255, 255, 0) 30%, rgba(16, 12, 8, 0.28) 100%),
     linear-gradient(
       180deg,
       rgba(8, 16, 32, 0.08) 0%,
@@ -746,11 +725,7 @@ html[data-theme='blackboard'] .subject-hub {
 
 html[data-theme='blackboard'] .subject-hub::before {
   background-image:
-    radial-gradient(
-      72% 68% at 50% 48%,
-      rgba(255, 255, 255, 0) 30%,
-      rgba(6, 16, 12, 0.3) 100%
-    ),
+    radial-gradient(72% 68% at 50% 48%, rgba(255, 255, 255, 0) 30%, rgba(6, 16, 12, 0.3) 100%),
     linear-gradient(
       180deg,
       rgba(8, 16, 32, 0.08) 0%,
@@ -779,11 +754,7 @@ html[data-theme='pixel'] .subject-hub {
 
 html[data-theme='pixel'] .subject-hub::before {
   background-image:
-    radial-gradient(
-      72% 68% at 50% 48%,
-      rgba(255, 255, 255, 0) 30%,
-      rgba(12, 16, 20, 0.28) 100%
-    ),
+    radial-gradient(72% 68% at 50% 48%, rgba(255, 255, 255, 0) 30%, rgba(12, 16, 20, 0.28) 100%),
     linear-gradient(
       180deg,
       rgba(8, 16, 32, 0.08) 0%,
@@ -800,14 +771,17 @@ html[data-theme='pixel'] .bookshelf-hero-word::after {
 }
 
 html[data-theme='pixel'] .bookshelf-hero-word span {
-  /* 无底色：粗黑体 + 炭黑八向硬描边 + 青绿硬落影（无光晕） */
+  /* 无底色：粗黑体 + 炭黑八向硬描边 + 青绿硬落影（无光晕）；主题色走语义变量 */
+  --brand-outline: #2f3542;
+  --brand-accent-outline: #1dd1a1;
+  --brand-ink: #ff6b81;
   display: block;
   font-family: 'Noto Sans SC', 'IBM Plex Mono', sans-serif;
   font-weight: 900;
   font-size: min(17.9vw, 26.4vh);
   letter-spacing: 0.14em;
   line-height: 0.95;
-  color: #ff6b81;
+  color: var(--brand-ink);
   padding: 0;
   margin: 0;
   background: none;
@@ -815,15 +789,15 @@ html[data-theme='pixel'] .bookshelf-hero-word span {
   border-radius: 0;
   -webkit-text-stroke: 0;
   text-shadow:
-    -3px 0 0 #2f3542,
-    3px 0 0 #2f3542,
-    0 -3px 0 #2f3542,
-    0 3px 0 #2f3542,
-    -3px -3px 0 #2f3542,
-    3px -3px 0 #2f3542,
-    -3px 3px 0 #2f3542,
-    3px 3px 0 #2f3542,
-    6px 6px 0 #1dd1a1;
+    -3px 0 0 var(--brand-outline),
+    3px 0 0 var(--brand-outline),
+    0 -3px 0 var(--brand-outline),
+    0 3px 0 var(--brand-outline),
+    -3px -3px 0 var(--brand-outline),
+    3px -3px 0 var(--brand-outline),
+    -3px 3px 0 var(--brand-outline),
+    3px 3px 0 var(--brand-outline),
+    6px 6px 0 var(--brand-accent-outline);
   box-shadow: none;
   image-rendering: pixelated;
   filter: none;
@@ -903,6 +877,9 @@ html[data-theme='pixel'] .bookshelf-hero-word span {
   }
 
   html[data-theme='pixel'] .bookshelf-hero-word span {
+    /* 主题分支只声明语义变量；使用处统一 var()（主题令牌门禁） */
+    --brand-outline: #2f3542;
+    --brand-accent-outline: #1dd1a1;
     font-size: min(18.7vw, 21.8vh);
     letter-spacing: 0.1em;
     padding: 0;
@@ -910,17 +887,16 @@ html[data-theme='pixel'] .bookshelf-hero-word span {
     background: none;
     box-shadow: none;
     text-shadow:
-      -2px 0 0 #2f3542,
-      2px 0 0 #2f3542,
-      0 -2px 0 #2f3542,
-      0 2px 0 #2f3542,
-      -2px -2px 0 #2f3542,
-      2px -2px 0 #2f3542,
-      -2px 2px 0 #2f3542,
-      2px 2px 0 #2f3542,
-      4px 4px 0 #1dd1a1;
+      -2px 0 0 var(--brand-outline),
+      2px 0 0 var(--brand-outline),
+      0 -2px 0 var(--brand-outline),
+      0 2px 0 var(--brand-outline),
+      -2px -2px 0 var(--brand-outline),
+      2px -2px 0 var(--brand-outline),
+      -2px 2px 0 var(--brand-outline),
+      2px 2px 0 var(--brand-outline),
+      4px 4px 0 var(--brand-accent-outline);
   }
-
 }
 
 @media (prefers-reduced-motion: reduce) {

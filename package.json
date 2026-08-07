@@ -40,7 +40,8 @@
     "lint:css": "stylelint \"packages/**/*.css\" \"apps/web/src/dev/**/*.css\"",
     "lint:css:all": "stylelint \"apps/web/src/shared/styles/**/*.css\"",
     "lint:arch": "node tooling/architecture/check-dependencies.mjs",
-    "pkg:smoke": "node scripts/pkg-smoke.mjs"
+    "pkg:smoke": "node scripts/pkg-smoke.mjs",
+    "lint:theme-tokens": "node tooling/architecture/check-theme-tokens.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
