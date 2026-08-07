@@ -10,24 +10,24 @@
 
 ## 迁移顺序（按依赖序，R8）
 
-| 批次 | 范围 | 数量 | 删除条件 |
-|---|---|---|---|
-| B1 | server 纯 domain/repository/service（先 settings 样板） | ~15 | tsup CJS 产物被 index.js 引用 |
-| B2 | server route 与 composition | ~36 | 全部 route 迁移后 src/index.js 换 dist 入口 |
-| B3 | Electron main/preload | 2 | tsup CJS 产物被 electron-builder 引用 |
-| B4 | web shared contracts/controller | ~30 | Vite 原生支持 TS |
-| B5 | subject/classroom shell | ~25 | manifest/loader 消费方迁移 |
-| B6 | 化学与数学非视觉纯逻辑 | ~90 | 行为合同测试通过后逐模块 |
-| B7 | Three.js/JSXGraph adapter | ~20 | 集中 adapter 隔离后 |
+| 批次 | 范围                                                    | 数量 | 删除条件                                    |
+| ---- | ------------------------------------------------------- | ---- | ------------------------------------------- |
+| B1   | server 纯 domain/repository/service（先 settings 样板） | ~15  | tsup CJS 产物被 index.js 引用               |
+| B2   | server route 与 composition                             | ~36  | 全部 route 迁移后 src/index.js 换 dist 入口 |
+| B3   | Electron main/preload                                   | 2    | tsup CJS 产物被 electron-builder 引用       |
+| B4   | web shared contracts/controller                         | ~30  | Vite 原生支持 TS                            |
+| B5   | subject/classroom shell                                 | ~25  | manifest/loader 消费方迁移                  |
+| B6   | 化学与数学非视觉纯逻辑                                  | ~90  | 行为合同测试通过后逐模块                    |
+| B7   | Three.js/JSXGraph adapter                               | ~20  | 集中 adapter 隔离后                         |
 
 ## 保留为 JS 的第三方桥/工具（最终 allowlist 允许）
 
-| 文件 | 原因 | owner | 删除条件 |
-|---|---|---|---|
-| apps/desktop/main.cjs（迁移前） | Electron 权威入口 | desktop | B3 完成后删除 |
-| scripts/*.mjs | 构建/工具脚本（Node 直跑） | tooling | 无（工具脚本允许） |
-| tooling/**/*.mjs | 门禁脚本 | tooling | 无（工具脚本允许） |
-| test/**/*.cjs | node:test 套件（Vitest 目录迁移后删除） | test | 对应目录迁移完成 |
+| 文件                            | 原因                                    | owner   | 删除条件           |
+| ------------------------------- | --------------------------------------- | ------- | ------------------ |
+| apps/desktop/main.cjs（迁移前） | Electron 权威入口                       | desktop | B3 完成后删除      |
+| scripts/*.mjs                   | 构建/工具脚本（Node 直跑）              | tooling | 无（工具脚本允许） |
+| tooling/**/*.mjs                | 门禁脚本                                | tooling | 无（工具脚本允许） |
+| test/**/*.cjs                   | node:test 套件（Vitest 目录迁移后删除） | test    | 对应目录迁移完成   |
 
 ## 纪律
 

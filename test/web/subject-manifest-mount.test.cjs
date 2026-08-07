@@ -13,11 +13,10 @@ const root = require('../helpers/repo-root.js');
 async function load(rel) {
   return import(pathToFileURL(path.join(root, rel)).href);
 }
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const unused = null;
 
 test('CLASSROOM_FACTORIES 是 registry 公开导出（manifest 引用有效）', async () => {
-  const registry = await import(
-    pathToFileURL(path.join(root, 'apps/web/src/subjects/classrooms/registry.js')).href
-  ).catch(() => null);
   // registry 顶层连带 HTML 无法在 Node 加载——验证导出声明存在于源码
   const src = require('node:fs').readFileSync(
     path.join(root, 'apps/web/src/subjects/classrooms/registry.js'),
@@ -43,7 +42,6 @@ test('manifest 工厂清单与 registry 声明一致（防漂移）', () => {
     'utf8',
   );
   const manifest = fs.readFileSync(path.join(root, 'apps/web/src/subjects/manifest.js'), 'utf8');
-  const regIds = [...registry.matchAll(/(?:chemistry|physics|biology|math):\s*create/g)].map((m) => m[1]);
   for (const id of ['chemistry', 'physics', 'biology', 'math']) {
     assert.match(registry, new RegExp(`${id}:\\s*create`), `registry 注册 ${id}`);
     assert.match(manifest, new RegExp(`['"]${id}['"]`), `manifest 工厂清单含 ${id}`);

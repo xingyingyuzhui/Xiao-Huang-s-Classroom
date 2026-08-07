@@ -10,13 +10,15 @@ const {
 const { loadSubjectSettings } = require('../services/settings-service');
 
 // R5.1：业务规则收敛到 TS domain policy（src/domain/settings-policy.ts，
-// tsup 产物 dist/domain/settings-policy.js；route 不再重复实现）
-const {
-  MAX_ICON_DATA_URL,
-  maskApiKey,
-  isMaskedKey,
-  validateIconDataUrl,
-} = require('../../dist/domain/settings-policy.js');
+// tsup 产物 dist/domain/settings-policy.js；route 不再重复实现）。
+// 仓库布局：apps/server/dist；Electron stage 布局：.electron-stage/server/dist
+let settingsPolicy;
+try {
+  settingsPolicy = require('../../dist/domain/settings-policy.js');
+} catch {
+  settingsPolicy = require('../dist/domain/settings-policy.js');
+}
+const { MAX_ICON_DATA_URL, maskApiKey, isMaskedKey, validateIconDataUrl } = settingsPolicy;
 
 const DEFAULT_THEME = { id: 'default' };
 

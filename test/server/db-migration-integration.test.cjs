@@ -8,8 +8,8 @@ const os = require('node:os');
 const path = require('node:path');
 const root = require('../helpers/repo-root.js');
 
-const { initDatabase, closeDatabase, query, run } = require(path.join(root, 'apps/server/src/db/sqlite.js'));
-const { MAX_SCHEMA_VERSION, readSchemaVersion } = require(path.join(root, 'apps/server/src/db/migrator.js'));
+const { initDatabase, closeDatabase, query } = require(path.join(root, 'apps/server/src/db/sqlite.js'));
+const { MAX_SCHEMA_VERSION } = require(path.join(root, 'apps/server/src/db/migrator.js'));
 
 function withDb(fn) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-mig-int-'));

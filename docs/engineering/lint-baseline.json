@@ -1,12 +1,12 @@
 {
-  "capturedAt": "2026-08-07T17:47:05.139Z",
-  "total": 1021,
+  "capturedAt": "2026-08-07T18:12:31.761Z",
+  "total": 396,
   "perRule": {
-    "no-unused-vars": 123,
-    "@typescript-eslint/no-unused-vars": 132,
+    "no-unused-vars": 126,
+    "@typescript-eslint/no-unused-vars": 134,
     "preserve-caught-error": 3,
     "import/no-unresolved": 1,
-    "no-undef": 721,
+    "no-undef": 91,
     "no-useless-assignment": 28,
     "no-useless-escape": 5,
     "no-constant-condition": 1,

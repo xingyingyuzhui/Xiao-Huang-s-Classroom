@@ -35,3 +35,4 @@ dist-electron/
 !.claude/skills/**
 .tmp-ref-books/
 .turbo
+coverage/

@@ -5,15 +5,15 @@
 
 ## 清单字段
 
-| 字段 | 说明 |
-|---|---|
-| id / path | 相对 `apps/web/public/` 的路径（唯一） |
-| format | 扩展名（png/webp/svg/…） |
-| size / hash | 字节数与 sha256 前 16 位（重复/变更检测） |
-| owner | 目录推断（subject-covers/hub-backgrounds/… 的归属学科） |
-| themeVariants | 主题封面变体号（v1–v5） |
-| source / license | 仓库内来源；license 当前登记 unknown，逐项补充 |
-| preloadPolicy / fallback | 默认 lazy / null；按需登记 |
+| 字段                     | 说明                                                    |
+| ------------------------ | ------------------------------------------------------- |
+| id / path                | 相对 `apps/web/public/` 的路径（唯一）                  |
+| format                   | 扩展名（png/webp/svg/…）                                |
+| size / hash              | 字节数与 sha256 前 16 位（重复/变更检测）               |
+| owner                    | 目录推断（subject-covers/hub-backgrounds/… 的归属学科） |
+| themeVariants            | 主题封面变体号（v1–v5）                                 |
+| source / license         | 仓库内来源；license 当前登记 unknown，逐项补充          |
+| preloadPolicy / fallback | 默认 lazy / null；按需登记                              |
 
 ## 检查项（`npm run lint:assets`）
 
