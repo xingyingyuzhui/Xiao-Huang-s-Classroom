@@ -1,0 +1,371 @@
+{
+  "generatedAt": "2026-08-07",
+  "count": 25,
+  "entries": [
+    {
+      "id": "assets/hub-backgrounds/blackboard.png",
+      "path": "assets/hub-backgrounds/blackboard.png",
+      "format": "png",
+      "size": 2491947,
+      "hash": "f0fe0420f471cc3d",
+      "owner": "hub-backgrounds",
+      "themeVariants": [],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/hub-backgrounds/default.png",
+      "path": "assets/hub-backgrounds/default.png",
+      "format": "png",
+      "size": 1817387,
+      "hash": "54faa917652419bc",
+      "owner": "hub-backgrounds",
+      "themeVariants": [],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/hub-backgrounds/pixel.png",
+      "path": "assets/hub-backgrounds/pixel.png",
+      "format": "png",
+      "size": 1607095,
+      "hash": "d5f9143aea3b6ca7",
+      "owner": "hub-backgrounds",
+      "themeVariants": [],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/hub-backgrounds/reagent.png",
+      "path": "assets/hub-backgrounds/reagent.png",
+      "format": "png",
+      "size": 1996407,
+      "hash": "fea30c2d9ace7dc5",
+      "owner": "hub-backgrounds",
+      "themeVariants": [],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/hub-backgrounds/stationery.png",
+      "path": "assets/hub-backgrounds/stationery.png",
+      "format": "png",
+      "size": 2241091,
+      "hash": "948d5019f580d512",
+      "owner": "hub-backgrounds",
+      "themeVariants": [],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/biology-cover-v1.png",
+      "path": "assets/subject-covers/biology-cover-v1.png",
+      "format": "png",
+      "size": 3861552,
+      "hash": "64735038a821b563",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "1"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/biology-cover-v2.png",
+      "path": "assets/subject-covers/biology-cover-v2.png",
+      "format": "png",
+      "size": 2806829,
+      "hash": "3083af3816e3b938",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "2"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/biology-cover-v3.png",
+      "path": "assets/subject-covers/biology-cover-v3.png",
+      "format": "png",
+      "size": 4136927,
+      "hash": "96ed91788500e852",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "3"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/biology-cover-v4.png",
+      "path": "assets/subject-covers/biology-cover-v4.png",
+      "format": "png",
+      "size": 3478112,
+      "hash": "0cbffaaf6ea88af3",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "4"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/biology-cover-v5.png",
+      "path": "assets/subject-covers/biology-cover-v5.png",
+      "format": "png",
+      "size": 3793420,
+      "hash": "ec1182422e329a78",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "5"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/chemistry-cover-v1.png",
+      "path": "assets/subject-covers/chemistry-cover-v1.png",
+      "format": "png",
+      "size": 3277503,
+      "hash": "65b677c9caedfccd",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "1"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/chemistry-cover-v2.png",
+      "path": "assets/subject-covers/chemistry-cover-v2.png",
+      "format": "png",
+      "size": 2951648,
+      "hash": "ce78a288b6226a31",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "2"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/chemistry-cover-v3.png",
+      "path": "assets/subject-covers/chemistry-cover-v3.png",
+      "format": "png",
+      "size": 3032084,
+      "hash": "4660b7ea1a781c7d",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "3"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/chemistry-cover-v4.png",
+      "path": "assets/subject-covers/chemistry-cover-v4.png",
+      "format": "png",
+      "size": 2618258,
+      "hash": "6f9f3395a3a6e377",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "4"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/chemistry-cover-v5.png",
+      "path": "assets/subject-covers/chemistry-cover-v5.png",
+      "format": "png",
+      "size": 3085254,
+      "hash": "cec5cbb53bddb64d",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "5"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/mathematics-cover-v1.png",
+      "path": "assets/subject-covers/mathematics-cover-v1.png",
+      "format": "png",
+      "size": 2839417,
+      "hash": "1353e52444ca3162",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "1"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/mathematics-cover-v2.png",
+      "path": "assets/subject-covers/mathematics-cover-v2.png",
+      "format": "png",
+      "size": 3414527,
+      "hash": "ea6aa4129d83d195",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "2"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/mathematics-cover-v3.png",
+      "path": "assets/subject-covers/mathematics-cover-v3.png",
+      "format": "png",
+      "size": 3099517,
+      "hash": "e823e72943df1539",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "3"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/mathematics-cover-v4.png",
+      "path": "assets/subject-covers/mathematics-cover-v4.png",
+      "format": "png",
+      "size": 3111079,
+      "hash": "bebbabdea156d48d",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "4"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/mathematics-cover-v5.png",
+      "path": "assets/subject-covers/mathematics-cover-v5.png",
+      "format": "png",
+      "size": 4137646,
+      "hash": "9ee892dd974ee230",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "5"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/physics-cover-v1.png",
+      "path": "assets/subject-covers/physics-cover-v1.png",
+      "format": "png",
+      "size": 2559110,
+      "hash": "0988585d70745e96",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "1"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/physics-cover-v2.png",
+      "path": "assets/subject-covers/physics-cover-v2.png",
+      "format": "png",
+      "size": 3215525,
+      "hash": "1bf642d8c679a228",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "2"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/physics-cover-v3.png",
+      "path": "assets/subject-covers/physics-cover-v3.png",
+      "format": "png",
+      "size": 4029945,
+      "hash": "794ee6896d7e0d1d",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "3"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/physics-cover-v4.png",
+      "path": "assets/subject-covers/physics-cover-v4.png",
+      "format": "png",
+      "size": 4297605,
+      "hash": "061201ef694a5106",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "4"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    },
+    {
+      "id": "assets/subject-covers/physics-cover-v5.png",
+      "path": "assets/subject-covers/physics-cover-v5.png",
+      "format": "png",
+      "size": 3702298,
+      "hash": "c53818df5be199fc",
+      "owner": "subject-covers",
+      "themeVariants": [
+        "5"
+      ],
+      "source": "repo",
+      "license": "unknown",
+      "preloadPolicy": "lazy",
+      "fallback": null
+    }
+  ]
+}
