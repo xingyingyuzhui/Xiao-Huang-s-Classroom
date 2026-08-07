@@ -59,7 +59,6 @@ export function compileMathExpr(raw) {
   /** @type {(x: number) => number} */
   let compiled;
   try {
-    // eslint-disable-next-line no-new-func
     compiled = new Function('x', `"use strict"; return (${body});`);
   } catch {
     return { ok: false, error: '表达式无法解析' };
