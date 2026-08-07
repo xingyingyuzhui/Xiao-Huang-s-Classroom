@@ -1,0 +1,28 @@
+{
+  "forbidden": [
+    {
+      "from": "packages/",
+      "to": "apps/",
+      "reason": "packages 不得反向导入 apps（单向依赖 apps → packages）"
+    },
+    {
+      "from": "apps/server/",
+      "to": "apps/web/",
+      "reason": "Server 不得导入 Web 源码"
+    },
+    {
+      "from": "apps/web/src/math/",
+      "to": "apps/web/src/chemistry/",
+      "reason": "数学模块不得深层导入化学模块"
+    },
+    {
+      "from": "apps/web/src/chemistry/",
+      "to": "apps/web/src/math/",
+      "reason": "化学模块不得深层导入数学模块"
+    }
+  ],
+  "noExportStar": {
+    "files": ["apps/web/src/math/graph/draw-tools.js"],
+    "reason": "公共兼容入口必须显式具名导出，禁止 export *（避免歧义导出）"
+  }
+}
