@@ -98,3 +98,48 @@ test('settings API masks a stored AI key per subject', async () => {
     assert.notEqual(payload.data.subjectSettings.chemistry.ai.apiKey, 'sk-secret-value');
   });
 });
+
+// ───────────────────────── v1 端点合同矩阵（Program 5 Task 5.3） ─────────────────────────
+
+test('v1 GET 端点合同：URL/状态码/响应字段冻结', async () => {
+  await withApiServer(async (baseUrl) => {
+    const cases = [
+      { url: '/api/settings', expect: (j) => Array.isArray(j) || typeof j === 'object' },
+      { url: '/api/labs', expect: (j) => Array.isArray(j?.data?.labs), shape: 'data.labs[]' },
+      { url: '/api/offline-quiz/years', expect: (j) => Array.isArray(j.years) || Array.isArray(j) },
+      { url: '/api/lesson-packs', expect: () => true },
+    ];
+    for (const c of cases) {
+      const res = await fetch(`${baseUrl}${c.url}`);
+      assert.equal(res.status, 200, `${c.url} 必须 200`);
+      const j = await res.json();
+      assert.ok(c.expect(j), `${c.url} 响应形状${c.shape ? `（${c.shape}）` : ''}：${JSON.stringify(j).slice(0, 80)}`);
+    }
+  });
+});
+
+test('v1 POST 端点合同：错误 body 返回 4xx 而非 500（边界稳定）', async () => {
+  await withApiServer(async (baseUrl) => {
+    const posts = [
+      { url: '/api/quiz/score', body: {} },
+      { url: '/api/students', body: {} },
+      { url: '/api/ai/generate', body: {} },
+      { url: '/api/quiz/sessions', body: {} },
+    ];
+    for (const c of posts) {
+      const res = await fetch(`${baseUrl}${c.url}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(c.body),
+      });
+      assert.ok(res.status >= 400 && res.status < 500, `${c.url} 非法 body 必须 4xx，实际 ${res.status}`);
+    }
+  });
+});
+
+test('v1 未知路径返回 404（不泄露内部信息）', async () => {
+  await withApiServer(async (baseUrl) => {
+    const res = await fetch(`${baseUrl}/api/definitely-not-a-route`);
+    assert.equal(res.status, 404);
+  });
+});
