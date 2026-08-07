@@ -2,7 +2,8 @@
  * GraphReadouts：特征卡、值表、数值分析、探针读数的 DOM 输出。
  *
  * 通过注入工作（evaluator/theme/board/store/active 函数），不拥有文档真值；
- * alignFeatureLabelWidths 由调用方（frame 内）在 DOM 写完后执行一次。
+ * 宽度测量经注入的 frame task 批处理：同帧多次 paintReadouts 只执行一次；
+ * dispose 取消 pending frame；过期的数值分析回调不更新 DOM。
  */
 
 import { keyFeatures } from './model.js';
@@ -39,7 +40,23 @@ function escapeHtml(value) {
  * }} context
  */
 export function createGraphReadouts(context) {
-  const { getState, evalFnY, fnDisplayLabel } = context;
+  const { getState, evalFnY, fnDisplayLabel, createFrameTask } = context;
+  let disposed = false;
+  let measureScheduled = false;
+  const measureLabels = () => {
+    measureScheduled = false;
+    if (disposed) return;
+    const featuresEl = document.getElementById('mathGraphFeatures');
+    if (featuresEl) alignFeatureLabelWidths(featuresEl);
+  };
+  /** 同一帧内合并宽度测量（frame task 覆盖调度；无注入时同步兜底） */
+  const measureTask = createFrameTask ? createFrameTask(measureLabels) : null;
+  function scheduleLabelMeasure() {
+    if (measureScheduled) return;
+    measureScheduled = true;
+    if (measureTask) measureTask.schedule();
+    else measureLabels();
+  }
 
   /** 自定义函数：异步数值特征分析（取消 + 缓存 + 数值近似标记）。 */
   function renderCustomNumericFeatures(fn, featuresEl) {
@@ -60,18 +77,19 @@ export function createGraphReadouts(context) {
     }
     featuresEl.innerHTML =
       '<div class="math-float-feat-row"><strong>分析中…</strong><span>数值近似</span></div>';
-    alignFeatureLabelWidths(featuresEl);
+    scheduleLabelMeasure();
     state.numericRequest = state.numericRunner?.analyze?.({
       record: fn,
       interval: [xMin, xMax],
       resolveEvaluator: (rec) => (x) => evalFnY(rec, x),
       onResult: (outcome) => {
+        if (disposed) return;
         const active = state.functions.find((f) => f.id === state.activeFnId) || state.functions[0] || null;
         if (active?.id !== fn.id) return;
         if (!outcome?.ok || !outcome.result) {
           featuresEl.innerHTML =
             '<div class="math-float-feat-row"><strong>类型</strong><span>自定义 · 无结果</span></div>';
-          alignFeatureLabelWidths(featuresEl);
+          scheduleLabelMeasure();
           return;
         }
         const r = outcome.result;
@@ -85,7 +103,7 @@ export function createGraphReadouts(context) {
           '<div class="math-float-feat-row is-warn"><strong>提示</strong><span>当前结果为数值近似，部分特征可能未识别</span></div>',
         ];
         featuresEl.innerHTML = rows.join('');
-        alignFeatureLabelWidths(featuresEl);
+        scheduleLabelMeasure();
       },
     });
   }
@@ -157,7 +175,7 @@ export function createGraphReadouts(context) {
             `<div class="math-float-feat-row"><strong>${f.kind}</strong><span>${f.text}</span></div>`,
         )
         .join('');
-      alignFeatureLabelWidths(featuresEl);
+      scheduleLabelMeasure();
       renderCompareInfo(fn, featuresEl);
     }
     if (tableEl) {
@@ -196,5 +214,17 @@ export function createGraphReadouts(context) {
     row.hidden = false;
   }
 
-  return { paintReadouts, renderProbeReadout };
+  return {
+    paintReadouts,
+    renderProbeReadout,
+    dispose() {
+      disposed = true;
+      measureTask?.cancel?.();
+    },
+    /** 重挂载时重新武装（readouts 是模块级单例，跨 mount 复用） */
+    reset() {
+      disposed = false;
+      measureScheduled = false;
+    },
+  };
 }

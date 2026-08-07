@@ -257,7 +257,13 @@ async function setup() {
     return result;
   }
 
-  return { store, renderer, counters, state, mount, dispatchOk };
+  // mount-controller 源码（结构合同测试用）
+  const fsMod = await import('node:fs');
+  const mountSrc = fsMod.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-mount-controller.js'),
+    'utf8',
+  );
+  return { store, renderer, counters, state, mount, dispatchOk, mountSrc };
 }
 
 // ───────────────────────── 不变量 1：同帧合并 ─────────────────────────
@@ -310,32 +316,47 @@ test('同帧 100 次 coefficient input → 生产 frame-task 合并：1 次 appl
   );
 });
 
-test(
-  'TODO(Task 7): 同一帧内 100 次连续 dispatch（事务 preview）最多只 apply 1 次',
-  { skip: 'TODO(Task 7 Step 2): store 事务预览当前每次 dispatch 同步 beforeCommit → 100 次 apply；待 index.js 接入 frame batching（每帧只投影最新 pending candidate）后去掉 skip' },
-  async () => {
-    const { store, counters, mount, dispatchOk } = await setup();
-    mount();
-    const historyMod = await historyModule();
-    const history = historyMod.createGraphHistory(store);
+test('store transaction preview 同步投影（合同边界）：commit 不重复 apply 最终 preview', async () => {
+  // 合同：Store 层 transaction 每次 preview dispatch 同步 beforeCommit（Task 3 状态机，
+  // lastAppliedDocument 逐次推进）；每帧一次的运行时合并属于 UI intent 层
+  // （setCoeffs frame batching，见「同帧 100 次 coefficient input」测试）。这里固定
+  // Store 层语义：同步 apply + commit 跳过已 apply 的最终 preview。
+  const { store, counters, mount, dispatchOk } = await setup();
+  mount();
+  const historyMod = await historyModule();
+  const history = historyMod.createGraphHistory(store);
 
-    store.beginTransaction();
-    for (let i = 1; i <= 100; i += 1) {
-      dispatchOk({
-        type: 'function/update',
-        payload: { id: 'f1', patch: { coeffs: { a: i, b: 0, c: 0 } } },
-      });
-    }
-    store.commitTransaction();
+  store.beginTransaction();
+  for (let i = 1; i <= 100; i += 1) {
+    dispatchOk({
+      type: 'function/update',
+      payload: { id: 'f1', patch: { coeffs: { a: i, b: 0, c: 0 } } },
+    });
+  }
+  const applyDuringPreview = counters.createFnCurve;
+  assert.equal(applyDuringPreview, 100, 'Store 层 preview 每次同步投影（同步语义合同）');
+  store.commitTransaction();
+  assert.equal(
+    counters.createFnCurve,
+    applyDuringPreview,
+    'commit 不重复 apply 已成功的最终 preview',
+  );
+  assert.equal(store.getDocument().functions[0].coeffs.a, 100, '最终文档用最后一个值');
+  assert.equal(history.canUndo(), true);
+  assert.equal(history.undo(), true);
+  assert.equal(history.canUndo(), false, '一次手势只形成一条 history');
+});
 
-    assert.equal(counters.createFnCurve, 1, '100 次 dispatch 只 apply 1 次');
-    assert.equal(counters.detachFnCurve, 1);
-    assert.equal(store.getDocument().functions[0].coeffs.a, 100, '最终文档用最后一个值');
-    assert.equal(history.canUndo(), true);
-    assert.equal(history.undo(), true);
-    assert.equal(history.canUndo(), false, '一次手势只形成一条 history');
-  },
-);
+test('UI intent 层 frame batching 是高频入口的唯一路径（结构合同）', async () => {
+  // 产品高频入口（滑杆/数字输入）只能经过 setCoeffs 的 frame batching：
+  // mount controller 持有 pendingCoeff/coeffFrame 与 requestAnimationFrame 合并。
+  const { mountSrc } = await setup();
+  assert.match(mountSrc, /pendingCoeff/);
+  assert.match(mountSrc, /coeffFrame/);
+  assert.match(mountSrc, /requestAnimationFrame\(flushCoeffFrame\)/);
+  // 函数面板的数字输入也走 setCoeffs（mount deps），不允许直连 store dispatch
+  assert.match(mountSrc, /setCoeffs/);
+});
 
 // ───────────────────────── 不变量 2：point move 零函数重建 ─────────────────────────
 

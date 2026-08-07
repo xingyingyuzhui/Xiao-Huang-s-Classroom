@@ -102,7 +102,8 @@
 - **单一真值**：GraphDocumentV2（`colorSlot`/`explicitColor`）是函数/点/构造/视口/样式/跟随/标签的唯一业务真值；runtime-first 修改一律先形成 GraphAction。
 - **原子投影**：production renderer（`graph-document-renderer.js`）经 staging → 增量 apply → 失败 `fullRender(previous)` 恢复；恢复也失败进入 fatal 只读。Store/History/Persistence 不得观察到失败 candidate。
 - **依赖闭包**：函数参数变化按 `graph-dependency-plan.js` 的传递闭包（函数 → 跟随点/交点 → 构造，跨类型拓扑）刷新；活动特征按 `activeFunctionVisualChanged` diff 刷新，不按 action shape 判断。
-- **性能不变量**：滑杆高频输入由 `setCoeffs` frame batching 合并（每帧最多一次 dispatch/apply，一次手势一条 history）；UI 渲染按 render plan 的 `functionListChanged/readoutsChanged` flags 条件触发。
+- **性能不变量**：滑杆高频输入由 `setCoeffs` frame batching 合并（每帧最多一次 dispatch/apply，一次手势一条 history）；UI 渲染按 render plan 的 `functionListChanged/readoutsChanged` flags 条件触发。readouts 宽度测量经注入的 frame task 批处理：同帧多次 `paintReadouts()` 只测量一次，布局读与 DOM 写分离。
+- **生命周期合同**：`graph-mount-controller.js` 统一 disposer 栈——mount 时每个资源注册 disposer，dispose 逆序执行、单点失败不阻断其余、整体幂等。必须精确释放：persistence UI 按钮/文件 change/FileReader/object URL、pagehide、keydown（Esc，`state.escBound` 归零）、ResizeObserver、animation frame、coeff timer、theme handle、notes/compass/probe/tool strip/tool pointer、Store/History subscriber、board。`graph-readouts.js` 是模块级单例，随 mount `dispose()`（取消 pending 测量、过期回调失效）/`reset()` 重新武装。20 次 mount→click→dispose 资源归零由 `test/web/math-graph-mount-controller.test.cjs` 固定；readouts 批处理由 `test/web/math-graph-readouts.test.cjs` 固定。
 - **入口约束**：`apps/web/src/math/graph/index.js` < 700 行，只做装配与薄代理；readouts/函数曲线与特征/工具状态机/挂载生命周期/跟随目标解析分别在 `graph-readouts.js`、`graph-function-runtime.js`、`graph-tool-controller.js`、`graph-mount-controller.js`、`graph-follow-targets.js`。
 - **ID 分配**：所有新对象 id 来自 `graph-id-allocator.js`（文档级扫描），禁止散落的自增计数器。
 - **历史语义**：undo/redo 只在 restore 成功后移动栈；transaction cancel 从 `lastAppliedDocument` 恢复，失败返回 fatal。

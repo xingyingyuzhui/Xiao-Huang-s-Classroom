@@ -94,7 +94,30 @@ export function createGraphMountController(deps) {
     parseFeatureFollowTargetId,
     detachConstr,
     renderProbeReadout,
+    readoutsDispose,
+    readoutsReset,
   } = deps;
+
+  /** 资源注册表：dispose 逆序执行；单个失败不阻断其余；幂等。 */
+  const disposers = [];
+  let disposed = false;
+  function register(disposer) {
+    if (typeof disposer === 'function') disposers.push(disposer);
+  }
+  function disposeAll() {
+    if (disposed) return;
+    disposed = true;
+    const errors = [];
+    for (let i = disposers.length - 1; i >= 0; i -= 1) {
+      try {
+        disposers[i]();
+      } catch (err) {
+        errors.push(err);
+      }
+    }
+    disposers.length = 0;
+    if (errors.length) console.error('[graph] dispose errors:', errors);
+  }
 
 function syncSliders() {
   for (const [id, key, numId] of [
@@ -188,7 +211,7 @@ let pendingCoeff = null;
 let coeffFrame = null;
 function openCoeffTransaction() {
   if (state.coeffTxTimer != null) {
-    clearTimeout(state.coeffTxTimer);
+    window.clearTimeout(state.coeffTxTimer);
   } else {
     state.graphStore?.beginTransaction();
   }
@@ -272,6 +295,9 @@ function dismissGraphNotesMode() {
   state.notes?.setActive?.(false);
 }
 function initGraphUI() {
+  disposed = false;
+  // readouts 是模块级单例：重挂载时重新武装（取消的 pending 测量/过期回调失效）
+  readoutsReset?.();
   setStageEl(document.getElementById('mathGraphStage'));
   const stageEl = getStageEl();
   if (!stageEl || !document.getElementById('mathGraphBoard')) return;
@@ -291,6 +317,10 @@ function initGraphUI() {
   state.graphPersistence = createGraphPersistence({
     storage: window.localStorage,
     now: () => new Date().toISOString(),
+  });
+  register(() => {
+    state.graphPersistence?.dispose?.();
+    state.graphPersistence = null;
   });
   const loadedDoc = state.graphPersistence.load().document;
 
@@ -342,6 +372,20 @@ function initGraphUI() {
   } catch {
     /* */
   }
+  register(() => viewBridge.dispose());
+  register(() => {
+    try {
+      state.board?.off?.('boundingbox');
+    } catch {
+      /* */
+    }
+    unbindPointLabelFusion(state.board);
+    clearAllConstructions(makeDrawHost());
+    removeUserPointEls();
+    if (state.board) removeAllFnCurves(state.board);
+    freeMathBoard(state.board);
+    state.board = null;
+  });
 
   // 文档底座：函数集合作为首个接入 store 的行为（历史/事务链路）；
   // 函数/活动 id/镜像由首次 fullRender 从 store 文档建立
@@ -353,6 +397,7 @@ function initGraphUI() {
   });
   state.graphHistory?.dispose?.();
   state.graphHistory = createGraphHistory(state.graphStore);
+  register(() => state.graphHistory?.dispose?.());
   // 初始 storage load：建立起点，清空历史（不能 undo 回「导入前」）
   state.graphHistory.clear();
   // 文档变更 → 自动保存（300ms debounce；annotations/replace 带 persist:true）
@@ -362,6 +407,8 @@ function initGraphUI() {
     if (event.action?.meta?.persist === false) return;
     state.graphPersistence?.scheduleSave(event.current);
   });
+  register(() => state.storeUnsub?.());
+  register(() => state.graphStore?.dispose?.());
 
   bindFnListUi();
 
@@ -387,6 +434,7 @@ function initGraphUI() {
   const graphPanelRoot = document.getElementById('panel-math-graph');
   state.styleBind = bindObjectStyleForPanel(graphPanelRoot, createBoardSelectionController);
   state.styleBind?.selection?.attachBoard?.(state.board);
+  register(() => state.styleBind?.dispose?.());
 
   setPointOptionHooks({
     // 仅用户自建点 + 非交点 + 存在可跟随目标时显示
@@ -541,6 +589,7 @@ function initGraphUI() {
   });
 
   state.toolStrip?.dispose?.();
+  register(() => state.compass?.dispose?.());
   state.toolStrip = attachBoardToolStrip({
     host: getStageEl(),
     tools: GRAPH_BOARD_TOOLS,
@@ -556,6 +605,7 @@ function initGraphUI() {
 
   // 探针：transient 十字线/读数；pointer move 帧合并，不写文档/历史/自动保存
   state.probe?.dispose?.();
+  register(() => state.toolStrip?.dispose?.());
   state.probe = createProbeController({
     board: state.board,
     getFunctions: () => state.functions,
@@ -575,6 +625,7 @@ function initGraphUI() {
   });
 
   state.toolPointer?.dispose?.();
+  register(() => state.probe?.dispose?.());
   state.toolPointer = attachToolPointer(state.board, {
     shouldHandle: () => {
       const t = state.toolStrip?.getTool?.() || 'select';
@@ -586,8 +637,16 @@ function initGraphUI() {
     },
   });
   bindEscToSelect();
+  // keydown（Esc 回 select）在 dispose 时精确移除；escBound 归零保证下次 mount 重新绑定
+  register(() => {
+    if (state.escBound) {
+      window.removeEventListener('keydown', onToolEsc);
+      state.escBound = false;
+    }
+  });
 
   state.notes?.dispose?.();
+  register(() => state.toolPointer?.dispose?.());
   state.notes = attachBoardNotes(state.board, {
     host: getStageEl(),
     storageKey: 'math-graph-board-notes-v1',
@@ -600,6 +659,8 @@ function initGraphUI() {
     history: state.graphHistory,
     notes: state.notes,
   });
+  register(() => state.historyController?.dispose?.());
+  register(() => state.notes?.dispose?.());
 
   // 恢复批注 → 之后任何 stroke/clear/undo 都回写文档（record:false, persist:true）
   state.notes?.replaceSnapshot?.(loadedDoc.annotations);
@@ -612,12 +673,22 @@ function initGraphUI() {
       meta: { record: false, persist: true },
     });
   });
+  register(() => state.notesUnsub?.());
 
   // 页面隐藏时立即落盘
   state.onPageHide = () => state.graphPersistence?.flush();
   window.addEventListener('pagehide', state.onPageHide);
+  register(() => {
+    if (state.onPageHide) window.removeEventListener('pagehide', state.onPageHide);
+    state.onPageHide = null;
+  });
 
-  // 项目：导入 / 导出 / 重置
+  // 项目：导入 / 导出 / 重置（具名 handler + 资源管理；dispose 精确移除）
+  /** @type {Array<{ url: string, timer: any }>} */
+  const downloadUrls = [];
+  let fileChangeHandler = null;
+  let fileReader = null;
+  let filePickAborted = false;
   state.persistenceController = createGraphPersistenceController({
     persistence: state.graphPersistence,
     store: () => ({
@@ -636,19 +707,38 @@ function initGraphUI() {
       const input = /** @type {HTMLInputElement | null} */ (document.getElementById('mathGraphFileInput'));
       if (!input) return Promise.resolve(null);
       return new Promise((resolve) => {
+        if (filePickAborted) {
+          resolve(null);
+          return;
+        }
         const onChange = () => {
-          input.removeEventListener('change', onChange);
+          if (fileChangeHandler) input.removeEventListener('change', fileChangeHandler);
+          fileChangeHandler = null;
           const file = input.files?.[0];
           input.value = '';
           if (!file) {
             resolve(null);
             return;
           }
+          if (filePickAborted) {
+            resolve(null);
+            return;
+          }
           const reader = new FileReader();
-          reader.onload = () => resolve(String(reader.result || ''));
-          reader.onerror = () => resolve(null);
+          fileReader = reader;
+          reader.onload = () => {
+            if (filePickAborted) return;
+            fileReader = null;
+            resolve(String(reader.result || ''));
+          };
+          reader.onerror = () => {
+            if (filePickAborted) return;
+            fileReader = null;
+            resolve(null);
+          };
           reader.readAsText(file, 'utf-8');
         };
+        fileChangeHandler = onChange;
         input.addEventListener('change', onChange);
         input.click();
       });
@@ -661,21 +751,52 @@ function initGraphUI() {
         link.href = url;
         link.download = filename;
         link.click();
-        window.setTimeout(() => URL.revokeObjectURL(url), 2000);
+        const timer = window.setTimeout(() => {
+          URL.revokeObjectURL(url);
+          const idx = downloadUrls.findIndex((u) => u.url === url);
+          if (idx >= 0) downloadUrls.splice(idx, 1);
+        }, 2000);
+        downloadUrls.push({ url, timer });
       } catch {
         /* download blocked */
       }
     },
   });
-  document
-    .getElementById('btnMathGraphImport')
-    ?.addEventListener('click', () => void state.persistenceController.importJson());
-  document
-    .getElementById('btnMathGraphExport')
-    ?.addEventListener('click', () => state.persistenceController.exportJson());
-  document
-    .getElementById('btnMathGraphReset')
-    ?.addEventListener('click', () => void state.persistenceController.reset());
+  const onImportClick = () => void state.persistenceController?.importJson();
+  const onExportClick = () => state.persistenceController?.exportJson();
+  const onResetClick = () => void state.persistenceController?.reset();
+  const importBtn = document.getElementById('btnMathGraphImport');
+  const exportBtn = document.getElementById('btnMathGraphExport');
+  const resetBtn = document.getElementById('btnMathGraphReset');
+  importBtn?.addEventListener('click', onImportClick);
+  exportBtn?.addEventListener('click', onExportClick);
+  resetBtn?.addEventListener('click', onResetClick);
+  register(() => {
+    importBtn?.removeEventListener('click', onImportClick);
+    exportBtn?.removeEventListener('click', onExportClick);
+    resetBtn?.removeEventListener('click', onResetClick);
+    const input = document.getElementById('mathGraphFileInput');
+    if (input && fileChangeHandler) input.removeEventListener('change', fileChangeHandler);
+    fileChangeHandler = null;
+    filePickAborted = true;
+    if (fileReader) {
+      try {
+        fileReader.abort?.();
+      } catch {
+        /* best-effort abort */
+      }
+      fileReader = null;
+    }
+    for (const item of downloadUrls.splice(0)) {
+      window.clearTimeout(item.timer);
+      try {
+        URL.revokeObjectURL(item.url);
+      } catch {
+        /* already revoked */
+      }
+    }
+    state.persistenceController = null;
+  });
 
   syncSliders();
   // 首次投影：production renderer 从 store 文档全量渲染
@@ -691,14 +812,22 @@ function initGraphUI() {
     schedulePointLabelFusion();
   });
   state.ro.observe(getStageEl());
-  requestAnimationFrame(() => {
+  register(() => state.ro?.disconnect?.());
+  const firstFrame = requestAnimationFrame(() => {
+    state.firstFrameRaf = null;
     resizeMathBoard(state.board, getStageEl());
     state.notes?.redraw?.();
     schedulePointLabelFusion();
   });
+  state.firstFrameRaf = firstFrame;
+  register(() => {
+    if (state.firstFrameRaf != null) cancelAnimationFrame(state.firstFrameRaf);
+    state.firstFrameRaf = null;
+  });
 
   // 换肤契约：bindMathThemeRestyle → restyle + rebuild（含 remint）
   state.themeHandle?.dispose?.();
+  register(() => state.themeHandle?.dispose?.());
   state.themeHandle = bindMathThemeRestyle(() => state.board, {
     onAfterRestyle: () => {
       rebuildCurve();
@@ -709,6 +838,9 @@ function initGraphUI() {
       }
     },
   });
+
+  // readouts 帧任务与过期回调失效（模块级单例，随 mount 周期 dispose/reset）
+  register(() => readoutsDispose?.());
 }
 
 function resizeGraph() {
@@ -716,7 +848,9 @@ function resizeGraph() {
   state.notes?.redraw?.();
 }
 
+/** 统一生命周期清理：disposer 栈逆序执行；幂等；单个失败不阻断其余。 */
 function disposeGraph() {
+  if (disposed) return;
   curveRebuildTask.cancel();
   if (coeffFrame != null) {
     cancelAnimationFrame(coeffFrame);
@@ -724,51 +858,15 @@ function disposeGraph() {
     flushCoeffFrame();
   }
   if (state.coeffTxTimer != null) {
-    clearTimeout(state.coeffTxTimer);
+    window.clearTimeout(state.coeffTxTimer);
     state.coeffTxTimer = null;
     state.graphStore?.cancelTransaction();
   }
-  // 持久化收尾：卸载监听、pagehide 移除、落盘
-  state.storeUnsub?.();
-  state.storeUnsub = null;
-  state.notesUnsub?.();
-  state.notesUnsub = null;
-  if (state.onPageHide) {
-    window.removeEventListener('pagehide', state.onPageHide);
-    state.onPageHide = null;
-  }
-  state.graphPersistence?.dispose();
-  state.graphPersistence = null;
-  state.persistenceController = null;
-  viewBridge.dispose();
-  try {
-    state.board?.off?.('boundingbox');
-  } catch {
-    /* */
-  }
-  state.historyController?.dispose?.();
-  state.historyController = null;
-  state.graphHistory?.dispose?.();
-  state.graphHistory = null;
-  state.graphStore?.dispose?.();
-  state.graphStore = null;
   hideAddPanel();
   hideAiFnModal();
   dismissBoardNotesMode();
-  if (state.escBound) {
-    window.removeEventListener('keydown', onToolEsc);
-    state.escBound = false;
-  }
-  state.themeHandle?.dispose?.();
-  state.themeHandle = null;
-  state.notes?.dispose?.();
-  state.notes = null;
-  state.toolPointer?.dispose?.();
-  state.toolPointer = null;
-  state.toolStrip?.dispose?.();
-  state.toolStrip = null;
-  state.probe?.dispose?.();
-  state.probe = null;
+  setPointOptionHooks(null);
+  setStyleIntentBridge(null);
   if (state.referenceCurve) {
     try {
       state.board?.removeObject?.(state.referenceCurve);
@@ -779,19 +877,8 @@ function disposeGraph() {
     resetReferenceKey?.();
   }
   state.toolPick = null;
-  state.compass?.dispose?.();
-  state.compass = null;
-  setPointOptionHooks(null);
-  setStyleIntentBridge(null);
-  state.styleBind?.dispose?.();
-  state.styleBind = null;
-  state.ro?.disconnect();
-  clearAllConstructions(makeDrawHost());
-  removeUserPointEls();
-  if (state.board) removeAllFnCurves(state.board);
-  unbindPointLabelFusion(state.board);
-  freeMathBoard(state.board);
-  state.board = null;
+  disposeAll();
+  // 状态归零（board 由注册的 disposer 释放）
   state.curve = null;
   state.marks = [];
   state.asy = [];
@@ -800,6 +887,16 @@ function disposeGraph() {
   state.functions = [];
   state.activeFnId = null;
   state.editMode = false;
+  state.notes = null;
+  state.toolPointer = null;
+  state.toolStrip = null;
+  state.probe = null;
+  state.compass = null;
+  state.styleBind = null;
+  state.graphStore = null;
+  state.graphHistory = null;
+  state.historyController = null;
+  state.themeHandle = null;
 }
 
 /** 关闭添加函数弹窗（Tab 切换 / 离开教室时调用） */

@@ -495,6 +495,7 @@ const readouts = createGraphReadouts({
   getState: () => state,
   evalFnY,
   fnDisplayLabel,
+  createFrameTask,
 });
 const paintReadouts = readouts.paintReadouts;
 const renderProbeReadout = readouts.renderProbeReadout;
@@ -667,6 +668,8 @@ const graphMount = createGraphMountController({
   resetReferenceKey: () => {
     lastReferenceKey = null;
   },
+  readoutsDispose: () => readouts.dispose(),
+  readoutsReset: () => readouts.reset(),
 });
 graphMountRef.graphMount = graphMount;
 export const initGraphUI = graphMount.initGraphUI;

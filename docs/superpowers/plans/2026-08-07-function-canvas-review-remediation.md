@@ -178,7 +178,7 @@ JSXGraph 中间拖动可以作为 transient preview，但松手、切换跟随�
 - Create: `test/web/math-graph-dependency-plan.test.cjs`
 - Modify: `docs/superpowers/plans/2026-08-02-function-canvas-comprehensive.md`
 
-- [ ] **Step 1: 写恶意名称和颜色的失败测试**
+- [x] **Step 1: 写恶意名称和颜色的失败测试**
 
 至少覆盖：
 
@@ -198,7 +198,7 @@ const maliciousColor = 'red;background:url(https://example.invalid/x)';
 
 `explicitColor` 首版只接受并规范化 CSS hex：`#RGB`、`#RGBA`、`#RRGGBB`、`#RRGGBBAA`；输出统一转为小写，3/4 位扩展成 6/8 位。拒绝 named color、`rgb()`、`hsl()`、`var()`、分号、括号和 URL。当前产品没有要求完整 CSS Color 4，禁止为“兼容更多格式”扩大注入面。
 
-- [ ] **Step 2: 写 GraphDocument 全局不变量失败测试**
+- [x] **Step 2: 写 GraphDocument 全局不变量失败测试**
 
 必须拒绝：
 
@@ -217,7 +217,7 @@ const maliciousColor = 'red;background:url(https://example.invalid/x)';
 - custom domain min/max 反序，规范化为严格递增。
 - 旧 V1 literal `color`。
 
-- [ ] **Step 3: 引入 `GraphDocumentV2`，不要静默改变 V1 合同**
+- [x] **Step 3: 引入 `GraphDocumentV2`，不要静默改变 V1 合同**
 
 当前 V1 已可能保存在用户 localStorage/JSON 文件中。把函数颜色修正为：
 
@@ -247,7 +247,7 @@ export function resolveFunctionColor(record, palette = getMathFnPalette()) {
 
 `function-layer`、live/full renderer、图例、函数卡、参考曲线和新函数工厂统一调用它。`remintFunctionColors()` 要么删除，要么只保留兼容 wrapper 且绝不再写 `record.color`。本 Task 提交前用 `rg -n "fn\.color|record\.color" apps/web/src/math/graph` 确认没有把 literal 默认色写回 GraphDocument 的生产路径。
 
-- [ ] **Step 4: 实现 record/patch allowlist**
+- [x] **Step 4: 实现 record/patch allowlist**
 
 `graph-record-validation.js` 提供纯函数：
 
@@ -273,7 +273,7 @@ export function graphDependentsOf(document, rootIds) {}
 
 Task 1 只要求完整引用图、add/remove 拓扑和循环拒绝；Task 6 在此 API 上补充函数参数变化的精确 refresh 分类。拓扑结果必须跨 point/construction 混排，不能按 record 类型分桶：普通 point 可以先于 segment，但 line-line intersection point 必须位于它依赖的两条 construction 之后，下游 perpendicular construction 又位于该 intersection point 之后。validator 必须在 candidate 发布前调用环检测，使 Task 4 的 deterministic full render 从一开始就有可用的权威顺序。
 
-- [ ] **Step 5: 同步修订原全面计划的 schema 路线**
+- [x] **Step 5: 同步修订原全面计划的 schema 路线**
 
 只有 V2 实现和迁移测试已经通过后，才修改 `2026-08-02-function-canvas-comprehensive.md`：
 
@@ -283,11 +283,11 @@ Task 1 只要求完整引用图、add/remove 拓扑和循环拒绝；Task 6 在�
 - 对应 storage key、V1/V2/V3/V4 import/migration 文案同步顺延。
 - 不改变那些未来功能的产品范围，只修正版本编号和迁移链。
 
-- [ ] **Step 6: 编辑器在 dispatch 前给出明确错误**
+- [x] **Step 6: 编辑器在 dispatch 前给出明确错误**
 
 系数必须 `Number.isFinite`；custom domain 必须是两个有限数且规范化后 `min < max`。失败时保留弹窗和用户输入，不调用 `onSubmit`。
 
-- [ ] **Step 7: 运行测试**
+- [x] **Step 7: 运行测试**
 
 ```bash
 node --test test/web/math-function-panel-controller.test.cjs test/web/math-function-records.test.cjs test/web/math-graph-document.test.cjs test/web/math-graph-migrations.test.cjs test/web/math-graph-persistence.test.cjs test/web/math-graph-render-plan.test.cjs test/web/math-graph-dependency-plan.test.cjs test/web/math-lifecycle-unit.test.cjs test/web/math-graph-store.test.cjs
@@ -295,7 +295,7 @@ node --test test/web/math-function-panel-controller.test.cjs test/web/math-funct
 
 Expected: 恶意字符串只作为文本；V1→V2 无 runtime/literal theme color；全部非法文档/patch 被拒绝。
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add apps/web/src/math/graph/function-list-view.js apps/web/src/math/graph/function-editor.js apps/web/src/math/graph/graph-document.js apps/web/src/math/graph/graph-document-migrations.js apps/web/src/math/graph/graph-persistence.js apps/web/src/math/graph/graph-record-validation.js apps/web/src/math/graph/graph-dependency-plan.js apps/web/src/math/graph/function-records.js apps/web/src/math/graph/function-panel.js apps/web/src/math/graph/function-layer.js apps/web/src/math/graph/graph-renderer.js apps/web/src/math/graph/index.js apps/web/src/math/shared/math-theme.js test/web/math-function-panel-controller.test.cjs test/web/math-function-records.test.cjs test/web/math-graph-document.test.cjs test/web/math-graph-migrations.test.cjs test/web/math-graph-persistence.test.cjs test/web/math-graph-render-plan.test.cjs test/web/math-graph-dependency-plan.test.cjs test/web/math-lifecycle-unit.test.cjs test/web/math-graph-store.test.cjs docs/superpowers/plans/2026-08-02-function-canvas-comprehensive.md
@@ -317,7 +317,7 @@ git commit -m "fix(math): harden graph document and function rendering"
 - Modify: `test/web/math-user-points.test.cjs`
 - Modify: `test/web/math-construction-records.test.cjs`
 
-- [ ] **Step 1: 写加载后 ID 冲突失败测试**
+- [x] **Step 1: 写加载后 ID 冲突失败测试**
 
 输入文档包含：
 
@@ -337,7 +337,7 @@ constructions: C1, C8
 - reset 后 allocator 根据默认文档重新 seed。
 - Store 拒绝 add 时，预创建 runtime 对象立即 dispose，不留下 ghost。
 
-- [ ] **Step 2: 实现文档级 allocator**
+- [x] **Step 2: 实现文档级 allocator**
 
 建议 API：
 
@@ -354,11 +354,11 @@ export function createGraphIdAllocator(document) {
 
 allocator 必须扫描整个文档已占用 id；不要依赖三个散落在 module state 中的自增数字。
 
-- [ ] **Step 3: 删除 `fnSeq/pointSeq/constrSeq` 业务依赖**
+- [x] **Step 3: 删除 `fnSeq/pointSeq/constrSeq` 业务依赖**
 
 `function-panel`、`user-points` 和 construction host 都从 allocator 请求 id。颜色槽位按函数数组位置/allocator identity 计算，不再把序号兼作颜色和身份两种真值。
 
-- [ ] **Step 4: 统一初始加载**
+- [x] **Step 4: 统一初始加载**
 
 正确顺序：
 
@@ -374,7 +374,7 @@ persistence.load/import
 
 禁止先向 `state.functions` 塞默认 f1，再让 Store 持有另一个空文档。默认函数只能由 `createDefaultGraphDocument()` 产生一次。Task 2 尚未创建 `graph-document-renderer.js`，因此本 Task 只要求现有 mount/rebuild adapter 从 `store.getDocument()` 建立一次兼容 runtime；不得提前引用 Task 4 的 `fullRender()`。Task 4 完成后删除该兼容初始化分支，改由 production renderer `fullRender(store.getDocument())` 首次投影。
 
-- [ ] **Step 5: 让 dispatch 返回显式结果**
+- [x] **Step 5: 让 dispatch 返回显式结果**
 
 Store API 至少能区分：
 
@@ -385,7 +385,7 @@ Store API 至少能区分：
 
 如果暂时保留旧的“返回 document”兼容 API，新增 `dispatchResult()` 或可靠的 identity 检查；工具 bridge 必须知道 add 是否成功，并在失败时清理 runtime-first 对象。
 
-- [ ] **Step 6: 固定 import/replace 的成功后副作用顺序**
+- [x] **Step 6: 固定 import/replace 的成功后副作用顺序**
 
 导入 controller 必须先读取 `replaceDocument`/dispatch 的显式结果。只有 `{ok:true}` 后才能：
 
@@ -398,7 +398,7 @@ history.clear()
 
 如果 JSON parse/validate 成功但 runtime renderer 拒绝 replace：当前 document、history、allocator、pending autosave 和 UI 成功状态全部不变。增加 fake renderer 拒绝 import 的回归测试。
 
-- [ ] **Step 7: 运行测试并提交**
+- [x] **Step 7: 运行测试并提交**
 
 ```bash
 node --test test/web/math-graph-id-allocator.test.cjs test/web/math-graph-persistence.test.cjs test/web/math-function-panel-controller.test.cjs test/web/math-user-points.test.cjs test/web/math-construction-records.test.cjs
@@ -418,7 +418,7 @@ git commit -m "fix(math): allocate graph ids from documents"
 - Modify: `test/web/math-graph-history.test.cjs`
 - Modify: `test/web/math-graph-history-controller.test.cjs`
 
-- [ ] **Step 1: 为 reorder 与非法 patch 写失败测试**
+- [x] **Step 1: 为 reorder 与非法 patch 写失败测试**
 
 必须拒绝：
 
@@ -432,7 +432,7 @@ git commit -m "fix(math): allocate graph ids from documents"
 
 为每种 update 测试：id/kind 不可由 patch 改写；非法数值、未知字段、断裂引用返回失败且 document 引用不变。
 
-- [ ] **Step 2: history 只在 restore 成功后移动栈**
+- [x] **Step 2: history 只在 restore 成功后移动栈**
 
 建议流程：
 
@@ -448,7 +448,7 @@ return true;
 
 测试注入一个第一次 restore 失败、第二次成功的 Store：第一次 undo 返回 false，`canUndo` 仍为 true，redo 仍为空；第二次成功才移动。
 
-- [ ] **Step 3: 定义 transaction 的 document/runtime 基线状态机**
+- [x] **Step 3: 定义 transaction 的 document/runtime 基线状态机**
 
 Store transaction 必须显式保存：
 
@@ -470,7 +470,7 @@ Store transaction 必须显式保存：
 
 增加 50 次 preview、部分 preview 失败、commit、cancel 的 fake renderer 调用序列测试，严格断言每次 `{previous,candidate}`。
 
-- [ ] **Step 4: transaction cancel 返回恢复结果**
+- [x] **Step 4: transaction cancel 返回恢复结果**
 
 Task 3 尚未创建 production renderer，因此 Store 通过注入的纯接口处理恢复：
 
@@ -483,11 +483,11 @@ createGraphStore(initial, {
 
 `cancelTransaction()` 首先尝试 `beforeCommit({previous:lastAppliedDocument,candidate:baseDocument})`。失败时调用 `recoverRuntime(baseDocument)`；两者都失败则返回 `{ok:false, fatal:true}`、不通知普通 subscriber、不清除可诊断的 transaction 状态。Task 3 只固定 Store 返回值和调用顺序，不在这里引用尚未存在的 renderer、工具 controller 或错误 UI。Task 4 负责把 `renderer.recover()` 接入，并在 fatal 时禁用输入/显示 `RENDER_FAILED`。
 
-- [ ] **Step 5: 恢复历史按钮合同**
+- [x] **Step 5: 恢复历史按钮合同**
 
 当前 partial 已移除 undo/redo 按钮，但 controller 仍查询它们。按原全面计划恢复紧凑按钮；按钮必须有 `data-graph-history-undo/redo`、中文 aria-label、disabled 同步和键盘等价操作。若产品明确决定只保留快捷键，则删除按钮查询和对应死测试；默认按“恢复按钮”实施。
 
-- [ ] **Step 6: 运行测试并提交**
+- [x] **Step 6: 运行测试并提交**
 
 ```bash
 node --test test/web/math-graph-store.test.cjs test/web/math-graph-history.test.cjs test/web/math-graph-history-controller.test.cjs
@@ -497,11 +497,11 @@ git commit -m "fix(math): preserve graph history on failed restores"
 
 ### Phase A Gate
 
-- [ ] 恶意函数名称/颜色不能生成属性或 CSS 注入。
-- [ ] 任意 published GraphDocument 都通过全局不变量和引用校验。
-- [ ] 加载、import、reset 后新增函数/点/构造不重名。
-- [ ] reorder 不会复制/丢失函数。
-- [ ] renderer 拒绝 restore 时 history 栈保持不动。
+- [x] 恶意函数名称/颜色不能生成属性或 CSS 注入。
+- [x] 任意 published GraphDocument 都通过全局不变量和引用校验。
+- [x] 加载、import、reset 后新增函数/点/构造不重名。
+- [x] reorder 不会复制/丢失函数。
+- [x] renderer 拒绝 restore 时 history 栈保持不动。
 
 ---
 
@@ -523,7 +523,7 @@ git commit -m "fix(math): preserve graph history on failed restores"
 - Create: `test/web/math-graph-document-renderer.test.cjs`
 - Modify: `test/web/math-graph-store.test.cjs`
 
-- [ ] **Step 1: 先写真实 production adapter 合同测试**
+- [x] **Step 1: 先写真实 production adapter 合同测试**
 
 不要只测试未接线的 `applyFunctionPlan`。测试必须实例化最终由 `index.js` 使用的 `createGraphDocumentRenderer()`，注入 fake board、fake layer handles 和真实 Store。
 
@@ -543,7 +543,7 @@ git commit -m "fix(math): preserve graph history on failed restores"
 - staged elements 已 dispose。
 - 没有已 dispose handle 被重新注册。
 
-- [ ] **Step 2: 修正 registry 生命周期 API**
+- [x] **Step 2: 修正 registry 生命周期 API**
 
 禁止用会 dispose 的 `delete()` 实现“暂时取出再回滚”。提供语义明确的 API，例如：
 
@@ -557,7 +557,7 @@ registry.clear()           // dispose 全部
 
 或者不保留旧 handle，rollback 始终通过 previous document full render 重建。两种方案只能选一种并用测试固定，不能混用“有时 inverse、有时重新塞已销毁对象”。
 
-- [ ] **Step 3: 实现 deterministic full render**
+- [x] **Step 3: 实现 deterministic full render**
 
 `fullRender(document)` 是恢复安全网，严格顺序：
 
@@ -576,7 +576,7 @@ functions 是根节点，可以先创建；其后的 point/construction 必须�
 
 允许 full render 的场景仅限：首次 mount、完整 document replace/import、schema migration、增量 rollback。普通系数/点/样式 action 不得调用 full render。
 
-- [ ] **Step 4: 实现 production beforeCommit**
+- [x] **Step 4: 实现 production beforeCommit**
 
 建议公开 API：
 
@@ -603,7 +603,7 @@ export function createGraphDocumentRenderer(context) {
 
 Task 4 把 Store 的 `recoverRuntime` 注入接到 `renderer.recover`。`index.js` 通过 renderer status callback 暂时禁用现有 tool strip/pointer 和参数控件，并显示 `RENDER_FAILED`；不得提前引用 Task 8 才创建的 `graph-tool-controller.js`。Task 8 只负责把这段已经工作的接线提取进 controller。
 
-- [ ] **Step 5: 删除“测试实现和 live 实现两套真相”**
+- [x] **Step 5: 删除“测试实现和 live 实现两套真相”**
 
 完成后：
 
@@ -612,7 +612,7 @@ Task 4 把 Store 的 `recoverRuntime` 注入接到 `renderer.recover`。`index.j
 - `applyFunctionPlan` 如果继续存在，必须是 production renderer 实际调用的组成部分。
 - 测试通过 import production public API 验证，不能复制算法。
 
-- [ ] **Step 6: 运行测试并提交**
+- [x] **Step 6: 运行测试并提交**
 
 ```bash
 node --test test/web/math-graph-document-renderer.test.cjs test/web/math-graph-render-plan.test.cjs test/web/math-graph-store.test.cjs test/web/math-lifecycle-unit.test.cjs test/web/math-construction-*.test.cjs
@@ -644,7 +644,7 @@ git commit -m "fix(math): make graph runtime publication atomic"
 - Modify: `test/web/math-function-panel-controller.test.cjs`
 - Modify: `test/web/math-function-records.test.cjs`
 
-- [ ] **Step 1: 写 point replacement 分类测试**
+- [x] **Step 1: 写 point replacement 分类测试**
 
 新增纯函数：
 
@@ -664,7 +664,7 @@ export function pointUpdateMode(previous, next) {
 
 只有坐标、名称、showCoords、locked 和可原位应用的 style 变化返回 `inPlace`。
 
-- [ ] **Step 2: UI point options 改为发出 intent**
+- [x] **Step 2: UI point options 改为发出 intent**
 
 `setPointOptionHooks` 不再直接调用 `setUserPointFollow()` / `setPointShowCoords()` 修改 runtime。改为 dispatch：
 
@@ -676,7 +676,7 @@ export function pointUpdateMode(previous, next) {
 
 `user-points.js` 保留 JSXGraph 创建、重建、标签应用等 runtime primitive，由 `PointLayer` 调用。
 
-- [ ] **Step 3: PointLayer 支持 replace**
+- [x] **Step 3: PointLayer 支持 replace**
 
 replace 顺序：
 
@@ -691,7 +691,7 @@ plan dependent constructions for removal
 
 不得让新线段继续引用已被 `board.removeObject()` 的旧点 element。
 
-- [ ] **Step 4: 对象样式建立文档桥接**
+- [x] **Step 4: 对象样式建立文档桥接**
 
 `object-style-panel` 仍是 shared UI，不得 import graph。通过注入 callback：
 
@@ -703,11 +703,11 @@ graph feature 将它映射为 `point/update` 或 `construction/update`；其它�
 
 `ConstructionLayer.update(previous, next)` 必须把 stroke、strokeWidth、dash、opacity、label style 等可原位字段投影到该 construction handle 的全部相关 elements；kind、refs 或不能安全原位更新的几何字段变化走 replace。不得只更新 `extend`/`secant` 后就返回成功。
 
-- [ ] **Step 5: 锁定语义闭合**
+- [x] **Step 5: 锁定语义闭合**
 
 locked point：UI 不允许拖动、切换跟随、改样式或删除；history/import/classroom 明确 replace 仍可恢复。locked function：侧栏 UI、系数滑杆和编辑器不提交参数/表达式/定义域/删除修改，只允许“解锁”和选择/查看；reducer 本身不因 locked 拒绝 history/import restore。
 
-- [ ] **Step 6: 加入完整往返测试**
+- [x] **Step 6: 加入完整往返测试**
 
 组合：
 
@@ -725,7 +725,7 @@ free U1
 
 再增加 construction style 组合：创建 segment/line → 修改 stroke/dash/width/label → undo/redo → export/import → full render。断言 runtime construction elements 的样式与文档一致，且只更新目标 construction，不重建无关对象。
 
-- [ ] **Step 7: 运行测试并提交**
+- [x] **Step 7: 运行测试并提交**
 
 ```bash
 node --test test/web/math-user-points.test.cjs test/web/math-object-style.test.cjs test/web/math-construction-records.test.cjs test/web/math-construction-dependencies.test.cjs test/web/math-graph-render-plan.test.cjs test/web/math-graph-history.test.cjs test/web/math-graph-persistence.test.cjs test/web/math-function-panel-controller.test.cjs test/web/math-function-records.test.cjs
@@ -748,7 +748,7 @@ git commit -m "fix(math): route graph point edits through documents"
 - Modify: `test/web/math-construction-dependencies.test.cjs`
 - Modify: `test/web/math-follow-target.test.cjs`
 
-- [ ] **Step 1: 为完整传递依赖图写失败测试**
+- [x] **Step 1: 为完整传递依赖图写失败测试**
 
 至少覆盖：
 
@@ -761,7 +761,7 @@ C1 + C2 → Ui2(GraphPoint intersection constraint) → C5(perpendicular through
 
 当 f1 更新时，计划必须包含 U1、Uv、Ui、Ui2 及 C1/C2/C3/C5 和所有传递下游；不能只检查 `construction.fnId/fnIds`。所有交点继续以 `GraphPoint.constraint.kind === 'intersection'` 为唯一权威记录，不得为了依赖测试重新引入 intersection construction。
 
-- [ ] **Step 2: 扩展 Task 1 已建立的纯依赖 API**
+- [x] **Step 2: 扩展 Task 1 已建立的纯依赖 API**
 
 建议：
 
@@ -783,7 +783,7 @@ export function graphDependentsOf(document, rootIds) {
 - add：functions 根节点先创建，其余 point/construction 按跨类型拓扑序列混排。例如 `point → line construction → intersection point → perpendicular construction`。
 - remove：add 序列严格反转，先最下游 point/construction，最后 function；不能按类型分桶。
 
-- [ ] **Step 3: renderer 消费闭包计划**
+- [x] **Step 3: renderer 消费闭包计划**
 
 函数 definition 变化顺序：
 
@@ -797,7 +797,7 @@ update evaluator/function curve
 
 visibility 变化需要传播可见性，但不能删除文档记录。隐藏期间 unresolved runtime 依赖可被卸载；重新显示必须按文档完整恢复。
 
-- [ ] **Step 4: 活动特征刷新按 diff，不按 action shape**
+- [x] **Step 4: 活动特征刷新按 diff，不按 action shape**
 
 不能再判断 `ctx.action.payload.patch.visible`。只要 active function 的数学定义、domain 或 visibility 发生变化，就刷新特征点/渐近线；history restore、transaction commit、document replace 同样生效。
 
@@ -809,7 +809,7 @@ activeFunctionVisualChanged(previous, current)
 
 只改函数名称或锁定状态不重建曲线和特征。
 
-- [ ] **Step 5: 运行测试并提交**
+- [x] **Step 5: 运行测试并提交**
 
 ```bash
 node --test test/web/math-graph-dependency-plan.test.cjs test/web/math-graph-render-plan.test.cjs test/web/math-construction-dependencies.test.cjs test/web/math-follow-target.test.cjs test/web/math-graph-document-renderer.test.cjs
@@ -819,11 +819,11 @@ git commit -m "fix(math): refresh transitive graph dependencies"
 
 ### Phase B Gate
 
-- [ ] production `beforeCommit` 与测试使用同一 renderer API。
-- [ ] 任何 renderer failure 后 document/runtime 深度对应 previous。
-- [ ] runtime 恢复失败进入 fatal，不继续接受工具输入。
-- [ ] 点跟随、标签和样式可以 undo/redo、保存和恢复。
-- [ ] 函数参数变化能刷新传递依赖和活动特征，不重建无关对象。
+- [x] production `beforeCommit` 与测试使用同一 renderer API。
+- [x] 任何 renderer failure 后 document/runtime 深度对应 previous。
+- [x] runtime 恢复失败进入 fatal，不继续接受工具输入。
+- [x] 点跟随、标签和样式可以 undo/redo、保存和恢复。
+- [x] 函数参数变化能刷新传递依赖和活动特征，不重建无关对象。
 
 ---
 
@@ -843,7 +843,7 @@ git commit -m "fix(math): refresh transitive graph dependencies"
 - Modify: `test/web/math-frame-task.test.cjs`
 - Modify: `test/web/math-graph-render-plan.test.cjs`
 
-- [ ] **Step 1: 写调用次数性能测试，不写脆弱毫秒断言**
+- [x] **Step 1: 写调用次数性能测试，不写脆弱毫秒断言**
 
 用 fake frame scheduler 连续发送 100 次 coefficient input，断言：
 
@@ -855,7 +855,7 @@ git commit -m "fix(math): refresh transitive graph dependencies"
 - 值表/特征只在 active function 数学定义或 active id 变化时 render。
 - point move 不重绘函数列表和值表。
 
-- [ ] **Step 2: Store transaction 与 frame batching 分工明确**
+- [x] **Step 2: Store transaction 与 frame batching 分工明确**
 
 - transaction：决定一次手势形成几条历史。
 - frame task：限制 runtime/DOM 每帧执行次数。
@@ -865,7 +865,9 @@ git commit -m "fix(math): refresh transitive graph dependencies"
 
 禁止通过延长 transaction debounce 掩盖主线程每个 input 都重绘的问题。
 
-- [ ] **Step 3: 优化 record diff**
+**实现确认的权威边界（2026-08-07）：** Store 层 transaction 内每次 preview dispatch 保持**同步投影**（`lastAppliedDocument` 逐次推进，Task 3 状态机；commit 跳过已 apply 的最终 preview）；frame batching 只属于 **UI intent 层**（`setCoeffs` 的 `pendingCoeff`/`coeffFrame` + `requestAnimationFrame(flushCoeffFrame)` 合并）。产品高频入口（滑杆/数字输入/函数面板）必须经 `setCoeffs` 合并，不允许直连 store dispatch 绕过 batching。batching 不下沉进纯 Store（Store 保持同步语义，frame scheduler 仅注入 fake 可测）。合同由 `math-graph-performance.test.cjs` 固定：「store transaction preview 同步投影（合同边界）」与「UI intent 层 frame batching 是高频入口的唯一路径（结构合同）」。
+
+- [x] **Step 3: 优化 record diff**
 
 Reducer 保持未变化 record 的对象引用，因此 diff 先判断：
 
@@ -875,7 +877,7 @@ if (beforeRecord === afterRecord) unchanged;
 
 只有完整 import/replace 或引用不同且需要确认时才做字段比较。不要对每条记录默认 `JSON.stringify`。
 
-- [ ] **Step 4: 分离 runtime diff 与 UI diff**
+- [x] **Step 4: 分离 runtime diff 与 UI diff**
 
 render plan 增加明确 flags：
 
@@ -892,11 +894,11 @@ render plan 增加明确 flags：
 
 不再每个 action 无条件调用 `renderFnList/syncParamPanel/paintReadouts`。
 
-- [ ] **Step 5: 批量 DOM write，再批量 layout read**
+- [x] **Step 5: 批量 DOM write，再批量 layout read**
 
 `graph-readouts.js` 负责写入 feature/value table；`alignFeatureLabelWidths` 通过单个 frame task 在 DOM 写完后执行一次。连续参数输入不得在每个同步事件中反复 `getBoundingClientRect()`。
 
-- [ ] **Step 6: 增加宽松预算和退化策略**
+- [x] **Step 6: 增加宽松预算和退化策略**
 
 测试以调用数为硬不变量；可额外记录宽松时间诊断但不把机器差异作为唯一失败条件。建议预算：
 
@@ -908,7 +910,7 @@ render plan 增加明确 flags：
 | theme switch | 0 条 history、0 次 persistence save |
 | dispose | 0 个 pending frame/timer/listener |
 
-- [ ] **Step 7: 运行测试并提交**
+- [x] **Step 7: 运行测试并提交**
 
 ```bash
 node --test test/web/math-graph-performance.test.cjs test/web/math-frame-task.test.cjs test/web/math-graph-render-plan.test.cjs test/web/math-numeric-features.test.cjs test/web/math-transform-controller.test.cjs
@@ -934,7 +936,7 @@ git commit -m "perf(math): batch graph document rendering"
 - Modify: `test/web/math-board-contract.test.cjs`
 - Create: `test/web/math-graph-mount-controller.test.cjs`
 
-- [ ] **Step 1: 写重复 mount/dispose 生命周期失败测试**
+- [x] **Step 1: 写重复 mount/dispose 生命周期失败测试**
 
 循环 20 次：
 
@@ -946,7 +948,7 @@ mount → click import/export/reset once → dispose
 
 函数 panel/list/editor 必须在 `initGraphUI()` DOM 已存在后创建；`disposeGraph()` 调用它们的 dispose。禁止模块 import 时永久捕获一次 DOM 节点。
 
-- [ ] **Step 2: 提取 persistence UI**
+- [x] **Step 2: 提取 persistence UI**
 
 `createGraphPersistenceUi()` 负责：
 
@@ -957,7 +959,7 @@ mount → click import/export/reset once → dispose
 
 `index.js` 不再出现三个匿名 `.addEventListener('click', ...)`。
 
-- [ ] **Step 3: 提取 readouts 和 function runtime 编排**
+- [x] **Step 3: 提取 readouts 和 function runtime 编排**
 
 把以下函数组从 `index.js` 移出：
 
@@ -967,7 +969,7 @@ mount → click import/export/reset once → dispose
 
 模块必须通过注入 evaluator/theme/board/store 工作，不创建第二套 document state。
 
-- [ ] **Step 4: 提取工具交互 controller**
+- [x] **Step 4: 提取工具交互 controller**
 
 把 `toolPick`、one-shot、tap/pick 流程和工具取消逻辑放入 `graph-tool-controller.js`。controller 只维护 transient selection；正式对象通过 Store action 创建。公开：
 
@@ -975,11 +977,11 @@ mount → click import/export/reset once → dispose
 { activate, handleTap, cancel, getState, dispose }
 ```
 
-- [ ] **Step 5: 建立 mount controller**
+- [x] **Step 5: 建立 mount controller**
 
 `graph-mount-controller.js` 负责依次创建/销毁：persistence、Store、History、renderer、board controllers、theme handle、ResizeObserver、pagehide。所有 disposer 收进一个集合并逆序执行；单个 disposer 抛错不能阻止其余清理。
 
-- [ ] **Step 6: 逐级收紧结构测试，禁止再次放宽**
+- [x] **Step 6: 逐级收紧结构测试，禁止再次放宽**
 
 本 Task 开始时先记录当前行数。每次抽取后把上限向下调整：
 
@@ -1000,7 +1002,7 @@ final:        < 700
 - `function-panel/list/editor` 都有 dispose 合同。
 - `draw-tools.js` 无 `export *`。
 
-- [ ] **Step 7: 运行测试并提交**
+- [x] **Step 7: 运行测试并提交**
 
 ```bash
 node --test test/web/math-graph-mount-controller.test.cjs test/web/math-graph-structure.test.cjs test/web/math-function-panel-controller.test.cjs test/web/math-graph-history-controller.test.cjs test/web/math-board-contract.test.cjs test/web/math-syntax-smoke.test.cjs
@@ -1010,12 +1012,12 @@ git commit -m "refactor(math): thin the function canvas orchestrator"
 
 ### Phase C Gate
 
-- [ ] slider 高频输入每帧最多一次 runtime apply。
-- [ ] point/construction action 不触发无关函数列表和值表重绘。
-- [ ] 20 次 mount/dispose 后 listener/timer/frame/observer 数归零。
-- [ ] `index.js` <700 行，结构测试阈值与说明一致。
-- [ ] 函数锁定真正阻止 UI 修改，但不阻止 history/import restore。
-- [ ] 主题切换只改变 runtime resolved colors，不修改 document/history/storage。
+- [x] slider 高频输入每帧最多一次 runtime apply。
+- [x] point/construction action 不触发无关函数列表和值表重绘。
+- [x] 20 次 mount/dispose 后 listener/timer/frame/observer 数归零。
+- [x] `index.js` <700 行，结构测试阈值与说明一致。
+- [x] 函数锁定真正阻止 UI 修改，但不阻止 history/import restore。
+- [x] 主题切换只改变 runtime resolved colors，不修改 document/history/storage。
 
 ---
 
@@ -1031,7 +1033,7 @@ git commit -m "refactor(math): thin the function canvas orchestrator"
 - Modify: `apps/web/src/math/AGENTS.md`
 - Verify and modify if drift remains: `docs/superpowers/plans/2026-08-02-function-canvas-comprehensive.md`
 
-- [ ] **Step 1: 跑六条自动组合回归**
+- [x] **Step 1: 跑六条自动组合回归**
 
 使用 fake board/DOM/storage/timer，至少覆盖：
 
@@ -1042,7 +1044,7 @@ git commit -m "refactor(math): thin the function canvas orchestrator"
 5. 加载已有 f1/f2/U1/C1 后新增对象，id 不重复、无 ghost。
 6. 恶意 name/color JSON import → function list render，不产生 HTML attribute/CSS injection。
 
-- [ ] **Step 2: 运行数学测试**
+- [x] **Step 2: 运行数学测试**
 
 ```bash
 node --test 'test/web/math-*.test.cjs'
@@ -1050,7 +1052,7 @@ node --test 'test/web/math-*.test.cjs'
 
 Expected: 全部 PASS；不得只报告“原有 252 项通过”，需要报告修复后新的实际总数。
 
-- [ ] **Step 3: 运行全仓测试**
+- [x] **Step 3: 运行全仓测试**
 
 ```bash
 npm test
@@ -1058,7 +1060,7 @@ npm test
 
 Expected: 全部 PASS；服务端测试只能使用临时数据库。
 
-- [ ] **Step 4: 运行生产构建**
+- [x] **Step 4: 运行生产构建**
 
 ```bash
 npm run build
@@ -1066,7 +1068,7 @@ npm run build
 
 Expected: Vite 构建成功。允许既有 JSXGraph `eval`、重复动态导入和大 chunk warning；不得新增循环依赖、歧义导出、未解析 import 或新 warning 类型。
 
-- [ ] **Step 5: 运行静态收口检查**
+- [x] **Step 5: 运行静态收口检查**
 
 ```bash
 git diff --check
@@ -1082,7 +1084,7 @@ Expected:
 - `index.js` 少于 700 行。
 - status 不包含生成目录、用户数据库或嵌套 lockfile。
 
-- [ ] **Step 6: 更新工程合同**
+- [x] **Step 6: 更新工程合同**
 
 只有代码与测试完成后，才在 `apps/web/src/math/AGENTS.md` 写明：
 
@@ -1107,7 +1109,7 @@ Expected:
 - rollback 是否把 disposed handle 放回 registry。
 - 结构阈值是否再次被放宽。
 
-- [ ] **Step 8: Final commit**
+- [x] **Step 8: Final commit**
 
 ```bash
 git add apps/web/src/math/AGENTS.md docs/superpowers/plans/2026-08-02-function-canvas-comprehensive.md test/web/math-graph-document-renderer.test.cjs test/web/math-graph-dependency-plan.test.cjs test/web/math-graph-performance.test.cjs
@@ -1159,38 +1161,38 @@ git commit -m "test(math): close function canvas reliability gaps"
 
 安全与数据：
 
-- [ ] 导入 JSON 中的函数名称、颜色和其它字符串不能形成 HTML/CSS 注入。
-- [ ] V2 文档不保存主题默认 literal color，主题切换不修改文档。
-- [ ] 所有 published document 都满足全局 id、kind、数值和引用不变量。
-- [ ] functions 永不为空；activeFunctionId 总是 null-safe 且指向有效函数。
+- [x] 导入 JSON 中的函数名称、颜色和其它字符串不能形成 HTML/CSS 注入。
+- [x] V2 文档不保存主题默认 literal color，主题切换不修改文档。
+- [x] 所有 published document 都满足全局 id、kind、数值和引用不变量。
+- [x] functions 永不为空；activeFunctionId 总是 null-safe 且指向有效函数。
 
 一致性：
 
-- [ ] GraphDocument 是函数、点、构造、视口、样式、跟随和标签显示的唯一业务真值。
-- [ ] production beforeCommit 具有 staging/rollback/full-recovery 合同。
-- [ ] renderer 失败后 Store、History、Persistence 和 runtime 全部对应 previous。
-- [ ] undo/redo restore 失败不移动历史栈。
-- [ ] 加载/import/reset 后 ID 不重复，不存在文档外 ghost runtime 对象。
-- [ ] 参数变化按完整依赖闭包刷新 point/intersection/construction 和活动特征。
+- [x] GraphDocument 是函数、点、构造、视口、样式、跟随和标签显示的唯一业务真值。
+- [x] production beforeCommit 具有 staging/rollback/full-recovery 合同。
+- [x] renderer 失败后 Store、History、Persistence 和 runtime 全部对应 previous。
+- [x] undo/redo restore 失败不移动历史栈。
+- [x] 加载/import/reset 后 ID 不重复，不存在文档外 ghost runtime 对象。
+- [x] 参数变化按完整依赖闭包刷新 point/intersection/construction 和活动特征。
 
 性能与生命周期：
 
-- [ ] slider 高频输入每帧最多一次 render apply，一次手势一条 history。
-- [ ] 无关 action 不重绘函数列表、值表或无关 JSXGraph 对象。
-- [ ] DOM 布局读取在 frame 内合并。
-- [ ] mount/dispose 循环后 listener/timer/frame/observer/object URL 全部释放。
-- [ ] theme switch 不进入 history/persistence。
+- [x] slider 高频输入每帧最多一次 render apply，一次手势一条 history。
+- [x] 无关 action 不重绘函数列表、值表或无关 JSXGraph 对象。
+- [x] DOM 布局读取在 frame 内合并。
+- [x] mount/dispose 循环后 listener/timer/frame/observer/object URL 全部释放。
+- [x] theme switch 不进入 history/persistence。
 
 结构与验证：
 
-- [ ] `apps/web/src/math/graph/index.js` 少于 700 行且只负责装配、公共入口和极薄生命周期代理。
-- [ ] `draw-tools.js` 保持显式无歧义导出。
-- [ ] production/test 使用同一 renderer API。
-- [ ] `node --test 'test/web/math-*.test.cjs'` PASS。
-- [ ] `npm test` PASS。
-- [ ] `npm run build` PASS。
-- [ ] `git diff --check` 无输出。
-- [ ] 未修改生成目录或用户数据。
+- [x] `apps/web/src/math/graph/index.js` 少于 700 行且只负责装配、公共入口和极薄生命周期代理。
+- [x] `draw-tools.js` 保持显式无歧义导出。
+- [x] production/test 使用同一 renderer API。
+- [x] `node --test 'test/web/math-*.test.cjs'` PASS。
+- [x] `npm test` PASS。
+- [x] `npm run build` PASS。
+- [x] `git diff --check` 无输出。
+- [x] 未修改生成目录或用户数据。
 
 ---
 
