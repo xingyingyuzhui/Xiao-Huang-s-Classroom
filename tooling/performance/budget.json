@@ -1,0 +1,9 @@
+{
+  "baseline": "2026-08-07",
+  "chunks": [
+    { "name": "mathviz", "maxKb": 1350, "note": "JSXGraph+KaTeX；基线 1286kB，预留 5%" },
+    { "name": "three", "maxKb": 730, "note": "Three.js；基线 690kB，预留 6%" },
+    { "name": "index", "maxKb": 720, "note": "index-* 全部分包合计；基线 304+186+131=621kB" }
+  ],
+  "totalMaxKb": 4200
+}
