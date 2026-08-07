@@ -43,7 +43,8 @@
     "pkg:smoke": "node scripts/pkg-smoke.mjs",
     "lint:theme-tokens": "node tooling/architecture/check-theme-tokens.mjs",
     "lint:assets": "node tooling/architecture/check-assets.mjs",
-    "budget": "node tooling/performance/budget.mjs"
+    "budget": "node tooling/performance/budget.mjs",
+    "test:vitest": "turbo run test"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
