@@ -543,7 +543,7 @@ html[data-theme='blackboard'] .bookshelf-detail {
 }
 
 html[data-theme='blackboard'] .bookshelf-detail-status {
-  color: #f0d060;
+  color: var(--detail-title);
 }
 
 /* 像素：硬边半透面板 · 无大圆角 */
