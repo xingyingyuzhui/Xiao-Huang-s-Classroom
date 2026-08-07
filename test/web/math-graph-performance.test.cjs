@@ -10,7 +10,7 @@
  * 1. 同帧 100 次 coefficient input → render plan/runtime apply 最多一次（1 次）；
  *    最终文档用最后一个值；一次手势只形成一条 history。
  * 2. point coordinate update → 0 次 function create/remove。
- * 3. 函数列表只在集合/顺序/名称/颜色/显隐/锁定变化时 render；只改 coeffs → 0 次。
+ * 3. 函数列表只在集合/顺序/名称/颜色/显隐/锁定/选中态变化时 render；只改 coeffs → 0 次。
  * 4. 值表/特征只在 active function 数学定义或 active id 变化时 render。
  * 5. point move 不重绘函数列表和值表。
  *
@@ -437,15 +437,16 @@ test('coefficient 更新只重建 active 函数及其依赖；无关函数/点/�
 
 // ───────────────────────── 不变量 3：函数列表渲染条件 ─────────────────────────
 
-test('函数列表在集合/顺序/名称/颜色/显隐/锁定变化时 render（每次恰 1 次）', async () => {
+test('函数列表在集合/顺序/名称/颜色/显隐/锁定/选中态变化时 render（每次恰 1 次）', async () => {
   const { store, counters, mount, dispatchOk } = await setup();
   mount();
+  dispatchOk({ type: 'function/add', payload: { function: fn('f2', { name: 'f2' }) } });
 
   const scenarios = [
     ['集合变化 function/add', () =>
-      dispatchOk({ type: 'function/add', payload: { function: fn('f2', { name: 'f2' }) } })],
+      dispatchOk({ type: 'function/add', payload: { function: fn('f3', { name: 'f3' }) } })],
     ['顺序变化 function/reorder', () =>
-      dispatchOk({ type: 'function/reorder', payload: { ids: ['f2', 'f1'] } })],
+      dispatchOk({ type: 'function/reorder', payload: { ids: ['f2', 'f1', 'f3'] } })],
     ['名称变化', () =>
       dispatchOk({ type: 'function/update', payload: { id: 'f1', patch: { name: 'y=x^2' } } })],
     ['颜色变化', () =>
@@ -454,6 +455,9 @@ test('函数列表在集合/顺序/名称/颜色/显隐/锁定变化时 render�
       dispatchOk({ type: 'function/update', payload: { id: 'f1', patch: { visible: false } } })],
     ['锁定变化', () =>
       dispatchOk({ type: 'function/update', payload: { id: 'f1', patch: { locked: true } } })],
+    // 选中态：activeFunctionId 是卡片 is-active 遮罩的数据源，切换必须重渲染列表
+    ['选中变化', () =>
+      dispatchOk({ type: 'presentation/update', payload: { patch: { activeFunctionId: 'f2' } } })],
   ];
   for (const [label, act] of scenarios) {
     counters.reset();

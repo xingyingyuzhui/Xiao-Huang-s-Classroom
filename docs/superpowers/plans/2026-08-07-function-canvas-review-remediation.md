@@ -851,7 +851,7 @@ git commit -m "fix(math): refresh transitive graph dependencies"
 - 一次拖动仍只形成一个 history entry。
 - 最终 document 使用最后一个值。
 - 只更新 active function 及其依赖；无关 function/point/construction create/update/remove 计数为 0。
-- 函数列表只在集合、顺序、名称、颜色、显隐、锁定变化时 render。
+- 函数列表只在集合、顺序、名称、颜色、显隐、锁定、**选中态（activeFunctionId，卡片 is-active 遮罩）**变化时 render。
 - 值表/特征只在 active function 数学定义或 active id 变化时 render。
 - point move 不重绘函数列表和值表。
 

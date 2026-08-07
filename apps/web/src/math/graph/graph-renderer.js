@@ -68,9 +68,10 @@ export function computeGraphRenderPlan(previous, current) {
     previous.presentation?.activeFunctionId !== current.presentation?.activeFunctionId;
   const activeMathChanged =
     activeFunctionVisualChanged(previous, current) || activeFunctionChanged;
-  // UI diff flags：函数列表只在集合/顺序/名称/颜色/显隐/锁定变化时重渲染
-  const fnListKey = JSON.stringify(
-    (current.functions || []).map((f) => [
+  // UI diff flags：函数列表在集合/顺序/名称/颜色/显隐/锁定/**选中态**变化时重渲染
+  // （activeFunctionId 是卡片 is-active 遮罩的数据源，切换选中必须重渲染列表）
+  const fnListKey = JSON.stringify({
+    functions: (current.functions || []).map((f) => [
       f.id,
       f.name,
       f.colorSlot,
@@ -78,9 +79,10 @@ export function computeGraphRenderPlan(previous, current) {
       f.visible,
       f.locked,
     ]),
-  );
-  const prevFnListKey = JSON.stringify(
-    (previous.functions || []).map((f) => [
+    activeFunctionId: current.presentation?.activeFunctionId ?? null,
+  });
+  const prevFnListKey = JSON.stringify({
+    functions: (previous.functions || []).map((f) => [
       f.id,
       f.name,
       f.colorSlot,
@@ -88,7 +90,8 @@ export function computeGraphRenderPlan(previous, current) {
       f.visible,
       f.locked,
     ]),
-  );
+    activeFunctionId: previous.presentation?.activeFunctionId ?? null,
+  });
   const functionListChanged = fnListKey !== prevFnListKey;
   const readoutsChanged = activeMathChanged;
 
