@@ -1,7 +1,16 @@
 /**
  * 为 Electron 打包准备精简版 server 目录（.electron-stage/server）
  */
-import { cpSync, mkdirSync, rmSync, readdirSync, statSync, existsSync, writeFileSync, readFileSync } from 'fs';
+import {
+  cpSync,
+  mkdirSync,
+  rmSync,
+  readdirSync,
+  statSync,
+  existsSync,
+  writeFileSync,
+  readFileSync,
+} from 'fs';
 import { join, dirname } from 'path';
 import { fileURLToPath } from 'url';
 import { execSync } from 'child_process';
@@ -52,12 +61,16 @@ if (existsSync(publicSrc)) {
 }
 
 const pkg = JSON.parse(readFileSync(join(srcServer, 'package.json'), 'utf8'));
+// 本地 workspace 包（registry 不存在）从仓库复制，不参与 npm install
+const LOCAL_PACKAGES = ['domain-core', 'subject-settings', 'math-expr'];
+const slimDeps = { ...(pkg.dependencies || {}) };
+for (const name of LOCAL_PACKAGES) delete slimDeps[`@xiaohuang/${name}`];
 const slim = {
   name: pkg.name,
   version: pkg.version,
   private: true,
   main: 'index.js',
-  dependencies: pkg.dependencies || {},
+  dependencies: slimDeps,
 };
 writeFileSync(join(stageServer, 'package.json'), JSON.stringify(slim, null, 2));
 
@@ -66,6 +79,16 @@ execSync('npm install --omit=dev --no-audit --no-fund', {
   cwd: stageServer,
   stdio: 'inherit',
 });
+
+// 复制本地 workspace 包（含 dist 双产物）到 stage node_modules
+for (const name of LOCAL_PACKAGES) {
+  const src = join(root, 'packages', name);
+  const dst = join(stageServer, 'node_modules', '@xiaohuang', name);
+  mkdirSync(dirname(dst), { recursive: true });
+  rimraf(dst);
+  cpSync(src, dst, { recursive: true });
+  console.log(`[stage] 本地包复制: @xiaohuang/${name}`);
+}
 
 const sqlDist = join(stageServer, 'node_modules', 'sql.js', 'dist');
 if (existsSync(sqlDist)) {
@@ -102,7 +125,10 @@ function pruneJunk(dir, depth = 0) {
         continue;
       }
       pruneJunk(p, depth + 1);
-    } else if (/\.(md|ts|map|markdown)$/i.test(name) || /^(README|CHANGELOG|LICENSE|LICENCE)/i.test(name)) {
+    } else if (
+      /\.(md|ts|map|markdown)$/i.test(name) ||
+      /^(README|CHANGELOG|LICENSE|LICENCE)/i.test(name)
+    ) {
       try {
         rmSync(p);
       } catch {
@@ -138,3 +164,40 @@ try {
 
 console.log('Stage server size:', du(stageServer));
 console.log('Done.');
+
+// ───────────────────────── Stage manifest（Program 6 Task 6.3） ─────────────────────────
+
+import { createHash } from 'crypto';
+import { APP_VERSION } from '@xiaohuang/config';
+
+function sha256(p) {
+  return createHash('sha256').update(readFileSync(p)).digest('hex');
+}
+
+/** 递归收集 stage 目录文件并计算 hash，生成 manifest（打包前完整性校验依据）。 */
+function writeStageManifest() {
+  const files = [];
+  const walk = (dir) => {
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      const st = statSync(full);
+      if (st.isDirectory()) walk(full);
+      else files.push({ path: full, hash: sha256(full), size: st.size });
+    }
+  };
+  walk(stageRoot);
+  const manifest = {
+    appVersion: APP_VERSION,
+    builtAt: new Date().toISOString(),
+    fileCount: files.length,
+    files: files.map((f) => ({
+      path: f.path.replace(stageRoot + '/', ''),
+      hash: f.hash,
+      size: f.size,
+    })),
+  };
+  writeFileSync(join(stageRoot, 'stage-manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
+  console.log(`[stage-manifest] ${manifest.fileCount} 个文件，version=${APP_VERSION}`);
+}
+
+writeStageManifest();
