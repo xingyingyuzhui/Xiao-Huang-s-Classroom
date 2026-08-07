@@ -40,7 +40,7 @@ test('math panels partial has side-drawer + stage for each lab tab', () => {
 
 test('math classroom catalog labels use curriculum language', () => {
   const catalog = fs.readFileSync(
-    path.join(root, 'packages/subject-settings/tab-catalog.js'),
+    path.join(root, 'packages/subject-settings/src/tab-catalog.ts'),
     'utf8',
   );
   assert.match(catalog, /函数画布/);

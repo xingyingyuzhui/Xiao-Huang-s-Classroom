@@ -165,7 +165,7 @@ test('math classroom mounts multi-tab panels like chemistry', () => {
   assert.match(panels, /概念讲解/);
   assert.doesNotMatch(panels, /二次一族/);
   assert.doesNotMatch(panels, /知识地图/);
-  const catalog = source('packages/subject-settings/tab-catalog.js');
+  const catalog = source('packages/subject-settings/src/tab-catalog.ts');
   assert.match(catalog, /defaultTabId: 'graph'/);
   assert.match(catalog, /showTabBar: true/);
   assert.match(catalog, /panel-math-graph/);

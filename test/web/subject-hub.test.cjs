@@ -48,7 +48,7 @@ test('classroom registry maps ready subjects to classroom runtimes', () => {
   assert.match(registry, /createMathClassroom/);
   assert.match(registry, /CLASSROOM_FACTORIES/);
   assert.match(registry, /syncClassroomTabChrome/);
-  assert.ok(fs.existsSync(path.join(root, 'packages/subject-settings/index.cjs')));
+  assert.ok(fs.existsSync(path.join(root, 'packages/subject-settings/dist/index.cjs')), 'subject-settings 双产物 CJS 存在');
 });
 
 test('index.html has subject hub bookshelf and chrome hooks', () => {
