@@ -174,12 +174,14 @@ export function applyGraphRuntimePlan(context, plan, ctx) {
 
     // ── 2) 点：按文档记录增删（layer 幂等） ──
     for (const record of plan.points.add) context.pointLayer.add(record);
-    for (const record of plan.points.update) context.pointLayer.update(record);
+    for (const { record } of plan.points.update) context.pointLayer.update(record);
     for (const id of plan.points.remove) context.pointLayer.remove(id);
 
-    // ── 3) 构造 ──
+    // ── 3) 构造（样式补丁经 action.payload.style 原位投影） ──
     for (const record of plan.constructions.add) context.constructionLayer.add(record);
-    for (const record of plan.constructions.update) context.constructionLayer.update(record);
+    for (const record of plan.constructions.update) {
+      context.constructionLayer.update(record, ctx.action?.payload?.style);
+    }
     for (const id of plan.constructions.remove) context.constructionLayer.remove(id);
 
     // ── 4) 视口（applyView 自带防回环 guard） ──

@@ -4,7 +4,13 @@
  * 包裹 user-points 控制器，提供按文档记录的 add / update / remove；
  * 拖动坐标由 JSXGraph 实时维护，drag end 经 onPointMoved 回写文档（point/update）；
  * undo/redo 等文档驱动坐标变更经 update 回写到板面元素。
+ *
+ * replace 语义：constraint kind / 跟随目标变化时，必须先拆除依赖该点的
+ * 构造，替换点元素，再按文档重建依赖构造；绝不保留引用旧元素的构造。
  */
+
+import { pointUpdateMode } from './graph-record-validation.js';
+import { graphDependentsOf } from './graph-dependency-plan.js';
 
 /**
  * @param {any} element
@@ -30,6 +36,8 @@ function moveBoardPoint(element, x, y) {
  * @param {{
  *   controller: any,
  *   getRecords: () => any[],
+ *   getDocument: () => any,
+ *   constructionLayer: any,
  * }} context
  */
 export function createPointLayer(context) {
@@ -47,14 +55,20 @@ export function createPointLayer(context) {
     },
 
     /**
-     * 文档点更新：投影坐标（及可选 showCoords）到 runtime 元素。
-     * 约束 kind 变化时走删除+重建更安全；此处仅处理坐标/标签显隐。
+     * 文档点更新：按 pointUpdateMode 分流。
+     * - inPlace：坐标/名称/showCoords/样式原位投影；
+     * - replace：约束/跟随目标变化 → 拆除依赖构造 → 替换点 → 重建构造。
      * @param {any} record
      */
     update(record) {
       if (!record || typeof record.id !== 'string') return null;
       const existing = findRecord(record.id);
       if (!existing) return null;
+      const previous = { ...existing, constraint: existing.constraint || { kind: 'free' } };
+
+      if (pointUpdateMode(previous, record) === 'replace') {
+        return this.replace(previous, record);
+      }
 
       const x = Number(record.x);
       const y = Number(record.y);
@@ -79,7 +93,38 @@ export function createPointLayer(context) {
           /* label refresh is best-effort */
         }
       }
+      if (record.style) {
+        context.controller.applyStyle?.(existing.el, record.style);
+      }
       return existing;
+    },
+
+    /**
+     * 替换点元素（约束/跟随目标变化）：拆除依赖构造 → 删旧点 → 建新点 → 重建构造。
+     * @param {any} previous
+     * @param {any} next
+     */
+    replace(previous, next) {
+      const doc = context.getDocument?.();
+      const dependents = doc ? graphDependentsOf(doc, [next.id]) : { constructionIds: [] };
+      const constrIds = dependents.constructionIds || [];
+      // 1) 先拆除依赖构造（下游先删）
+      const constructionLayer = context.getConstructionLayer?.() || context.constructionLayer;
+      for (const id of [...constrIds].reverse()) {
+        constructionLayer?.remove(id);
+      }
+      // 2) 删除旧点元素（controller.delete 同时清理 board 引用）
+      context.controller.delete(previous.el);
+      // 3) 按新记录重建点
+      const created = context.controller.createFromDocument(next);
+      // 4) 按文档重建依赖构造
+      if (doc) {
+        const constructionLayer = context.getConstructionLayer?.() || context.constructionLayer;
+        for (const rec of doc.constructions || []) {
+          if (constrIds.includes(rec.id)) constructionLayer?.add(rec);
+        }
+      }
+      return created;
     },
 
     /**

@@ -7,6 +7,31 @@
 
 import { detachConstr } from './construction/records.js';
 import { createConstructionFromDocument } from './construction/restore.js';
+import { normalizeConstructionStylePatch } from './graph-record-validation.js';
+
+/** 把文档样式补丁投影到构造的全部相关 elements（颜色/线宽/虚线/透明度/标签）。 */
+function applyConstructionStyle(record, stylePatch) {
+  const style = normalizeConstructionStylePatch(record.style, stylePatch);
+  record.style = style;
+  for (const el of record.els || []) {
+    try {
+      const patch = {};
+      if (style.strokeColor !== undefined) patch.strokeColor = style.strokeColor;
+      if (style.strokeWidth !== undefined) patch.strokeWidth = Number(style.strokeWidth);
+      if (style.dash !== undefined) {
+        patch.dash = Number(style.dash) > 0 ? Number(style.dash) : 0;
+        if (Number(style.dash) > 0 && el.elType === 'line' && typeof el.setAttribute === 'function') {
+          el.setAttribute({ dashScale: 1 });
+        }
+      }
+      if (style.opacity !== undefined) patch.strokeOpacity = Number(style.opacity);
+      if (typeof el.setAttribute === 'function') el.setAttribute(patch);
+    } catch {
+      /* partially disposed element */
+    }
+  }
+  return true;
+}
 
 /**
  * @param {{
@@ -27,11 +52,12 @@ export function createConstructionLayer(context) {
     },
 
     /**
-     * 文档构造更新（extend / 割线锚点等）。
+     * 文档构造更新：extend / 割线锚点 / 样式字段。
      * 割线 x1/x2/showDelta 变更：detach + 按文档记录重建，保证 glider 与量测标签一致。
      * @param {any} record
+     * @param {any} [stylePatch]
      */
-    update(record) {
+    update(record, stylePatch) {
       const existing = context.getConstructions().find((rec) => rec.id === record?.id);
       if (!existing) return false;
 
@@ -51,6 +77,9 @@ export function createConstructionLayer(context) {
         } catch {
           /* partially disposed ray */
         }
+      }
+      if (stylePatch) {
+        applyConstructionStyle(existing, stylePatch);
       }
       return true;
     },

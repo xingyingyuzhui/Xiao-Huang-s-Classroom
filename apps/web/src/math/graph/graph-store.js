@@ -200,11 +200,12 @@ export function reduceGraphDocument(document, action) {
     }
 
     case 'construction/update': {
-      const { id, patch } = action.payload || {};
+      const { id, patch, style } = action.payload || {};
       const index = document.constructions.findIndex((c) => c.id === id);
       if (index < 0 || !patch || typeof patch !== 'object') return document;
       const before = document.constructions[index];
       const next = { ...before, ...patch };
+      if (style && typeof style === 'object') next.style = style;
       if (shallowEqual(before, next)) return document;
       const constructions = document.constructions.slice();
       constructions[index] = next;

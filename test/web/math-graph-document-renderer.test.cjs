@@ -294,3 +294,206 @@ test('successful publish projects exactly once and updates store', async () => {
   assert.equal(runtime.calls.filter(([c]) => c === 'create-curve').length, 0);
   assert.ok(runtime.calls.some(([c]) => c === 'detach-curve'));
 });
+
+test('point constraint change goes through replace and rebuilds dependents', async () => {
+  const [rendererMod, storeMod, docMod, planMod] = await Promise.all([
+    rendererModule(),
+    storeModule(),
+    documentModule(),
+    planModule(),
+  ]);
+  const calls = [];
+  const state = { functions: [], activeFnId: null, userPoints: [], constructions: [] };
+  const constructionLayer = {
+    add(rec) {
+      calls.push(['constr-add', rec.id]);
+      state.constructions.push({ ...rec, els: [{ elType: 'line' }] });
+    },
+    update(rec, stylePatch) {
+      calls.push(['constr-update', rec?.id, stylePatch]);
+    },
+    remove(id) {
+      calls.push(['constr-remove', id]);
+      state.constructions = state.constructions.filter((c) => c.id !== id);
+    },
+  };
+  const pointLayerMod = await import(
+    pathToFileURL(path.join(root, 'apps/web/src/math/graph/point-layer.js')).href,
+  );
+  const controller = {
+    createFromDocument(rec) {
+      calls.push(['point-create', rec.id, rec.constraint?.kind]);
+      const el = { id: rec.id };
+      state.userPoints.push({ ...rec, el, constraint: rec.constraint, baseName: rec.name || rec.id });
+      return el;
+    },
+    delete(el) {
+      calls.push(['point-delete', el?.id]);
+      state.userPoints = state.userPoints.filter((p) => p.el !== el);
+    },
+    setShowCoords() {},
+    applyStyle() {},
+  };
+  const realPointLayer = pointLayerMod.createPointLayer({
+    controller,
+    getRecords: () => state.userPoints,
+    getDocument: () => store.getDocument(),
+    constructionLayer,
+  });
+  const runtime = {
+    getState: () => state,
+    createFnCurve(fn) {
+      calls.push(['create-curve', fn.id]);
+      fn.curve = { id: fn.id };
+    },
+    detachFnCurve(fn) {
+      calls.push(['detach-curve', fn?.id]);
+      if (fn) fn.curve = null;
+    },
+    detachFunctionDependents() {},
+    rebindFunctionDependents() {},
+    clearAllRuntime() {
+      calls.push(['clear-all']);
+      state.userPoints = [];
+      state.constructions = [];
+    },
+    pointLayer: realPointLayer,
+    constructionLayer,
+    refreshActiveMarks() {},
+    mirrorActiveToLegacy() {},
+    applyView() {},
+    applyReference() {},
+    renderFnList() {},
+    syncParamPanel() {},
+    paintReadouts() {},
+    computePlan: (p, c) => planMod.computeGraphRenderPlan(p, c),
+    applyIncremental: (plan, previous, candidate, action, preview) =>
+      planMod.applyGraphRuntimePlan(runtime, plan, { previous, candidate, action, preview }),
+    onFatal() {},
+  };
+  const renderer = rendererMod.createGraphDocumentRenderer(runtime);
+  const doc = docMod.createDefaultGraphDocument({});
+  const store = storeMod.createGraphStore(doc, { beforeCommit: renderer.beforeCommit });
+  // 自由点 + 依赖构造
+  store.dispatchResult({
+    type: 'point/add',
+    payload: { point: { id: 'U1', x: 1, y: 2, constraint: { kind: 'free' } } },
+  });
+  store.dispatchResult({
+    type: 'construction/add',
+    payload: { construction: { id: 'c1', kind: 'segment', pointIds: ['U1', 'U2'] } },
+  });
+  // free → followFunction：replace 路径，依赖构造先拆后建
+  calls.length = 0;
+  const result = store.dispatchResult({
+    type: 'point/update',
+    payload: { id: 'U1', patch: { constraint: { kind: 'followFunction', functionId: 'f1', anchorX: 1 } } },
+  });
+  assert.equal(result.ok, true, `result: ${JSON.stringify(result)} calls: ${JSON.stringify(calls)}`);
+  const order = calls.map(([c]) => c);
+  const removeAt = order.indexOf('constr-remove');
+  const deleteAt = order.indexOf('point-delete');
+  const createAt = order.indexOf('point-create');
+  const addAt = order.indexOf('constr-add');
+  assert.ok(
+    removeAt >= 0 && deleteAt >= 0 && createAt >= 0 && addAt >= 0,
+    `order: ${JSON.stringify(order)}`,
+  );
+  assert.ok(deleteAt < createAt, 'old point element removed before replacement created');
+  assert.ok(removeAt < addAt, 'dependent construction removed before rebuild');
+  // 文档约束已更新
+  const docPoint = store.getDocument().points.find((p) => p.id === 'U1');
+  assert.equal(docPoint.constraint.kind, 'followFunction');
+});
+
+test('construction style patch projects in place without rebuilding unrelated objects', async () => {
+  const [rendererMod, storeMod, docMod, planMod] = await Promise.all([
+    rendererModule(),
+    storeModule(),
+    documentModule(),
+    planModule(),
+  ]);
+  const calls = [];
+  const state = { functions: [], activeFnId: null, userPoints: [], constructions: [] };
+  const runtime = {
+    getState: () => state,
+    createFnCurve(fn) {
+      calls.push(['create-curve', fn.id]);
+      fn.curve = { id: fn.id };
+    },
+    detachFnCurve(fn) {
+      calls.push(['detach-curve', fn?.id]);
+      if (fn) fn.curve = null;
+    },
+    detachFunctionDependents() {},
+    rebindFunctionDependents() {},
+    clearAllRuntime() {
+      state.userPoints = [];
+      state.constructions = [];
+    },
+    pointLayer: {
+      add(rec) {
+        state.userPoints.push({ ...rec, el: { id: rec.id } });
+      },
+      update() {},
+      remove(id) {
+        state.userPoints = state.userPoints.filter((p) => p.id !== id);
+      },
+    },
+    constructionLayer: {
+      add(rec) {
+        state.constructions.push({ ...rec, els: [{ elType: 'line', setAttribute(patch) { calls.push(['setattr', rec.id, patch]); } }] });
+      },
+      update(rec, stylePatch) {
+        calls.push(['constr-update', rec.id, stylePatch]);
+        const existing = state.constructions.find((c) => c.id === rec.id);
+        if (existing && stylePatch) {
+          existing.style = { ...(existing.style || {}), ...stylePatch };
+        }
+      },
+      remove(id) {
+        state.constructions = state.constructions.filter((c) => c.id !== id);
+      },
+    },
+    refreshActiveMarks() {},
+    mirrorActiveToLegacy() {},
+    applyView() {},
+    applyReference() {},
+    renderFnList() {},
+    syncParamPanel() {},
+    paintReadouts() {},
+    computePlan: (p, c) => planMod.computeGraphRenderPlan(p, c),
+    applyIncremental: (plan, previous, candidate, action, preview) =>
+      planMod.applyGraphRuntimePlan(runtime, plan, { previous, candidate, action, preview }),
+    onFatal() {},
+  };
+  const renderer = rendererMod.createGraphDocumentRenderer(runtime);
+  const doc = docMod.createDefaultGraphDocument({});
+  const store = storeMod.createGraphStore(doc, { beforeCommit: renderer.beforeCommit });
+  store.dispatchResult({
+    type: 'point/add',
+    payload: { point: { id: 'U1', x: 0, y: 0, constraint: { kind: 'free' } } },
+  });
+  store.dispatchResult({
+    type: 'point/add',
+    payload: { point: { id: 'U2', x: 3, y: 0, constraint: { kind: 'free' } } },
+  });
+  store.dispatchResult({
+    type: 'construction/add',
+    payload: { construction: { id: 'c1', kind: 'segment', pointIds: ['U1', 'U2'] } },
+  });
+  // 样式补丁：只更新目标构造，不重建任何对象
+  calls.length = 0;
+  const result = store.dispatchResult({
+    type: 'construction/update',
+    payload: { id: 'c1', patch: {}, style: { strokeColor: '#ff0000', strokeWidth: 3, dash: 2 } },
+  });
+  assert.equal(result.ok, true);
+  const updateCalls = calls.filter(([c]) => c === 'constr-update');
+  assert.equal(updateCalls.length, 1, 'style update projects once');
+  assert.equal(calls.some(([c]) => c === 'create-curve'), false);
+  assert.equal(calls.some(([c]) => c === 'constr-add'), false, 'no rebuild for style-only change');
+  const docConstr = store.getDocument().constructions.find((c) => c.id === 'c1');
+  assert.equal(docConstr.style.strokeColor, '#ff0000');
+  assert.equal(docConstr.style.strokeWidth, 3);
+});

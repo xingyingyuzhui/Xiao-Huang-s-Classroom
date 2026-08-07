@@ -7,6 +7,7 @@
  */
 
 import { compileMathExpr } from '../shared/expr-safe.js';
+import { normalizeHexColor } from '../shared/math-theme.js';
 import { GRAPH_PRESETS, defaultCoeffsFor } from './model.js';
 import {
   buildGraphDependencyIndex,
@@ -344,6 +345,89 @@ export function normalizeConstructionPatch(previous, patch) {
     next.style = { ...(previous.style || {}), ...patch.style };
   }
   return next;
+}
+
+/**
+ * 点更新模式分类：约束/跟随目标变化必须 replace（重建 JSXGraph 元素），
+ * 坐标/名称/标签显隐/样式可原位应用。
+ * @param {any} previous
+ * @param {any} next
+ * @returns {'inPlace' | 'replace'}
+ */
+export function pointUpdateMode(previous, next) {
+  if (!previous || !next) return 'replace';
+  const pc = previous.constraint || { kind: 'free' };
+  const nc = next.constraint || { kind: 'free' };
+  if (pc.kind !== nc.kind) return 'replace';
+  if (nc.kind === 'followFunction') {
+    if (pc.functionId !== nc.functionId || Number(pc.anchorX) !== Number(nc.anchorX)) {
+      return 'replace';
+    }
+  }
+  if (nc.kind === 'followFeature') {
+    if (
+      pc.functionId !== nc.functionId ||
+      pc.feature !== nc.feature ||
+      Number(pc.featureIndex) !== Number(nc.featureIndex)
+    ) {
+      return 'replace';
+    }
+  }
+  if (nc.kind === 'intersection') {
+    const sameTargets =
+      Array.isArray(pc.targetIds) &&
+      Array.isArray(nc.targetIds) &&
+      pc.targetIds.length === nc.targetIds.length &&
+      pc.targetIds.every((id, i) => id === nc.targetIds[i]);
+    if (!sameTargets || Number(pc.nearX) !== Number(nc.nearX)) return 'replace';
+  }
+  return 'inPlace';
+}
+
+/**
+ * 点样式补丁：规范化 object-style 输出为文档语义样式。
+ * 颜色只接受严格 hex（normalizeHexColor），非 hex 拒绝。
+ * @param {any} previousStyle
+ * @param {any} patch
+ */
+export function normalizePointStylePatch(previousStyle, patch) {
+  const current = previousStyle || {};
+  const part = (key, colorKey, opacityKey) => {
+    const base = current[key] || { colorSlot: null, explicitColor: null, opacity: 1 };
+    const next = { ...base };
+    if (patch && patch[colorKey] != null) {
+      next.explicitColor = normalizeHexColor(patch[colorKey]);
+    }
+    if (patch && patch[opacityKey] != null) {
+      next.opacity = clampOpacity(patch[opacityKey]);
+    }
+    return next;
+  };
+  return {
+    stroke: part('stroke', 'strokeColor', 'strokeOpacity'),
+    fill: part('fill', 'fillColor', 'fillOpacity'),
+    size: Number.isFinite(Number(patch?.size)) ? Number(patch.size) : (current.size ?? 3),
+    face: typeof patch?.face === 'string' ? patch.face : (current.face ?? 'o'),
+    label: {
+      ...part('label', 'labelColor', 'labelOpacity'),
+      fontSize: Number.isFinite(Number(patch?.fontSize))
+        ? Number(patch.fontSize)
+        : (current.label?.fontSize ?? 13),
+    },
+  };
+}
+
+/** 构造样式补丁（可原位投影的字段白名单）。 */
+export function normalizeConstructionStylePatch(previousStyle, patch) {
+  const out = { ...(previousStyle || {}) };
+  if (!patch || typeof patch !== 'object') return out;
+  for (const key of ['strokeWidth', 'dash', 'opacity', 'labelFontSize']) {
+    if (patch[key] !== undefined) out[key] = patch[key];
+  }
+  if (patch.strokeColor !== undefined) {
+    out.strokeColor = normalizeHexColor(patch.strokeColor);
+  }
+  return out;
 }
 
 /**

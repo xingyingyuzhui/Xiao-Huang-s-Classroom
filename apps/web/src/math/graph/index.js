@@ -53,6 +53,7 @@ import { createGraphStore } from './graph-store.js';
 import { createGraphHistory } from './graph-history.js';
 import { createGraphHistoryController } from './graph-history-controller.js';
 import { createGraphIdAllocator } from './graph-id-allocator.js';
+import { createGraphReadouts } from './graph-readouts.js';
 import { createGraphPersistence, createGraphPersistenceController } from './graph-persistence.js';
 import {
   alignFeatureLabelWidths,
@@ -63,6 +64,11 @@ import {
 } from './graph-renderer.js';
 import { createGraphDocumentRenderer } from './graph-document-renderer.js';
 import { createPointLayer } from './point-layer.js';
+import {
+  normalizeConstructionStylePatch,
+  normalizePointStylePatch,
+} from './graph-record-validation.js';
+import { setStyleIntentBridge } from '../shared/object-style-panel.js';
 import { createConstructionLayer } from './construction-layer.js';
 import { createProbeController } from './probe-controller.js';
 import { describePresetTransform } from './transform-model.js';
@@ -435,7 +441,7 @@ const pointsCtrl = createUserPointController({
   featureFollowTol: () => followTol(),
   // 拖动结束 → 文档 point/update（一次拖动一条历史）
   onPointMoved: (rec, _x, _y) => {
-    if (!state.graphStore || !rec) return;
+    if (!state.graphStore || !rec || rec.locked) return;
     const docRecord = pointsCtrl.documentRecordOf(rec);
     if (!docRecord) return;
     state.graphStore.dispatch({
@@ -1283,222 +1289,6 @@ function rebuildCurve() {
   });
 }
 
-/** 自定义函数：异步数值特征分析（取消 + 缓存 + 数值近似标记）。 */
-function renderCustomNumericFeatures(fn, featuresEl) {
-  if (!featuresEl) return;
-  state.numericRequest?.();
-  state.numericRequest = null;
-  let xMin = -10;
-  let xMax = 10;
-  try {
-    const bb = state.board?.getBoundingBox?.();
-    if (bb && bb.length >= 4) {
-      xMin = Math.min(Number(bb[0]), Number(bb[2]));
-      xMax = Math.max(Number(bb[0]), Number(bb[2]));
-    }
-  } catch {
-    /* viewport default */
-  }
-  featuresEl.innerHTML = '<div class="math-float-feat-row"><strong>分析中…</strong><span>数值近似</span></div>';
-  alignFeatureLabelWidths(featuresEl); state.numericRequest = state.numericRunner?.analyze?.({
-    record: fn,
-    interval: [xMin, xMax],
-    resolveEvaluator: (rec) => (x) => evalFnY(rec, x),
-    onResult: (outcome) => {
-      if (activeFn()?.id !== fn.id) return;
-      if (!outcome?.ok || !outcome.result) {
-        featuresEl.innerHTML =
-          '<div class="math-float-feat-row"><strong>类型</strong><span>自定义 · 无结果</span></div>';
-        return;
-      }
-      const r = outcome.result;
-      const rows = [
-        '<div class="math-float-feat-row"><strong>类型</strong><span>自定义 · 数值近似</span></div>',
-        ...r.zeros.map((z) => `<div class="math-float-feat-row"><strong>零点</strong><span>x≈${formatNum(z.x)}</span></div>`),
-        ...r.extrema.map((e) => `<div class="math-float-feat-row"><strong>${e.kind === 'min' ? '极小值' : '极大值'}</strong><span>(${formatNum(e.x)}, ${formatNum(e.y)})</span></div>`),
-        ...(r.discontinuities.length
-          ? [`<div class="math-float-feat-row"><strong>疑似间断</strong><span>${r.discontinuities.length} 处</span></div>`]
-          : []),
-        '<div class="math-float-feat-row is-warn"><strong>提示</strong><span>当前结果为数值近似，部分特征可能未识别</span></div>',
-      ];
-      featuresEl.innerHTML = rows.join(''); alignFeatureLabelWidths(featuresEl);
-    },
-  });
-}
-
-/** @param {number} value */
-function formatNum(value) {
-  if (!Number.isFinite(value)) return '—';
-  const f = Number(value.toFixed(3));
-  return Object.is(f, -0) ? '0' : String(f);
-}
-
-function renderCompareInfo(fn, featuresEl) {
-  if (!featuresEl) return;
-  const ref = state.graphStore?.getDocument?.()?.presentation?.compare?.reference;
-  if (!ref) return;
-  const currentFormula = fn ? fnDisplayLabel(fn) : '';
-  const refFormula = fnDisplayLabel(ref);
-  const changes = fn && fn.kind === 'preset' && ref.kind === 'preset'
-    ? describePresetTransform(fn.preset, ref.coeffs || {}, fn.coeffs || {})
-    : [];
-  const block = document.createElement('div');
-  block.className = 'math-compare-block';
-  block.innerHTML = `
-    <div class="math-compare-row"><strong>参考</strong><span>${escapeHtml(refFormula)}</span></div>
-    <div class="math-compare-row"><strong>当前</strong><span>${escapeHtml(currentFormula)}</span></div>
-    ${changes.length ? `<ul class="math-compare-changes">${changes.map((c) => `<li>${escapeHtml(c.text)}</li>`).join('')}</ul>` : ''}
-  `;
-  featuresEl.appendChild(block);
-}
-
-function escapeHtml(value) {
-  return String(value ?? '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/"/g, '&quot;');
-}
-
-function paintReadouts() {
-  const fn = activeFn();
-  const featuresEl = document.getElementById('mathGraphFeatures');
-  const tableEl = document.getElementById('mathGraphValueTable');
-
-  if (!fn) {
-    if (featuresEl) featuresEl.innerHTML = '';
-    if (tableEl) tableEl.innerHTML = '';
-    return;
-  }
-
-  if (fn.kind === 'custom') {
-    renderCustomNumericFeatures(fn, featuresEl);
-    if (tableEl) {
-      const xs = [-2, -1, 0, 1, 2, 3];
-      const rows = xs.map((x) => {
-        const y = evalFnY(fn, x);
-        return { x, y: y == null || !Number.isFinite(y) ? null : y };
-      });
-      tableEl.innerHTML = `
-      <table class="math-value-table math-value-table-lg">
-        <thead><tr><th>x</th><th>f(x)</th></tr></thead>
-        <tbody>
-          ${rows
-            .map(
-              (r) =>
-                `<tr><td>${r.x}</td><td>${r.y == null ? '—' : Number(r.y.toFixed(3))}</td></tr>`,
-            )
-            .join('')}
-        </tbody>
-      </table>`;
-    }
-    return;
-  }
-
-  const preset = /** @type {any} */ (fn.preset || state.preset);
-  const coeffs = fn.coeffs || state.coeffs;
-  if (featuresEl) {
-    featuresEl.innerHTML = keyFeatures(preset, coeffs)
-      .map(
-        (f) =>
-          `<div class="math-float-feat-row"><strong>${f.kind}</strong><span>${f.text}</span></div>`,
-      )
-      .join('');
-    alignFeatureLabelWidths(featuresEl); renderCompareInfo(fn, featuresEl);
-  }
-  if (tableEl) {
-    const rows = valueTable(preset, coeffs);
-    tableEl.innerHTML = `
-      <table class="math-value-table math-value-table-lg">
-        <thead><tr><th>x</th><th>f(x)</th></tr></thead>
-        <tbody>
-          ${rows
-            .map(
-              (r) =>
-                `<tr><td>${r.x}</td><td>${r.y == null ? '—' : Number(r.y.toFixed(3))}</td></tr>`,
-            )
-            .join('')}
-        </tbody>
-      </table>`;
-  }
-}
-
-function bindReadoutCards() {
-  ensureMathFloatCardsBound();
-}
-
-/** 参考曲线：同色虚线低透明度；不作为函数列表新函数、不参与吸附/交点。
- *  签名不变则跳过重建（滑杆拖动不重画参考线）。 */
-let lastReferenceKey = null;
-function applyReferenceCurveFromDocument(doc) {
-  const ref = doc?.presentation?.compare?.reference;
-  const board = state.board;
-  if (!board) return;
-  const key = ref
-    ? JSON.stringify({ kind: ref.kind, preset: ref.preset, expr: ref.expr, coeffs: ref.coeffs })
-    : null;
-  if (key === lastReferenceKey) return;
-  lastReferenceKey = key;
-  if (state.referenceCurve) {
-    detachBoardObject(board, state.referenceCurve);
-    state.referenceCurve = null;
-  }
-  if (!ref) return;
-  const x0 = Number.isFinite(state.fXMin) ? state.fXMin : -10;
-  const x1 = Number.isFinite(state.fXMax) ? state.fXMax : 10;
-  const xLo = Math.min(x0, x1);
-  const xHi = Math.max(x0, x1);
-  try {
-    state.referenceCurve = board.create(
-      'functiongraph',
-      [
-        (x) => {
-          const y = evalFnY(ref, x);
-          return y == null ? NaN : y;
-        },
-        xLo,
-        xHi,
-      ],
-      {
-        strokeColor: resolveFunctionColor(ref),
-        strokeWidth: 2,
-        dash: 3,
-        strokeOpacity: 0.45,
-        highlight: false,
-        withLabel: false,
-        name: '参考曲线',
-      },
-    );
-  } catch {
-    state.referenceCurve = null;
-  }
-}
-
-/** 探针读数：在活动函数对应表上方显示当前 x/y（transient，不进文档） */
-function renderProbeReadout(samples, x) {
-  const row = document.getElementById('mathGraphProbeReadout');
-  if (!row) return;
-  if (x == null || !samples || !samples.length) {
-    row.textContent = '';
-    row.hidden = true;
-    return;
-  }
-  const active = samples.find((s) => s.valid);
-  if (!active) {
-    row.textContent = '曲线外';
-    row.hidden = false;
-    return;
-  }
-  row.textContent = `${active.label}  x=${formatProbeNumber(active.x)}  y=${formatProbeNumber(active.y)}`;
-  row.hidden = false;
-}
-
-/** @param {number} value */
-function formatProbeNumber(value) {
-  if (!Number.isFinite(value)) return '—';
-  const f = Number(value.toFixed(2));
-  return Object.is(f, -0) ? '0' : String(f);
-}
-
 function syncSliders() {
   for (const [id, key, numId] of [
     ['mathGraphA', 'a', 'mathGraphANum'],
@@ -1535,6 +1325,15 @@ function syncSliders() {
   if (cName) cName.textContent = L[2];
 }
 
+/** 特征卡/值表/探针读数：DOM 输出（业务真值仍在文档） */
+const readouts = createGraphReadouts({
+  getState: () => state,
+  evalFnY,
+  fnDisplayLabel,
+});
+const paintReadouts = readouts.paintReadouts;
+const renderProbeReadout = readouts.renderProbeReadout;
+
 const {
   addPreset: addPresetFn,
   bind: bindFnListUi,
@@ -1557,6 +1356,8 @@ const {
 const pointLayer = createPointLayer({
   controller: pointsCtrl,
   getRecords: () => state.userPoints,
+  getDocument: () => state.graphStore?.getDocument?.() || null,
+  getConstructionLayer: () => constructionLayer,
 });
 
 const constructionLayer = createConstructionLayer({
@@ -1570,6 +1371,50 @@ const viewBridge = createGraphViewBridge({
   getStore: () => state.graphStore,
   getState: () => state,
 });
+
+/** 参考曲线：同色虚线低透明度；不作为函数列表新函数、不参与吸附/交点。签名不变则跳过重建。 */
+let lastReferenceKey = null;
+function applyReferenceCurveFromDocument(doc) {
+  const ref = doc?.presentation?.compare?.reference;
+  const board = state.board;
+  if (!board) return;
+  const key = ref
+    ? JSON.stringify({ kind: ref.kind, preset: ref.preset, expr: ref.expr, coeffs: ref.coeffs })
+    : null;
+  if (key === lastReferenceKey) return;
+  lastReferenceKey = key;
+  if (state.referenceCurve) {
+    detachBoardObject(board, state.referenceCurve);
+    state.referenceCurve = null;
+  }
+  if (!ref) return;
+  const xLo = Math.min(Number.isFinite(state.fXMin) ? state.fXMin : -10, Number.isFinite(state.fXMax) ? state.fXMax : 10);
+  const xHi = Math.max(Number.isFinite(state.fXMin) ? state.fXMin : -10, Number.isFinite(state.fXMax) ? state.fXMax : 10);
+  try {
+    state.referenceCurve = board.create(
+      'functiongraph',
+      [
+        (x) => {
+          const y = evalFnY(ref, x);
+          return y == null ? NaN : y;
+        },
+        xLo,
+        xHi,
+      ],
+      {
+        strokeColor: resolveFunctionColor(ref),
+        strokeWidth: 2,
+        dash: 3,
+        strokeOpacity: 0.45,
+        highlight: false,
+        withLabel: false,
+        name: '参考曲线',
+      },
+    );
+  } catch {
+    state.referenceCurve = null;
+  }
+}
 
 /** production renderer：增量投影 + 全量恢复（失败进入 fatal 只读）。 */
 const rendererContext = {
@@ -1615,7 +1460,7 @@ function openCoeffTransaction() {
 
 function setCoeffs(next) {
   const fn = activeFn();
-  if (!fn || fn.kind !== 'preset') return;
+  if (!fn || fn.kind !== 'preset' || fn.locked) return;
   if (!state.graphStore) {
     fn.coeffs = { ...fn.coeffs, ...next };
     state.coeffs = { ...(fn.coeffs || state.coeffs), ...next };
@@ -1695,7 +1540,7 @@ export function initGraphUI() {
 
   if (state.board) {
     resizeMathBoard(state.board, stageEl);
-    bindReadoutCards();
+    ensureMathFloatCardsBound();
     bindFnListUi();
     renderFnList();
     syncParamPanel();
@@ -1811,21 +1656,42 @@ export function initGraphUI() {
       Boolean(el?._mathUserPoint) &&
       Boolean(el?._mathCanFollow) &&
       !el?._mathIntersectFnIds &&
+      !findUserRec(el)?.locked &&
       listFollowTargets().length > 0,
     getFollow: (el) => {
       const rec = findUserRec(el);
       if (rec) return Boolean(rec.followTargetId);
       return Boolean(el?._mathFollowTargetId || el?._mathFollow);
     },
-    setFollow: (el, on) => setUserPointFollow(el, on),
+    setFollow: (el, on) => {
+      const rec = findUserRec(el);
+      const id = rec?.id || userPointIdOf(el);
+      if (!id || rec?.locked) return setUserPointFollow(el, on);
+      const store = state.graphStore;
+      if (!store) return setUserPointFollow(el, on);
+      const current = store.getDocument().points.find((p) => p.id === id);
+      const constraint = on
+        ? { kind: 'followFunction', functionId: activeFn()?.id || '', anchorX: Number(el.X?.() ?? current?.x ?? 0) }
+        : { kind: 'free' };
+      store.dispatch({ type: 'point/update', payload: { id, patch: { constraint } } });
+    },
     getShowCoords: (el) => {
       const rec = findUserRec(el);
       if (rec) return rec.showCoords;
       return Boolean(el?._mathShowCoords);
     },
-    setShowCoords: (el, on) => setPointShowCoords(el, on),
+    setShowCoords: (el, on) => {
+      const rec = findUserRec(el);
+      const id = rec?.id || userPointIdOf(el);
+      if (!id || rec?.locked) return setPointShowCoords(el, on);
+      const store = state.graphStore;
+      if (!store) return setPointShowCoords(el, on);
+      store.dispatch({ type: 'point/update', payload: { id, patch: { showCoords: Boolean(on) } } });
+    },
     canDelete: (el) => {
-      if (Boolean(el?._mathUserPoint) && Boolean(findUserRec(el))) return true;
+      if (Boolean(el?._mathUserPoint) && Boolean(findUserRec(el))) {
+        return !findUserRec(el)?.locked;
+      }
       if (el?._mathConstrId) return true;
       if (el?._mathFnId || state.functions.some((f) => f.curve === el)) return true;
       return false;
@@ -1848,7 +1714,7 @@ export function initGraphUI() {
         return;
       }
       const rec = findUserRec(el);
-      if (rec) removeUserPointById(rec.id);
+      if (rec && !rec.locked) removeUserPointById(rec.id);
     },
     canExtend: (el) => {
       if (!el?._mathConstrId) return false;
@@ -1878,6 +1744,25 @@ export function initGraphUI() {
         /* */
       }
     },
+  });
+
+  setStyleIntentBridge(({ objectType, objectId, patch }) => {
+    const store = state.graphStore;
+    if (!store) return false;
+    const doc = store.getDocument();
+    if (objectType === 'point') {
+      const rec = doc.points.find((p) => p.id === objectId);
+      if (!rec || rec.locked) return true; // 锁定点：吞掉 intent
+      store.dispatch({ type: 'point/update', payload: { id: objectId, patch: { style: normalizePointStylePatch(rec.style, patch) } } });
+      return true;
+    }
+    if (objectType === 'construction') {
+      const rec = doc.constructions.find((c) => c.id === objectId);
+      if (!rec) return false;
+      store.dispatch({ type: 'construction/update', payload: { id: objectId, patch: {}, style: normalizeConstructionStylePatch(rec.style, patch) } });
+      return true;
+    }
+    return false;
   });
 
   state.compass?.dispose?.();
@@ -2058,7 +1943,7 @@ export function initGraphUI() {
   // 首次投影：production renderer 从 store 文档全量渲染
   graphRenderer.fullRender(state.graphStore.getDocument());
   state.startCoeffs = { ...state.coeffs };
-  bindReadoutCards();
+  ensureMathFloatCardsBound();
   renderFnList();
   syncParamPanel();
 
@@ -2154,6 +2039,7 @@ export function disposeGraph() {
   state.compass?.dispose?.();
   state.compass = null;
   setPointOptionHooks(null);
+  setStyleIntentBridge(null);
   state.styleBind?.dispose?.();
   state.styleBind = null;
   state.ro?.disconnect();

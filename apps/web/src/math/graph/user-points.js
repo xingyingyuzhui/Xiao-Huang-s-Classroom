@@ -537,6 +537,27 @@ export function createUserPointController(context) {
     create,
     createFromDocument,
     delete: remove,
+    /** 文档语义样式 → runtime 元素（颜色经 strict hex 校验，未命中时跳过） */
+    applyStyle(element, style) {
+      if (!element || !style || typeof style !== 'object') return;
+      const patch = {};
+      const stroke = style.stroke || {};
+      const fill = style.fill || {};
+      const label = style.label || {};
+      if (typeof stroke.explicitColor === 'string') patch.strokeColor = stroke.explicitColor;
+      if (typeof fill.explicitColor === 'string') patch.fillColor = fill.explicitColor;
+      if (Number.isFinite(Number(stroke.opacity))) patch.strokeOpacity = Number(stroke.opacity);
+      if (Number.isFinite(Number(fill.opacity))) patch.fillOpacity = Number(fill.opacity);
+      if (Number.isFinite(Number(style.size))) patch.size = Number(style.size);
+      if (Number.isFinite(Number(label.fontSize))) patch.fontSize = Number(label.fontSize);
+      if (Object.keys(patch).length) {
+        try {
+          applyObjectStyle(element, patch);
+        } catch {
+          /* partially disposed element */
+        }
+      }
+    },
     documentRecordOf,
     find,
     removeAll,

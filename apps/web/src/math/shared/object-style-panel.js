@@ -49,6 +49,19 @@ export function setPointOptionHooks(hooks) {
 }
 
 /**
+ * 样式 intent 桥接（graph 等业务层注入）：
+ * 样式修改先发给业务层（映射为文档 action），业务层返回 true 表示已接管；
+ * 返回 false/未注入时维持原 runtime-only 行为（其它数学 lab）。
+ * @type {((intent: { objectType: string, objectId?: string, patch: any }) => boolean) | null}
+ */
+let styleIntentBridge = null;
+
+/** @param {((intent: { objectType: string, objectId?: string, patch: any }) => boolean) | null} bridge */
+export function setStyleIntentBridge(bridge) {
+  styleIntentBridge = bridge || null;
+}
+
+/**
  * @returns {HTMLElement}
  */
 /** 布局版本：旧气泡 DOM 不匹配时整段重建 */
@@ -441,6 +454,14 @@ function buildBubbleApi() {
    */
   function commit(patch) {
     if (syncing || !target) return;
+    // 业务层 intent 桥接优先（函数画布 → 文档 action；其余 lab 保持 runtime-only）
+    if (target?._mathUserPoint || target?._mathConstrId) {
+      const objectType = target._mathConstrId ? 'construction' : 'point';
+      const objectId = target._mathConstrId || target._mathPointId || null;
+      if (objectId && typeof styleIntentBridge === 'function') {
+        if (styleIntentBridge({ objectType, objectId, patch: { ...patch } })) return;
+      }
+    }
     applyObjectStyle(target, patch);
     // polygonalchain 等：边线也一并改
     try {

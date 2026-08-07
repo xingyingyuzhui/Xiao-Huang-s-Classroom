@@ -122,10 +122,12 @@ export function createFunctionPanelController(context) {
       return;
     }
     if (action === 'edit') {
+      if (fn.locked) return; // 锁定函数只允许解锁/查看
       editor.open(fn);
       return;
     }
     if (action === 'duplicate') {
+      if (fn.locked) return;
       if (!store) return;
       const { curve, ...definition } = fn;
       const dupId = nextFnId();
