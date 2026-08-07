@@ -65,21 +65,24 @@
 - **Verify:** `npm run quality`（当前阶段=test+build）通过；contract 测试过。
 - **Commit:** `feat(eng): add root scripts and Node baseline (P1)`
 
-- [x] **Task 1.2：TypeScript 配置体系**
+- [ ] **Task 1.2：TypeScript 配置体系**
+> ⚠ R0 审计缺口：根 typecheck 仍是 echo+exit 0 假绿；workspace 无真实检查（R1.1）
 - **Files:** `tsconfig.base.json`、`tsconfig.web.json`、`tsconfig.node.json`、`tsconfig.electron.json`（根）、各 workspace `tsconfig.json`（先只做类型检查骨架，不开 allowJs）、`tooling/config/README.md`
 - **Test:** `test/shared/tsconfig-contract.test.cjs`：断言 strict 系五选项全部开启（`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`noImplicitOverride`、`useUnknownInCatchVariables`、`noFallthroughCasesInSwitch`），且没有任何 `strict:false` 覆盖。
 - **Steps:** 写基座 config；workspace 引用；`npx tsc -p tsconfig.node.json --noEmit` 对 packages 空跑（无 TS 源时通过）。
 - **Verify:** contract 测试过；`npx tsc --noEmit`（空）通过。
 - **Commit:** `feat(eng): add strict TypeScript config matrix (P1)`
 
-- [x] **Task 1.3：ESLint Flat Config + typescript-eslint**
+- [ ] **Task 1.3：ESLint Flat Config + typescript-eslint**
+> ⚠ R0 审计缺口：lint glob 全部被 ignore（packages 已是 TS）；baseline 1167→1204 增长（R1.2）
 - **Files:** `eslint.config.mjs`、`tooling/config/eslint/`（规则集）、`docs/engineering/lint-baseline.md`
 - **Test:** `test/shared/lint-config-contract.test.cjs`：断言 flat config 存在、typescript-eslint 已接入、`no-explicit-any` 等关键规则开启、基线清单文件存在。
 - **Steps:** 安装 `eslint @eslint/js typescript-eslint`（根 devDeps）；flat config 覆盖 JS/TS；先对 `packages/*` 与新 TS 文件 lint；旧 JS 基线问题登记 `lint-baseline.md`（计数，不阻塞）；`lint` 不允许新增 warning。
 - **Verify:** `npm run lint`（阶段范围）通过；contract 测试过。
 - **Commit:** `feat(eng): add ESLint flat config with TS rules (P1)`
 
-- [x] **Task 1.4：Prettier + Stylelint**
+- [ ] **Task 1.4：Prettier + Stylelint**
+> ⚠ R0 审计缺口：lint:css 无匹配文件（packages/**/*.css 不存在）；未检查真实 CSS（R1.2）
 - **Files:** `.prettierrc.json`、`.prettierignore`、`.stylelintrc.json`、`stylelint.config` 覆盖 `apps/web/src/shared/styles/**`
 - **Test:** `test/shared/format-config-contract.test.cjs`：断言配置存在、stylelint 关键规则（selector 层级、token 变量）开启。
 - **Steps:** 安装 `prettier stylelint stylelint-config-standard`；`format` 脚本（`prettier --write` 仅新 TS/JSON/MD；CSS 用 stylelint 检查不改动）；本轮不整仓格式化（避免掩盖逻辑改动）。
@@ -93,14 +96,16 @@
 - **Verify:** `npm run build` 与 `npm test` 全绿（与 Task 1.1 前一致）；contract 测试过。
 - **Commit:** `feat(eng): add turborepo task graph (P1)`
 
-- [x] **Task 1.6：架构门禁脚本**
+- [ ] **Task 1.6：架构门禁脚本**
+> ⚠ R0 审计缺口：架构检查只扫 .js/.mjs/.cjs，TS 包全部盲区（R3.1）
 - **Files:** `tooling/architecture/check-dependencies.mjs`、`tooling/architecture/rules.json`、`test/shared/module-boundaries.test.cjs`（扩展）
 - **Test（先写失败）:** 现有 `module-boundaries.test.cjs` 扩展断言：`packages/*` 不反向导入 `apps/*`；Server 不导入 Web 源码；`export *` 白名单（`draw-tools.js` 显式导出）保持。
 - **Steps:** rules.json 声明目录规则；脚本扫描 import 图并输出违规（exit 1）；接入 `npm run lint:arch`。
 - **Verify:** `npm run lint:arch` 通过；新违规为 0。
 - **Commit:** `feat(eng): add architecture boundary gate (P1)`
 
-- [x] **Task 1.7：CI 门禁**
+- [ ] **Task 1.7：CI 门禁**
+> ⚠ R0 审计缺口：CI 引用假绿脚本（typecheck/lint/lint:css 空跑），未形成真实门禁（R1.3）
 - **Files:** `.github/workflows/quality.yml`（新建）
 - **Steps:** PR 工作流按 spec §18.1 顺序：format check → lint → typecheck → architecture → unit/contract tests → server integration → web build → bundle budget（先记录不阻塞）→ dependency scan（先记录）。
 - **Verify:** workflow YAML 解析通过（`npx actionlint` 若可用，否则人工评审）；本地按同顺序手动跑通。
@@ -136,7 +141,8 @@
 - **Verify:** `vitest run`（该包）全绿；`npm run build -w @xiaohuang/domain-core` 出双产物。
 - **Commit:** `feat(eng): add domain-core package (P2)`
 
-- [x] **Task 2.3：packages/contracts（Zod schema）**
+- [ ] **Task 2.3：packages/contracts（Zod schema）**
+> ⚠ R0 审计缺口：contracts 包存在但 Web/Server 生产未接入 schema（仅 v2 测试用）（R5）
 - **Files:** `packages/contracts/src/{api,events,persistence,ipc,subject,settings}.ts`、`packages/contracts/package.json`、`packages/contracts/test/*.test.ts`；根 devDeps：`zod`
 - **Test（先写失败）:** 每个 schema 的 parse 正/反例（合法文档通过、非法被拒）；version 常量存在。
 - **Steps:** 先建模持久化 GraphDocumentV2 schema（从 graph-document.js 规范化逻辑提炼，保证现有文档可 parse）与 settings schema；API/event/IPC/subject schema 先声明类型骨架 + 版本号；Web/Server 共用。
@@ -194,28 +200,32 @@
 - **Verify:** design-tokens 测试全绿；`npm run build` 双产物。
 - **Commit:** `feat(eng): add design-tokens package (P3)`
 
-- [x] **Task 3.3：packages/ui primitives**
+- [ ] **Task 3.3：packages/ui primitives**
+> ⚠ R0 审计缺口：仅 button/icon/checkbox；input/select/slider 未实现（R7.1）
 - **Files:** `packages/ui/src/primitives/{button,input,select,checkbox,slider,icon}.ts`、`packages/ui/package.json`、`packages/ui/test/*.test.ts`、`packages/ui/tsup.config`
 - **Test（先写失败）:** fake DOM 下：mount/update/dispose 合同、disabled/loading/error 状态、键盘焦点、文本安全输出（恶意文本不产生属性/CSS 注入）。
 - **Steps:** typed DOM factory + `UiController<Props, Events>` 合同（spec §8.1）；每个组件支持五主题 token（CSS 变量）与 touch 尺寸。
 - **Verify:** ui 包测试全绿；双产物构建。
 - **Commit:** `feat(eng): add ui primitives package (P3)`
 
-- [x] **Task 3.4：packages/ui overlays + layout + feedback**
+- [ ] **Task 3.4：packages/ui overlays + layout + feedback**
+> ⚠ R0 审计缺口：仅 dialog/toast/tabs/stack/status；drawer/popover/tooltip/grid/toolbar/panel/card/progress 未实现（R7.1）
 - **Files:** `packages/ui/src/overlays/{dialog,drawer,popover,tooltip,toast}.ts`、`packages/ui/src/layout/{stack,grid,toolbar,panel,card,tabs}.ts`、`packages/ui/src/feedback/{loading,empty,error,progress}.ts`、对应测试
 - **Test（先写失败）:** overlay 焦点陷阱/ESC 关闭/Escape 释放；tabs 键盘导航；feedback 状态渲染。
 - **Steps:** 按 primitives 的同一合同实现；全部组件进 catalog（Task 3.6 前至少 fake-DOM 测试覆盖）。
 - **Verify:** ui 包测试全绿。
 - **Commit:** `feat(eng): add overlays layout feedback components (P3)`
 
-- [x] **Task 3.5：domain/classroom UI 组件**
+- [ ] **Task 3.5：domain/classroom UI 组件**
+> ⚠ R0 审计缺口：仅 number-input/tool-group/readout-card；property-editor/style-picker/classroom-header/panel-host 未实现（R7.1）
 - **Files:** `packages/ui/src/domain-ui/{property-editor,tool-group,number-input,style-picker}.ts`、`packages/ui/src/classroom-ui/{classroom-header,panel-host,readout-card}.ts`、对应测试
 - **Test（先写失败）:** PropertyEditor 提交/取消；NumberInput 键盘与步进；ReadoutCard 空/长文本。
 - **Steps:** 同前合同；参考现有 math 面板交互实现。
 - **Verify:** ui 包测试全绿。
 - **Commit:** `feat(eng): add domain and classroom ui components (P3)`
 
-- [x] **Task 3.6：UI catalog 开发页**
+- [ ] **Task 3.6：UI catalog 开发页**
+> ⚠ R0 审计缺口：catalog 存在但只展示已实现子集，随 R7.1 补齐
 - **Files:** `apps/web/src/dev/catalog/main.js`、`apps/web/src/dev/catalog/`（组件状态矩阵）、路由挂载（仅 dev 态，不进正式导航）
 - **Test:** catalog 模块可加载（dev build）；结构测试断言不进入主包路径。
 - **Steps:** 展示全组件五主题对照、焦点状态、长文本/错误态。
@@ -260,28 +270,32 @@ ui/design-tokens 两包全绿；至少 1 个真实面板使用 ui 组件；五�
 - **Verify:** app-session 测试全绿。
 - **Commit:** `feat(eng): add app session and error boundaries (P4)`
 
-- [x] **Task 4.3：feature loader 统一接入**
+- [ ] **Task 4.3：feature loader 统一接入**
+> ⚠ R0 审计缺口：web loader 是重新实现，未调用 @xiaohuang/subject-kit 真实实现（R4.2）
 - **Files:** `apps/web/src/app/feature-loader.js`（替换/包装现有 loader）、`apps/web/src/app/boot.js`、`test/web/feature-loader.test.cjs`（扩展）
 - **Test（先写失败）:** 现有 feature-loader 测试扩展：mount generation 防旧异步回写、loading/error/retry。
 - **Steps:** 现有 web 内 loader（`subjects/classrooms/math-classroom.js` 等使用）改为 subject-kit 协议；保持行为。
 - **Verify:** 全仓测试全绿（hub/classroom 相关）。
 - **Commit:** `feat(eng): unify feature loader protocol (P4)`
 
-- [x] **Task 4.4：化学 classroom 接入 manifest（adapter）**
+- [ ] **Task 4.4：化学 classroom 接入 manifest（adapter）**
+> ⚠ R0 审计缺口：manifest.js 无生产消费方；hub/classroom 仍走旧 registry（R4.1）
 - **Files:** `apps/web/src/subjects/catalog.js`（包装为 manifest adapter）、`apps/web/src/subjects/classrooms/registry.js`、化学 classroom 入口
 - **Test（先写失败）:** manifest contract 测试：化学 classroom 的默认面板/catalog/loader/设置项与现状一致。
 - **Steps:** 写 adapter 包装现有 catalog/registry（不改 feature 内部）；manifest 生效。
 - **Verify:** subject-hub 与化学测试全绿。
 - **Commit:** `feat(eng): adapt chemistry classroom to manifest (P4)`
 
-- [x] **Task 4.5：数学 classroom 接入 manifest（adapter）**
+- [ ] **Task 4.5：数学 classroom 接入 manifest（adapter）**
+> ⚠ R0 审计缺口：同上：数学 classroom 未从 manifest 取元数据（R4.1）
 - **Files:** `apps/web/src/subjects/classrooms/math-classroom.js`（包装）、`apps/web/src/math/AGENTS.md` 更新
 - **Test（先写失败）:** 数学 classroom manifest 合同：函数画布 mount/dispose 合同保持（graph 测试全绿即证明）。
 - **Steps:** adapter 包装；保留函数画布合同。
 - **Verify:** 全部 math 测试全绿。
 - **Commit:** `feat(eng): adapt math classroom to manifest (P4)`
 
-- [x] **Task 4.6：物理/生物 placeholder 接入协议**
+- [ ] **Task 4.6：物理/生物 placeholder 接入协议**
+> ⚠ R0 审计缺口：物理/生物 placeholder 未走 manifest（R4.1）
 - **Files:** `apps/web/src/subjects/catalog.js` 中 physics/biology 条目（可见不可点，沿用现有行为）
 - **Test:** subject-hub 测试断言 placeholder 状态与进入行为不变。
 - **Steps:** placeholder 走 manifest 协议（status: locked/preview）。
@@ -305,21 +319,24 @@ ui/design-tokens 两包全绿；至少 1 个真实面板使用 ui 组件；五�
 > rollback point：Task 5.1 前 HEAD。冲突区：与 Program 6 不得并行修改 server 生产路径。
 > 纪律：v1 兼容不破坏；v2 与 v1 复用同一 service/repository；禁止复制业务逻辑。
 
-- [x] **Task 5.1：Server TypeScript 化（composition 骨架）**
+- [ ] **Task 5.1：Server TypeScript 化（composition 骨架）**
+> ⚠ R0 审计缺口：仅 tsconfig/tsup 骨架；server 生产源码无 TS（R8）
 - **Files:** `apps/server/tsconfig.json`、`apps/server/tsup.config.js`、`apps/server/src/index.ts`（先建骨架 + 现有 `src/index.js` adapter 保留）、`apps/server/package.json`（build:server 用 tsup 出 CJS）
 - **Test（先写失败）:** server 构建产物为 CJS 且可 `require()`；现有 server 测试全绿（适配器保持行为）。
 - **Steps:** tsup CJS 产物（目标 ES2022/Node 18 兼容子集）；`index.ts` 只 re-export adapter 入口；逐步迁文件（按依赖序）。
 - **Verify:** `npm run build:frontend`（server 静态化）与 server 测试全绿；pkg smoke 保持。
 - **Commit:** `feat(eng): add server TS composition skeleton (P5)`
 
-- [x] **Task 5.2：分层样板：settings 端点 route/service/repository**
+- [ ] **Task 5.2：分层样板：settings 端点 route/service/repository**
+> ⚠ R0 审计缺口：settings-service 是 JS 且 route 仍直查 SQL；无 route/service/domain/repository 分层（R5.1）
 - **Files:** `apps/server/src/routes/settings.ts`、`apps/server/src/services/settings.ts`、`apps/server/src/repositories/settings.ts`（SQLite 实现）、`apps/server/src/domain/settings-policy.ts`、`apps/server/src/db/{connection,migration,transaction}.ts`、对应测试 `test/server/settings-layers.test.cjs`
 - **Test（先写失败）:** route 不依赖 Express 细节（注入 req/res 或 handler）；repository 不返回未规范化行；domain 纯函数可测。
 - **Steps:** 以 settings 为样板完整分层；v1 route adapter 调 service 并转旧响应形状（兼容不变）。
 - **Verify:** server 测试全绿；现有 settings API contract 测试不变。
 - **Commit:** `feat(eng): layer settings endpoint route/service/repository (P5)`
 
-- [x] **Task 5.3：API v1 合同测试补全**
+- [ ] **Task 5.3：API v1 合同测试补全**
+> ⚠ R0 审计缺口：v1 合同仅覆盖部分 GET 与非法 POST，且含 expect:()=>true 空断言（R5.4）
 - **Files:** `test/server/server-api-contracts.test.cjs`（扩展至全部公开 v1 端点）
 - **Test（先写失败）:** 每个 v1 端点的 URL/状态码/响应字段快照。
 - **Steps:** 遍历现有路由清单，补合同测试。
@@ -333,21 +350,24 @@ ui/design-tokens 两包全绿；至少 1 个真实面板使用 ui 组件；五�
 - **Verify:** v2 测试绿；v1 测试不变。
 - **Commit:** `feat(eng): add first v2 endpoint with shared schema (P5)`
 
-- [x] **Task 5.5：数据库 migration 框架**
+- [ ] **Task 5.5：数据库 migration 框架**
+> ⚠ R0 审计缺口：migrator 存在但 MAX_SCHEMA_VERSION=0、MIGRATIONS=[]、未接入 initDatabase（R5.2）
 - **Files:** `apps/server/src/db/migrations/`、`apps/server/src/db/migrator.ts`、`apps/server/src/db/backup.ts`、`test/server/db-migrations.test.cjs`
 - **Test（先写失败）:** schema version table；迁移 up/precondition/postcondition；版本高于应用最大 → 只读失败；backup 到临时文件 + checksum + 原子 rename；restore 失败保留原 DB。
 - **Steps:** 按 spec §11.3 实现；三类数据位置发现逻辑（dev/Electron userData/pkg 邻近）。
 - **Verify:** migration 测试全绿；现有 DB 数据不动（只读验证）。
 - **Commit:** `feat(eng): add versioned db migration framework (P5)`
 
-- [x] **Task 5.6：Seed versioning**
+- [ ] **Task 5.6：Seed versioning**
+> ⚠ R0 审计缺口：seed-versioning 仅被测试调用，labs/quiz 等 seed 未走统一框架（R5.3）
 - **Files:** `apps/server/src/seed/`、`apps/server/src/db/seed.ts`、`test/server/seed-versioning.test.cjs`
 - **Test（先写失败）:** 幂等 upsert；内容版本记录；与 migration 分离。
 - **Steps:** 现有 seed（labs、quiz bank）改为 versioned 幂等。
 - **Verify:** seed 测试绿；`npm run sync:labs-seed` 幂等执行。
 - **Commit:** `feat(eng): version seed data with idempotent upsert (P5)`
 
-- [x] **Task 5.7：AI adapter 统一**
+- [ ] **Task 5.7：AI adapter 统一**
+> ⚠ R0 审计缺口：provider-adapter 存在但生产 AI 调用路径未使用（R7.3）
 - **Files:** `apps/server/src/services/ai/*`（provider adapter/retry/rate-limit/schema parse/redacted log）、`packages/contracts/src/ai.ts`、`test/server/ai-adapter.test.cjs`
 - **Test（先写失败）:** timeout/cancellation；retry 策略；响应 schema parse 失败 → `AI_*` 错误码；日志脱敏（不含 key/prompt）。
 - **Steps:** 包装现有 AI 服务；行为不变。
@@ -363,21 +383,24 @@ v1 合同冻结；首个 v2 端点 + client + schema 同 Task 落地；migration
 
 > rollback point：Task 6.1 前 HEAD。冲突区：与 Program 5 不得并行修改 server 生产路径。
 
-- [x] **Task 6.1：Main/Preload TypeScript 化 + IPC allowlist**
+- [ ] **Task 6.1：Main/Preload TypeScript 化 + IPC allowlist**
+> ⚠ R0 审计缺口：仅 IPC 合同测试；无 preload/TS main，main.cjs 仍权威（R6.1）
 - **Files:** `apps/desktop/src/main/*.ts`、`apps/desktop/src/preload/*.ts`、`apps/desktop/tsconfig.json`、`apps/desktop/tsup.config.js`（CJS）、`packages/contracts/src/ipc.ts`、`test/server/electron-stage.test.cjs`（扩展）
 - **Test（先写失败）:** IPC allowlist schema：未登记 channel 被拒；preload 不暴露任意 Node。
 - **Steps:** main/preload 迁 TS；context isolation 确认开启；IPC 经 schema。
 - **Verify:** electron-stage smoke 全绿；`npm run build` 通过。
 - **Commit:** `feat(eng): migrate electron main/preload to TS with IPC schema (P6)`
 
-- [x] **Task 6.2：启动状态机**
+- [ ] **Task 6.2：启动状态机**
+> ⚠ R0 审计缺口：状态机仅单元测试，main.cjs 未调用（R6.2）
 - **Files:** `apps/desktop/src/main/startup.ts`、`apps/desktop/src/main/lifecycle.ts`、`test/server/electron-startup.test.cjs`
 - **Test（先写失败）:** idle→staging→serverStarting→ready→closing→closed；并发启动幂等；健康检查就绪（不靠固定延时）；失败不遗留进程。
 - **Steps:** 按 spec §12.2 实现状态机；端口与数据目录显式传递。
 - **Verify:** startup 测试绿（fake server 进程）。
 - **Commit:** `feat(eng): add electron startup state machine (P6)`
 
-- [x] **Task 6.3：Stage manifest 与完整性**
+- [ ] **Task 6.3：Stage manifest 与完整性**
+> ⚠ R0 审计缺口：stage 生成 manifest 但无独立 verifier；tooling/release/stage-manifest.mjs 不存在（R6.3）
 - **Files:** `scripts/stage-electron-server.js`（扩展输出 manifest）、`tooling/release/stage-manifest.mjs`、`test/server/electron-stage.test.cjs`（扩展）
 - **Test（先写失败）:** manifest 记录文件/hash/版本/构建时间；打包前完整性校验失败退出。
 - **Steps:** stage 时生成 manifest；pack 前校验。
@@ -414,13 +437,15 @@ Electron main/preload TS + IPC schema + 启动状态机 + stage manifest；pkg �
 - **Verify:** 全仓测试数不下降。
 - **Commit:** `test(eng): migrate first test directory to vitest (P7)`
 
-- [x] **Task 7.2：覆盖率阈值分层**
+- [ ] **Task 7.2：覆盖率阈值分层**
+> ⚠ R0 审计缺口：coverage-baseline.md 不存在；无根 coverage 脚本（R7.2）
 - **Files:** `vitest.config.ts` 覆盖率配置、`docs/engineering/coverage-baseline.md`
 - **Steps:** domain/contracts/store/migrations/service 分层阈值；记录基线；达标目录不回退。
 - **Verify:** `npm run coverage` 输出分层报告。
 - **Commit:** `test(eng): add layered coverage thresholds (P7)`
 
-- [x] **Task 7.3：性能预算进 CI**
+- [ ] **Task 7.3：性能预算进 CI**
+> ⚠ R0 审计缺口：budget index 命名 bug：脚本记 "index (hub)"，配置查 "index"，预算恒 0（R3.2）
 - **Files:** `tooling/performance/budget.mjs`、`budget.json`、`test/shared/budget-contract.test.cjs`
 - **Steps:** 记录当前 bundle 基线；预算脚本接入 CI；变更需写明理由。
 - **Verify:** budget 脚本对当前产物通过（预算=基线+容忍）。
@@ -432,14 +457,16 @@ Electron main/preload TS + IPC schema + 启动状态机 + stage manifest；pkg �
 - **Verify:** 安全测试绿。
 - **Commit:** `test(eng): close security contract tests (P7)`
 
-- [x] **Task 7.5：可观测性**
+- [ ] **Task 7.5：可观测性**
+> ⚠ R0 审计缺口：logger 仅样板；Web/Server/Electron 未统一接线（R7.3）
 - **Files:** `apps/server/src/lib/logger.ts`、`apps/web/src/shared/logging.js`、`docs/engineering/logging-fields.md`
 - **Test:** 结构化字段断言（timestamp/level/scope/requestId/errorCode/durationMs）；脱敏断言。
 - **Steps:** 统一字段；错误码跨端一致。
 - **Verify:** 日志测试绿。
 - **Commit:** `feat(eng): unify structured logging fields (P7)`
 
-- [x] **Task 7.6：资源清单**
+- [ ] **Task 7.6：资源清单**
+> ⚠ R0 审计缺口：资源脚本只查少量字符串引用，非完整 registry（R3.3）
 - **Files:** `tooling/architecture/asset-manifest.mjs`、`docs/engineering/asset-registry.md`
 - **Test:** 构建检查缺失资源/孤儿资源/重复大文件/错误主题映射。
 - **Steps:** 从 `apps/web/public/assets/` 建立清单。
@@ -452,7 +479,8 @@ Electron main/preload TS + IPC schema + 启动状态机 + stage manifest；pkg �
 - **Verify:** 文档与代码一致（CI 检查关键文档存在）。
 - **Commit:** `docs(eng): update agent contracts for engineering system (P7)`
 
-- [x] **Task 7.8：JS allowlist 清零与最终验收**
+- [ ] **Task 7.8：JS allowlist 清零与最终验收**
+> ⚠ R0 审计缺口：js-allowlist.md 不存在；生产 JS 260 个、TS 0（apps 仅 2 个 TS）（R8）
 - **Files:** `docs/engineering/js-allowlist.md`（每阶段维护）、最终清理提交
 - **Steps:** 检查生产源码 JS 残留（允许：第三方桥、工具脚本）；逐项迁移或明确豁免；跑 spec §23 全部完成定义项。
 - **Verify:** `npm run quality` + `npm test` + `npm run build` + `npm run lint:arch` 全绿；`git diff --check` 无输出；生成目录/用户数据未改动。
