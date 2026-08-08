@@ -33,9 +33,10 @@ function relFrom(base, full) {
   return relative(base, full).split(sep).join('/');
 }
 
-// R1：Electron staging 主动构建 Server TS 产物（不依赖本机残留 dist）
+// R1/C1：Electron staging 主动构建 Server TS 产物（不依赖本机残留 dist）
 const serverDistPolicy = join(srcServer, 'dist', 'domain', 'settings-policy.js');
-if (!existsSync(serverDistPolicy)) {
+const serverDistService = join(srcServer, 'dist', 'services', 'settings-service.js');
+if (!existsSync(serverDistPolicy) || !existsSync(serverDistService)) {
   console.log('[stage] Server TS 产物缺失，先构建 @xiaohuang/server …');
   execSync('npm run build -w @xiaohuang/server', { cwd: root, stdio: 'inherit' });
 }
@@ -71,7 +72,7 @@ for (const { from, to } of layout.copyDirs) {
 for (const d of layout.missing) {
   console.warn('skip missing', d);
 }
-// 根级复制（dist/domain）：目标 .electron-stage/dist/domain
+// 根级复制（dist/domain + dist/services）：目标 .electron-stage/dist/*
 for (const { from, to } of layout.copyRootDirs) {
   if (existsSync(from)) {
     mkdirSync(dirname(to), { recursive: true });

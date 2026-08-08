@@ -20,6 +20,14 @@
 | B6   | 化学与数学非视觉纯逻辑                                  | ~90  | 行为合同测试通过后逐模块                    |
 | B7   | Three.js/JSXGraph adapter                               | ~20  | 集中 adapter 隔离后                         |
 
+### B1 已落地（以 TS 为权威源）
+
+| 文件                                           | 状态     | 说明                                                                                                     |
+| ---------------------------------------------- | -------- | -------------------------------------------------------------------------------------------------------- |
+| `apps/server/src/domain/settings-policy.ts`    | TS 权威  | 已迁（R5.1）；dist/domain 产物被 routes 引用                                                             |
+| `apps/server/src/services/settings-service.ts` | TS 权威  | C1 样板（2026-08-08）：错误用 domain-core，形状用 subject-settings/contracts 类型                        |
+| `apps/server/src/services/settings-service.js` | 薄转发桥 | 仅 `require('../../dist/services/settings-service.js')`；B2 route 迁移后随 src/index.js 换 dist 入口删除 |
+
 ## 保留为 JS 的第三方桥/工具（最终 allowlist 允许）
 
 | 文件                            | 原因                                    | owner   | 删除条件           |

@@ -12,8 +12,8 @@ import crypto from 'node:crypto';
 /** 复制清单（相对 server src 的目录/文件 + 根级复制目标） */
 export const COPY_DIRS = ['db', 'routes', 'seed', 'utils', 'services', 'public'];
 export const COPY_FILES = ['index.js', 'paths.js'];
-/** 根级复制：dist/domain → <stageRoot>/dist/domain（routes 的 ../../dist 同构） */
-export const COPY_ROOT_DIRS = ['dist/domain'];
+/** 根级复制：dist/domain + dist/services → <stageRoot>/dist/*（routes 的 ../../dist 同构） */
+export const COPY_ROOT_DIRS = ['dist/domain', 'dist/services'];
 
 /**
  * 将 stage 内绝对路径转为 manifest 用 POSIX 相对路径。
