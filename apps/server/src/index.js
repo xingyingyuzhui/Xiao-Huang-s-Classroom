@@ -70,7 +70,15 @@ const studentsRouter = require('./routes/chemistry/students')({
   runBatch,
 });
 const masteryRouter = require('./routes/chemistry/mastery');
-const lessonPacksRouter = require('./routes/chemistry/lesson-packs');
+const lessonPacksRouter = require('./routes/chemistry/lesson-packs')({
+  query,
+  queryOne,
+  run,
+  getLab: require('./seed/import-labs').getLab,
+  listLabs: require('./seed/import-labs').listLabs,
+  ensureLabsSeeded: require('./seed/import-labs').ensureLabsSeeded,
+  importLabsSafe: require('./seed/import-labs').importLabsSafe,
+});
 
 const balanceScriptsRouter = require('./routes/chemistry/balance-scripts');
 
