@@ -9,7 +9,7 @@ const root = require('../helpers/repo-root.js');
 
 test('math AI function route and service exist', () => {
   const route = fs.readFileSync(
-    path.join(root, 'apps/server/src/routes/ai/math.js'),
+    path.join(root, 'apps/server/src/routes/ai/math.ts'),
     'utf8',
   );
   const svc = fs.readFileSync(

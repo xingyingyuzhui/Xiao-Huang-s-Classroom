@@ -55,7 +55,7 @@ test('math classroom catalog labels use curriculum language', () => {
 
 test('math classroom explain API is wired on server and client', () => {
   const lessonRoute = fs.readFileSync(
-    path.join(root, 'apps/server/src/routes/ai/lesson.js'),
+    path.join(root, 'apps/server/src/routes/ai/lesson.ts'),
     'utf8',
   );
   const lessonService = fs.readFileSync(

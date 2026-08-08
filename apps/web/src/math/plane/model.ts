@@ -1,31 +1,35 @@
 /**
- * 高中解析几何：点、直线方程、圆、点到直线距离（纯函数）
+ * 高中解析几何：点、直线方程、圆、点到直线距离（纯函数）（B6 首批：TS 权威源）。
  */
 
 export const MAX_POINTS = 3;
 
-/**
- * @typedef {{ id: string, x: number, y: number, label: string }} PlanePoint
- * @typedef {{ a: number, b: number, c: number }} LineGeneral
- * @typedef {{ m: number | null, b: number | null, vertical: boolean, x?: number }} SlopeIntercept
- */
+export interface PlanePoint {
+  id: string;
+  x: number;
+  y: number;
+  label: string;
+}
 
-/**
- * @param {number} x
- * @param {number} [decimals=2]
- */
-export function roundCoord(x, decimals = 2) {
+export interface LineGeneral {
+  a: number;
+  b: number;
+  c: number;
+}
+
+export interface SlopeIntercept {
+  m: number | null;
+  b: number | null;
+  vertical: boolean;
+  x?: number;
+}
+
+export function roundCoord(x: number, decimals = 2): number {
   const f = 10 ** decimals;
   return Math.round(x * f) / f;
 }
 
-/**
- * @param {number} x
- * @param {number} y
- * @param {PlanePoint[]} existing
- * @returns {PlanePoint | null}
- */
-export function createPoint(x, y, existing) {
+export function createPoint(x: number, y: number, existing: PlanePoint[]): PlanePoint | null {
   if (existing.length >= MAX_POINTS) return null;
   const labels = ['A', 'B', 'C'];
   const used = new Set(existing.map((p) => p.label));
@@ -38,31 +42,18 @@ export function createPoint(x, y, existing) {
   };
 }
 
-/**
- * @param {PlanePoint} a
- * @param {PlanePoint} b
- */
-export function distance(a, b) {
+export function distance(a: PlanePoint, b: PlanePoint): number {
   return Math.hypot(b.x - a.x, b.y - a.y);
 }
 
-/**
- * @param {PlanePoint} a
- * @param {PlanePoint} b
- */
-export function midpoint(a, b) {
+export function midpoint(a: PlanePoint, b: PlanePoint): { x: number; y: number } {
   return {
     x: roundCoord((a.x + b.x) / 2),
     y: roundCoord((a.y + b.y) / 2),
   };
 }
 
-/**
- * @param {PlanePoint} a
- * @param {PlanePoint} b
- * @returns {number | null}
- */
-export function slope(a, b) {
+export function slope(a: PlanePoint, b: PlanePoint): number | null {
   const dx = b.x - a.x;
   if (Math.abs(dx) < 1e-9) return null;
   return roundCoord((b.y - a.y) / dx, 4);
@@ -70,11 +61,8 @@ export function slope(a, b) {
 
 /**
  * 两点确定直线：一般式 Ax+By+C=0（化简整数感系数）
- * @param {PlanePoint} p1
- * @param {PlanePoint} p2
- * @returns {LineGeneral | null}
  */
-export function lineGeneral(p1, p2) {
+export function lineGeneral(p1: PlanePoint, p2: PlanePoint): LineGeneral | null {
   if (Math.hypot(p2.x - p1.x, p2.y - p1.y) < 1e-9) return null;
   // (y-y1)(x2-x1) = (x-x1)(y2-y1)
   // (y2-y1)x - (x2-x1)y + (x2-x1)y1 - (y2-y1)x1 = 0
@@ -93,12 +81,7 @@ export function lineGeneral(p1, p2) {
   return { a, b, c };
 }
 
-/**
- * @param {PlanePoint} p1
- * @param {PlanePoint} p2
- * @returns {SlopeIntercept | null}
- */
-export function lineSlopeIntercept(p1, p2) {
+export function lineSlopeIntercept(p1: PlanePoint, p2: PlanePoint): SlopeIntercept | null {
   if (Math.hypot(p2.x - p1.x, p2.y - p1.y) < 1e-9) return null;
   const m = slope(p1, p2);
   if (m == null) {
@@ -108,11 +91,7 @@ export function lineSlopeIntercept(p1, p2) {
   return { m, b: intercept, vertical: false };
 }
 
-/**
- * @param {LineGeneral} line
- * @param {PlanePoint} p
- */
-export function pointToLineDistance(line, p) {
+export function pointToLineDistance(line: LineGeneral, p: PlanePoint): number | null {
   const denom = Math.hypot(line.a, line.b);
   if (denom < 1e-9) return null;
   return roundCoord(Math.abs(line.a * p.x + line.b * p.y + line.c) / denom, 4);
@@ -120,10 +99,11 @@ export function pointToLineDistance(line, p) {
 
 /**
  * 圆心 O、圆周一点 P → 圆方程
- * @param {PlanePoint} center
- * @param {PlanePoint} rim
  */
-export function circleFromCenterRim(center, rim) {
+export function circleFromCenterRim(
+  center: PlanePoint,
+  rim: PlanePoint,
+): { h: number; k: number; r: number; equation: string } | null {
   const r = distance(center, rim);
   if (r < 1e-9) return null;
   return {
@@ -134,20 +114,14 @@ export function circleFromCenterRim(center, rim) {
   };
 }
 
-/**
- * @param {number} n
- */
-function signedConst(n) {
+function signedConst(n: number): string {
   const r = roundCoord(n, 4);
   if (r === 0) return '';
   if (r > 0) return `+ ${r}`;
   return `− ${Math.abs(r)}`;
 }
 
-/**
- * @param {SlopeIntercept} si
- */
-export function slopeInterceptText(si) {
+export function slopeInterceptText(si: SlopeIntercept | null): string {
   if (!si) return '';
   if (si.vertical) return `x = ${si.x}`;
   const m = si.m ?? 0;
@@ -157,12 +131,9 @@ export function slopeInterceptText(si) {
   return `y = ${m}x ${b >= 0 ? '+' : '−'} ${Math.abs(b)}`;
 }
 
-/**
- * @param {LineGeneral} g
- */
-export function generalText(g) {
+export function generalText(g: LineGeneral | null): string {
   if (!g) return '';
-  const parts = [];
+  const parts: string[] = [];
   if (Math.abs(g.a) > 1e-9) parts.push(`${g.a === 1 ? '' : g.a === -1 ? '−' : g.a}x`);
   if (Math.abs(g.b) > 1e-9) {
     const coef = g.b === 1 ? '+' : g.b === -1 ? '−' : g.b > 0 ? `+ ${g.b}` : `− ${Math.abs(g.b)}`;
@@ -176,12 +147,33 @@ export function generalText(g) {
   return `${s} = 0`;
 }
 
-/**
- * @param {PlanePoint[]} points
- */
-export function analyticReport(points) {
-  /** @type {Record<string, unknown>} */
-  const report = {
+export interface AnalyticReport {
+  pairs: Array<{
+    from: string;
+    to: string;
+    distance: number;
+    midpoint: { x: number; y: number };
+    slope: number | null;
+  }>;
+  line: {
+    through: string;
+    slopeIntercept: string;
+    general: string;
+    generalCoeffs: LineGeneral;
+  } | null;
+  circle: {
+    center: string;
+    rim: string;
+    h: number;
+    k: number;
+    r: number;
+    equation: string;
+  } | null;
+  pointLine: { point: string; line: string; distance: number | null } | null;
+}
+
+export function analyticReport(points: PlanePoint[]): AnalyticReport {
+  const report: AnalyticReport = {
     pairs: [],
     line: null,
     circle: null,
@@ -190,8 +182,8 @@ export function analyticReport(points) {
 
   for (let i = 0; i < points.length; i += 1) {
     for (let j = i + 1; j < points.length; j += 1) {
-      const a = points[i];
-      const b = points[j];
+      const a = points[i]!;
+      const b = points[j]!;
       report.pairs.push({
         from: a.label,
         to: b.label,
@@ -204,11 +196,11 @@ export function analyticReport(points) {
 
   if (points.length >= 2) {
     const [p1, p2] = points;
-    const g = lineGeneral(p1, p2);
-    const si = lineSlopeIntercept(p1, p2);
+    const g = lineGeneral(p1!, p2!);
+    const si = lineSlopeIntercept(p1!, p2!);
     if (g && si) {
       report.line = {
-        through: `${p1.label}${p2.label}`,
+        through: `${p1!.label}${p2!.label}`,
         slopeIntercept: slopeInterceptText(si),
         general: generalText(g),
         generalCoeffs: g,
@@ -218,18 +210,18 @@ export function analyticReport(points) {
 
   if (points.length >= 2) {
     const [o, rim] = points;
-    const circle = circleFromCenterRim(o, rim);
+    const circle = circleFromCenterRim(o!, rim!);
     if (circle) {
       report.circle = {
-        center: o.label,
-        rim: rim.label,
+        center: o!.label,
+        rim: rim!.label,
         ...circle,
       };
     }
   }
 
   if (points.length >= 3 && report.line?.generalCoeffs) {
-    const p = points[2];
+    const p = points[2]!;
     const d = pointToLineDistance(report.line.generalCoeffs, p);
     report.pointLine = {
       point: p.label,
@@ -241,14 +233,11 @@ export function analyticReport(points) {
   return report;
 }
 
-/**
- * @param {number} v
- */
-export function snapHalf(v) {
+export function snapHalf(v: number): number {
   return Math.round(v * 2) / 2;
 }
 
 /** @deprecated use analyticReport */
-export function pairStats(points) {
+export function pairStats(points: PlanePoint[]): AnalyticReport['pairs'] {
   return analyticReport(points).pairs;
 }
