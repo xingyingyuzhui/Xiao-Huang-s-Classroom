@@ -11,6 +11,9 @@
  * 构建链（turbo build / stage 预构建 / pretest）保证加载前产物已生成；
  * 禁止双路径 try/catch 掩盖位置不确定。
  */
+/* eslint-disable @typescript-eslint/no-require-imports -- dist 产物/JS 引用的 CJS 同构合同
+   （policy/service 经 require 运行时解析 serverRoot/dist；utils 经 tsup bundle），
+   用 import 会被 esbuild 静态解析破坏产物路径合同。 */
 import { Router, type Request, type Response } from 'express';
 import { normalizeSubjectSettings } from '@xiaohuang/subject-settings';
 import type { SubjectSettingsMap } from '@xiaohuang/subject-settings';
@@ -112,7 +115,7 @@ export function createSettingsRouter(deps: SettingsRouterDeps): Router {
   }
 
   function mergeSubjectAi(oldAi: SubjectSettingsMap[string]['ai'], patchAi: unknown) {
-    let nextAi = deepMerge(oldAi as unknown as DeepObject, patchAi) as SubjectSettingsMap[string]['ai'];
+    const nextAi = deepMerge(oldAi as unknown as DeepObject, patchAi) as SubjectSettingsMap[string]['ai'];
     if (
       (patchAi as { apiKey?: unknown } | null)?.apiKey === undefined ||
       (patchAi as { apiKey?: unknown } | null)?.apiKey === null ||
@@ -137,7 +140,7 @@ export function createSettingsRouter(deps: SettingsRouterDeps): Router {
       const patch = subPatch as Record<string, unknown>;
 
       if (patch.brand && typeof patch.brand === 'object') {
-        let nextBrand = deepMerge(base.brand as DeepObject, patch.brand) as SubjectSettingsMap[string]['brand'];
+        const nextBrand = deepMerge(base.brand as DeepObject, patch.brand) as SubjectSettingsMap[string]['brand'];
         if (Object.prototype.hasOwnProperty.call(patch.brand, 'iconDataUrl')) {
           nextBrand.iconDataUrl = settingsPolicy.validateIconDataUrl(
             (patch.brand as { iconDataUrl?: unknown }).iconDataUrl,
