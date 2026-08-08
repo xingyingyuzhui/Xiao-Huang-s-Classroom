@@ -530,9 +530,9 @@ npm run quality:fast
 
 ### P6
 
-- [ ] P6 化学一面板全按钮库化  
-- [ ] Dialog 至少一处  
-- [ ] adoption ≥8  
+- [x] P6 化学一面板全按钮库化（AI 课壳 · 备课包顶栏：lesson-packs.js 三按钮 → createButton）
+- [x] Dialog 至少一处（删除备课包走现有 appConfirm adapter 确认路径）
+- [ ] adoption ≥8（合并 main 后由 P7.1 计数门禁校验；本分支业务消费 2 处：function-panel + lesson-packs）
 
 ### P7
 
@@ -642,6 +642,7 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 日期 | 变更 | 分支/Commit |
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
+| 2026-08-08 | P6 完成（AI 课壳 · 备课包顶栏：lesson-packs.js 三按钮 → createButton + dispose；Dialog 沿用 appConfirm；合同测试 5 个绿） | `codex/ui-p6b` `f340d7b` |
 | | P0 完成 | |
 | | P1 完成 | |
 | | … | |
