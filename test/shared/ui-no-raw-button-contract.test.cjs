@@ -113,7 +113,6 @@ test('P7.2 gate: raw-button hits in math/graph must be exempted in ui-legacy-all
 });
 
 test('P7.2 hygiene: exempted files missing header comment / stale entries are reported for cleanup', () => {
-  const allowed = new Set(allowlistEntries().map((e) => e.file));
   const notes = [];
   for (const file of allowlistEntries().map((e) => e.file)) {
     const source = read(file);

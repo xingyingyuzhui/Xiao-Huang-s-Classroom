@@ -121,6 +121,7 @@ apps/web 全局样式
 （220ms 内）重复 Esc/点击由 `settled` 守卫吸收；库的 Esc 为 bubble 阶段、Enter 为
 capture 阶段（原实现两者均 capture）——行为等价，边界场景可接受。
 =======
+
 - 计划：`docs/superpowers/plans/2026-08-08-ui-library-adoption-plan.md`
 - 采用计数合同：`test/shared/ui-adoption-contract.test.cjs`
 - 债务：D4（innerHTML）见 `docs/engineering/debt-registry.md`
@@ -151,4 +152,5 @@ capture 阶段（原实现两者均 capture）——行为等价，边界场景�
 - 豁免登记：`docs/engineering/ui-legacy-allowlist.md`（表格：文件 | 原因 | 移除条件）。豁免只消化存量（当前仅 `function-panel.js`，P3 并行迁移中）；新增裸按钮代码不适用豁免、直接失败。
 - 登记项不再命中模式时，门禁输出清理提示，由后续任务移除登记。
 - 相关：D4（innerHTML 债务）见 `docs/engineering/debt-registry.md`；计划见 §12 Phase 7。
->>>>>>> codex/ui-p7a
+
+> > > > > > > codex/ui-p7a

@@ -519,9 +519,9 @@ npm run quality:fast
 
 ### P4
 
-- [ ] P4.1 Dialog 主路径  
-- [ ] P4.2 Toast/Status  
-- [ ] P4.3 焦点/滚动  
+- [x] P4.1 Dialog 主路径（确认框走 app-dialog Adapter 官方路径——P2.4 adapter + P3 保留 appConfirm）  
+- [x] P4.2 Toast/Status（settings 轻提示消费 createToast）  
+- [x] P4.3 焦点/滚动（滚动锁定 + 焦点归还）  
 
 ### P5
 
@@ -536,11 +536,11 @@ npm run quality:fast
 
 ### P7
 
-- [ ] 阈值抬高  
+- [x] 阈值抬高（P3 后 ≥3 ✓；终态 ≥8 ✓——业务 import 9 文件）  
 - [ ] 危险模式门禁  
 - [ ] D4 更新  
 - [x] README + AGENTS 链接（P7.4：packages/ui/README.md 采用指南完成于 `codex/ui-p7-4b`；AGENTS 链接与 ui-library.md §6/§7 由 P7a 完成）
-- [ ] quality:fast 绿  
+- [x] quality:fast 绿（quality ×2 全绿）  
 
 ---
 
@@ -642,14 +642,22 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 日期 | 变更 | 分支/Commit |
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
-| 2026-08-08 | P5 完成（5A 工具条：board-tools.js 按钮 → createButton bridge，dispose 对齐） | `codex/ui-p5a` @ bc2639f |
-| 2026-08-08 | P7.4 文档收官：packages/ui/README.md 追加「采用指南」段（何时用库 / dispose / className 桥接 / 主题 / 安装） | `codex/ui-p7-4b` @ e1d4a06 |
-| | P0 完成 | |
-| | P1 完成 | |
-| | … | |
+| 2026-08-08 | P0 完成：ui-library.md 基线 + ui-adoption-contract 合同测试（5 断言） | `codex/ui-p0` @ f10fd7d |
+| 2026-08-08 | P1 完成：_ui-kit.css（纯 token）+ 五主题补 --danger/--ink-on-accent + class 契约测试 + catalog 验收场 | `codex/ui-p1` @ 19a3b72 等 |
+| 2026-08-08 | P2 完成：16 工厂 dispose/a11y 矩阵（ui 测 22→42）+ Stable API v1 + app-dialog Adapter | `codex/ui-p2` @ 8a97d38/49d81cb |
+| 2026-08-08 | P3 完成：function-panel/list-view/editor 全库化 + 合同阈值 1→3 + remount 测试；修复 P0 试点生产 bug（className 空格 + 闭包） | `codex/ui-p3` @ 9c86f85/8f702d3 |
+| 2026-08-08 | P5 完成（5A 工具条）：board-tools.js 按钮 → createButton bridge，dispose 对齐 | `codex/ui-p5a` @ bc2639f |
+| 2026-08-08 | P5 完成（5B 笔记条）：board-notes.js 15 按钮库化 + innerHTML 可点击路径清零 | `codex/ui-p5b` @ fcafd7d |
+| 2026-08-08 | P6 完成（分子列表）：molecule/list.js 工具条 → createButton + disposeMoleculeList | `codex/ui-p6a` @ 9a5f0ae |
+| 2026-08-08 | P6 完成（AI 课壳）：lesson-packs.js 顶栏 3 按钮库化 + dispose | `codex/ui-p6b` @ f340d7b |
+| 2026-08-08 | P7 前置：危险模式门禁（ui-no-raw-button-contract 3 用例）+ 豁免表 + D4 更新 + AGENTS.md 链接 | `codex/ui-p7a` @ 8c0d02a |
+| 2026-08-08 | P4.2 完成：settings.js 轻提示消费 createToast（16 调用点收口） | `codex/ui-p4-2` @ 8c2045e |
+| 2026-08-08 | P4.3 完成：app-dialog 滚动锁定（引用计数）+ 5 测试 | `codex/ui-p4-3` @ 42186a3 |
+| 2026-08-08 | P7.4 完成：README 采用指南（何时用库/dispose/桥接/主题/安装） | `codex/ui-p7-4b` @ e1d4a06 |
+| 2026-08-08 | 修复：createButton className 空格串真实 DOM SyntaxError（applyClassName 助手） | `codex/ui-fix-button-class` @ 908c322 |
+| 2026-08-08 | 合并收口：13 分支并入开发分支；业务 import 9 文件（阈值 8 达成）；quality ×2 绿 | 合并提交 |
 
 ---
-
 ## 20. 附录 C · 给执行 Agent 的验收口令
 
 当负责人问「UI 库做完了吗？」仅当下列全部为真可答「Phase 全完成」：
