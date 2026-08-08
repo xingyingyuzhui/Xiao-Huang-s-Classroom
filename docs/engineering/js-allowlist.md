@@ -49,6 +49,12 @@
 | `apps/server/src/routes/ai/lesson.js`          | 薄转发桥 | 仅导出 `createLessonRouter`；B2 完成后删除                                                               |
 | `apps/server/src/routes/ai/molecules.ts`       | TS 权威  | B2 第四批（2026-08-08）：服务注入（callDeepSeekChat 组合根注入）；AI 提示词随源                          |
 | `apps/server/src/routes/ai/molecules.js`       | 薄转发桥 | 仅导出 `createMoleculeRouter`；B2 完成后删除                                                             |
+| `apps/server/src/routes/ai/quiz.ts`            | TS 权威  | B2 第五批（2026-08-08）：服务 + 限流状态注入（quiz-assist-limit 模块级计数不可 inline）                  |
+| `apps/server/src/routes/ai/quiz.js`            | 薄转发桥 | 仅导出 `createQuizRouter`；B2 完成后删除                                                                 |
+| `apps/server/src/routes/ai/chemistry.ts`       | TS 权威  | B2 第六批（2026-08-08）：ai-service 7 函数注入                                                           |
+| `apps/server/src/routes/ai/chemistry.js`       | 薄转发桥 | 仅导出 `createChemistryAiRouter`；B2 完成后删除                                                          |
+| `apps/server/src/routes/chemistry/quiz.ts`     | TS 权威  | B2 第七批（2026-08-08）：sessions/wrong-book 服务注入                                                    |
+| `apps/server/src/routes/chemistry/quiz.js`     | 薄转发桥 | 仅导出 `createQuizRouter`；B2 完成后删除                                                                 |
 | `apps/server/src/services/settings-service.js` | 薄转发桥 | 仅 `require('../../dist/services/settings-service.js')`；B2 route 迁移后随 src/index.js 换 dist 入口删除 |
 
 ## 保留为 JS 的第三方桥/工具（最终 allowlist 允许）
