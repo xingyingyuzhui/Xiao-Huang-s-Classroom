@@ -1,5 +1,5 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
 
 test('chem text formatter renders source LaTex as safe chemical subscripts', async () => {
   const { formatChemOption, formatChemPreview, formatChemText, formatChemStem } = await import('../../apps/web/src/chemistry/ai-classroom/chem-text.js');

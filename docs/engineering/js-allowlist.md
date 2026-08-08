@@ -31,6 +31,8 @@
 | ----------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------- |
 | `apps/web/src/math/shared/frame-task.ts`                                | TS 权威                   | C3 样板（2026-08-08）：无 DOM 纯逻辑（帧合并调度）；Vite 消费路径不变，相关测试迁 vitest |
 | `test/web/math-{frame-task,graph-readouts,graph-performance}.vitest.ts` | vitest                    | node:test 迁移（D7 样板，`*.vitest.ts` glob 与 cjs 不交叉）                              |
+| `apps/web/src/chemistry/ai-classroom/chem-text.ts`                      | TS 权威                   | C3 后续（2026-08-08）：LaTeX→HTML 纯字符串处理；消费方 Vite 解析 .ts，测试迁 vitest      |
+| `test/web/chem-text.vitest.ts`                                          | vitest                    | D-test 第二批（随 TS 化迁移，glob 与 cjs 不交叉）                                        |
 | B5                                                                      | subject/classroom shell   | ~25                                                                                      | manifest/loader 消费方迁移 |
 | B6                                                                      | 化学与数学非视觉纯逻辑    | ~90                                                                                      | 行为合同测试通过后逐模块   |
 | B7                                                                      | Three.js/JSXGraph adapter | ~20                                                                                      | 集中 adapter 隔离后        |

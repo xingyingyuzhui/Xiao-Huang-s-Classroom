@@ -593,6 +593,12 @@ npm run verify:electron-package
 - 禁止双份权威用例长期并存
 - 迁完后简化根 `test` 脚本；可去掉过严 concurrency 限制（在稳定后）
 
+**D-test 进度：**
+
+- [x] 第一批（C3）：frame-task 相关 3 文件迁 vitest（`*.vitest.ts` glob 与 cjs 不交叉）
+- [x] 第二批（2026-08-08）：chem-text TS 化随迁（`chem-text.vitest.ts`）；web vitest 30 用例
+- [ ] 后续批次随模块 TS 化推进（server 目录启动评估）
+
 ### 9.4 D-jessie — JSXGraph eval 警告（D8）
 
 - 出 ADR：接受 / 升级 / CSP / 替代
