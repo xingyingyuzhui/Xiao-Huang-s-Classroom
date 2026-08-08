@@ -20,7 +20,10 @@ function formulaToSubscript(formula) {
   if (!formula) return '';
   const subDigits = '₀₁₂₃₄₅₆₇₈₉';
   return formula.replace(/(\d+)/g, (match) => {
-    return match.split('').map(d => subDigits[parseInt(d)] || d).join('');
+    return match
+      .split('')
+      .map((d) => subDigits[parseInt(d)] || d)
+      .join('');
   });
 }
 
@@ -52,8 +55,12 @@ let onMoleculeChange = null;
 let addBtnController = null;
 /** @type {ReturnType<typeof createButton> | null} 「编辑/保存」工具条按钮 */
 let editBtnController = null;
+/** @type {ReturnType<typeof createButton> | null} 空态「＋ 生成分子」入口按钮（仅列表为空时存在） */
+let emptyBtnController = null;
 /** @type {null | (() => void)} AI 生成入口（ai.js 经 setOnMoleculeAdd 注册） */
 let onAddMolecule = null;
+/** 正在删除中的分子 id（防重复确认 / 防连点；取消或完成后移除） */
+const deletingIds = new Set();
 
 /**
  * 注册「＋ 生成分子」入口回调（AI 生成弹窗模块 ai.js 挂载）
@@ -128,9 +135,11 @@ function onAtomSelected(info) {
   const tip = document.getElementById('molBondTip');
   if (h) h.textContent = '原子杂化';
   if (t) t.textContent = result.label || '—';
-  if (k) k.textContent = result.geometry !== '—'
-    ? `${result.geometry} · ${result.sigmaDirs} 个 σ 方向`
-    : result.reason || '';
+  if (k)
+    k.textContent =
+      result.geometry !== '—'
+        ? `${result.geometry} · ${result.sigmaDirs} 个 σ 方向`
+        : result.reason || '';
   if (tip) tip.textContent = result.tip || '';
 }
 
@@ -142,12 +151,50 @@ export function getMolViewer() {
 }
 
 /**
+ * 释放空态入口按钮控制器（重建列表前调用；幂等）
+ */
+function disposeEmptyState() {
+  if (emptyBtnController) {
+    emptyBtnController.dispose();
+    emptyBtnController = null;
+  }
+}
+
+/**
  * 渲染分子卡片列表
  */
 export async function renderMolList() {
   if (!molList) return;
+  disposeEmptyState();
   try {
     const list = await moleculeApi.getList();
+
+    // 空态：无卡片时渲染可操作的「＋ 用 AI 生成分子」入口（createButton 构建，
+    // 不走 innerHTML 模板；视觉与工具条 ＋ 按钮同构）
+    if (!list.length) {
+      molList.replaceChildren();
+      const box = document.createElement('div');
+      box.className = 'mol-empty';
+      const addBtn = createButton({
+        className: 'mol-btn mol-btn-add',
+        title: 'AI 生成分子',
+        'aria-label': '用 AI 生成分子',
+        onClick: () => onAddMolecule?.(),
+      });
+      const plus = document.createElement('strong');
+      plus.className = 'mol-add-plus';
+      plus.textContent = '＋';
+      addBtn.element.appendChild(plus);
+      const hint = document.createElement('p');
+      hint.className = 'mol-empty-hint';
+      hint.textContent = '还没有分子，点「＋」用 AI 生成第一个';
+      box.appendChild(addBtn.element);
+      box.appendChild(hint);
+      molList.appendChild(box);
+      emptyBtnController = addBtn;
+      refreshMolarPresets(list).catch((e) => console.warn('同步摩尔示例如失败', e));
+      return;
+    }
 
     molList.innerHTML = list
       .map(
@@ -163,7 +210,7 @@ export async function renderMolList() {
           <span>${escapeHtml(m.name)}</span>
         </button>
       </div>
-    `
+    `,
       )
       .join('');
 
@@ -181,13 +228,23 @@ export async function renderMolList() {
         e.stopPropagation();
         if (!molEditMode) return;
         const id = btn.dataset.del;
-        if (!id) return;
-        const ok = await appConfirm('确定删除该分子卡片？', {
+        if (!id || deletingIds.has(id)) return;
+        // 防连点：确认期间禁用按钮（appConfirm 队列叠加由 deletingIds 拦截）
+        deletingIds.add(id);
+        btn.disabled = true;
+        btn.classList.add('is-deleting');
+        const mol = list.find((m) => m.id === id);
+        const ok = await appConfirm(`确定删除「${mol?.name || '该分子卡片'}」？`, {
           title: '删除分子',
           okText: '删除',
           danger: true,
         });
-        if (!ok) return;
+        if (!ok) {
+          deletingIds.delete(id);
+          btn.disabled = false;
+          btn.classList.remove('is-deleting');
+          return;
+        }
 
         try {
           await moleculeApi.delete(id);
@@ -203,9 +260,15 @@ export async function renderMolList() {
             }
           }
           await renderMolList();
+          // 焦点归还：按钮已随列表重建，归还到稳定的编辑/保存工具按钮
+          editBtnController?.element?.focus?.();
         } catch (err) {
           console.error('删除分子失败:', err);
-          await appAlert('删除失败: ' + err.message, { title: '删除失败' });
+          btn.disabled = false;
+          btn.classList.remove('is-deleting');
+          await appAlert(`删除失败: ${err.message}`, { title: '删除失败' });
+        } finally {
+          deletingIds.delete(id);
         }
       });
     });
@@ -213,12 +276,10 @@ export async function renderMolList() {
     if (molEditMode) bindMolDrag();
 
     // 摩尔质量页示例与 3D 分子库化学式同步
-    refreshMolarPresets(list).catch((e) =>
-      console.warn('同步摩尔示例如失败', e),
-    );
+    refreshMolarPresets(list).catch((e) => console.warn('同步摩尔示例如失败', e));
   } catch (err) {
     console.error('获取分子列表失败:', err);
-    molList.innerHTML = `<p class="hint" style="padding:0.5rem;color:#b91c1c">加载失败：${escapeHtml(err.message || '请确认后端已启动')}</p>`;
+    molList.innerHTML = `<p class="mol-list-error">加载失败：${escapeHtml(err.message || '请确认后端已启动')}</p>`;
   }
 }
 
@@ -405,6 +466,7 @@ export function initMoleculeList() {
     addBtnController = createButton({
       className: 'mol-btn mol-btn-add',
       title: 'AI 生成分子',
+      'aria-label': '用 AI 生成分子',
       onClick: () => onAddMolecule?.(),
     });
     // 旧 partial 的 ＋ 图标是 strong.mol-add-plus 子节点（createButton 仅 textContent）
@@ -431,7 +493,7 @@ export function initMoleculeList() {
         molViewer.toggleLabels();
         btnLabelToggle.setAttribute(
           'aria-pressed',
-          btnLabelToggle.getAttribute('aria-pressed') === 'true' ? 'false' : 'true'
+          btnLabelToggle.getAttribute('aria-pressed') === 'true' ? 'false' : 'true',
         );
       }
     });
@@ -448,11 +510,13 @@ export function initMoleculeList() {
  * 当前教室对分子模块为单例加载（离开时隐藏面板而非销毁），课堂 teardown 路径调用本函数。
  */
 export function disposeMoleculeList() {
+  disposeEmptyState();
   addBtnController?.dispose();
   editBtnController?.dispose();
   addBtnController = null;
   editBtnController = null;
   onAddMolecule = null;
   molEditMode = false;
+  deletingIds.clear();
   molList?.classList.remove('is-edit-mode');
 }

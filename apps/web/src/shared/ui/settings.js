@@ -6,6 +6,7 @@
 
 import { settingsApi } from '../api/client.js';
 import { createToast } from '@xiaohuang/ui';
+import { appConfirm } from './app-dialog.js';
 import { THEME_CATALOG, normalizeTheme, DEFAULT_THEME_ID } from '../theme/catalog.js';
 import { applyTheme } from '../theme/apply.js';
 import {
@@ -282,6 +283,19 @@ export async function initSettingsUI({
     document.body.appendChild(toast.element);
   }
 
+  /**
+   * 保存类按钮忙态：禁用 + 「保存中…」，防连点（成功/失败路径由调用方收尾恢复）。
+   * 鸭子类型守卫（'disabled' in btn）保证 fake DOM / 非按钮宿主下无副作用。
+   * @param {HTMLElement | null | undefined} btn
+   * @param {boolean} busy
+   * @param {string} idleLabel
+   */
+  function setSaveBusy(btn, busy, idleLabel) {
+    if (!btn || !('disabled' in btn)) return;
+    btn.disabled = busy;
+    btn.textContent = busy ? '保存中…' : idleLabel;
+  }
+
   function syncBrandInputs(brand) {
     if (brandTitleInput) brandTitleInput.value = brand.title;
     if (brandIconPreview) brandIconPreview.src = brand.iconDataUrl || DEFAULT_ICON_SRC;
@@ -315,6 +329,7 @@ export async function initSettingsUI({
   }
 
   async function openDrawer() {
+    if (drawer?.classList.contains('is-open')) return;
     cachedSettings = null;
     const settings = await loadSettings();
     syncThemePicker(settings.theme);
@@ -342,6 +357,10 @@ export async function initSettingsUI({
     backdrop?.setAttribute('aria-hidden', 'false');
     drawer?.setAttribute('aria-hidden', 'false');
     document.body.classList.add('settings-open');
+    // 焦点顺序：进入抽屉（tabindex -1 使容器可聚焦，Tab 起点为抽屉内控件），
+    // 关闭时由 closeDrawer 归还触发按钮
+    drawer?.setAttribute('tabindex', '-1');
+    drawer?.focus?.();
   }
 
   function closeDrawer() {
@@ -350,6 +369,8 @@ export async function initSettingsUI({
     backdrop?.setAttribute('aria-hidden', 'true');
     drawer?.setAttribute('aria-hidden', 'true');
     document.body.classList.remove('settings-open');
+    // 焦点归还：回到打开设置的触发按钮
+    btnOpen?.focus?.();
   }
 
   btnOpen?.addEventListener('click', openDrawer);
@@ -391,6 +412,7 @@ export async function initSettingsUI({
       notify('标题不能为空', false);
       return;
     }
+    setSaveBusy(btnSaveBrand, true, '保存标识');
     try {
       const settings = await loadSettings();
       const prev = getSubjectSettingsSlice(settings, subjectId);
@@ -404,12 +426,21 @@ export async function initSettingsUI({
       notify('已保存', true);
     } catch (err) {
       notify('保存失败: ' + err.message, false);
+    } finally {
+      setSaveBusy(btnSaveBrand, false, '保存标识');
     }
   });
 
   btnResetBrand?.addEventListener('click', async () => {
     const subjectId = settingsContext.subjectId;
     if (!subjectId) return;
+    // 危险操作确认：恢复默认会覆盖自定义标题与图标
+    const ok = await appConfirm('确定恢复默认标题与图标？当前自定义标识将被覆盖。', {
+      title: '恢复默认',
+      okText: '恢复',
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const brand = {
         title: defaultSubjectBrandTitle(subjectId),
@@ -446,6 +477,7 @@ export async function initSettingsUI({
       notify('不支持的模型', false);
       return;
     }
+    setSaveBusy(btnSaveAi, true, '保存 AI 设置');
     try {
       const ai = {
         apiBase: apiBase?.value?.trim() || DEFAULT_AI.apiBase,
@@ -456,6 +488,8 @@ export async function initSettingsUI({
       notify('已保存', true);
     } catch (err) {
       notify('保存失败: ' + err.message, false);
+    } finally {
+      setSaveBusy(btnSaveAi, false, '保存 AI 设置');
     }
   });
 
