@@ -1,32 +1,40 @@
 /**
  * API v2 settings 合同（Program 5 Task 5.4）。
+ * （D-test 批次：node:test → vitest 迁移，行为逐字保持）
  *
  * 断言：v2 响应形状 { success, data|error, requestId }；data 可被
  * packages/contracts apiResponseSchema 解析；与 v1 数据一致（同一 service）。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+import type { Server } from 'node:http';
 
-const { app } = require('../../apps/server/src');
-const { initDatabase, closeDatabase } = require('../../apps/server/src/db/sqlite');
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = require(path.join(dirname, '../../../test/helpers/repo-root.js'));
 
-async function withApiServer(fn) {
+const { app } = require(path.join(dirname, '../src'));
+const { initDatabase, closeDatabase } = require(path.join(dirname, '../src/db/sqlite'));
+
+async function withApiServer(fn: (baseUrl: string) => unknown): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-v2-test-'));
-  let server;
+  let server: Server | undefined;
   try {
     await initDatabase(path.join(dir, 'chem-lab.db'));
-    server = app.listen(0, '127.0.0.1');
-    await new Promise((resolve) => server.once('listening', resolve));
-    const baseUrl = `http://127.0.0.1:${server.address().port}`;
-    return await fn(baseUrl);
+    const srv = app.listen(0, '127.0.0.1') as Server;
+    server = srv;
+    await new Promise<void>((resolve) => srv.once('listening', resolve));
+    const baseUrl = `http://127.0.0.1:${(srv.address() as import('node:net').AddressInfo).port}`;
+    await fn(baseUrl);
   } finally {
-    if (server) {
-      await new Promise((resolve) => server.close(resolve));
+    const s = server;
+    if (s) {
+      await new Promise<void>((resolve) => s.close(() => resolve()));
     }
     closeDatabase();
     fs.rmSync(dir, { recursive: true, force: true });
@@ -69,5 +77,6 @@ test('v2 与 v1 数据一致（同一 application service）', async () => {
     // v1 响应含 subjects 映射（不同形状但同源）；这里断言 v2 默认面板与 v1 默认一致
     const v2Default = v2Data.chemistry?.defaultPage;
     assert.ok(v2Default, 'v2 有 chemistry 默认页');
+    assert.ok(v1Data, 'v1 响应存在（与 v2 同源对比基线）');
   });
 });
