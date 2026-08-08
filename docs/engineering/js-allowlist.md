@@ -15,7 +15,15 @@
 | B1   | server 纯 domain/repository/service（先 settings 样板） | ~15  | tsup CJS 产物被 index.js 引用               |
 | B2   | server route 与 composition                             | ~36  | 全部 route 迁移后 src/index.js 换 dist 入口 |
 | B3   | Electron main/preload                                   | 2    | tsup CJS 产物被 electron-builder 引用       |
-| B4   | web shared contracts/controller                         | ~30  | Vite 原生支持 TS                            |
+
+### B3 已落地（C4 首批）
+
+| 文件                                        | 状态                            | 说明                                                                                               |
+| ------------------------------------------- | ------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `apps/desktop/src/main.ts`                  | TS 权威                         | C4 样板（2026-08-08）：tsup 单产物 dist/main.js（bundle startup-state-machine，external electron） |
+| `apps/desktop/main.cjs`                     | 薄转发桥                        | 仅 `require('./dist/main.js')`；electron-builder files 含产物；preload 迁移后删除                  |
+| `apps/desktop/src/startup-state-machine.js` | JS 权威                         | 被 main.ts 产物 bundle（无独立产物）；B6 批次可迁 TS                                               |
+| B4                                          | web shared contracts/controller | ~30                                                                                                | Vite 原生支持 TS |
 
 ### B4 已落地（C3 首批）
 

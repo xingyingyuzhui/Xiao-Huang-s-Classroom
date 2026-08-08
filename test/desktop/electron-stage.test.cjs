@@ -78,7 +78,7 @@ test('stage script runs require smoke check after copy', () => {
 });
 
 test('electron main shows dialog on bootstrap failure (no silent quit only)', () => {
-  const main = source('apps/desktop/main.cjs');
+  const main = source('apps/desktop/src/main.ts');
   assert.match(main, /dialog/);
   assert.match(main, /showMessageBox|showErrorBox/);
   assert.match(main, /启动失败/);

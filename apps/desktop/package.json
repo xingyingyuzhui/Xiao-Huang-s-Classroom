@@ -5,6 +5,7 @@
   "main": "main.cjs",
   "scripts": {
     "test": "node --test ../../test/desktop/*.cjs",
-    "typecheck": "node ../../scripts/typecheck-apps.mjs desktop"
+    "typecheck": "node ../../scripts/typecheck-apps.mjs desktop",
+    "build": "tsup"
   }
 }

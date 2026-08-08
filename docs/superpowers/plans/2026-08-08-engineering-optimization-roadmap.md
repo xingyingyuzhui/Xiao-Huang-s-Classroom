@@ -547,6 +547,12 @@ npm run verify:electron-package
 # 或 CI electron-package
 ```
 
+**C4 完成（2026-08-08）：**
+
+- [x] `apps/desktop/src/main.ts` TS 权威（main.cjs 全量迁移：zoom/menu/startup/窗口生命周期；startup-state-machine JS 被 tsup bundle 进单产物）
+- [x] tsup 单产物 `dist/main.js`（external electron，CJS）；`main.cjs` 薄转发桥；electron-builder files 含产物——**app.asar 不再依赖 src/ 目录**（修复打包版 require startup 缺失隐患）
+- [x] 验证：desktop typecheck 1 TS、build 通过、desktop 测试 22/22（ipc-contract/stage 断言指向 main.ts + 薄转发桥）、verify:electron-package 通过（asar 含 dist/main.js，release 1/1）
+
 ### 8.6 Track C 非目标
 
 - 一季度清空全部 ~274 JS
@@ -840,6 +846,7 @@ tooling/architecture/
 | 2026-08-08 | B4 落地（manifest 单一入口，关 D13）                    | B4 提交；debt-registry D13 → 已关闭               |
 | 2026-08-08 | B3 落地（offline-quiz-bank 数据/加载边界拆分）          | B3 提交；1860 → 22 行 loader                      |
 | 2026-08-08 | B5 落地（function-panel/editor dispose 样板，D3 样板）  | B5 提交；二次 mount 合同测试                      |
+| 2026-08-08 | C4 落地（Electron main TS 单产物）                      | C4 提交；asar 含 dist/main.js                     |
 | 2026-08-08 | C3 落地（frame-task TS 切片 + web vitest 样板）         | C3 提交；web 438 绿                               |
 
 ---
