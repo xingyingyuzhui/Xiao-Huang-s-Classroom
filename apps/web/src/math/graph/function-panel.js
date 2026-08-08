@@ -6,26 +6,6 @@ import { GRAPH_PRESETS } from './model.js';
 import { createFunctionListView } from './function-list-view.js';
 import { createButton } from '@xiaohuang/ui';
 
-/**
- * Program 3 试点：真实消费方使用 @xiaohuang/ui 组件。
- * 渲染「添加函数」按钮（保留既有 math-fn-btn 样式类与结构）。
- */
-function createUiAddFnButton() {
-  const host = document.querySelector('.math-fn-toolbar');
-  if (!host) return null;
-  const button = createButton({
-    label: '＋',
-    title: '添加函数',
-    className: 'math-fn-btn math-fn-btn-add',
-    onClick: () => showAdd(),
-  });
-  const strong = document.createElement('strong');
-  strong.className = 'math-fn-add-plus';
-  strong.textContent = '＋';
-  button.element.replaceChildren(strong);
-  host.appendChild(button.element);
-  return button.element;
-}
 import { createFunctionEditor } from './function-editor.js';
 import {
   createCustomFunctionRecord,
@@ -62,6 +42,13 @@ export function createFunctionPanelController(context) {
     if (!el) return;
     boundEls.add(el);
     el.dataset[key] = '1';
+  };
+
+  /** P3：实例内登记的 @xiaohuang/ui 控制器；dispose 时统一卸载（UiController 合同）。 */
+  const uiControllers = [];
+  const trackController = (controller) => {
+    uiControllers.push(controller);
+    return controller;
   };
 
   const nextFnId = () => {
@@ -461,12 +448,90 @@ export function createFunctionPanelController(context) {
     input.focus();
   }
 
+  /**
+   * P3.1：工具条主按钮（添加 / AI / 编辑）全部由 @xiaohuang/ui createButton 挂载。
+   * className 桥接既有样式类（math-fn-btn 等）保视觉零回归；宿主打 bound 标记，
+   * 幂等（重复 bind 不双挂）；dispose 时控制器统一卸载并移除节点。
+   */
+  function mountToolbarButtons() {
+    const toolbar = document.querySelector('.math-fn-toolbar');
+    if (!toolbar || toolbar.dataset.bound) return;
+    markBound(toolbar);
+
+    const add = trackController(
+      createButton({ label: '＋', title: '添加函数', onClick: () => showAdd() }),
+    );
+    add.element.classList.add('math-fn-btn', 'math-fn-btn-add');
+    const plus = document.createElement('strong');
+    plus.className = 'math-fn-add-plus';
+    plus.textContent = '＋';
+    add.element.replaceChildren(plus);
+
+    const ai = trackController(
+      createButton({
+        label: 'AI',
+        title: 'AI 生成函数',
+        onClick: () => {
+          hideAdd();
+          showAi();
+        },
+      }),
+    );
+    ai.element.id = 'btnMathAiFn';
+    ai.element.classList.add('math-fn-btn', 'math-fn-btn-ai');
+    const aiLabel = document.createElement('span');
+    aiLabel.className = 'math-fn-ai-label';
+    aiLabel.textContent = 'AI';
+    ai.element.replaceChildren(aiLabel);
+
+    const edit = trackController(
+      createButton({
+        label: '编辑',
+        title: '编辑列表',
+        onClick: () => {
+          state.editMode = !state.editMode;
+          edit.element.classList.toggle('is-on', state.editMode);
+          edit.update({ label: state.editMode ? '完成' : '编辑' });
+          render();
+        },
+      }),
+    );
+    edit.element.id = 'btnMathEditFns';
+    edit.element.classList.add('math-fn-btn', 'math-fn-btn-edit');
+
+    toolbar.appendChild(add.element);
+    toolbar.appendChild(ai.element);
+    toolbar.appendChild(edit.element);
+  }
+
+  /**
+   * P3.1：项目操作（导入 / 导出 / 重置）由 createButton 挂载；点击行为仍由
+   * graph-mount-controller 按既有 id（btnMathGraph*）绑定 persistenceController。
+   */
+  function mountProjectButtons() {
+    const row = document.querySelector('.math-project-row');
+    if (!row || row.dataset.bound) return;
+    markBound(row);
+
+    const mk = (label, title, extraClass) => {
+      const ctrl = trackController(createButton({ label, title }));
+      ctrl.element.classList.add('math-project-btn');
+      if (extraClass) ctrl.element.classList.add(extraClass);
+      return ctrl;
+    };
+    const importBtn = mk('导入', '导入项目 JSON');
+    importBtn.element.id = 'btnMathGraphImport';
+    const exportBtn = mk('导出', '导出项目 JSON');
+    exportBtn.element.id = 'btnMathGraphExport';
+    const resetBtn = mk('重置', '重置画布', 'math-project-btn-danger');
+    resetBtn.element.id = 'btnMathGraphReset';
+
+    row.appendChild(importBtn.element);
+    row.appendChild(exportBtn.element);
+    row.appendChild(resetBtn.element);
+  }
+
   function bind() {
-    const list = document.getElementById('mathFnList');
-    // 添加按钮：@xiaohuang/ui createButton 渲染（Program 3 真实消费方试点）
-    const addButton = createUiAddFnButton();
-    const aiButton = document.getElementById('btnMathAiFn');
-    const editButton = document.getElementById('btnMathEditFns');
     const cancelButton = document.getElementById('btnMathFnAddCancel');
     const closeButton = document.getElementById('btnMathFnAddClose');
     const backdrop = document.getElementById('mathFnAddBackdrop');
@@ -481,27 +546,10 @@ export function createFunctionPanelController(context) {
     const keypad = document.getElementById('mathFnExprKeypad');
     const presetsHost = document.getElementById('mathGraphPresets');
 
-    // 函数列表事件委托已由 function-list-view 接管（含更多菜单/显隐/键盘）
-    if (addButton && !addButton.dataset.bound) {
-      markBound(addButton);
-      addButton.addEventListener('click', showAdd);
-    }
-    if (aiButton && !aiButton.dataset.bound) {
-      markBound(aiButton);
-      aiButton.addEventListener('click', () => {
-        hideAdd();
-        showAi();
-      });
-    }
-    if (editButton && !editButton.dataset.bound) {
-      markBound(editButton);
-      editButton.addEventListener('click', () => {
-        state.editMode = !state.editMode;
-        editButton.classList.toggle('is-on', state.editMode);
-        editButton.textContent = state.editMode ? '完成' : '编辑';
-        render();
-      });
-    }
+    // 工具条 / 项目操作按钮由 @xiaohuang/ui createButton 挂载（P3.1，幂等）
+    mountToolbarButtons();
+    mountProjectButtons();
+
     for (const element of [cancelButton, closeButton, backdrop]) {
       if (element && !element.dataset.bound) {
         markBound(element);
@@ -567,6 +615,10 @@ export function createFunctionPanelController(context) {
       delete el.dataset.ready;
     }
     boundEls.clear();
+    // P3：卸载 @xiaohuang/ui 控制器（createButton.dispose 幂等：解监听 + 移除节点）
+    for (const controller of uiControllers.splice(0)) {
+      controller.dispose();
+    }
     editor.dispose?.();
     listView.dispose?.();
   }
