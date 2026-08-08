@@ -537,9 +537,9 @@ npm run quality:fast
 ### P7
 
 - [ ] 阈值抬高  
-- [ ] 危险模式门禁  
-- [ ] D4 更新  
-- [ ] README + AGENTS 链接  
+- [x] 危险模式门禁（P7.2 前置，2026-08-08）
+- [x] D4 更新（P7.3，2026-08-08）
+- [x] README + AGENTS 链接（P7.4 前置：采用指南入 ui-library.md §6 + AGENTS 链接；README 由 P2 统一）
 - [ ] quality:fast 绿  
 
 ---
@@ -643,6 +643,7 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
 | 2026-08-08 | P0 完成 | codex/ui-p0@f10fd7d |
+| 2026-08-08 | P7 前置：危险模式门禁（P7.2）+ D4 收口（P7.3）+ 文档（P7.4 部分：采用指南入 ui-library.md、AGENTS 链接；README 待 P2） | codex/ui-p7a@8c0d02a |
 | | P1 完成 | |
 | | … | |
 
