@@ -530,9 +530,9 @@ npm run quality:fast
 
 ### P6
 
-- [ ] P6 化学一面板全按钮库化  
-- [ ] Dialog 至少一处  
-- [ ] adoption ≥8  
+- [x] P6 化学一面板全按钮库化（分子列表工具条，2026-08-08，见附录 B）
+- [x] Dialog 至少一处（沿用 appConfirm 确认路径，选择说明见附录 B）
+- [ ] adoption ≥8（本 Task 后业务 `@xiaohuang/ui` import 文件数 = 2：function-panel + molecule/list；终态阈值由 P7 抬高）
 
 ### P7
 
@@ -642,9 +642,7 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 日期 | 变更 | 分支/Commit |
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
-| | P0 完成 | |
-| | P1 完成 | |
-| | … | |
+| 2026-08-08 | **P6 完成（分子列表）**：分子列表工具条主按钮（＋ AI 生成 / 编辑-保存）改用 `@xiaohuang/ui` `createButton`，`className` 桥接 `mol-btn mol-btn-add` / `mol-btn mol-btn-edit`；`＋` 图标以 `strong.mol-add-plus` 子节点保留；编辑文案/`is-active` 经 `update()` 逐字保持；新增 `setOnMoleculeAdd`（ai.js 经此注册打开 AI 弹窗，不再查 `#btnAddMolecule`）与幂等 `disposeMoleculeList()`；partial 删除静态工具条按钮，`.mol-toolbar` 为单一挂载点。**Dialog 选择**：沿用现有 `appConfirm`（`shared/ui/app-dialog.js`）确认路径——createDialog 当前为无 `_ui-kit.css` 支撑的裸壳（P1 未合），改用需重建队列/Esc/焦点/danger 全部弹窗行为，改动面与回归风险均大；appConfirm 即应用层 Dialog 抽象且 import 路径稳定。**采用指标**：业务 `@xiaohuang/ui` import 文件数 1→2（+`chemistry/molecule/list.js`）。验证：`node --test test/web/molecule-list.test.cjs`（新增结构合同，5 例）、`npm run test -w @xiaohuang/web`（395/0）、`npm run test -w @xiaohuang/ui`（22/0）、`npm run typecheck -w @xiaohuang/web`、`npm run build`（12/12）、`lint:css`、`lint:theme-tokens` 全绿。 | `codex/ui-p6a` @ `9a5f0ae`（代码/测试） |
 
 ---
 
