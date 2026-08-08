@@ -48,6 +48,8 @@ export function subjectManifest(subjectId) {
     blurb: meta.blurb,
     modules: meta.modules,
     book: meta.book,
+    // 教室首页文案透传（home-shell 消费；单一数据源仍是 catalog）
+    classroomIntro: meta.classroomIntro,
     classroom: {
       id: subjectId,
       defaultPanel: getDefaultTabId(subjectId),
