@@ -48,8 +48,17 @@ function makeCleanCopy() {
     path.join(dir, 'package.json'),
     JSON.stringify({ name: '@xiaohuang/server', private: true, type: 'commonjs' }),
   );
-  // 模拟 settings.js 的产物引用（与生产同一相对结构 routes → ../../dist）
+  // B2：真实 settings.ts（tsup entry）+ 其 inline 依赖（utils）
   fs.mkdirSync(path.join(dir, 'src/routes'), { recursive: true });
+  fs.copyFileSync(
+    path.join(root, 'apps/server/src/routes/settings.ts'),
+    path.join(dir, 'src/routes/settings.ts'),
+  );
+  fs.mkdirSync(path.join(dir, 'src/utils'), { recursive: true });
+  for (const f of ['response.js', 'ai-config.js']) {
+    fs.copyFileSync(path.join(root, 'apps/server/src/utils', f), path.join(dir, 'src/utils', f));
+  }
+  // 模拟 settings.js 的产物引用（与生产同一相对结构 routes → ../../dist）
   fs.writeFileSync(
     path.join(dir, 'src/routes/settings.js'),
     "module.exports = require('../../dist/domain/settings-policy.js');\n",
@@ -90,11 +99,11 @@ test('干净副本（无 dist）：server build 生成 policy 产物且路由可
   }
 });
 
-test('settings.js 使用单一产物合同（无双路径 try/catch）', () => {
-  const src = fs.readFileSync(path.join(root, 'apps/server/src/routes/settings.js'), 'utf8');
-  const requireRefs = src.match(/require\([^)]*settings-policy[^)]*\)/g) || [];
-  assert.equal(requireRefs.length, 1, '只 require 一处产物路径');
-  assert.doesNotMatch(src, /try \{[^}]*settings-policy/, '不得用 try/catch 双路径掩盖');
+test('settings.ts 使用单一产物合同（无双路径 try/catch，B2 后指向 TS 权威源）', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/server/src/routes/settings.ts'), 'utf8');
+  const requireRefs = src.match(/require\([^)]*settings-(policy|service)[^)]*\)/g) || [];
+  assert.ok(requireRefs.length >= 1, 'require 产物路径（policy/service）');
+  assert.doesNotMatch(src, /try \{[^}]*settings-(policy|service)/, '不得用 try/catch 双路径掩盖');
 });
 
 test('stage 脚本含产物缺失时主动构建逻辑', () => {

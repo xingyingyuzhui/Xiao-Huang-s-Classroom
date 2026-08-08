@@ -13,7 +13,7 @@ import crypto from 'node:crypto';
 export const COPY_DIRS = ['db', 'routes', 'seed', 'utils', 'services', 'public'];
 export const COPY_FILES = ['index.js', 'paths.js'];
 /** 根级复制：dist/domain + dist/services → <stageRoot>/dist/*（routes 的 ../../dist 同构） */
-export const COPY_ROOT_DIRS = ['dist/domain', 'dist/services'];
+export const COPY_ROOT_DIRS = ['dist/domain', 'dist/services', 'dist/routes'];
 
 /**
  * 将 stage 内绝对路径转为 manifest 用 POSIX 相对路径。

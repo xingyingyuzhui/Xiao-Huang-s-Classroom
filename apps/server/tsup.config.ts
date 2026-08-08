@@ -11,10 +11,15 @@ export default defineConfig({
   entry: {
     'domain/settings-policy': 'src/domain/settings-policy.ts',
     'services/settings-service': 'src/services/settings-service.ts',
+    'routes/settings': 'src/routes/settings.ts',
   },
   format: ['cjs'],
   dts: true,
   clean: true,
   target: 'es2022',
   outDir: 'dist',
+  // dist 产物引用保持运行时解析（与 routes/settings.js 的 ../../dist 同构合同；
+  // 源/产物统一 2 级（v2 子层 3 级）恒解析到 serverRoot/dist）；sql.js 为
+  // 运行时依赖（stage 安装 node_modules 提供），不 bundle。
+  external: [/dist\//, /^sql\.js(?:\/|$)/],
 });
