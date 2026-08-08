@@ -55,7 +55,14 @@ const labsRouter = require('./routes/chemistry/labs')({
   importLabsSafe: require('./seed/import-labs').importLabsSafe,
   builtinCount: require('./seed/import-labs').LABS_BUILTIN.length,
 });
-const offlineQuizRouter = require('./routes/chemistry/offline-quiz');
+const offlineQuizRouter = require('./routes/chemistry/offline-quiz')({
+  query,
+  queryOne,
+  run,
+  runBatch,
+  ensureQuizSchema: require('./db/ensure-quiz-schema').ensureQuizSchema,
+  OFFLINE_QUESTIONS: require('./seed/offline-quiz-bank').OFFLINE_QUESTIONS,
+});
 const reactionsRouter = require('./routes/chemistry/reactions')({
   query,
   queryOne,
