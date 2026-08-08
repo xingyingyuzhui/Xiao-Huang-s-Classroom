@@ -49,6 +49,31 @@ function makeFakeElement(tag, owner) {
         names.forEach((n) => set.add(n));
         node.className = [...set].join(' ');
       },
+      remove(...names) {
+        const set = new Set(node.className.split(/\s+/).filter(Boolean));
+        names.forEach((n) => set.delete(n));
+        node.className = [...set].join(' ');
+      },
+      toggle(name, force) {
+        const set = new Set(node.className.split(/\s+/).filter(Boolean));
+        if (force === undefined) {
+          if (set.has(name)) {
+            set.delete(name);
+            node.className = [...set].join(' ');
+            return false;
+          }
+          set.add(name);
+          node.className = [...set].join(' ');
+          return true;
+        }
+        if (force) set.add(name);
+        else set.delete(name);
+        node.className = [...set].join(' ');
+        return force;
+      },
+      contains(name) {
+        return node.className.split(/\s+/).includes(name);
+      },
     },
     textContent: '',
     type: '',
@@ -69,8 +94,25 @@ function makeFakeElement(tag, owner) {
         }
       }
     },
+    remove() {
+      if (!node.parent) return;
+      const index = node.parent.children.indexOf(node);
+      if (index >= 0) node.parent.children.splice(index, 1);
+      node.parent = null;
+    },
+    addEventListener(type, fn) {
+      node.listeners = node.listeners || {};
+      (node.listeners[type] = node.listeners[type] || []).push(fn);
+    },
+    removeEventListener(type, fn) {
+      node.listeners = node.listeners || {};
+      node.listeners[type] = (node.listeners[type] || []).filter((f) => f !== fn);
+    },
     setAttribute(name, value) {
       node.attrs[name] = String(value);
+    },
+    removeAttribute(name) {
+      delete node.attrs[name];
     },
     getAttribute(name) {
       if (name.startsWith('data-')) {

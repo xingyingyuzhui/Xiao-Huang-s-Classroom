@@ -7,8 +7,9 @@
  * - domain 自定义模式 min < max（提交时排序由 normalize 兜底）。
  */
 
-import { GRAPH_PRESETS, defaultCoeffsFor } from './model.js';
+import { GRAPH_PRESETS } from './model.js';
 import { createCustomFunctionRecord } from './function-records.js';
+import { createButton } from '@xiaohuang/ui';
 
 /**
  * @param {string} value
@@ -36,6 +37,13 @@ export function createFunctionEditor(options) {
   /** @type {any | null} */
   let editing = null;
 
+  /** P3.3：本实例登记的 @xiaohuang/ui 控制器；dispose 时统一卸载。 */
+  const uiControllers = [];
+  const trackController = (controller) => {
+    uiControllers.push(controller);
+    return controller;
+  };
+
   function open(fn) {
     editing = fn;
     if (!root) return;
@@ -61,9 +69,16 @@ export function createFunctionEditor(options) {
         }
         const presetSelect = root.querySelector('#mathFnEditPreset');
         if (presetSelect) {
-          presetSelect.innerHTML = GRAPH_PRESETS.map(
-            (p) => `<option value="${p.id}"${p.id === fn.preset ? ' selected' : ''}>${p.label}</option>`,
-          ).join('');
+          // P3.3：受控 DOM 填充（GRAPH_PRESETS 为应用常量，但禁止 innerHTML 拼接习惯）
+          presetSelect.replaceChildren(
+            ...GRAPH_PRESETS.map((p) => {
+              const option = document.createElement('option');
+              option.value = p.id;
+              option.textContent = p.label;
+              option.selected = p.id === fn.preset;
+              return option;
+            }),
+          );
         }
       }
     }
@@ -143,11 +158,32 @@ export function createFunctionEditor(options) {
       const wrap = root.querySelector('#mathFnEditDomainWrap');
       if (wrap) wrap.hidden = domainMode.value !== 'custom';
     });
-    root.querySelector('#btnMathFnEditCancel')?.addEventListener('click', () => {
-      close();
-      callbacks.onCancel();
-    });
-    root.querySelector('#btnMathFnEditSubmit')?.addEventListener('click', () => submit());
+
+    // P3.3：模态主按钮（保存 / 取消）经 @xiaohuang/ui createButton 挂载；
+    // className 桥接 .btn/.primary/.ghost 保视觉零回归（无 ui-kit 皮肤期不回归）
+    const actionsHost = root.querySelector('.math-fn-add-actions');
+    if (actionsHost && !actionsHost.dataset.mathEditorActionsBound) {
+      actionsHost.dataset.mathEditorActionsBound = '1';
+      const cancel = trackController(
+        createButton({
+          label: '取消',
+          title: '取消编辑',
+          onClick: () => {
+            close();
+            callbacks.onCancel();
+          },
+        }),
+      );
+      cancel.element.id = 'btnMathFnEditCancel';
+      cancel.element.classList.add('btn', 'ghost');
+      const submit = trackController(
+        createButton({ label: '保存', title: '保存修改', onClick: () => submit() }),
+      );
+      submit.element.id = 'btnMathFnEditSubmit';
+      submit.element.classList.add('btn', 'primary');
+      actionsHost.replaceChildren(cancel.element, submit.element);
+    }
+
     root.querySelector('#mathFnEditName')?.addEventListener('keydown', (event) => {
       if (event.key === 'Enter') {
         event.preventDefault();
@@ -164,7 +200,14 @@ export function createFunctionEditor(options) {
 
   /** B5 样板：清除绑定标记，允许二次 mount 重建绑定（与 function-panel.dispose 对称）。 */
   function dispose() {
-    if (root) delete root.dataset.mathEditorBound;
+    if (root) {
+      delete root.dataset.mathEditorBound;
+      const actionsHost = root.querySelector('.math-fn-add-actions');
+      if (actionsHost) delete actionsHost.dataset.mathEditorActionsBound;
+    }
+    for (const controller of uiControllers.splice(0)) {
+      controller.dispose();
+    }
   }
 
   return { open, close, submit, bind, getEditing: () => editing, dispose };
