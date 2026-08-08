@@ -6,7 +6,7 @@
 
 后续任务（多学科切换壳、其它学科内容）在独立计划中展开。化学功能改动仍按原图层边界（browser / Express / Electron）处理。
 
-**当前壳层：** 启动进入学科大厅；仅「化学」可进入现有实验室 Tab。顶栏学科标签与设置中的「学科大厅」可返回大厅。设计见 `docs/superpowers/specs/2026-07-29-subject-hub-design.md`。
+**当前壳层：** 启动进入学科大厅；学科可进入状态以 `apps/web/src/subjects/manifest.js` 的 runtime manifest 为准，不在本文件硬编码 ready 列表。顶栏学科标签与设置中的「学科大厅」可返回大厅。设计见 `docs/superpowers/specs/2026-07-29-subject-hub-design.md`。
 
 **Monorepo：** `apps/web`（Vite 前端）、`apps/server`（Express/SQLite）、`apps/desktop`（Electron）、`packages/*`（共享包，如 `subject-settings`）。
 
@@ -23,7 +23,7 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 - Clicking a subject book opens the simple intro page (not a direct classroom jump); classroom entry from the intro CTA uses a refined cover-dissolve transition with the book kept closed—do not also play 3D cover-open, page-flip, or dive; exit reverses the dissolve onto a closed book.
 - Book covers must fully follow theme changes with carefully designed thematic elements (game-asset quality), not superficial text/color swaps; spines/side materials should match the cover art; modeling, collision, and brighter spotlight/specular feel matter; skip redundant OPEN badges.
 - Hub bookshelf should stay close to the books reference: outward-fanning poses (not inward-top convergence) and similar book lighting; intro focus timing should match the reference (other books fully sink, then selected book rotates with ~0.1s lead and no long pause).
-- Only chemistry is enterable for now; other subject books may be visible but not clickable.
+- Subject-book enterability follows `apps/web/src/subjects/manifest.js`; locked books may remain visible but must not be clickable.
 - Prefer boutique visual fidelity for hub books, glass/liquid, and motion over early performance tuning; reject muddy/gray glass and prototype-looking UI.
 - When a visual pass fails, research open-source references (GitHub repos/demos) before another thin iteration.
 - Feature work after establishing main should land on branches rather than committing straight to main.
@@ -34,7 +34,7 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 
 - Science-hall bookshelf UX is inspired by https://github.com/thebuggeddev/books (live demo https://books-sigma-ashen.vercel.app/); subjects map to distinct books; keep pose/lighting/intro-open choreography close to that reference.
 - Theme cover art lives under `apps/web/public/assets/subject-covers/` as five ordered sets (v1–v5) mapped to the five app themes.
-- App shell starts at the subject hub; chemistry opens the existing laboratory tabs; hub design lives at `docs/superpowers/specs/2026-07-29-subject-hub-design.md`.
+- App shell starts at the subject hub; current ready/locked state is owned by `apps/web/src/subjects/manifest.js`; hub design lives at `docs/superpowers/specs/2026-07-29-subject-hub-design.md`.
 - Classroom enter/exit from the subject intro uses cover-dissolve (etch/particles sampled from cover art), not multi-page flip or stacked 3D cover-open.
 - Chemistry lab work prioritizes a state-driven engine with chemistry logic separated from rendering; experiments should be configuration-driven rather than one-off page stacks.
 - Chemistry web modules: feature packages under `apps/web/src/chemistry/{periodic-table,molecule,molar,electron,battle,ai-classroom,chem,shared}/`; classroom mount/partials under `apps/web/src/subjects/classrooms/`.

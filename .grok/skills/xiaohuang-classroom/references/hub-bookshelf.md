@@ -3,6 +3,8 @@
 Package: `apps/web/src/subjects/bookshelf/`  
 Also read: package `AGENTS.md`, specs `2026-07-29-subject-hub-design.md`, `2026-07-30-cinematic-subject-transition-design.md`.
 
+Subject visual metadata comes from `subjects/catalog.js`; ready/locked enterability comes from `subjects/manifest.js`.
+
 ## Public API
 
 ```js

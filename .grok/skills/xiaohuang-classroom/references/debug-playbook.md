@@ -1,103 +1,30 @@
-# Debug playbook — symptoms → places
+# Debug playbook
 
-Work **symptom-first**. Confirm layer before large rewrites.
+先复现、定位证据层，再改 owning layer。不要从表面症状直接改生成物或渲染对象。
 
-## Hub: blank canvas / no books
+| 症状 | 第一证据 | Owner |
+| --- | --- | --- |
+| Hub 空白、书不可点、主题封面错误 | console、runtime manifest、stage mode、theme event/asset URL | `hub-bookshelf.md`、`frontend-shell.md` |
+| 进入/返回白屏或迟到页面 | transition id、opaque 回调、stale async mount、classroom state | `hub-bookshelf.md`、`frontend-shell.md` |
+| 数学工具状态错、undo 错、卡顿 | GraphDocument/Store action、transaction、render plan、create/update/detach 计数 | `math-canvas.md` |
+| Server 400/500、设置或 AI 异常 | requestId、Schema parse、route→service、DB/adapter cause | `server-data.md` |
+| migration/seed 异常 | 临时 DB version、pre/postcondition、backup/restore、checksum | `server-data.md` |
+| Electron dev 好、stage/包内坏 | 分别跑 stage、packaged Resources、平台发行物 | `desktop-release.md` |
+| quality 偶发绿/红 | 当前脚本、Turbo cache、生成残留、workspace 输出、干净检出 | `engineering-quality.md` |
 
-| Check | Where |
-|-------|--------|
-| WebGL init throw | `stage.js` renderer try/catch |
-| `buildBook` throw | console + `build-book.js`; subjects empty? |
-| Books off-screen | entrance springs / `slots.js` / `setTargets` never called |
-| Root scale/pos | `computeSlots` bookRoot |
-| Env/PMREM crash | `classroom-env.js` — should warn and continue |
-| Running/raf | `running`, `animate`, `show()` |
+## 系统化步骤
 
-Also: CSS covering canvas; hub not mounted (`hub.js`).
+1. 写出最小复现和期望/实际差异。
+2. 判断失败发生在领域状态、controller、renderer、外部边界、构建还是最终产物。
+3. 找到该层的唯一真值和最后一个成功边界；注入失败时保留 cause。
+4. 先补能稳定复现的测试，再修 owner；不要用 delay、全量重建或 silent catch 掩盖竞态。
+5. 运行最小回归，然后检查相邻生命周期、历史、主题、数据或发布路径。
 
-## Hub: books present but “dead” click
+## 常见假绿
 
-- Mode stuck not `hero` (`state.mode`, body classes).
-- Hit meshes / raycast (`hitMeshes`, `castRay`).
-- Pointer capture / second finger (`ptr.id`).
-- `status` / enter button only affects classroom CTA, not open-detail.
-
-## Theme: UI theme changes, books don’t
-
-1. Is `chem-theme-change` fired? (`shared/theme/apply.js`, settings save path).
-2. Is stage listening? `syncTheme` on window.
-3. `repaint` / `applyCoverMap` gen race — stale image onload.
-4. Cache: URL must include theme query bust.
-5. Wrong mapping: `cover-urls.js` version table.
-6. Settings API 500 → theme never persisted/reloaded (`routes/settings.js`, server up?).
-
-## Theme: hub background wrong
-
-- `_subject-hub.css` + `hub-backgrounds/<id>.png` exist?
-- `data-theme` on `<html>`?
-- Canvas opaque clear color killing transparency? must stay alpha 0.
-
-## Enter classroom: white flash / empty lab
-
-- Shell switched **before** veil opaque → fix `onOpaque` ordering, not random delays only.
-- `transitionSeq` stale callbacks.
-- Classroom registry missing subject.
-- Feature loader / partial HTML mount failure (`panel-mount`, partials).
-
-## Enter: book opens / flips when it shouldn’t
-
-- Cover springs forced non-zero during `entering` — `tickBook` should force closed for enter/return.
-- Accidental reintroduction of dive/open timeline—remove; dissolve-only product rule.
-
-## Return hub: never shows / stuck veil
-
-- `onRevealHub` shadowed (must be factory-level const).
-- `playExit` `onOpaque` / `onSettled` not firing — fallback timer in `playReturnFromLab`.
-- `running` false so animate stopped — return path should restart raf.
-- Hub shell hidden by app shell state (`session` / shell).
-
-## Return: books wrong places
-
-- Other books not pre-sunk with `CLEAR` (`motion.js` constant + return setup).
-- `beginCloseToShelf` / `bringBack` delays.
-- `computeSlots` before positioning.
-
-## Covers missing / procedural only
-
-- Asset 404 under `public/assets/subject-covers/`.
-- Stem mismatch (`mathematics` vs `math` id).
-- CORS/image onerror path leaves procedural—check console warns.
-- Extrude material group order wrong → lids not showing map (groups 0/1/2 in build-book).
-
-## Settings save 500
-
-- Server process down / wrong port.
-- SQLite lock (`chem-lab.db.lock`) — another process.
-- Validation error in settings route/body.
-- Desktop vs web API base URL mismatch.
-
-## Math board wrong theme / grid junk
-
-- Read `math/AGENTS.md`.
-- `math-theme.js` + `chem-theme-change`.
-- Forbidden: using border-soft as grid substitute.
-
-## API / data wrong in classroom
-
-- Hit correct `routes/chemistry/*`?
-- Seed not imported?
-- Frontend client base URL / Electron static vs API split.
-
-## Performance jank (hub)
-
-- Prefer fixing infinite throws / thrashing repaint first.
-- Don’t “optimize away” shadows/aniso first if owner asked for fidelity—unless unusable FPS.
-
-## Regression checklist after hub fixes
-
-1. Load hub — books visible, fan pose OK  
-2. Open intro — others sink, selected orbits in  
-3. Theme switch — covers + bg + lights  
-4. Enter ready subject — dissolve, no empty flash  
-5. Return — veil, hub reveal, shelf restore  
-6. `node --test test/web/subject-hub.test.cjs test/web/bookshelf-structure.test.cjs` (+ transition tests if touched)
+- Turbo cache 命中不代表 fresh execution。
+- `git diff --check` 不代表工作树干净。
+- stage require 成功不代表 electron-builder Resources 正确。
+- `electron-builder --dir` 成功不代表 DMG/NSIS/portable 在目标机可用。
+- package 中存在 Schema/类型不代表应用已 import 并生产接线。
+- 构建通过不代表交互、视觉或资源释放正确。

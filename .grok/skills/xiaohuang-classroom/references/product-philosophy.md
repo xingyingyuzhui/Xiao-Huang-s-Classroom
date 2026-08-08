@@ -26,7 +26,7 @@ Chemistry proved the lab depth; the **hall is the brand face**. Math and other s
 
 1. **Full-bleed hall**: no top subject TAB strip on hub; keep top-right settings only; no empty chrome gap where tabs used to be.
 2. **Brand**:「小黄的教室」—not「科学」. No redundant corner brand/TAB chrome. Brand type follows each theme’s palette; **no specular/glow** on brand text.
-3. **Books = subjects**: distinct books; only intended subjects clickable as product rules evolve (verify catalog/status; historically chemistry-first enterability, later multi ready—**read catalog**, don’t assume).
+3. **Books = subjects**: distinct books; only intended subjects clickable as product rules evolve. Enterability follows `apps/web/src/subjects/manifest.js`, not `catalog.status` alone.
 4. **Click book → intro page**, never direct classroom jump.
 5. **Intro chrome**: no center close X; secondary「返回大厅」; avoid generic「N 个模块」meta copy.
 6. **Floaters**: **subject-specific** motifs (chem element symbols, math numerals, biology leaf-like, physics-themed). One shared leaf effect for all is wrong.

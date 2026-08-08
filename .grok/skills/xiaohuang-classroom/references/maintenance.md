@@ -1,76 +1,44 @@
-# Maintenance & engineering practice
+# Maintenance and repository hygiene
 
-## Git / branches
+本页只拥有 Git、工作树、用户数据、生成物和文档同步规则。测试命令见 `engineering-quality.md`，Electron 证据见 `desktop-release.md`。
 
-- **Feature and structure work**: branch off `main` (e.g. `refactor/...`, `feat/...`).
-- Merge to `main` after verify; push when user wants remote updated.
-- Delete local feature branches after merge if user doesn’t need them.
-- No force-push to `main`. No commit secrets or user DB files.
+## 开始前
 
-## What belongs in commits
+- 非琐碎功能或结构工作使用 `codex/` feature branch；不要无意覆盖他人的脏工作树。
+- 先看 `git status --short` 和最近提交，只 stage 本任务文件。
+- 从仓库根安装依赖；不要维护 `apps/server/package-lock.json`。
 
-| Include | Exclude |
-|---------|---------|
-| Source under `apps/*/src`, `packages/*`, `test/*`, `docs/*` | `node_modules/` |
-| Root lockfile when deps change intentionally | `apps/web/dist/`, copied `apps/server/public/` assets from build (unless task is release packaging) |
-| `public/` **source** assets (covers, hub-backgrounds) | `*.db`, `*.db.lock` user data |
-| `.grok/skills/` project skills | `.electron-stage/`, `dist-electron/`, `dist-exe/` |
+## 用户数据
 
-## Install & run (typical)
+- `apps/server/data/` 与 `apps/server/src/data/` 按用户数据处理。
+- 未获明确授权，不改、不删、不迁移真实 DB、lock、备份或用户配置。
+- 数据迁移代码可以修改，但验证应使用临时目录/fake DB，不触碰生产数据。
 
-- Root: `npm install`
-- Web dev / server: root package scripts (`npm run dev`, `dev:server`, workspace `-w`—read root `package.json`).
-- Tests: `node --test test/web/...` or broader globs; helper root via `test/helpers/repo-root.js` (exports **path string**, not a function).
+## 生成与运行时路径
 
-## Tests map
+以下是生成或运行时路径，不作为源代码提交：
 
-| Area | Location |
-|------|----------|
-| Hub / bookshelf | `test/web/subject-hub.test.cjs`, `bookshelf-structure.test.cjs` |
-| Transitions | `test/web/subject-transition-*.test.cjs` |
-| Math contracts | `test/web/math-*.test.cjs` |
-| Chem features | `test/web/*` + server chemistry tests |
-| API / DB | `test/server/*` |
-| Packages / boundaries | `test/shared/*` |
+- `apps/web/dist/`
+- `apps/server/public/`
+- `.electron-stage/`
+- `dist-electron/`
+- `dist-exe/`
+- `coverage/`、各 workspace `dist/`、dependency folders
 
-Prefer **contract/structure tests** for hub cinema and module maps—they catch silent breakages from refactors.
+只有任务明确针对发布产物时才读取它们作为证据；仍应修改生成它们的源码、配置或脚本。
 
-## Refactor policy
+## 提交边界
 
-1. **Behavior-preserving** by default (especially hub timing/pose/dissolve).
-2. Extract pure modules; keep orchestrators thin; update package `AGENTS.md`.
-3. Public exports (`createBookshelfStage`, packages APIs) stay stable or all call sites + tests update in same change.
-4. Don’t rename `chem-theme-change` casually—historical, widely listened.
-5. Chemistry server folder moves already namespaced; don’t break `/api` paths.
+- 保留无关改动；不要用 destructive reset/checkout 清理别人的内容。
+- 结构重构默认保持行为和公开入口，拆分与调用方/合同测试同一提交。
+- `git diff --check` 只检查空白错误；工作树是否干净必须另看 `git status --short`。
+- 删除、覆盖、发布、push、合并等扩大影响的动作遵守当前用户授权。
 
-## Thick-file heuristic
+## 文档 owner
 
-If a UI/WebGL file exceeds ~1.5–2k lines and mixes tables + geometry + input + FX:
+- 运行约束与高频入口：根/子树 `AGENTS.md`。
+- 已批准设计：`docs/superpowers/specs/`。
+- 可执行计划：`docs/superpowers/plans/`。
+- Agent 路由：本 skill；事实冲突仍回到代码和新鲜验证。
 
-- Split pure data/math/geo first.
-- Then factories with injected context.
-- Leave mode SM + input loop in orchestrator.
-- Add structure tests so the split can’t silently re-inflate without notice.
-
-## Docs
-
-- Living agent prefs: root `AGENTS.md` (short, operational).
-- Design intent: `docs/superpowers/specs/`.
-- Package maps: `**/AGENTS.md` under math, bookshelf.
-- This skill (`.grok/skills/xiaohuang-classroom/`) for full OS—**update skill references when architecture or owner rules change**.
-
-## When to update this skill
-
-- New subject pipeline steps
-- New hard product red lines from the owner
-- Bookshelf module map changes
-- Theme count / asset layout changes
-- Major monorepo boundary moves
-
-## Agent hygiene
-
-- Don’t edit dist as source of truth.
-- Don’t add nested lockfiles under apps.
-- Don’t commit “just in case” debug overlays into hub.
-- Ask before destructive git or production publish.
-- Chinese product UI copy; code/comments may be CN/EN mix as existing files do—match local file style.
+出现新 workspace、学科接入协议、GraphDocument/renderer 合同、Server 数据边界、Electron 布局、质量脚本或明确产品红线时，同步更新对应 reference 和 `test/shared/xiaohuang-classroom-skill.test.cjs`。

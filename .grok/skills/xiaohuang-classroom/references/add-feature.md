@@ -1,90 +1,43 @@
-# Adding features — compliant paths
+# Add-feature checklist
 
-Use this as a checklist. Skip steps only when the task is explicitly partial.
+本页只给实施顺序；精确规则回到各 owner reference。
 
-## 0. Branch
+## 新学科 / classroom / panel
 
-Feature work lands on a **named branch**, not straight to `main` (after main is established). Merge when verified.
+1. 读 `frontend-shell.md`，核对 catalog、runtime manifest、subject-settings 和 registry 的不同职责。
+2. 先检查现有壳：目标学科可能已有 cover、factory、home panel，只差 runtime ready 状态。
+3. 文案/书封视觉改 `apps/web/src/subjects/catalog.js` 与五主题 assets；可进入性改 `apps/web/src/subjects/manifest.js`。
+4. Tab/default panel/settings 改 `packages/subject-settings`；runtime factory 改 `subjects/classrooms/registry.js`。
+5. 新资源型 feature 遵守标准 lifecycle；接 legacy classroom 时显式适配 dispose/relayout/theme。
+6. 测 manifest、registry、settings、stale enter/leave 和共享面板串科；视觉按 `hub-bookshelf.md`。
 
-## A. New subject (or open an existing shell subject)
+## 新化学实验
 
-1. **`subjects/catalog.js`**
-   - `SUBJECTS` entry: id, name, en, desc, blurb, modules, status, book colors, optional `classroomIntro`.
-2. **Cover art** (if book shows)
-   - Five theme images: `apps/web/public/assets/subject-covers/<stem>-cover-v{1-5}.png`
-   - Register stem in `bookshelf/cover-urls.js` `COVER_ASSET_STEM`.
-3. **Classroom runtime**
-   - `subjects/classrooms/<id>-classroom.js`
-   - Register in `classrooms/registry.js`.
-4. **Feature package** (if content)
-   - `apps/web/src/<subject>/...` with clear entry.
-5. **Hub behavior**
-   - Click still opens intro; enter only if product says ready.
-6. **Floaters**
-   - Subject motif in `bookshelf/floaters.js`.
-7. **Tests**
-   - Extend `subject-hub.test.cjs` / catalog assertions as needed.
-8. **Server** only if subject needs API—prefer namespaced routes; keep `/api` prefixes.
+读 `chemistry-features.md`：先纯状态/规则和 Schema，再 controller/presentation，再 classroom 装配；需要持久化或 AI 时追加 `server-data.md`。
 
-## B. New chemistry lab / classroom panel
+## 新数学工具
 
-1. Prefer **config + model + shell + views** (see `ai-classroom/*` patterns: `lab-model` / `lab-shell` / `lab-views`).
-2. Mount via chemistry classroom tabs / `panel-mount` / partials HTML—not a one-off route outside shell.
-3. Data: `chemistry/data/*` or server seed + `routes/chemistry/*` if persisted.
-4. Validate with existing schema utils when present (`lab-schema`, quiz schema, etc.).
-5. Logic ≠ canvas/DOM rendering split.
+读 `math-canvas.md` 和 `apps/web/src/math/AGENTS.md`：纯 action/model → Store/transaction → controller/frame batching → renderer layer。禁止 pointer 直接写 JSXGraph 真值，禁止裸 `export *`。
 
-## C. New math lab / board tool
+## 新 API / DB / AI
 
-1. Read **`apps/web/src/math/AGENTS.md` first**.
-2. Lab folder under `math/<lab>/` with model + index; shared board helpers in `math/shared/`.
-3. Theme via `math-theme.js`; lifecycle via `board-lifecycle.js`; listen `chem-theme-change`.
-4. Expressions: **`packages/math-expr` only**.
-5. Wire classroom entry/topics in `math/classroom/*` + math classroom shell.
-6. Tests under `test/web/math-*.test.cjs` for contracts.
+读 `server-data.md`：Schema 与稳定错误 → service → route/repository → client。v1/v2 复用 service；migration/seed 用临时 DB 验证。
 
-## D. New theme
+## 新主题或 Hub 视觉
 
-1. CSS: `shared/styles/themes/<id>/{tokens,skin}.css` + catalog registration in `shared/theme/catalog.js`.
-2. Hub background: `public/assets/hub-backgrounds/<id>.png` + `_subject-hub.css`.
-3. Cover version slot: extend `THEME_COVER_VERSION` + ship four subject cover images.
-4. Book feel/lights: `theme-feel.js` + env pack in `classroom-env.js`.
-5. Math board tokens if math surfaces need them (`math-theme.js`).
-6. Verify: switch theme in settings → hub bg + book repaint + classroom chrome.
+读 `product-philosophy.md` 与 `hub-bookshelf.md`。主题是 tokens、背景、五套 cover、书材质/光照和课堂 chrome 的完整系统，不是单点换色。
 
-## E. New API endpoint
+## 新共享 package
 
-1. Put chemistry domain under `apps/server/src/routes/chemistry/` (+ service if non-trivial).
-2. Shared/settings/AI under existing `routes/settings.js` / `routes/ai*`.
-3. Register in `index.js` router composition.
-4. Response helpers: `utils/response.js` patterns.
-5. Contract tests: `test/server/*` especially `server-api-contracts.test.cjs`.
-6. Frontend: `shared/api/client.js` (or subject api helper)—no raw fetch scatter without reason.
+先证明至少两个消费者或稳定跨 app 合同，再建 `packages/*`；提供 strict TS、双产物/d.ts、test/typecheck/build/coverage，并保持 `apps → packages`。
 
-## F. Shared package change
+## 结构重构
 
-- `packages/subject-settings`: tab catalogs / settings shape—update `test/shared/subject-settings-contract.test.cjs`.
-- `packages/math-expr`: keep pure; update expr tests; **no** copy-paste of parser into apps.
+先锁行为/公开导出/性能计数，再按单一职责拆分。兼容入口只显式导出；更新 owning `AGENTS.md`、架构门禁和结构测试。
 
-## G. Visual-only hub polish
+## 完成检查
 
-1. Load `product-philosophy.md` + `hub-bookshelf.md`.
-2. Change the **owning module** (slots/theme-feel/enter-fx/…)—avoid dumping magic numbers only in unrelated CSS.
-3. Do not break dissolve enter/exit.
-4. Run hub + structure tests; manually path enter/return/theme if possible.
-
-## H. Engineering structure only
-
-1. Extract pure modules; keep public exports stable.
-2. Update string-based tests that pointed at old file.
-3. No behavior change unless listed in the task.
-4. Document map in package `AGENTS.md` when adding a folder of modules.
-
-## Definition of done (features)
-
-- [ ] Correct layer(s) only
-- [ ] Theme event / subject catalog / registry still coherent
-- [ ] No user-data or dist junk in commit
-- [ ] Relevant tests green
-- [ ] Hub cinema contracts intact if those files touched
-- [ ] Branch → review → main (not drive-by main commits)
+- owner、数据源和迁移状态描述准确。
+- 失败路径、生命周期、主题和高频输入合同受保护。
+- 相关测试、build/typecheck 与匹配风险的 quality 通过。
+- 未把浏览器、目标机或最终发行物的未验证部分说成完成。

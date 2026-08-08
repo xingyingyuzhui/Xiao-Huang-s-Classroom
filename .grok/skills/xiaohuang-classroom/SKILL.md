@@ -1,107 +1,78 @@
 ---
 name: xiaohuang-classroom
-description: >
-  Project operating system for 小黄的教室 (Xiao-Huang Classroom monorepo):
-  architecture map, layer contracts, product/aesthetic judgment, hub bookshelf,
-  add-feature paths, debug playbooks, and maintenance rules. Use whenever working
-  in this repo — feature work, bugfix, visual polish, refactor, hub/bookshelf,
-  chemistry/math classroom, themes, settings, Express API, Electron, or when the
-  user mentions 大厅/书场/转场/主题/教室/化学/数学/架构/工程化. Also use for
-  /xiaohuang-classroom. Read this skill before large changes so edits match
-  product philosophy and monorepo boundaries.
+description: Use when doing any non-trivial audit, implementation, refactor, debugging, visual, test, data, packaging, or release work inside the 小黄的教室 repository.
 ---
 
-# 小黄的教室 — Agent Operating Skill
+# 小黄的教室 Project OS
 
-This skill is the **project OS**. Prefer it over improvising architecture or visual quality bars.
+本页只负责导航。领域精确规则由对应 reference、适用的 `AGENTS.md` 和真实代码拥有。
 
-## Mandatory first steps
+## 进入仓库
 
-1. Read **repo root** `AGENTS.md` (live constraints + learned prefs).
-2. Open the reference that matches the task (below). Do **not** skim only this page for deep work.
-3. State which **layer** you will touch before editing: shell · hub · classroom · feature · shared · server · desktop · packages.
+1. 确认仓库根、当前分支和 `git status --short`，保护已有改动。
+2. 读根 `AGENTS.md`；再读目标子树内适用的 `AGENTS.md`。
+3. 按下表只加载与任务有关的 1–3 个 references。
+4. 动手前说明 owning layer、公开合同、外部边界、用户数据/生成物和验证层级。
 
-## Task → reference map
+## 指令与事实
 
-| Task | Load |
-|------|------|
-| Where does X live? Layer ownership? | `references/architecture.md` |
-| Is this “good enough” for the product owner? Visual/UX judgment | `references/product-philosophy.md` |
-| Hub books, dissolve enter/exit, covers, floaters | `references/hub-bookshelf.md` |
-| New subject / classroom / lab / theme / API | `references/add-feature.md` |
-| Bug: blank hub, theme stuck, 500, empty transition | `references/debug-playbook.md` |
-| Branch, test, refactor, forbidden paths | `references/maintenance.md` |
-| Math board theme/lifecycle | `apps/web/src/math/AGENTS.md` |
-| Bookshelf module map | `apps/web/src/subjects/bookshelf/AGENTS.md` |
-| Specs (when changing hub/transition/math atlas) | `docs/superpowers/specs/` |
+- 操作约束：当前用户请求 > 适用 `AGENTS.md` > 已批准 spec/ADR > 本 skill > 历史计划/报告。
+- 当前实现事实：以真实代码、package scripts、自动化测试和新鲜产物为准。
+- `AGENTS.md` 的约束必须遵守；其中 workspace facts 若与代码冲突，按代码和验证确认，并同步报告文档漂移。
+- “计划已完成”“某次构建通过”和 Turbo cache 都不能单独证明当前状态。
 
-## Decision tree (always)
+## 任务路由
 
-```
-User request
-  ├─ Visual / motion / hub book feel  → product-philosophy + hub-bookshelf
-  ├─ “It broke” / regression           → debug-playbook (symptom first)
-  ├─ New capability                    → add-feature checklist
-  ├─ Split files / structure only      → maintenance + keep public APIs
-  └─ Domain logic (chem/math)          → feature package + server chemistry/* if data
-```
+| 任务 | 必读 | 按需追加 |
+| --- | --- | --- |
+| 项目了解、结构或依赖审查 | `references/architecture.md` | `references/engineering-quality.md` |
+| 产品判断、视觉、主题 | `references/product-philosophy.md` | `references/hub-bookshelf.md` |
+| Hub、书架、封面、转场 | `references/hub-bookshelf.md` | `references/frontend-shell.md` |
+| Shell、学科、classroom、panel | `references/frontend-shell.md` | `references/add-feature.md` |
+| 新功能或结构重构 | `references/add-feature.md` | 对应领域 reference |
+| 数学画布、工具、性能 | `references/math-canvas.md` | `references/engineering-quality.md` |
+| 化学实验、AI classroom | `references/chemistry-features.md` | `references/server-data.md` |
+| Server、API、设置、DB、AI | `references/server-data.md` | `references/architecture.md` |
+| Electron、stage、安装包 | `references/desktop-release.md` | `references/engineering-quality.md` |
+| 测试、门禁、coverage、cache | `references/engineering-quality.md` | `references/debug-playbook.md` |
+| Bug、构建或运行失败 | `references/debug-playbook.md` | 症状对应领域 reference |
+| Git、生成物、用户数据、交接 | `references/maintenance.md` | `references/engineering-quality.md` |
 
-## Non-negotiable product rules (summary)
+## 新增和改动代码的不变量
 
-Full detail: `references/product-philosophy.md`.
+- 新依赖保持 `apps → packages` 单向；Server 不导入 Web。
+- 新增或修改的 HTTP、localStorage、DB、IPC、AI 输出经 Schema 校验。
+- 领域状态只保存可序列化业务数据，不持久化 DOM、Canvas、JSXGraph、Three.js 或监听器。
+- 有资源的模块实现对称生命周期；disposer 逆序、容错、幂等。
+- 高频输入按帧合并，不让 pointer/input 频率直接驱动重渲染。
+- 新失败路径使用稳定错误码并保留上下文；禁止静默 catch。
+- 禁止裸 `export *`；主题分支使用语义令牌。
+- 用户数据和生成目录不是源码；测试不得依赖未声明的本机残留。
 
-- **Boutique fidelity > early perf** for hub books, glass/liquid, motion. Reject muddy/gray glass and prototype UI.
-- **Theme = full asset system** (covers, spines, materials, hub bg, lights)—not text/color swaps.
-- **Hub UX**: full-bleed hall; brand「小黄的教室」; click book → **intro**, not jump into lab; enter classroom = **closed book + cover dissolve** (no 3D open/flip/dive stack); exit is reverse dissolve onto closed book.
-- **Reference-first visuals**: books demo (thebuggeddev/books); if a visual pass fails, research open-source demos **before** another thin iteration.
-- **Subject-specific floaters** (chem elements, math numerals, …)—not one shared leaf effect.
-- **Feature work on branches**; merge to main when verified.
+这些是不继续扩散旧债的规则，不代表全部存量 JS 已完成迁移。
 
-## Non-negotiable engineering rules (summary)
+## 四类工作流
 
-Full detail: `references/architecture.md` + `maintenance.md`.
+### 只读了解或审查
 
-- Monorepo: `apps/web` · `apps/server` · `apps/desktop` · `packages/*`. Install **from repo root**.
-- Never commit user DB / dist / electron stage / nested server lockfile as “source work”.
-- Chemistry server under `routes/chemistry` + `services/chemistry`; HTTP stays `/api/...`.
-- Hub public API: `createBookshelfStage` from `bookshelf/stage.js` only (hub imports that).
-- Prefer **config-driven** labs/experiments; separate **logic vs rendering**.
-- Structure refactors must **preserve behavior** (pose, timing, dissolve semantics) unless the task says otherwise.
+限定范围 → 排除用户数据/生成物 → 读代码、测试、脚本 → 对照合同 → 给出证据、风险和未验证项。未经授权不写代码。
 
-## Working style expected by the owner
+### 功能或重构
 
-- Ship **judgment**, not just diffs: match reference, then refine; call out when something looks prototype-grade.
-- Prefer **one coherent pass** over stacked hacks (e.g. do not layer dive + open + dissolve).
-- When stuck on look/feel: stop, find a real reference, then implement.
-- After visual/theme work: verify **enter, exit, theme switch, return hub** paths—not only the happy enter path.
-- Confirm before destructive git / shared remote actions; feature branches are default.
+定位 owner → 确认数据源/公开合同 → 先写失败测试或复现 → 修改正确层 → 相关验证 → 全局门禁 → 工作树检查。结构重构默认保持行为。
 
-## Quick path cheat sheet
+### 视觉与交互
 
-| Concern | Start here |
-|---------|------------|
-| App boot / shell | `apps/web/src/main.js`, `app/shell.js` |
-| Subject hub | `subjects/hub.js`, `subjects/catalog.js` |
-| 3D bookshelf | `subjects/bookshelf/*` (see package AGENTS) |
-| Classroom mount | `subjects/classrooms/registry.js` |
-| Chemistry features | `apps/web/src/chemistry/{feature}/` |
-| Math labs | `apps/web/src/math/{lab}/` + `math/AGENTS.md` |
-| Themes CSS | `shared/styles/themes/{id}/` |
-| Hub CSS | `shared/styles/_subject-hub.css` |
-| Settings UI | `shared/ui/settings.js` |
-| API client | `shared/api/client.js` |
-| Express entry | `apps/server/src/index.js` |
-| Shared settings pkg | `packages/subject-settings` |
-| Math expr pkg | `packages/math-expr` |
-| Hub tests | `test/web/subject-hub.test.cjs`, `bookshelf-structure.test.cjs` |
+先读产品与参考 → 检查五主题、响应式、动效和生命周期 → 实现 → 结构/单元验证 → 浏览器交互验证。用户明确排除浏览器时，改用 fake DOM/board/storage/timer/RAF 与构建，并明确未做真实视觉验收。
 
-## After non-trivial work
+### 工程与发布
 
-1. Run the **smallest relevant tests** (`node --test test/web/...` or server tests).
-2. If hub/bookshelf/theme touched: mentally walk enter/exit/theme + check structure tests.
-3. Feature branch → verify → merge main; do not leave half-migrated module splits.
+分别陈述源码门禁、当前工作区、干净检出、packaged app 和平台发行物证据。stage smoke 不等于最终发行包；`electron-builder --dir` 不等于目标机上的 DMG/NSIS/portable 验收。
 
-## Slash / auto invoke
+## 完成标准
 
-- Explicit: `/xiaohuang-classroom`
-- Auto: any non-trivial task in this repository should load this skill.
+- 修改发生在正确 owner，公开合同与用户数据受保护。
+- 最小相关测试和匹配风险的全局门禁通过。
+- 结论区分已验证、推断和未验证；不把 cache、stage 或历史报告说成最终证据。
+- `git diff --check` 只证明无空白错误；另用 `git status --short` 检查工作树。
+- 架构、脚本、接入协议或产品红线变化时，同步更新对应 reference 与防漂移测试。
