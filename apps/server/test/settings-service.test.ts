@@ -1,15 +1,21 @@
 /**
- * Settings service 错误模型试点（Program 2 Task 2.7）。
+ * Settings service 错误模型试点（Program 2 Task 2.7；D-test 第三批迁 vitest）。
  *
  * 断言：settings service 返回 domain-core Result；DB 读取失败时返回
  * 稳定错误码 PERSISTENCE_READ（不依赖消息文本）；route 层回退默认不静默。
+ * 经薄转发链加载（src/services/settings-service.js → dist 产物）。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const service = require(path.join(root, 'apps/server/src/services/settings-service.js'));
+const require = createRequire(import.meta.url);
+const service = require(path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  '../src/services/settings-service.js',
+));
 
 test('正常读取返回 ok 且结构与默认设置对齐', () => {
   const result = service.loadSubjectSettings({
