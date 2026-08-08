@@ -1,5 +1,5 @@
 import type { BaseProps, UiController } from '../contract.js';
-import { applyStates } from '../contract.js';
+import { applyAriaLabel, applyStates } from '../contract.js';
 
 export interface CheckboxProps extends BaseProps {
   checked?: boolean;
@@ -22,6 +22,7 @@ export function createCheckbox(
     element.checked = Boolean(props.checked);
     element.disabled = Boolean(props.disabled);
     applyStates(element, props);
+    applyAriaLabel(element, props['aria-label']);
   };
   const onChange = () => {
     if (props.disabled) return;

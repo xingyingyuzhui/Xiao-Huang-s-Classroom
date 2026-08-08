@@ -1,5 +1,5 @@
 import type { BaseProps, UiController } from '../contract.js';
-import { applyStates } from '../contract.js';
+import { applyAriaLabel, applyStates } from '../contract.js';
 
 export interface InputProps extends BaseProps {
   value?: string;
@@ -19,6 +19,7 @@ export function createInput(initial: InputProps = {}): UiController<InputProps, 
     element.value = props.value ?? '';
     element.disabled = Boolean(props.disabled);
     applyStates(element, props);
+    applyAriaLabel(element, props['aria-label']);
     if (props.placeholder) element.setAttribute('placeholder', props.placeholder);
   };
   const onInput = () => {

@@ -35,8 +35,14 @@ export function applyClassName(el: HTMLElement, className?: string | null): void
 
 /** 状态 class 应用（is-disabled/is-loading）。
  *  注意：is-error 不由这里管理——error 状态类与组件自身 kind/error 语义
- *  （如 StatusProps.kind='error'）冲突，由各组件显式控制。 */
+ *  冲突（如 StatusProps.kind='error'），由各组件显式控制。 */
 export function applyStates(el: HTMLElement, props: Pick<BaseProps, 'disabled' | 'loading'>): void {
   el.classList.toggle('is-disabled', Boolean(props.disabled));
   el.classList.toggle('is-loading', Boolean(props.loading));
+}
+
+/** a11y 基线：aria-label 透传（update 可增删）。 */
+export function applyAriaLabel(el: HTMLElement, label: string | undefined): void {
+  if (label) el.setAttribute('aria-label', label);
+  else el.removeAttribute('aria-label');
 }

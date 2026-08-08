@@ -23,6 +23,8 @@ export function createTabs(initial: TabsProps = {}): UiController<TabsProps, Tab
   let props: TabsProps = { ...initial };
   let changeHandler: ((payload: unknown) => void) | null = null;
   const buttons = new Map<string, HTMLElement>();
+  /** 当前按钮的 click 解绑函数（render 重建与 dispose 时执行，防泄漏） */
+  let clickCleanups: Array<() => void> = [];
 
   const select = (id: string) => {
     if (!props.tabs?.some((t) => t.id === id)) return;
@@ -31,6 +33,8 @@ export function createTabs(initial: TabsProps = {}): UiController<TabsProps, Tab
   };
 
   const render = () => {
+    for (const off of clickCleanups) off();
+    clickCleanups = [];
     element.replaceChildren();
     buttons.clear();
     for (const tab of props.tabs ?? []) {
@@ -41,7 +45,9 @@ export function createTabs(initial: TabsProps = {}): UiController<TabsProps, Tab
       btn.setAttribute('data-tab-id', tab.id);
       if (tab.id === props.activeId) btn.classList.add('is-active');
       setText(btn, tab.label);
-      btn.addEventListener('click', () => select(tab.id));
+      const onClick = () => select(tab.id);
+      btn.addEventListener('click', onClick);
+      clickCleanups.push(() => btn.removeEventListener('click', onClick));
       buttons.set(tab.id, btn);
       element.appendChild(btn);
     }
@@ -77,6 +83,8 @@ export function createTabs(initial: TabsProps = {}): UiController<TabsProps, Tab
       };
     },
     dispose() {
+      for (const off of clickCleanups) off();
+      clickCleanups = [];
       element.removeEventListener('keydown', onKeyDown);
       element.remove();
     },

@@ -1,7 +1,7 @@
 /**
  * ui 公共入口：显式具名导出（禁止裸 export *，避免歧义导出）。
  */
-export { setText, applyStates } from './contract.js';
+export { setText, applyStates, applyAriaLabel } from './contract.js';
 export type { UiController, BaseProps } from './contract.js';
 export { createButton } from './primitives/button.js';
 export type { ButtonProps, ButtonEvents } from './primitives/button.js';

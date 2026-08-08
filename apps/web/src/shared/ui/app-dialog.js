@@ -1,7 +1,14 @@
 /**
  * 应用内统一弹窗（替代 window.alert / confirm / prompt）
  * 样式对齐现有 modal-panel，z-index 高于其它业务弹层。
+ *
+ * P2.4（2026-08-08）：内部改为 @xiaohuang/ui createDialog 承载——由库提供
+ * role=dialog / aria-modal / Esc 关闭 / opener 焦点归还 / dispose 生命周期；
+ * 标题、正文、按钮、输入区为 createDialog 的轻量组合（组件仅壳层能力，
+ * 不覆盖三模式差异）。对外 appAlert / appConfirm / appPrompt 签名不变。
+ * 差异说明：每次弹窗新建实例，关闭动画结束后 dispose（原实现复用单 root）。
  */
+import { createDialog } from '@xiaohuang/ui';
 
 function escapeHtml(s) {
   return String(s ?? '')
@@ -11,42 +18,10 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
-/** @type {HTMLElement | null} */
-let rootEl = null;
 /** @type {Array<() => void>} */
 const queue = [];
 let busy = false;
-
-function ensureRoot() {
-  if (rootEl && document.body.contains(rootEl)) return rootEl;
-  rootEl = document.createElement('div');
-  rootEl.id = 'appDialogRoot';
-  rootEl.className = 'app-dialog-root';
-  rootEl.innerHTML = `
-    <div class="app-dialog-backdrop" data-app-dialog-backdrop aria-hidden="true"></div>
-    <div class="app-dialog-panel modal-panel" role="dialog" aria-modal="true" aria-labelledby="appDialogTitle" aria-describedby="appDialogMessage">
-      <div class="modal-head app-dialog-head">
-        <h2 id="appDialogTitle">提示</h2>
-        <button type="button" class="settings-close" data-app-dialog-x aria-label="关闭">×</button>
-      </div>
-      <div class="modal-body app-dialog-body">
-        <p class="app-dialog-message" id="appDialogMessage"></p>
-        <!-- 仅 mode=prompt 时显示；确认/提示框绝不出现输入框 -->
-        <div class="app-dialog-prompt-wrap" id="appDialogPromptWrap" hidden>
-          <label class="app-dialog-prompt-field">
-            <span class="app-dialog-prompt-label">内容</span>
-            <input type="text" class="app-dialog-input" id="appDialogInput" autocomplete="off" />
-          </label>
-        </div>
-        <div class="settings-actions app-dialog-actions">
-          <button type="button" class="btn primary" data-app-dialog-ok>确定</button>
-          <button type="button" class="btn ghost" data-app-dialog-cancel>取消</button>
-        </div>
-      </div>
-    </div>`;
-  document.body.appendChild(rootEl);
-  return rootEl;
-}
+let dialogSeq = 0;
 
 /**
  * @param {{
@@ -64,7 +39,9 @@ function ensureRoot() {
  */
 function showDialog(opts) {
   return new Promise((resolve) => {
-    queue.push(() => runDialog(opts, resolve));
+    // 记录触发元素（a11y：关闭后焦点归还；队列中逐条记录）
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    queue.push(() => runDialog(opts, resolve, opener));
     drain();
   });
 }
@@ -80,70 +57,130 @@ function drain() {
 /**
  * @param {object} opts
  * @param {(v: any) => void} resolve
+ * @param {HTMLElement | null} opener
  */
-function runDialog(opts, resolve) {
-  const root = ensureRoot();
-  const panel = root.querySelector('.app-dialog-panel');
-  const backdrop = root.querySelector('.app-dialog-backdrop');
-  const titleEl = root.querySelector('#appDialogTitle');
-  const msgEl = root.querySelector('#appDialogMessage');
-  const promptWrap = root.querySelector('#appDialogPromptWrap');
-  const inputEl = root.querySelector('#appDialogInput');
-  const okBtn = root.querySelector('[data-app-dialog-ok]');
-  const cancelBtn = root.querySelector('[data-app-dialog-cancel]');
-  const xBtn = root.querySelector('[data-app-dialog-x]');
-
+function runDialog(opts, resolve, opener) {
+  const seq = ++dialogSeq;
   const mode = opts.mode || 'alert';
   const title =
-    opts.title ||
-    (mode === 'confirm' ? '请确认' : mode === 'prompt' ? '请输入' : '提示');
-
-  titleEl.textContent = title;
-  // 支持简单换行
-  msgEl.innerHTML = escapeHtml(opts.message).replace(/\n/g, '<br>');
-
+    opts.title || (mode === 'confirm' ? '请确认' : mode === 'prompt' ? '请输入' : '提示');
   const isPrompt = mode === 'prompt';
   const isConfirm = mode === 'confirm' || isPrompt;
 
-  // 确认 / 提示：彻底隐藏输入区（不用 .field，避免 display:grid 冲掉 [hidden]）
-  if (promptWrap) {
-    promptWrap.hidden = !isPrompt;
-    promptWrap.setAttribute('aria-hidden', isPrompt ? 'false' : 'true');
-  }
-  cancelBtn.hidden = !isConfirm;
+  // 壳层：createDialog（Esc → onClose → onCancel；role/aria/dispose 由库管理）
+  const dialog = createDialog({ title: '', open: false, onClose: () => onCancel() });
+  const root = dialog.element;
+  root.classList.add('app-dialog-root');
+  root.id = `appDialogRoot-${seq}`;
 
+  const titleId = `appDialogTitle-${seq}`;
+  const msgId = `appDialogMessage-${seq}`;
+  const inputId = `appDialogInput-${seq}`;
+
+  // 内容区：结构与既有 _app-dialog.css 保持一致（视觉零回归）
+  const backdrop = document.createElement('div');
+  backdrop.className = 'app-dialog-backdrop';
+  backdrop.setAttribute('data-app-dialog-backdrop', '');
+  backdrop.setAttribute('aria-hidden', 'true');
+
+  const panel = document.createElement('div');
+  panel.className = 'app-dialog-panel modal-panel';
+
+  const head = document.createElement('div');
+  head.className = 'modal-head app-dialog-head';
+  const titleEl = document.createElement('h2');
+  titleEl.id = titleId;
+  titleEl.textContent = title;
+  const xBtn = document.createElement('button');
+  xBtn.type = 'button';
+  xBtn.className = 'settings-close';
+  xBtn.setAttribute('data-app-dialog-x', '');
+  xBtn.setAttribute('aria-label', '关闭');
+  xBtn.textContent = '×';
+  head.appendChild(titleEl);
+  head.appendChild(xBtn);
+
+  const body = document.createElement('div');
+  body.className = 'modal-body app-dialog-body';
+  const msgEl = document.createElement('p');
+  msgEl.className = 'app-dialog-message';
+  msgEl.id = msgId;
+  // 先转义再支持简单换行（不可信文案只作 textContent，不注入 HTML）
+  msgEl.innerHTML = escapeHtml(opts.message).replace(/\n/g, '<br>');
+  body.appendChild(msgEl);
+
+  // 仅 mode=prompt 时显示；确认/提示框绝不出现输入框
+  const promptWrap = document.createElement('div');
+  promptWrap.className = 'app-dialog-prompt-wrap';
+  promptWrap.id = `appDialogPromptWrap-${seq}`;
+  promptWrap.hidden = !isPrompt;
+  promptWrap.setAttribute('aria-hidden', isPrompt ? 'false' : 'true');
+  const field = document.createElement('label');
+  field.className = 'app-dialog-prompt-field';
+  const labelEl = document.createElement('span');
+  labelEl.className = 'app-dialog-prompt-label';
+  labelEl.textContent = opts.inputLabel || '内容';
+  const inputEl = document.createElement('input');
+  inputEl.type = 'text';
+  inputEl.className = 'app-dialog-input';
+  inputEl.id = inputId;
+  inputEl.autocomplete = 'off';
+  if (isPrompt) {
+    inputEl.value = opts.defaultValue != null ? String(opts.defaultValue) : '';
+    inputEl.placeholder = opts.placeholder || '';
+  }
+  field.appendChild(labelEl);
+  field.appendChild(inputEl);
+  promptWrap.appendChild(field);
+  body.appendChild(promptWrap);
+
+  const actions = document.createElement('div');
+  actions.className = 'settings-actions app-dialog-actions';
+  const okBtn = document.createElement('button');
+  okBtn.type = 'button';
+  okBtn.className = 'btn primary';
+  okBtn.setAttribute('data-app-dialog-ok', '');
+  const cancelBtn = document.createElement('button');
+  cancelBtn.type = 'button';
+  cancelBtn.className = 'btn ghost';
+  cancelBtn.setAttribute('data-app-dialog-cancel', '');
+  cancelBtn.hidden = !isConfirm;
   okBtn.textContent =
     opts.okText || (mode === 'alert' ? '知道了' : mode === 'confirm' ? '确定' : '确定');
   cancelBtn.textContent = opts.cancelText || '取消';
   okBtn.classList.toggle('is-danger', !!opts.danger);
+  actions.appendChild(okBtn);
+  actions.appendChild(cancelBtn);
+  body.appendChild(actions);
 
-  if (inputEl) {
-    if (isPrompt) {
-      inputEl.value = opts.defaultValue != null ? String(opts.defaultValue) : '';
-      inputEl.placeholder = opts.placeholder || '';
-      const label = root.querySelector('.app-dialog-prompt-label');
-      if (label) label.textContent = opts.inputLabel || '内容';
-    } else {
-      inputEl.value = '';
-      inputEl.placeholder = '';
-    }
-  }
+  panel.appendChild(head);
+  panel.appendChild(body);
+  root.appendChild(backdrop);
+  root.appendChild(panel);
+  document.body.appendChild(root);
 
   let settled = false;
   const finish = (value) => {
     if (settled) return;
     settled = true;
-    cleanup();
+    okBtn.removeEventListener('click', onOk);
+    cancelBtn.removeEventListener('click', onCancel);
+    xBtn.removeEventListener('click', onCancel);
+    backdrop.removeEventListener('click', onCancel);
+    document.removeEventListener('keydown', onKey, true);
     root.classList.remove('is-open');
-    panel.classList.remove('is-open');
     backdrop.classList.remove('is-open');
+    panel.classList.remove('is-open');
     root.setAttribute('aria-hidden', 'true');
     busy = false;
     resolve(value);
+    // 等 0.2s 过渡结束后销毁（dispose 幂等）
+    setTimeout(() => dialog.dispose(), 220);
+    // 焦点归还 opener（a11y）
+    if (opener && document.body.contains(opener)) opener.focus();
     // 下一帧再开下一个，避免同一 click 穿透
     requestAnimationFrame(() => drain());
   };
-
   const onOk = () => {
     if (isPrompt) finish(String(inputEl?.value ?? ''));
     else if (isConfirm) finish(true);
@@ -155,11 +192,8 @@ function runDialog(opts, resolve) {
     else finish();
   };
   const onKey = (e) => {
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancel();
-    } else if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement)) {
-      // prompt 输入框回车提交
+    if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement)) {
+      // prompt 输入框回车提交；确认/提示框 Enter 确定
       if (isPrompt || mode === 'alert' || mode === 'confirm') {
         e.preventDefault();
         onOk();
@@ -173,15 +207,10 @@ function runDialog(opts, resolve) {
   backdrop.addEventListener('click', onCancel);
   document.addEventListener('keydown', onKey, true);
 
-  function cleanup() {
-    okBtn.removeEventListener('click', onOk);
-    cancelBtn.removeEventListener('click', onCancel);
-    xBtn.removeEventListener('click', onCancel);
-    backdrop.removeEventListener('click', onCancel);
-    document.removeEventListener('keydown', onKey, true);
-    okBtn.classList.remove('is-danger');
-  }
-
+  dialog.update({ open: true });
+  // createDialog 无 title 时不写 aria-labelledby——手动关联可见标题（此后不再 update）
+  root.setAttribute('aria-labelledby', titleId);
+  root.setAttribute('aria-describedby', msgId);
   root.classList.add('is-open');
   root.setAttribute('aria-hidden', 'false');
   backdrop.classList.add('is-open');

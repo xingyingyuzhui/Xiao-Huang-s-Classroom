@@ -1,89 +1,121 @@
-# UI 库（@xiaohuang/ui）采用状态与架构
+# UI 库采用（@xiaohuang/ui）· 工程文档
 
-> 本文件是 UI 库采用线的「仪表盘」：基线现状、目标架构、采用进度表与禁止事项。
-> 由 `docs/superpowers/plans/2026-08-08-ui-library-adoption-plan.md` Phase 0 建立（2026-08-08），
-> 后续 Phase（P1–P7）持续更新；采用计数由 `test/shared/ui-adoption-contract.test.cjs` 锁定。
+> 对应执行计划：`docs/superpowers/plans/2026-08-08-ui-library-adoption-plan.md`。
+> 本文档与 `packages/ui/README.md` 互为补充：README 面向库使用者（API 细节），本文面向工程决策（何时用库、如何推进、禁止事项、ADR）。
 
-## 1. 现状（2026-08-08 基线）
+## 现状（P0.1 基线，2026-08-08）
 
-### 1.1 业务采用面
+- `packages/ui` 为 TS 组件库（tsup 双产物 + d.ts），UiController 合同：
+  `element` / `update` / `on` / `dispose`；显式具名导出，无裸 `export *`。
+- 组件分层：primitives（button/icon/checkbox/input/select/slider）、overlays（dialog/toast/tooltip）、
+  layout（tabs/stack）、feedback（status/progress）、domain-ui（number-input/tool-group）、
+  classroom-ui（readout-card）。
+- 业务采用（排除 `dev/catalog`）：**1 个文件**——`apps/web/src/math/graph/function-panel.js`
+  （`createButton` 试点）。`dev/catalog/main.js` 为组件展览页（非产品路径）。
+- 高风险 `innerHTML` 热点目录：`math/shared/*`（board-notes、board-tools、num-keypad、
+  object-style-panel、axis-legend-settings、board-compass 等）、`math/sequence`、`math/plane`、
+  `chemistry/molecule/list`、`chemistry/molecule/reactions`、`chemistry/ai-classroom/entry`、
+  `chemistry/electron/list` —— 由 debt-registry D4 跟踪，计划 P3–P7 逐步消化。
+- 全局对话框仍为 `apps/web/src/shared/ui/app-dialog.js`（HTML partial 时代产物），
+  已通过 Adapter 接入 `createDialog`（见「app-dialog 决策」小节）。
 
-`rg -n "from '@xiaohuang/ui'" apps/web/src` 命中 2 个文件：
-
-| 文件                                        | 导入           | 角色                                   |
-| ------------------------------------------- | -------------- | -------------------------------------- |
-| `apps/web/src/math/graph/function-panel.js` | `createButton` | 业务试点（计入采用数）                 |
-| `apps/web/src/dev/catalog/main.js`          | 组件全集       | dev 组件展览页（**不计入**业务采用数） |
-
-业务采用文件数（排除 dev/catalog）：**1**。
-
-**试点描述：** `function-panel.js` 的 `createUiAddFnButton()` 用
-`createButton({ label, title, className: 'math-fn-btn math-fn-btn-add', onClick })`
-渲染「添加函数」按钮，`className` 桥接既有 `math-fn-btn` 样式类，并把「＋」塞进
-`strong.math-fn-add-plus` 子节点——即计划 §3.3 的 **Bridge** 模式样例。
-
-### 1.2 高风险 innerHTML 热点目录
-
-`rg -l "innerHTML" apps/web/src` 共 **39** 个文件。抽样目录统计：
-
-| 目录                                | 文件数 | 代表文件                                                                                                                                                |
-| ----------------------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `apps/web/src/math/shared/`         | 6      | `board-notes.js`、`board-tools.js`、`num-keypad.js`、`object-style-panel.js`、`axis-legend-settings.js`、`board-compass.js`                             |
-| `apps/web/src/subjects/classrooms/` | 1      | `panel-mount.js`                                                                                                                                        |
-| `apps/web/src/chemistry/`           | 19     | `electron/list.js`、`molecule/list.js`、`molecule/reactions.js`、`ai-classroom/entry.js`、`ai-classroom/mastery-map.js`、`ai-classroom/quiz-shell.js` … |
-
-以上是债务 D4（见 `docs/engineering/debt-registry.md`）的主要消化对象，由计划 P3–P7 分批清理；本文件随 Phase 更新数字。
-
-### 1.3 缺口
-
-- 产品 UI 仍为 HTML partial（如 `apps/web/src/subjects/classrooms/partials/math-panels.partial.html`）+ 手写 DOM / `innerHTML`。
-- 样式类散落各处：`_forms.css` 的 `.btn`、`_math-classroom.css` 的 `.math-fn-btn`、`_molecule.css` / `_electron.css` 的 `.mol-btn` 等，未统一到 ui 层。
-- 全局对话框多为 app 层 `appAlert` / `appConfirm`（`apps/web/src/shared/ui/app-dialog.js`），未统一到 `createDialog`（P2.4 决策）。
-
-## 2. 目标架构
-
-计划 §3.1 的运行时关系：
+## 架构
 
 ```text
 apps/web feature（function-panel / shell / …）
     │  import { createButton, createDialog, … } from '@xiaohuang/ui'
     │  controller.dispose() on classroom dispose / panel teardown
     ▼
-packages/ui  (TS, UiController：element/update/on/dispose)
+packages/ui  (TS, UiController)
     │  class: ui-* + 可选 className 桥接旧类
     │  颜色/圆角: var(--token)
     ▼
 apps/web 全局样式
     themes/*/tokens.css   ← 语义色权威
-    shared/styles/_ui-kit.css  ← P1 新增：ui-* 映射到 token
+    shared/styles/_ui-kit.css  ← ui-* 映射到 token（P1 新建）
     feature CSS            ← 逐步变薄，只留布局特例
 ```
 
-迁移三阶段（§3.3）：**Bridge**（className 挂旧类保外观）→ **Prefer**（新 UI 默认用库）→
-**Enforce**（合同测试 / lint 对指定目录禁止新增裸按钮模板）。
+- 运行时无框架；typed DOM controller 路线（不引入 React/Vue）。
+- 测试：`packages/ui/test/*.test.ts`（vitest，node 环境 + test-kit fake DOM）。
 
-## 3. 采用表（后续 Phase 更新）
+## 采用表（业务消费 @xiaohuang/ui，排除 dev/catalog）
 
-| 文件                                                                 | 状态            | 备注                                 |
-| -------------------------------------------------------------------- | --------------- | ------------------------------------ |
-| `apps/web/src/math/graph/function-panel.js`                          | 试点（P0 基线） | `createButton` 添加函数按钮；P3 全量 |
-| `apps/web/src/dev/catalog/main.js`                                   | dev 展览        | 不计入业务数                         |
-| `apps/web/src/math/graph/function-list-view.js`                      | 未采用          | P3 目标                              |
-| `apps/web/src/math/graph/function-editor.js`                         | 未采用          | P3 目标                              |
-| `apps/web/src/subjects/classrooms/partials/math-panels.partial.html` | 未采用          | 静态 button，P3 逐步移除             |
-| `apps/web/src/math/shared/board-tools.js`                            | 未采用          | P5 候选（5A 工具条）                 |
-| `apps/web/src/math/shared/board-notes.js`                            | 未采用          | P5 候选（5B 笔记条）                 |
-| `apps/web/src/chemistry/molecule/list.js`                            | 未采用          | P6 候选（`.mol-btn` 群）             |
-| `apps/web/src/shared/ui/app-dialog.js`                               | 未采用          | P2.4 决策（Adapter 优先）            |
+| 消费方                         | 使用情况                                                                | 阶段          |
+| ------------------------------ | ----------------------------------------------------------------------- | ------------- |
+| `math/graph/function-panel.js` | `createButton` 试点（添加函数按钮）                                     | P0 基线（≥1） |
+| `dev/catalog/main.js`          | 组件展览页（非产品路径，不计入指标）                                    | —             |
+| `shared/ui/app-dialog.js`      | Adapter：内部 `createDialog`，对外 `appAlert/appConfirm/appPrompt` 不变 | P2.4          |
 
-## 4. 禁止事项
+## 禁止事项
 
-- **禁止不可信 innerHTML**：用户 / 外部输入字符串不得进 `innerHTML`；组件与迁移代码一律 `textContent` / 受控 DOM（对齐 `packages/ui/src/contract.ts` 的 `setText`）。
-- **禁止硬编码色值**：组件与样式只消费 CSS 变量（`var(--stamp)` 等），不写死 hex；与 `lint:theme-tokens` 一致。
-- **禁止不 dispose**：UiController 消费方必须在 classroom dispose / panel teardown 时调用 `dispose()`；dispose 逆序、容错、幂等。
+1. **禁止组件内部对不可信字符串 `innerHTML`**——一律 `textContent`（`contract.ts` `setText`）。
+2. **禁止裸 `export *`**——显式具名导出（`packages/ui/src/index.ts` 为准）。
+3. **禁止硬编码颜色**——主题色只走 CSS 变量（`var(--stamp)` 等）；与 `lint:theme-tokens` 精神一致。
+4. **禁止跳过 dispose**——可挂载模块/面板 teardown 必须调用 `dispose()`（幂等）。
+5. **禁止破坏 UiController 合同**（element/update/on/dispose 四个能力）。
+6. **禁止在库外复制白名单式组件实现**——新 UI 优先用库；迁移期可用 `className` 桥接旧类。
 
-## 5. 相关链接
+## Stable API v1
 
-- 计划：`docs/superpowers/plans/2026-08-08-ui-library-adoption-plan.md`
-- 采用计数合同：`test/shared/ui-adoption-contract.test.cjs`
-- 债务：D4（innerHTML）见 `docs/engineering/debt-registry.md`
+冻结时间：2026-08-08（计划 Phase 2）。后续破坏性变更必须升包版本并回写此处登记。
+
+通用 props（`BaseProps`）：`label?`、`disabled?`、`loading?`、`error?`、`'aria-label'?`。
+通用语义：`update(next)` 局部合并 props 并重渲染；`on(event, handler)` 返回退订函数；
+`dispose()` **幂等**（可重复调用安全，必须解绑 DOM/文档级监听器）。
+
+| 工厂                | 主要 props                                                          | events             | dispose 语义                                   |
+| ------------------- | ------------------------------------------------------------------- | ------------------ | ---------------------------------------------- |
+| `createButton`      | label, kind(`primary                                                | secondary          | ghost                                          | danger`), size(`sm | md                       | lg`), disabled, loading, className, title, `aria-label`, onClick | `click` | 解绑 click + `element.remove()`；幂等 |
+| `createIcon`        | name, size, `aria-label`                                            | —                  | `element.remove()`；幂等                       |
+| `createCheckbox`    | checked, disabled, label, `aria-label`, onChange                    | `change`           | 解绑 change + remove；幂等                     |
+| `createInput`       | value, placeholder, disabled, `aria-label`, onChange                | `change`           | 解绑 input + remove；幂等                      |
+| `createSelect`      | options(`{value,label}[]`), value, disabled, `aria-label`, onChange | `change`           | 解绑 change + remove；幂等                     |
+| `createSlider`      | value, min, max, step, disabled, `aria-label`, onChange             | `change`           | 解绑 input + remove；幂等                      |
+| `createNumberInput` | value, min, max, step, disabled, `aria-label`, onChange, onCommit   | `change`, `commit` | 解绑 input+keydown + remove；幂等              |
+| `createDialog`      | title, open, opener, onClose                                        | `close`            | 解绑 document keydown + remove；幂等           |
+| `createToast`       | message, kind(`info                                                 | success            | error`), durationMs, onDismiss                 | `dismiss`          | 清 timer + remove；幂等  |
+| `createTooltip`     | text, visible                                                       | —                  | `element.remove()`；幂等                       |
+| `createTabs`        | tabs(`{id,label}[]`), activeId, onChange                            | `change`           | 解绑子按钮 click + 自身 keydown + remove；幂等 |
+| `createToolGroup`   | tools(`{id,label,tip}[]`), activeId, onChange                       | `change`           | 解绑子按钮 click + remove；幂等                |
+| `createStack`       | direction(`row                                                      | column`), gap(`sm  | md                                             | lg`), children     | —                        | `element.remove()`；幂等                                         |
+| `createStatus`      | kind(`loading                                                       | empty              | error`), message, disabled, loading            | —                  | `element.remove()`；幂等 |
+| `createProgress`    | value, max                                                          | —                  | `element.remove()`；幂等                       |
+| `createReadoutCard` | title, rows(`{key,value}[]`), emptyText                             | —                  | `element.remove()`；幂等                       |
+
+### a11y 基线（P2.2 硬化）
+
+- Button：`type="button"`；`disabled` → `aria-disabled="true"`；`loading` → `aria-busy="true"`。
+- Dialog：`role="dialog"` + `aria-modal="true"`；title 渲染进 `h2.ui-dialog-title` 并经
+  `aria-labelledby` 关联；Esc 关闭；`opener` 关闭时焦点归还。
+- Input/Select/Checkbox/Slider/NumberInput：支持 `aria-label` 透传。
+- Toast：默认 `role="status"`；`kind="error"` 时 `role="alert"`。
+
+## app-dialog 决策：Adapter（P2.4）
+
+**决策：选方案 A（Adapter）**——`apps/web/src/shared/ui/app-dialog.js` 内部改调
+`@xiaohuang/ui` 的 `createDialog`，对外 `appAlert` / `appConfirm` / `appPrompt`
+签名与既有行为保持不变，现有调用方零改动（数学/化学 15+ 调用点）。
+
+**实现要点：**
+
+- `createDialog` 提供壳层：`role=dialog` + `aria-modal`、Esc 关闭、opener 焦点归还、
+  `dispose()` 生命周期；标题/正文/按钮/输入区为组合内容，DOM 结构与
+  `_app-dialog.css` 既有类（`.app-dialog-root`、`.modal-panel`、`.modal-head` 等）一致，视觉零回归。
+- 每次弹窗新建实例（`dialogSeq` 唯一 id），关闭动画（0.2s）结束后 `setTimeout(() => dialog.dispose(), 220)`
+  销毁；队列（queue/busy）机制保留，保证同一时刻仅一个弹窗。
+- Esc → 库内 `requestClose` → `onClose` → cancel 分支；Enter → adapter 自管 capture keydown（同原实现）。
+- 新增 a11y 增益：关闭后焦点归还 opener（原实现未归还）。
+
+**能力差距与适配：**
+
+| createDialog 能力                     | app-dialog 需求                 | 适配方式                                                    |
+| ------------------------------------- | ------------------------------- | ----------------------------------------------------------- |
+| title 渲染进自身 `h2.ui-dialog-title` | 面板内 `.modal-head` 结构标题   | 不传 title，面板自建 h2，`aria-labelledby` 手动关联可见标题 |
+| 无按钮区                              | alert/confirm/prompt 三模式按钮 | 组合内容自建 `.btn primary/ghost` + `is-danger`             |
+| 无输入区                              | prompt 输入                     | 组合内容自建 label+input，Enter 提交                        |
+| 无内容区                              | 消息换行 `<br>`                 | 组合内容自建 `.app-dialog-message`（先转义再 `<br>`）       |
+
+**残留差异（已知）：** 每次弹窗新建/销毁节点（原实现复用单 root）；关闭动画期间
+（220ms 内）重复 Esc/点击由 `settled` 守卫吸收；库的 Esc 为 bubble 阶段、Enter 为
+capture 阶段（原实现两者均 capture）——行为等价，边界场景可接受。
