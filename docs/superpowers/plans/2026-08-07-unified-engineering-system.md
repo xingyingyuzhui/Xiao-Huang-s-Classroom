@@ -98,8 +98,10 @@
 - **Verify:** `npm run build` 与 `npm test` 全绿（与 Task 1.1 前一致）；contract 测试过。
 - **Commit:** `feat(eng): add turborepo task graph (P1)`
 
-- [ ] **Task 1.6：架构门禁脚本**
-> ⚠ R0 审计缺口：架构检查只扫 .js/.mjs/.cjs，TS 包全部盲区（R3.1）
+- [x] **Task 1.6：架构门禁脚本**
+> ✅ R0 缺口已解决（R3.1）：扫描 .ts/.tsx、相对解析支持 TS 扩展与
+> .js→.ts 惯例、循环依赖检测、ARCH_ROOT fixture 测试（违规 TS 必须被检出）；
+> 全部公共入口转显式导出（裸 export * 清零）
 - **Files:** `tooling/architecture/check-dependencies.mjs`、`tooling/architecture/rules.json`、`test/shared/module-boundaries.test.cjs`（扩展）
 - **Test（先写失败）:** 现有 `module-boundaries.test.cjs` 扩展断言：`packages/*` 不反向导入 `apps/*`；Server 不导入 Web 源码；`export *` 白名单（`draw-tools.js` 显式导出）保持。
 - **Steps:** rules.json 声明目录规则；脚本扫描 import 图并输出违规（exit 1）；接入 `npm run lint:arch`。
@@ -448,8 +450,9 @@ Electron main/preload TS + IPC schema + 启动状态机 + stage manifest；pkg �
 - **Verify:** `npm run coverage` 输出分层报告。
 - **Commit:** `test(eng): add layered coverage thresholds (P7)`
 
-- [ ] **Task 7.3：性能预算进 CI**
-> ⚠ R0 审计缺口：budget index 命名 bug：脚本记 "index (hub)"，配置查 "index"，预算恒 0（R3.2）
+- [x] **Task 7.3：性能预算进 CI**
+> ✅ R0 缺口已解决（R3.2）：chunk 命名统一（index-* 归 index）、
+> mathviz/three/index/total 逐项真实检查、超限失败测试、budget 进 quality
 - **Files:** `tooling/performance/budget.mjs`、`budget.json`、`test/shared/budget-contract.test.cjs`
 - **Steps:** 记录当前 bundle 基线；预算脚本接入 CI；变更需写明理由。
 - **Verify:** budget 脚本对当前产物通过（预算=基线+容忍）。
