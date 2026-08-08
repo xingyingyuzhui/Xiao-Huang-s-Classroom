@@ -19,6 +19,8 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
   let editSelectedLabs = [];
   /** @type {Array<{id:string,title:string}>} */
   let labOptions = [];
+  /** 保存防连点：编辑器中保存请求在途时忽略重复点击 */
+  let savingPack = false;
 
   function labTitle(id) {
     return labOptions.find((l) => l.id === id)?.title || id;
@@ -38,10 +40,12 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
     const el = select('#lessonPackList');
     if (!el) return;
     if (!packs.length) {
-      el.innerHTML = '<p class="quiz-muted">还没有备课包。点击"新建备课包"创建第一个。</p>';
+      el.innerHTML = '<p class="quiz-muted">还没有备课包。点击「新建备课包」创建第一个。</p>';
       return;
     }
-    el.innerHTML = packs.map((p) => `
+    el.innerHTML = packs
+      .map(
+        (p) => `
       <div class="lesson-pack-card${viewingId === p.id ? ' is-active' : ''}" data-pack-id="${escapeHtml(p.id)}">
         <div class="lesson-pack-card-head">
           <strong>${escapeHtml(p.name)}</strong>
@@ -54,7 +58,9 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
           <button type="button" class="btn ghost btn-sm" data-pack-export="${escapeHtml(p.id)}">导出</button>
           <button type="button" class="btn ghost btn-sm" data-pack-delete="${escapeHtml(p.id)}">删除</button>
         </div>
-      </div>`).join('');
+      </div>`,
+      )
+      .join('');
 
     el.querySelectorAll('[data-pack-view]').forEach((btn) => {
       btn.addEventListener('click', async (e) => {
@@ -121,7 +127,10 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
 
     const editBtn = el.querySelector('#btnPackEdit');
     if (editBtn) {
-      editBtn.addEventListener('click', async () => { editingId = viewingId; renderEditor(); });
+      editBtn.addEventListener('click', async () => {
+        editingId = viewingId;
+        renderEditor();
+      });
     }
   }
 
@@ -155,14 +164,18 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
 
     renderEditorChips();
     el.querySelector('#btnLpSave').addEventListener('click', savePack);
-    el.querySelector('#btnLpCancel').addEventListener('click', async () => { el.hidden = true; editingId = null; });
+    el.querySelector('#btnLpCancel').addEventListener('click', async () => {
+      el.hidden = true;
+      editingId = null;
+    });
   }
 
   function renderEditorChips() {
     const topicBox = select('#lpEditTopicChips');
     if (topicBox) {
-      topicBox.innerHTML = CHEM_TOPICS.map((t) =>
-        `<button type="button" class="quiz-topic${editSelectedTopics.includes(t.label) ? ' is-on' : ''}" data-lp-topic="${escapeHtml(t.label)}">${escapeHtml(t.label)}</button>`,
+      topicBox.innerHTML = CHEM_TOPICS.map(
+        (t) =>
+          `<button type="button" class="quiz-topic${editSelectedTopics.includes(t.label) ? ' is-on' : ''}" data-lp-topic="${escapeHtml(t.label)}">${escapeHtml(t.label)}</button>`,
       ).join('');
       topicBox.querySelectorAll('[data-lp-topic]').forEach((btn) => {
         btn.addEventListener('click', async () => {
@@ -180,9 +193,12 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
       if (!labOptions.length) {
         labBox.innerHTML = '<span class="quiz-muted">暂无实验，请先在「实验探究」中添加</span>';
       } else {
-        labBox.innerHTML = labOptions.map((lab) =>
-          `<button type="button" class="quiz-chip${editSelectedLabs.includes(lab.id) ? ' is-on' : ''}" data-lp-lab="${escapeHtml(lab.id)}">${escapeHtml(lab.title)}</button>`,
-        ).join('');
+        labBox.innerHTML = labOptions
+          .map(
+            (lab) =>
+              `<button type="button" class="quiz-chip${editSelectedLabs.includes(lab.id) ? ' is-on' : ''}" data-lp-lab="${escapeHtml(lab.id)}">${escapeHtml(lab.title)}</button>`,
+          )
+          .join('');
         labBox.querySelectorAll('[data-lp-lab]').forEach((btn) => {
           btn.addEventListener('click', async () => {
             const id = btn.dataset.lpLab;
@@ -197,8 +213,12 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
   }
 
   async function savePack() {
+    if (savingPack) return;
     const name = select('#lpEditName')?.value?.trim();
-    if (!name) { await appAlert('名称不能为空'); return; }
+    if (!name) {
+      await appAlert('名称不能为空');
+      return;
+    }
     const payload = {
       name,
       grade: select('#lpEditGrade')?.value?.trim() || '',
@@ -209,6 +229,13 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
         selectedLabs: [...editSelectedLabs],
       },
     };
+    // 保存忙态：按钮禁用 + 「保存中…」，防连点（失败恢复；成功由编辑器关闭收尾）
+    savingPack = true;
+    const saveBtn = select('#btnLpSave');
+    if (saveBtn) {
+      saveBtn.disabled = true;
+      saveBtn.textContent = '保存中…';
+    }
     try {
       if (editingId) {
         await lessonPackApi.update(editingId, payload);
@@ -220,14 +247,27 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
       select('#lessonPackEditor').hidden = true;
       editingId = null;
     } catch (err) {
+      if (saveBtn) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = '保存';
+      }
       await appAlert(`保存失败：${err.message || ''}`);
+    } finally {
+      savingPack = false;
     }
   }
 
   async function deletePack(id) {
     const pack = packs.find((p) => p.id === id);
     if (!pack) return;
-    if (!(await appConfirm(`确定删除备课包"${pack.name}"？此操作不可撤销。`))) return;
+    if (
+      !(await appConfirm(`确定删除备课包「${pack.name}」？`, {
+        title: '删除备课包',
+        okText: '删除',
+        danger: true,
+      }))
+    )
+      return;
     try {
       await lessonPackApi.remove(id);
       if (viewingId === id) viewingId = null;
@@ -266,15 +306,17 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
         await appAlert(formatLabsImportSummary(result.labsResult || result));
       } else if (result.nameChanged) {
         const lr = result.labsResult;
-        const labMsg = lr && (lr.created || lr.skipped || lr.renamed)
-          ? `\n\n${formatLabsImportSummary(lr)}`
-          : '';
+        const labMsg =
+          lr && (lr.created || lr.skipped || lr.renamed)
+            ? `\n\n${formatLabsImportSummary(lr)}`
+            : '';
         await appAlert(`备课包已导入，名称改为「${result.pack.name}」以避免冲突。${labMsg}`);
       } else {
         const lr = result.labsResult;
-        const labMsg = lr && (lr.created || lr.skipped || lr.renamed || lr.updated)
-          ? `\n\n${formatLabsImportSummary(lr)}`
-          : '';
+        const labMsg =
+          lr && (lr.created || lr.skipped || lr.renamed || lr.updated)
+            ? `\n\n${formatLabsImportSummary(lr)}`
+            : '';
         await appAlert(`备课包导入成功。${labMsg}`);
       }
     } catch (err) {
@@ -303,7 +345,8 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
       renderList();
       if (viewingId) renderDetail();
       else if (detail && !packs.length) {
-        detail.innerHTML = '<p class="quiz-muted">选择左侧备课包查看详情。也可使用工具栏导入/导出「实验包」子集。</p>';
+        detail.innerHTML =
+          '<p class="quiz-muted">选择左侧备课包查看详情。也可使用工具栏导入/导出「实验包」子集。</p>';
       }
     } catch (err) {
       packs = [];
