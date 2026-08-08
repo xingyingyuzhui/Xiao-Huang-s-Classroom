@@ -361,7 +361,7 @@ test('UI intent 层 frame batching 是高频入口的唯一路径（结构合同
 // ───────────────────────── 不变量 2：point move 零函数重建 ─────────────────────────
 
 test('point coordinate update → 0 次 function create/remove', async () => {
-  const { store, counters, mount, dispatchOk } = await setup();
+  const { counters, mount, dispatchOk } = await setup();
   mount();
   dispatchOk({ type: 'point/add', payload: { point: freePoint('U1', 0, 0) } });
   counters.reset();
@@ -438,7 +438,7 @@ test('coefficient 更新只重建 active 函数及其依赖；无关函数/点/�
 // ───────────────────────── 不变量 3：函数列表渲染条件 ─────────────────────────
 
 test('函数列表在集合/顺序/名称/颜色/显隐/锁定/选中态变化时 render（每次恰 1 次）', async () => {
-  const { store, counters, mount, dispatchOk } = await setup();
+  const { counters, mount, dispatchOk } = await setup();
   mount();
   dispatchOk({ type: 'function/add', payload: { function: fn('f2', { name: 'f2' }) } });
 
@@ -467,7 +467,7 @@ test('函数列表在集合/顺序/名称/颜色/显隐/锁定/选中态变化�
 });
 
 test('只改 coeffs → 函数列表 render 0 次', async () => {
-    const { store, counters, mount, dispatchOk } = await setup();
+    const { counters, mount, dispatchOk } = await setup();
     mount();
     counters.reset();
     dispatchOk({
@@ -481,7 +481,7 @@ test('只改 coeffs → 函数列表 render 0 次', async () => {
 // ───────────────────────── 不变量 4：值表/特征渲染条件 ─────────────────────────
 
 test('值表/特征在 active function 数学定义或 active id 变化时 render', async () => {
-  const { store, counters, mount, dispatchOk } = await setup();
+  const { counters, mount, dispatchOk } = await setup();
   mount();
 
   // active(f1) 数学定义变化 → 刷新读数与特征
@@ -507,7 +507,7 @@ test('值表/特征在 active function 数学定义或 active id 变化时 rende
 });
 
 test('只改 inactive 函数 coeffs → 值表/特征 render 0 次', async () => {
-    const { store, counters, mount, dispatchOk } = await setup();
+    const { counters, mount, dispatchOk } = await setup();
     mount();
     dispatchOk({ type: 'function/add', payload: { function: fn('f2', { name: 'f2' }) } });
     counters.reset();
@@ -523,7 +523,7 @@ test('只改 inactive 函数 coeffs → 值表/特征 render 0 次', async () =>
 // ───────────────────────── 不变量 5：point move 不重绘列表和值表 ─────────────────────────
 
 test('point move 不重绘函数列表和值表', async () => {
-    const { store, counters, mount, dispatchOk } = await setup();
+    const { counters, mount, dispatchOk } = await setup();
     mount();
     dispatchOk({ type: 'point/add', payload: { point: freePoint('U1', 0, 0) } });
     counters.reset();
