@@ -5,40 +5,46 @@
 
 const SUB = '₀₁₂₃₄₅₆₇₈₉';
 
-function toAscii(s) {
+function toAscii(s: string): string {
   return String(s || '')
     .replace(/[₀₁₂₃₄₅₆₇₈₉]/g, (d) => String(SUB.indexOf(d)))
     .replace(/[→⇌↔]/g, '=')
     .replace(/\s+/g, '');
 }
 
+/** 配平结果中的单个物种 */
+export interface Species {
+  coef: number;
+  formula: string;
+  counts: Record<string, number>;
+}
+
 /** 解析一个物种：如 2H2O、(NH4)2SO4 */
-function parseSpecies(raw) {
+function parseSpecies(raw: string): Species {
   let s = toAscii(raw);
   let coef = 1;
   const m = s.match(/^(\d+)(.*)$/);
   if (m) {
-    coef = parseInt(m[1], 10) || 1;
-    s = m[2];
+    coef = parseInt(m[1] || '', 10) || 1;
+    s = m[2] || '';
   }
   const counts = parseFormula(s);
   return { coef, formula: s, counts };
 }
 
-function parseFormula(formula) {
-  const counts = {};
-  const stack = [{}];
+function parseFormula(formula: string): Record<string, number> {
+  const stack: Array<Record<string, number>> = [{}];
   let i = 0;
   const s = formula;
   while (i < s.length) {
-    if (s[i] === '(') {
+    if (s.charAt(i) === '(') {
       stack.push({});
       i += 1;
-    } else if (s[i] === ')') {
+    } else if (s.charAt(i) === ')') {
       i += 1;
       let n = '';
-      while (i < s.length && /\d/.test(s[i])) {
-        n += s[i];
+      while (i < s.length && /\d/.test(s.charAt(i))) {
+        n += s.charAt(i);
         i += 1;
       }
       const mult = n ? parseInt(n, 10) : 1;
@@ -53,20 +59,20 @@ function parseFormula(formula) {
       for (const [el, c] of Object.entries(top || {})) {
         parent[el] = (parent[el] || 0) + c * mult;
       }
-    } else if (/[A-Z]/.test(s[i])) {
-      let el = s[i];
+    } else if (/[A-Z]/.test(s.charAt(i))) {
+      let el = s.charAt(i);
       i += 1;
-      if (i < s.length && /[a-z]/.test(s[i])) {
-        el += s[i];
+      if (i < s.length && /[a-z]/.test(s.charAt(i))) {
+        el += s.charAt(i);
         i += 1;
       }
       let n = '';
-      while (i < s.length && /\d/.test(s[i])) {
-        n += s[i];
+      while (i < s.length && /\d/.test(s.charAt(i))) {
+        n += s.charAt(i);
         i += 1;
       }
       const mult = n ? parseInt(n, 10) : 1;
-      const top = stack[stack.length - 1];
+      const top = stack[stack.length - 1]!;
       top[el] = (top[el] || 0) + mult;
     } else {
       i += 1;
@@ -78,8 +84,8 @@ function parseFormula(formula) {
   return stack[0] || {};
 }
 
-function sideCounts(speciesList) {
-  const total = {};
+function sideCounts(speciesList: Species[]): Record<string, number> {
+  const total: Record<string, number> = {};
   for (const sp of speciesList) {
     for (const [el, c] of Object.entries(sp.counts)) {
       total[el] = (total[el] || 0) + c * sp.coef;
@@ -88,7 +94,7 @@ function sideCounts(speciesList) {
   return total;
 }
 
-function isBalanced(left, right) {
+function isBalanced(left: Species[], right: Species[]): boolean {
   const L = sideCounts(left);
   const R = sideCounts(right);
   const els = new Set([...Object.keys(L), ...Object.keys(R)]);
@@ -98,7 +104,7 @@ function isBalanced(left, right) {
   return true;
 }
 
-function gcd(a, b) {
+function gcd(a: number, b: number): number {
   a = Math.abs(a);
   b = Math.abs(b);
   while (b) {
@@ -107,14 +113,19 @@ function gcd(a, b) {
   return a || 1;
 }
 
-function lcm(a, b) {
-  return Math.abs(a * b) / gcd(a, b);
+/** 配平结果 */
+export interface BalanceResult {
+  balanced: boolean;
+  equation: string;
+  left: Species[];
+  right: Species[];
+  steps: string[];
 }
 
 /**
  * 暴力小系数搜索（物种 ≤ 6，系数 ≤ maxCoef）
  */
-export function balanceEquation(input) {
+export function balanceEquation(input: string): BalanceResult {
   const raw = toAscii(input);
   if (!raw.includes('=')) {
     throw new Error('请使用 = 或 → 分隔反应物与生成物');
@@ -152,10 +163,10 @@ export function balanceEquation(input) {
   const n = left.length + right.length;
   const all = [...left, ...right];
 
-  function tryAssign(idx) {
+  function tryAssign(idx: number): boolean {
     if (idx === n) return isBalanced(left, right);
     for (let c = 1; c <= maxCoef; c++) {
-      all[idx].coef = c;
+      all[idx]!.coef = c;
       if (tryAssign(idx + 1)) return true;
     }
     return false;
@@ -166,11 +177,12 @@ export function balanceEquation(input) {
   }
 
   // 约分
-  let g = all[0].coef;
+  let g = all[0]!.coef;
   for (const s of all) g = gcd(g, s.coef);
-  if (g > 1) all.forEach((s) => {
-    s.coef = s.coef / g;
-  });
+  if (g > 1)
+    all.forEach((s) => {
+      s.coef = s.coef / g;
+    });
 
   return {
     balanced: true,
@@ -186,19 +198,17 @@ export function balanceEquation(input) {
   };
 }
 
-function formatEq(left, right) {
-  const fmt = (list) =>
-    list
-      .map((s) => `${s.coef > 1 ? s.coef : ''}${prettyFormula(s.formula)}`)
-      .join(' + ');
+function formatEq(left: Species[], right: Species[]): string {
+  const fmt = (list: Species[]): string =>
+    list.map((s) => `${s.coef > 1 ? s.coef : ''}${prettyFormula(s.formula)}`).join(' + ');
   return `${fmt(left)} → ${fmt(right)}`;
 }
 
-function prettyFormula(f) {
+function prettyFormula(f: string): string {
   return String(f).replace(/\d/g, (d) => SUB[Number(d)] || d);
 }
 
-function gcdArray(arr) {
+function gcdArray(arr: number[]): number {
   let g = arr[0] || 1;
   for (let i = 1; i < arr.length; i++) {
     g = gcd(g, arr[i] || 1);
@@ -210,7 +220,7 @@ function gcdArray(arr) {
  * 比较两个方程式是否等价（系数约分到最简后一致）
  * 输入：字符串，如 "2H2 + O2 = 2H2O"
  */
-export function equationsEquivalent(a, b) {
+export function equationsEquivalent(a: string, b: string): boolean {
   try {
     const pa = parseEquationSides(a);
     const pb = parseEquationSides(b);
@@ -234,7 +244,13 @@ export function equationsEquivalent(a, b) {
   }
 }
 
-export function parseEquationSides(input) {
+/** 方程式两侧物种（含各物种原子计数） */
+export interface EquationSides {
+  left: Species[];
+  right: Species[];
+}
+
+export function parseEquationSides(input: string): EquationSides | null {
   const raw = toAscii(input);
   if (!raw.includes('=')) return null;
   const [ls, rs] = raw.split('=');
@@ -245,11 +261,21 @@ export function parseEquationSides(input) {
   return { left, right };
 }
 
+/** 练习用 species 一侧（各物种系数置 1） */
+export interface PracticeSpeciesSide {
+  formula: string;
+  coef: number;
+}
+
+export interface PracticeSpecies {
+  left: PracticeSpeciesSide[];
+  right: PracticeSpeciesSide[];
+}
+
 /**
  * 起式 → 练习用 species（各物种系数置 1）
- * @returns {{ left: {formula:string,coef:number}[], right: {formula:string,coef:number}[] } | null}
  */
-export function speciesFromEquation(input) {
+export function speciesFromEquation(input: string): PracticeSpecies | null {
   const sides = parseEquationSides(input);
   if (!sides) return null;
   return {
@@ -258,14 +284,22 @@ export function speciesFromEquation(input) {
   };
 }
 
+/** 守恒校验结果（失败分支无 left/right 计数） */
+export interface ConservationResult {
+  ok: boolean;
+  message: string;
+  left?: Record<string, number>;
+  right?: Record<string, number>;
+}
+
 /** 校验任意式子是否守恒 */
-export function checkConservation(input) {
+export function checkConservation(input: string): ConservationResult {
   try {
     const raw = toAscii(input);
     if (!raw.includes('=')) return { ok: false, message: '缺少 = 或 →' };
     const [ls, rs] = raw.split('=');
-    const left = ls.split('+').filter(Boolean).map(parseSpecies);
-    const right = rs.split('+').filter(Boolean).map(parseSpecies);
+    const left = (ls || '').split('+').filter(Boolean).map(parseSpecies);
+    const right = (rs || '').split('+').filter(Boolean).map(parseSpecies);
     const ok = isBalanced(left, right);
     return {
       ok,
@@ -274,6 +308,7 @@ export function checkConservation(input) {
       right: sideCounts(right),
     };
   } catch (e) {
-    return { ok: false, message: e.message || '无法解析' };
+    const msg = e instanceof Error ? e.message : '';
+    return { ok: false, message: msg || '无法解析' };
   }
 }
