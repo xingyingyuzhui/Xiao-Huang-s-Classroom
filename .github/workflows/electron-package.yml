@@ -1,0 +1,49 @@
+name: electron-package
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# 打包验证门禁：阻止发布分支在未验证 packaged resources 时合并。
+# 注意：本 workflow 验证 electron-builder --dir（unpacked）资源布局；
+# 不表示 NSIS/DMG/portable 目标机验收已完成。
+
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Disable code signing discovery
+        shell: bash
+        run: |
+          echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          echo "WIN_CSC_LINK=" >> "$GITHUB_ENV"
+
+      - name: Verify electron packaged resources
+        run: npm run verify:electron-package
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Upload unpacked artifact (diagnostic)
+        if: failure() || success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-unpacked-${{ matrix.os }}
+          path: dist-electron
+          if-no-files-found: ignore
+          retention-days: 7
