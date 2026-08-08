@@ -23,7 +23,14 @@ const rules = JSON.parse(fs.readFileSync(path.join(scriptDir, 'rules.json'), 'ut
 /** 收集可扫描源码文件（排除生成/依赖目录） */
 function collectSources() {
   const results = [];
-  const ignoreDirs = new Set(['node_modules', 'dist', 'public', 'data', '.electron-stage', 'coverage']);
+  const ignoreDirs = new Set([
+    'node_modules',
+    'dist',
+    'public',
+    'data',
+    '.electron-stage',
+    'coverage',
+  ]);
   const walk = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       if (ignoreDirs.has(entry.name)) continue;
@@ -61,9 +68,13 @@ function resolveRelative(fromFile, specifier) {
   const base = path.resolve(path.dirname(fromFile), specifier);
   const candidates = [
     base,
-    `${base}.js`, `${base}.mjs`, `${base}.cjs`,
-    `${base}.ts`, `${base}.tsx`,
-    path.join(base, 'index.js'), path.join(base, 'index.ts'),
+    `${base}.js`,
+    `${base}.mjs`,
+    `${base}.cjs`,
+    `${base}.ts`,
+    `${base}.tsx`,
+    path.join(base, 'index.js'),
+    path.join(base, 'index.ts'),
   ];
   // TS 源码惯例：import './x.js' 实际文件是 x.ts（ESM 类型解析）
   if (/\.(js|mjs|cjs)$/.test(base)) {
@@ -88,9 +99,7 @@ for (const file of sources) {
 
   // export * 检查（裸 export * 有歧义；export * as X 命名空间重导出无歧义，允许）
   // 先剥离注释，避免注释文字误报
-  const codeOnly = src
-    .replace(/\/\*[\s\S]*?\*\//g, '')
-    .replace(/\/\/[^\n]*/g, '');
+  const codeOnly = src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/[^\n]*/g, '');
   if (/export\s+\*(?!\s*as\b)/.test(codeOnly)) {
     const allowed = rules.noExportStar?.files?.includes(rel) || false;
     if (!allowed) {
