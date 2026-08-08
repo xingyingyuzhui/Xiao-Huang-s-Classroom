@@ -10,9 +10,13 @@ const {
 const { loadSubjectSettings } = require('../services/settings-service');
 
 // R5.1：业务规则收敛到 TS domain policy（src/domain/settings-policy.ts）。
-// 产物合同：<server 根>/dist/domain/settings-policy.js（仓库 = apps/server/dist；
-// Electron stage = .electron-stage/server/dist）。构建链（turbo build / stage
-// 预构建）保证加载前产物已生成；禁止双路径 try/catch 掩盖位置不确定。
+// 产物合同：<server 根>/dist/domain/settings-policy.js。三种布局同构
+// （settings.js 位于 <root>/server/routes，../../dist 恒解析到 <root>/dist）：
+//   仓库：apps/server/dist
+//   stage：.electron-stage/dist（stage 脚本复制）
+//   最终包：Contents/Resources/dist（electron-builder extraResources 复制）
+// 构建链（turbo build / stage 预构建 / pretest）保证加载前产物已生成；
+// 禁止双路径 try/catch 掩盖位置不确定。
 const { MAX_ICON_DATA_URL, maskApiKey, isMaskedKey, validateIconDataUrl } = require('../../dist/domain/settings-policy.js');
 
 const DEFAULT_THEME = { id: 'default' };

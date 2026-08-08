@@ -20,6 +20,10 @@ files:
 extraResources:
   - from: .electron-stage/server
     to: server
+  # Server TS 产物（settings-policy 等）：settings.js 的 ../../dist 在最终
+  # Resources/server/routes 解析到 Resources/dist（与仓库/stage 同构）
+  - from: .electron-stage/dist
+    to: dist
 
 asar: true
 compression: maximum
