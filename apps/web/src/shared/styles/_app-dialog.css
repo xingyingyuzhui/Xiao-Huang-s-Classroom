@@ -1,5 +1,10 @@
 /* 应用内统一弹窗（替代系统 alert/confirm/prompt） */
 
+/* 背景滚动锁定（P4.3）：弹窗打开期间由 app-dialog.js 挂在 body 上，关闭动画结束后移除 */
+.ui-scroll-lock {
+  overflow: hidden;
+}
+
 .app-dialog-root {
   position: fixed;
   inset: 0;

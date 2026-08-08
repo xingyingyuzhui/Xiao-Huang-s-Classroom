@@ -493,8 +493,8 @@ npm run quality:fast
 
 ### P0
 
-- [x] P0.1 基线文档
-- [x] P0.2 adoption 合同测试
+- [ ] P0.1 基线文档  
+- [ ] P0.2 adoption 合同测试  
 
 ### P1
 
@@ -505,10 +505,10 @@ npm run quality:fast
 
 ### P2
 
-- [ ] P2.1 dispose 测试矩阵  
-- [ ] P2.2 a11y 基线  
-- [ ] P2.3 Stable API v1 文档  
-- [ ] P2.4 app-dialog 决策 + 实现  
+- [x] P2.1 dispose 测试矩阵
+- [x] P2.2 a11y 基线
+- [x] P2.3 Stable API v1 文档
+- [x] P2.4 app-dialog 决策 + 实现
 
 ### P3
 
@@ -521,7 +521,7 @@ npm run quality:fast
 
 - [ ] P4.1 Dialog 主路径  
 - [ ] P4.2 Toast/Status  
-- [ ] P4.3 焦点/滚动  
+- [x] P4.3 焦点/滚动
 
 ### P5
 
@@ -537,9 +537,9 @@ npm run quality:fast
 ### P7
 
 - [ ] 阈值抬高  
-- [x] 危险模式门禁（P7.2 前置，2026-08-08）
-- [x] D4 更新（P7.3，2026-08-08）
-- [x] README + AGENTS 链接（P7.4 前置：采用指南入 ui-library.md §6 + AGENTS 链接；README 由 P2 统一）
+- [ ] 危险模式门禁  
+- [ ] D4 更新  
+- [ ] README + AGENTS 链接  
 - [ ] quality:fast 绿  
 
 ---
@@ -642,9 +642,10 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 日期 | 变更 | 分支/Commit |
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
-| 2026-08-08 | P0 完成 | codex/ui-p0@f10fd7d |
-| 2026-08-08 | P7 前置：危险模式门禁（P7.2）+ D4 收口（P7.3）+ 文档（P7.4 部分：采用指南入 ui-library.md、AGENTS 链接；README 待 P2） | codex/ui-p7a@8c0d02a |
+| | P0 完成 | |
 | | P1 完成 | |
+| 2026-08-08 | P2 完成（P2.1+P2.2 组件合同硬化：dispose/泄漏测试矩阵 20 例 + a11y 基线；P2.3 Stable API v1 文档；P2.4 app-dialog Adapter） | 8a97d38（codex/ui-p2） |
+| | P4.3 完成（app-dialog 滚动锁定：打开 lock body、关闭动画结束后按引用计数释放；新增 test/web/app-dialog-scroll-lock.test.cjs 5 例） | 42186a3（codex/ui-p4-3） |
 | | … | |
 
 ---

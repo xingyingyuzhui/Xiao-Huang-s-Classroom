@@ -7,6 +7,8 @@
  * 标题、正文、按钮、输入区为 createDialog 的轻量组合（组件仅壳层能力，
  * 不覆盖三模式差异）。对外 appAlert / appConfirm / appPrompt 签名不变。
  * 差异说明：每次弹窗新建实例，关闭动画结束后 dispose（原实现复用单 root）。
+ * P4.3（2026-08-08）：弹窗打开期间锁定背景滚动（document.body.ui-scroll-lock），
+ * 关闭动画结束后按引用计数释放——队列/多弹窗场景计数归零才解锁。
  */
 import { createDialog } from '@xiaohuang/ui';
 
@@ -22,6 +24,20 @@ function escapeHtml(s) {
 const queue = [];
 let busy = false;
 let dialogSeq = 0;
+
+/**
+ * 背景滚动锁定（P4.3）：引用计数——队列中多个 dialog 顺序打开时，
+ * 前一个关闭（动画结束）不释放锁定，计数归零才移除 body 上的类。
+ */
+let scrollLockCount = 0;
+function lockBodyScroll() {
+  scrollLockCount += 1;
+  document.body.classList.add('ui-scroll-lock');
+}
+function unlockBodyScroll() {
+  scrollLockCount = Math.max(0, scrollLockCount - 1);
+  if (scrollLockCount === 0) document.body.classList.remove('ui-scroll-lock');
+}
 
 /**
  * @param {{
@@ -158,6 +174,7 @@ function runDialog(opts, resolve, opener) {
   root.appendChild(backdrop);
   root.appendChild(panel);
   document.body.appendChild(root);
+  lockBodyScroll();
 
   let settled = false;
   const finish = (value) => {
@@ -174,8 +191,11 @@ function runDialog(opts, resolve, opener) {
     root.setAttribute('aria-hidden', 'true');
     busy = false;
     resolve(value);
-    // 等 0.2s 过渡结束后销毁（dispose 幂等）
-    setTimeout(() => dialog.dispose(), 220);
+    // 等 0.2s 过渡结束后销毁（dispose 幂等）并释放滚动锁定
+    setTimeout(() => {
+      dialog.dispose();
+      unlockBodyScroll();
+    }, 220);
     // 焦点归还 opener（a11y）
     if (opener && document.body.contains(opener)) opener.focus();
     // 下一帧再开下一个，避免同一 click 穿透
