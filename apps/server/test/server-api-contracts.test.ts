@@ -1,32 +1,43 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+/**
+ * server API 合同（D-test 批次：node:test → vitest 迁移，行为逐字保持）。
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import type { Server } from 'node:http';
 
-const { app } = require('../../apps/server/src');
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const { app } = require(path.join(dirname, '../src'));
 const {
   initDatabase,
   closeDatabase,
   queryOne,
   run,
-} = require('../../apps/server/src/db/sqlite');
-const { storeQuizPaper } = require('../../apps/server/src/utils/quiz-paper-store');
+} = require(path.join(dirname, '../src/db/sqlite'));
+const { storeQuizPaper } = require(path.join(dirname, '../src/utils/quiz-paper-store'));
 
-async function withApiServer(fn) {
+async function withApiServer(fn: (baseUrl: string) => unknown): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-api-test-'));
   const dbPath = path.join(dir, 'chem-lab.db');
-  let server;
+  let server: Server | undefined;
   try {
     await initDatabase(dbPath);
-    server = app.listen(0, '127.0.0.1');
-    await new Promise((resolve) => server.once('listening', resolve));
-    const baseUrl = `http://127.0.0.1:${server.address().port}`;
-    return await fn(baseUrl);
+    const srv = app.listen(0, '127.0.0.1') as Server;
+    server = srv;
+    await new Promise<void>((resolve) => srv.once('listening', resolve));
+    const baseUrl = `http://127.0.0.1:${(srv.address() as import('node:net').AddressInfo).port}`;
+    await fn(baseUrl);
   } finally {
-    if (server) {
-      await new Promise((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
+    const s = server;
+    if (s) {
+      await new Promise<void>((resolve, reject) =>
+        s.close((error) => (error ? reject(error) : resolve())),
       );
     }
     closeDatabase();
@@ -103,10 +114,10 @@ test('settings API masks a stored AI key per subject', async () => {
 
 test('v1 GET 端点合同：URL/状态码/响应字段冻结', async () => {
   await withApiServer(async (baseUrl) => {
-    const cases = [
+    const cases: Array<{ url: string; shape?: string; expect: (j: unknown) => boolean }> = [
       { url: '/api/settings', expect: (j) => Array.isArray(j) || typeof j === 'object' },
-      { url: '/api/labs', expect: (j) => Array.isArray(j?.data?.labs), shape: 'data.labs[]' },
-      { url: '/api/offline-quiz/years', expect: (j) => Array.isArray(j?.data?.years), shape: 'data.years[]' },
+      { url: '/api/labs', expect: (j) => Array.isArray((j as { data?: { labs?: unknown } })?.data?.labs), shape: 'data.labs[]' },
+      { url: '/api/offline-quiz/years', expect: (j) => Array.isArray((j as { data?: { years?: unknown } })?.data?.years), shape: 'data.years[]' },
       { url: '/api/lesson-packs', expect: () => true },
     ];
     for (const c of cases) {
@@ -120,7 +131,7 @@ test('v1 GET 端点合同：URL/状态码/响应字段冻结', async () => {
 
 test('v1 POST 端点合同：错误 body 返回 4xx 而非 500（边界稳定）', async () => {
   await withApiServer(async (baseUrl) => {
-    const posts = [
+    const posts: Array<{ url: string; body: Record<string, unknown> }> = [
       { url: '/api/quiz/score', body: {} },
       { url: '/api/students', body: {} },
       { url: '/api/ai/generate', body: {} },

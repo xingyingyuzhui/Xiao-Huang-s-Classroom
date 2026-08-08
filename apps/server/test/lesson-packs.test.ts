@@ -1,30 +1,40 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+/**
+ * 教案包 API 合同（D-test 批次：node:test → vitest 迁移，行为逐字保持）。
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import type { Server } from 'node:http';
 
-const { app } = require('../../apps/server/src');
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const { app } = require(path.join(dirname, '../src'));
 const {
   initDatabase,
   closeDatabase,
-  queryOne,
-} = require('../../apps/server/src/db/sqlite');
+} = require(path.join(dirname, '../src/db/sqlite'));
 
-async function withApiServer(fn) {
+async function withApiServer(fn: (baseUrl: string) => unknown): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-lp-'));
   const dbPath = path.join(dir, 'chem-lab.db');
-  let server;
+  let server: Server | undefined;
   try {
     await initDatabase(dbPath);
-    server = app.listen(0, '127.0.0.1');
-    await new Promise((resolve) => server.once('listening', resolve));
-    const baseUrl = `http://127.0.0.1:${server.address().port}`;
-    return await fn(baseUrl);
+    const srv = app.listen(0, '127.0.0.1') as Server;
+    server = srv;
+    await new Promise<void>((resolve) => srv.once('listening', resolve));
+    const baseUrl = `http://127.0.0.1:${(srv.address() as import('node:net').AddressInfo).port}`;
+    await fn(baseUrl);
   } finally {
-    if (server) {
-      await new Promise((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
+    const s = server;
+    if (s) {
+      await new Promise<void>((resolve, reject) =>
+        s.close((error) => (error ? reject(error) : resolve())),
       );
     }
     closeDatabase();
@@ -203,7 +213,7 @@ test('lesson pack import handles name conflict by generating new name', async ()
     const listRes = await fetch(`${baseUrl}/api/lesson-packs`);
     const listed = await listRes.json();
     assert.equal(listed.data.packs.length, 2);
-    const names = listed.data.packs.map((p) => p.name);
+    const names = listed.data.packs.map((p: { name: string }) => p.name);
     assert.ok(names.includes('同名测试'), 'original should remain');
   });
 });

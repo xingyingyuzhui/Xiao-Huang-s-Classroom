@@ -1,27 +1,39 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+/**
+ * 实验 API 合同（D-test 批次：node:test → vitest 迁移，行为逐字保持）。
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import type { Server } from 'node:http';
 
-const { app } = require('../../apps/server/src');
-const { initDatabase, closeDatabase } = require('../../apps/server/src/db/sqlite');
-const { LABS_BUILTIN } = require('../../apps/server/src/seed/labs-builtin');
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function withApiServer(fn) {
+const { app } = require(path.join(dirname, '../src'));
+const { initDatabase, closeDatabase } = require(path.join(dirname, '../src/db/sqlite'));
+const { LABS_BUILTIN } = require(path.join(dirname, '../src/seed/labs-builtin'));
+const { validateLab, validatePredict } = require(path.join(dirname, '../src/utils/lab-schema'));
+
+async function withApiServer(fn: (baseUrl: string) => unknown): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-labs-'));
   const dbPath = path.join(dir, 'chem-lab.db');
-  let server;
+  let server: Server | undefined;
   try {
     await initDatabase(dbPath);
-    server = app.listen(0, '127.0.0.1');
-    await new Promise((resolve) => server.once('listening', resolve));
-    const baseUrl = `http://127.0.0.1:${server.address().port}`;
-    return await fn(baseUrl);
+    const srv = app.listen(0, '127.0.0.1') as Server;
+    server = srv;
+    await new Promise<void>((resolve) => srv.once('listening', resolve));
+    const baseUrl = `http://127.0.0.1:${(srv.address() as import('node:net').AddressInfo).port}`;
+    await fn(baseUrl);
   } finally {
-    if (server) {
-      await new Promise((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
+    const s = server;
+    if (s) {
+      await new Promise<void>((resolve, reject) =>
+        s.close((error) => (error ? reject(error) : resolve())),
       );
     }
     closeDatabase();
@@ -35,8 +47,8 @@ test('labs seed auto-loads builtin experiments', async () => {
     const body = await res.json();
     assert.equal(body.success, true);
     assert.ok(body.data.labs.length >= LABS_BUILTIN.length);
-    assert.ok(body.data.labs.some((l) => l.id === 'lab-o2'));
-    assert.ok(body.data.labs.find((l) => l.id === 'lab-o2')?.prestudy?.steps?.length > 0);
+    assert.ok(body.data.labs.some((l: { id: string }) => l.id === 'lab-o2'));
+    assert.ok(body.data.labs.find((l: { id: string }) => l.id === 'lab-o2')?.prestudy?.steps?.length > 0);
   });
 });
 
@@ -104,14 +116,14 @@ test('labs export/import pack roundtrip', async () => {
     assert.equal(body.data.created, 1);
 
     const list = await (await fetch(`${baseUrl}/api/labs`)).json();
-    assert.ok(list.data.labs.some((l) => l.id === 'lab-custom-imp'));
+    assert.ok(list.data.labs.some((l: { id: string }) => l.id === 'lab-custom-imp'));
   });
 });
 
 test('labs reorder and reset builtin', async () => {
   await withApiServer(async (baseUrl) => {
     const list = await (await fetch(`${baseUrl}/api/labs`)).json();
-    const ids = list.data.labs.map((l) => l.id).reverse();
+    const ids = list.data.labs.map((l: { id: string }) => l.id).reverse();
     const re = await fetch(`${baseUrl}/api/labs/reorder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -169,7 +181,7 @@ test('labs import never overwrites existing id', async () => {
     assert.notEqual(o2.data.title, '恶意覆盖氧气');
 
     const list = await (await fetch(`${baseUrl}/api/labs`)).json();
-    const imported = list.data.labs.find((l) => l.title.includes('恶意覆盖氧气'));
+    const imported = list.data.labs.find((l: { title: string }) => l.title.includes('恶意覆盖氧气'));
     assert.ok(imported);
     assert.notEqual(imported.id, 'lab-o2');
     assert.equal(imported.source, 'custom');
@@ -229,7 +241,7 @@ test('labs put marks source custom; reorder rejects partial ids', async () => {
     assert.equal(putBody.data.safety, '改过的安全提示');
 
     const list = await (await fetch(`${baseUrl}/api/labs`)).json();
-    const partial = list.data.labs.slice(0, 1).map((l) => l.id);
+    const partial = list.data.labs.slice(0, 1).map((l: { id: string }) => l.id);
     const re = await fetch(`${baseUrl}/api/labs/reorder`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -248,7 +260,7 @@ test('labs seed fills missing builtins without overwriting custom', async () => 
     });
     // 再拉列表会触发 ensureLabsSeeded；不应把标题刷回内置
     const list = await (await fetch(`${baseUrl}/api/labs`)).json();
-    const o2 = list.data.labs.find((l) => l.id === 'lab-o2');
+    const o2 = list.data.labs.find((l: { id: string }) => l.id === 'lab-o2');
     assert.equal(o2.title, '用户改的氧气标题');
     assert.equal(o2.source, 'custom');
     assert.ok(list.data.labs.length >= LABS_BUILTIN.length);
@@ -256,7 +268,6 @@ test('labs seed fills missing builtins without overwriting custom', async () => 
 });
 
 test('lab-schema unit rejects empty predict placeholders', () => {
-  const { validateLab, validatePredict } = require('../../apps/server/src/utils/lab-schema');
   assert.equal(validatePredict({ question: '', options: ['a', 'b', 'c', 'd'], answer: 0 }).ok, false);
   assert.equal(
     validatePredict({ question: 'q', options: ['a', 'b', 'c', ''], answer: 0 }).ok,

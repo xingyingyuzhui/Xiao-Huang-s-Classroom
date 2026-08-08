@@ -1,5 +1,6 @@
 /**
  * v1 API 合同矩阵（R5.4）：覆盖全部公开端点。
+ * （D-test 批次：node:test → vitest 迁移，行为逐字保持）
  *
  * 每个端点在真实 server 上验证：
  * - method/path 注册（枚举自 v1-endpoints.generated.json）
@@ -7,37 +8,46 @@
  * - 敏感字段不泄露（响应不含 apiKey 明文）
  * - 无 expect:()=>true 空断言（每个端点必须有真实断言）
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import type { Server } from 'node:http';
 
-const { app } = require('../../apps/server/src');
-const { initDatabase, closeDatabase } = require('../../apps/server/src/db/sqlite');
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = require(path.join(dirname, '../../../test/helpers/repo-root.js'));
 
-const ENDPOINTS = JSON.parse(
+const { app } = require(path.join(dirname, '../src'));
+const { initDatabase, closeDatabase } = require(path.join(dirname, '../src/db/sqlite'));
+
+const ENDPOINTS: Array<{ method: string; path: string }> = JSON.parse(
   fs.readFileSync(path.join(root, 'test/server/v1-endpoints.generated.json'), 'utf8'),
 );
 
 /** :param 示例值（按常见路径参数名） */
-const PARAM_SAMPLES = { id: 'test-id', paperId: 'p1' };
+const PARAM_SAMPLES: Record<string, string> = { id: 'test-id', paperId: 'p1' };
 
-function fillParams(route) {
+function fillParams(route: string): string {
   return route.replace(/:([A-Za-z]+)/g, (_, name) => PARAM_SAMPLES[name] ?? 'sample');
 }
 
-async function withApiServer(fn) {
+async function withApiServer(fn: (baseUrl: string) => unknown): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-v1matrix-'));
-  let server;
+  let server: Server | undefined;
   try {
     await initDatabase(path.join(dir, 'chem.db'));
-    server = app.listen(0, '127.0.0.1');
-    await new Promise((resolve) => server.once('listening', resolve));
-    return await fn(`http://127.0.0.1:${server.address().port}`);
+    const srv = app.listen(0, '127.0.0.1') as Server;
+    server = srv;
+    await new Promise<void>((resolve) => srv.once('listening', resolve));
+    const port = (srv.address() as import('node:net').AddressInfo).port;
+    await fn(`http://127.0.0.1:${port}`);
   } finally {
-    if (server) await new Promise((resolve) => server.close(resolve));
+    const s = server;
+    if (s) await new Promise<void>((resolve) => s.close(() => resolve()));
     closeDatabase();
     fs.rmSync(dir, { recursive: true, force: true });
   }
@@ -78,7 +88,7 @@ test('含 :param 端点的 404/200 行为稳定（示例 id 不 500）', async (
       const res = await fetch(`${baseUrl}${fillParams(ep.path)}`, {
         method: ep.method,
         headers: { 'Content-Type': 'application/json' },
-        body: ep.method === 'GET' || ep.method === 'DELETE' ? undefined : '{}',
+        ...(ep.method === 'GET' || ep.method === 'DELETE' ? {} : { body: '{}' }),
       });
       assert.ok(res.status < 500, `${ep.method} ${ep.path} 不得 500（实际 ${res.status}）`);
     }

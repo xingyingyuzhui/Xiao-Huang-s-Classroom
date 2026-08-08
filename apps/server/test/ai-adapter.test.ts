@@ -1,13 +1,19 @@
 /**
  * AI provider adapter 合同（Program 5 Task 5.7）。
+ * （D-test 批次：node:test → vitest 迁移，行为逐字保持）
  *
  * 断言：retry 只对可重试错误生效；AI 输出 parse 不可信输入安全；
  * 日志脱敏不含 key/prompt 原文；错误映射给稳定 AI_* 错误码。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = require(path.join(dirname, '../../../test/helpers/repo-root.js'));
 
 const {
   withRetry,
@@ -18,12 +24,15 @@ const {
 } = require(path.join(root, 'apps/server/src/services/ai/provider-adapter.js'));
 const { AppError } = require('@xiaohuang/domain-core');
 
+/** 测试用错误：携带 retry 判定所需的附加字段（network code / HTTP status） */
+type RetryError = Error & { code?: string; status?: number };
+
 test('retry：网络错误重试后成功；4xx 不重试', async () => {
   let calls = 0;
   const fn = async () => {
     calls += 1;
     if (calls === 1) {
-      const e = new Error('offline');
+      const e = new Error('offline') as RetryError;
       e.code = 'NETWORK_OFFLINE';
       throw e;
     }
@@ -37,7 +46,7 @@ test('retry：网络错误重试后成功；4xx 不重试', async () => {
   await assert.rejects(
     withRetry(async () => {
       fourxx += 1;
-      const e = new Error('bad request');
+      const e = new Error('bad request') as RetryError;
       e.status = 400;
       throw e;
     }, { attempts: 3, backoffMs: 1 }),
@@ -51,7 +60,7 @@ test('parseAiJson：剥 markdown 围栏；非法 JSON 返回失败', () => {
   if (r1.ok) assert.deepEqual(r1.value, { a: 1 });
   const r2 = parseAiJson('not json at all');
   assert.equal(r2.ok, false);
-  const r3 = parseAiJson('{"a": 1}', { validator: (v) => v.a === 2 });
+  const r3 = parseAiJson('{"a": 1}', { validator: (v: { a?: number }) => v.a === 2 });
   assert.equal(r3.ok, false, 'validator 拒绝返回失败');
 });
 
@@ -72,7 +81,7 @@ test('mapAiError：稳定错误码不依赖消息文本', () => {
   const abort = new Error('aborted');
   abort.name = 'AbortError';
   assert.equal(mapAiError(abort).code, 'AI_TIMEOUT');
-  const five = new Error('upstream');
+  const five = new Error('upstream') as RetryError;
   five.status = 502;
   assert.equal(mapAiError(five).code, 'AI_REQUEST');
   const plain = new Error('whatever');
@@ -80,16 +89,16 @@ test('mapAiError：稳定错误码不依赖消息文本', () => {
 });
 
 test('isRetryableError：网络/超时/5xx 可重试；4xx 不可', () => {
-  const net = new Error('x');
+  const net = new Error('x') as RetryError;
   net.code = 'NETWORK_OFFLINE';
   assert.equal(isRetryableError(net), true);
-  const to = new Error('x');
+  const to = new Error('x') as RetryError;
   to.code = 'AI_TIMEOUT';
   assert.equal(isRetryableError(to), true);
-  const five = new Error('x');
+  const five = new Error('x') as RetryError;
   five.status = 503;
   assert.equal(isRetryableError(five), true);
-  const four = new Error('x');
+  const four = new Error('x') as RetryError;
   four.status = 400;
   assert.equal(isRetryableError(four), false);
 });

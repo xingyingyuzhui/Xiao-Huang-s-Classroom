@@ -1,27 +1,38 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+/**
+ * 配平脚本 API 合同（D-test 批次：node:test → vitest 迁移，行为逐字保持）。
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import type { Server } from 'node:http';
 
-const { app } = require('../../apps/server/src');
-const { initDatabase, closeDatabase } = require('../../apps/server/src/db/sqlite');
-const { BALANCE_BUILTIN } = require('../../apps/server/src/seed/balance-builtin');
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
-async function withApiServer(fn) {
+const { app } = require(path.join(dirname, '../src'));
+const { initDatabase, closeDatabase } = require(path.join(dirname, '../src/db/sqlite'));
+const { BALANCE_BUILTIN } = require(path.join(dirname, '../src/seed/balance-builtin'));
+
+async function withApiServer(fn: (baseUrl: string) => unknown): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-balance-'));
   const dbPath = path.join(dir, 'chem-lab.db');
-  let server;
+  let server: Server | undefined;
   try {
     await initDatabase(dbPath);
-    server = app.listen(0, '127.0.0.1');
-    await new Promise((resolve) => server.once('listening', resolve));
-    const baseUrl = `http://127.0.0.1:${server.address().port}`;
-    return await fn(baseUrl);
+    const srv = app.listen(0, '127.0.0.1') as Server;
+    server = srv;
+    await new Promise<void>((resolve) => srv.once('listening', resolve));
+    const baseUrl = `http://127.0.0.1:${(srv.address() as import('node:net').AddressInfo).port}`;
+    await fn(baseUrl);
   } finally {
-    if (server) {
-      await new Promise((resolve, reject) =>
-        server.close((error) => (error ? reject(error) : resolve())),
+    const s = server;
+    if (s) {
+      await new Promise<void>((resolve, reject) =>
+        s.close((error) => (error ? reject(error) : resolve())),
       );
     }
     closeDatabase();
@@ -38,7 +49,7 @@ test('balance scripts seed auto-loads builtins', async () => {
     assert.ok(typeof body.data.builtinCount === 'number');
     assert.ok(body.data.builtinCount >= 3);
     // Check a known builtin exists
-    assert.ok(body.data.scripts.some((s) => s.id === 'bal-h2o'));
+    assert.ok(body.data.scripts.some((s: { id: string }) => s.id === 'bal-h2o'));
   });
 });
 
@@ -149,7 +160,7 @@ test('balance scripts reorder changes list order', async () => {
     const listRes = await fetch(`${baseUrl}/api/balance-scripts`);
     const listBody = await listRes.json();
     assert.equal(listBody.success, true);
-    const ids = listBody.data.scripts.map((s) => s.id);
+    const ids = listBody.data.scripts.map((s: { id: string }) => s.id);
     assert.ok(ids.length >= 2);
     const reversed = [...ids].reverse();
     const reo = await fetch(`${baseUrl}/api/balance-scripts/reorder`, {
@@ -160,13 +171,13 @@ test('balance scripts reorder changes list order', async () => {
     const reoBody = await reo.json();
     assert.equal(reoBody.success, true);
     assert.deepEqual(
-      reoBody.data.scripts.map((s) => s.id),
+      reoBody.data.scripts.map((s: { id: string }) => s.id),
       reversed,
     );
 
     const again = await (await fetch(`${baseUrl}/api/balance-scripts`)).json();
     assert.deepEqual(
-      again.data.scripts.map((s) => s.id),
+      again.data.scripts.map((s: { id: string }) => s.id),
       reversed,
     );
   });
@@ -261,10 +272,10 @@ test('balance scripts import never overwrites; renames on id conflict', async ()
     assert.equal(body.success, true);
     assert.equal(body.data.created, 2);
     assert.equal(body.data.renamed, 1);
-    assert.ok(body.data.scripts.some((s) => s.title.includes('（导入）')));
-    assert.ok(body.data.scripts.some((s) => s.title === '全新导入项' && s.source === 'custom'));
+    assert.ok(body.data.scripts.some((s: { title: string }) => s.title.includes('（导入）')));
+    assert.ok(body.data.scripts.some((s: { title: string; source: string }) => s.title === '全新导入项' && s.source === 'custom'));
     // 内置 bal-h2o 未被覆盖（标题不应变成「导入的水」）
-    const h2o = body.data.scripts.find((s) => s.id === 'bal-h2o');
+    const h2o = body.data.scripts.find((s: { id: string }) => s.id === 'bal-h2o');
     assert.ok(h2o);
     assert.notEqual(h2o.title, '导入的水');
   });
@@ -301,7 +312,7 @@ test('balance scripts seed fills missing builtins without overwriting custom', a
       body: JSON.stringify({ title: '用户改的' }),
     });
     const list = await (await fetch(`${baseUrl}/api/balance-scripts`)).json();
-    const h2o = list.data.scripts.find((s) => s.id === 'bal-h2o');
+    const h2o = list.data.scripts.find((s: { id: string }) => s.id === 'bal-h2o');
     assert.equal(h2o.title, '用户改的');
     assert.equal(h2o.source, 'custom');
     assert.ok(list.data.scripts.length >= BALANCE_BUILTIN.length);
@@ -326,7 +337,6 @@ test('builtin methane step 2 is set_coef with valid focus (not pure explain)', a
 test('builtin seed resyncs source=builtin content on load', async () => {
   await withApiServer(async (baseUrl) => {
     // 直接改库里的 builtin 步骤为错误 explain-only 第二步，再 list 触发 seed 同步
-    const { initDatabase, closeDatabase, run, queryOne } = require('../../apps/server/src/db/sqlite');
     // API server already has DB; mutate via SQL through a second connection is hard.
     // Instead: reset then verify structure; and put marks custom not overwritten is covered above.
     const ch4 = await (await fetch(`${baseUrl}/api/balance-scripts/bal-ch4`)).json();
