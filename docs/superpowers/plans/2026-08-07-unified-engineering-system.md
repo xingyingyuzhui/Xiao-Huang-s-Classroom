@@ -74,8 +74,8 @@
 - **Verify:** contract 测试过；`npx tsc --noEmit`（空）通过。
 - **Commit:** `feat(eng): add strict TypeScript config matrix (P1)`
 
-- [ ] **Task 1.3：ESLint Flat Config + typescript-eslint**
-> ⚠ R0 审计缺口：lint glob 全部被 ignore（packages 已是 TS）；baseline 1167→1204 增长（R1.2）
+- [x] **Task 1.3：ESLint Flat Config + typescript-eslint**
+> ✅ R0 缺口已解决（R1.2）：lint 覆盖 packages TS 与 tooling；baseline 降至 393
 - **Files:** `eslint.config.mjs`、`tooling/config/eslint/`（规则集）、`docs/engineering/lint-baseline.md`
 - **Test:** `test/shared/lint-config-contract.test.cjs`：断言 flat config 存在、typescript-eslint 已接入、`no-explicit-any` 等关键规则开启、基线清单文件存在。
 - **Steps:** 安装 `eslint @eslint/js typescript-eslint`（根 devDeps）；flat config 覆盖 JS/TS；先对 `packages/*` 与新 TS 文件 lint；旧 JS 基线问题登记 `lint-baseline.md`（计数，不阻塞）；`lint` 不允许新增 warning。
@@ -275,8 +275,8 @@ ui/design-tokens 两包全绿；至少 1 个真实面板使用 ui 组件；五�
 - **Verify:** app-session 测试全绿。
 - **Commit:** `feat(eng): add app session and error boundaries (P4)`
 
-- [ ] **Task 4.3：feature loader 统一接入**
-> ⚠ R0 审计缺口：web loader 是重新实现，未调用 @xiaohuang/subject-kit 真实实现（R4.2）
+- [x] **Task 4.3：feature loader 统一接入**
+> ✅ R0 缺口已解决（R4.2）：web loader 委托 @xiaohuang/subject-kit 真实实现（并发去重/mount generation/retry/disposeAll 走核心；mod 缓存为适配层）
 - **Files:** `apps/web/src/app/feature-loader.js`（替换/包装现有 loader）、`apps/web/src/app/boot.js`、`test/web/feature-loader.test.cjs`（扩展）
 - **Test（先写失败）:** 现有 feature-loader 测试扩展：mount generation 防旧异步回写、loading/error/retry。
 - **Steps:** 现有 web 内 loader（`subjects/classrooms/math-classroom.js` 等使用）改为 subject-kit 协议；保持行为。
@@ -355,16 +355,16 @@ ui/design-tokens 两包全绿；至少 1 个真实面板使用 ui 组件；五�
 - **Verify:** v2 测试绿；v1 测试不变。
 - **Commit:** `feat(eng): add first v2 endpoint with shared schema (P5)`
 
-- [ ] **Task 5.5：数据库 migration 框架**
-> ⚠ R0 审计缺口：migrator 存在但 MAX_SCHEMA_VERSION=0、MIGRATIONS=[]、未接入 initDatabase（R5.2）
+- [x] **Task 5.5：数据库 migration 框架**
+> ✅ R0 缺口已解决（R5.2）：真实 migration v1（app_meta）+ 事务原子回滚 + 接入 initDatabase + 升级前 backup + 高版本拒绝
 - **Files:** `apps/server/src/db/migrations/`、`apps/server/src/db/migrator.ts`、`apps/server/src/db/backup.ts`、`test/server/db-migrations.test.cjs`
 - **Test（先写失败）:** schema version table；迁移 up/precondition/postcondition；版本高于应用最大 → 只读失败；backup 到临时文件 + checksum + 原子 rename；restore 失败保留原 DB。
 - **Steps:** 按 spec §11.3 实现；三类数据位置发现逻辑（dev/Electron userData/pkg 邻近）。
 - **Verify:** migration 测试全绿；现有 DB 数据不动（只读验证）。
 - **Commit:** `feat(eng): add versioned db migration framework (P5)`
 
-- [ ] **Task 5.6：Seed versioning**
-> ⚠ R0 审计缺口：seed-versioning 仅被测试调用，labs/quiz 等 seed 未走统一框架（R5.3）
+- [x] **Task 5.6：Seed versioning**
+> ✅ R0 缺口已解决（R5.3）：builtin-molecules seed 走统一版本框架（seed_versions，custom 数据不覆盖）
 - **Files:** `apps/server/src/seed/`、`apps/server/src/db/seed.ts`、`test/server/seed-versioning.test.cjs`
 - **Test（先写失败）:** 幂等 upsert；内容版本记录；与 migration 分离。
 - **Steps:** 现有 seed（labs、quiz bank）改为 versioned 幂等。
@@ -396,8 +396,8 @@ v1 合同冻结；首个 v2 端点 + client + schema 同 Task 落地；migration
 - **Verify:** electron-stage smoke 全绿；`npm run build` 通过。
 - **Commit:** `feat(eng): migrate electron main/preload to TS with IPC schema (P6)`
 
-- [ ] **Task 6.2：启动状态机**
-> ⚠ R0 审计缺口：状态机仅单元测试，main.cjs 未调用（R6.2）
+- [x] **Task 6.2：启动状态机**
+> ✅ R0 缺口已解决（R6.2）：启动状态机接入 main.cjs 真实路径（幂等/失败原因/关闭清理）
 - **Files:** `apps/desktop/src/main/startup.ts`、`apps/desktop/src/main/lifecycle.ts`、`test/server/electron-startup.test.cjs`
 - **Test（先写失败）:** idle→staging→serverStarting→ready→closing→closed；并发启动幂等；健康检查就绪（不靠固定延时）；失败不遗留进程。
 - **Steps:** 按 spec §12.2 实现状态机；端口与数据目录显式传递。
@@ -472,8 +472,8 @@ Electron main/preload TS + IPC schema + 启动状态机 + stage manifest；pkg �
 - **Verify:** 日志测试绿。
 - **Commit:** `feat(eng): unify structured logging fields (P7)`
 
-- [ ] **Task 7.6：资源清单**
-> ⚠ R0 审计缺口：资源脚本只查少量字符串引用，非完整 registry（R3.3）
+- [x] **Task 7.6：资源清单**
+> ✅ R0 缺口已解决（R3.3）：资源 registry 完整化（清单生成 + CSS url 检查 + 主题变体 + 重复大文件）
 - **Files:** `tooling/architecture/asset-manifest.mjs`、`docs/engineering/asset-registry.md`
 - **Test:** 构建检查缺失资源/孤儿资源/重复大文件/错误主题映射。
 - **Steps:** 从 `apps/web/public/assets/` 建立清单。
