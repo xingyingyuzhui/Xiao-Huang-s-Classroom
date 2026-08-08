@@ -1,5 +1,5 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
 
 // Test the prestudy config data directly (pure data, no server needed)
 test('lab prestudy config has valid structure for configured experiments', async () => {
@@ -13,13 +13,13 @@ test('lab prestudy config has valid structure for configured experiments', async
   assert.ok(configIds.length >= 2, `expected at least 2 configs, got ${configIds.length}`);
 
   for (const id of configIds) {
-    const config = LAB_PRESTUDY_CONFIGS[id];
+    const config = LAB_PRESTUDY_CONFIGS[id]!;
     assert.ok(config.objective, `${id} should have objective`);
     assert.ok(Array.isArray(config.steps), `${id} should have steps array`);
     assert.ok(config.steps.length > 0, `${id} should have at least 1 step`);
 
     for (let i = 0; i < config.steps.length; i++) {
-      const step = config.steps[i];
+      const step = config.steps[i]!;
       assert.ok(step.label, `${id} step ${i} should have label`);
       if (step.predict) {
         assert.ok(step.predict.question, `${id} step ${i} predict should have question`);
@@ -46,12 +46,12 @@ test('getPrestudyConfig returns config for configured experiments', async () => 
 
   const o2Config = getPrestudyConfig('lab-o2');
   assert.ok(o2Config, 'lab-o2 should have config');
-  assert.ok(o2Config.objective.includes('氧气'), 'lab-o2 objective should mention oxygen');
-  assert.ok(o2Config.steps.length >= 3, 'lab-o2 should have at least 3 steps');
+  assert.ok(o2Config!.objective.includes('氧气'), 'lab-o2 objective should mention oxygen');
+  assert.ok(o2Config!.steps.length >= 3, 'lab-o2 should have at least 3 steps');
 
   const co2Config = getPrestudyConfig('lab-co2');
   assert.ok(co2Config, 'lab-co2 should have config');
-  assert.ok(co2Config.objective.includes('二氧化碳'), 'lab-co2 objective should mention CO2');
+  assert.ok(co2Config!.objective.includes('二氧化碳'), 'lab-co2 objective should mention CO2');
 });
 
 test('every lab script has a matching prestudy config', async () => {

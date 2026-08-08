@@ -3,14 +3,25 @@
  * grade: 1 高一 · 2 高二 · 3 高三
  */
 
-export const GRADES = [
+export interface Grade {
+  id: number;
+  label: string;
+}
+
+export const GRADES: Grade[] = [
   { id: 1, label: '高一' },
   { id: 2, label: '高二' },
   { id: 3, label: '高三' },
 ];
 
-/** @type {Array<{ id: string, grade: number, label: string }>} */
-export const CHEM_TOPICS = [
+/** 章节主题（智能出题用） */
+export interface ChemTopic {
+  id: string;
+  grade: number;
+  label: string;
+}
+
+export const CHEM_TOPICS: ChemTopic[] = [
   // 高一
   { id: 'g1-substance', grade: 1, label: '物质的分类与变化' },
   { id: 'g1-amount', grade: 1, label: '物质的量' },
@@ -39,7 +50,13 @@ export const CHEM_TOPICS = [
   { id: 'g3-gaokao', grade: 3, label: '高考真题风格综合' },
 ];
 
-export const DIFFICULTIES = [
+export interface Difficulty {
+  id: string;
+  label: string;
+  desc: string;
+}
+
+export const DIFFICULTIES: Difficulty[] = [
   {
     id: 'basic',
     label: '初级',
@@ -57,12 +74,17 @@ export const DIFFICULTIES = [
   },
 ];
 
-export const REVEAL_MODES = [
+export interface RevealMode {
+  id: string;
+  label: string;
+}
+
+export const REVEAL_MODES: RevealMode[] = [
   { id: 'immediate', label: '选完即显示对错' },
   { id: 'submit', label: '交卷后统一显示' },
 ];
 
-export function topicsForGrades(gradeIds) {
+export function topicsForGrades(gradeIds: Array<string | number>): ChemTopic[] {
   const set = new Set(gradeIds.map(Number));
   return CHEM_TOPICS.filter((t) => set.has(t.grade));
 }

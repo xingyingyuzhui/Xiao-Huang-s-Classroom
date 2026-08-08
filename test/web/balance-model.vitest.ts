@@ -1,5 +1,5 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
 
 test('balance-model: draftToPayload fills species from startEquation', async () => {
   const { draftToPayload, isPracticeFinished, buildEquation } = await import(

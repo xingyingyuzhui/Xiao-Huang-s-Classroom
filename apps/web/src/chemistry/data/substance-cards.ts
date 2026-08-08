@@ -3,8 +3,15 @@
  * 与内置分子 id 一一对应；有则并入左上角简介
  */
 
-/** @type {Record<string, { category:string, uses:string, caution:string, point?:string }>} */
-export const SUBSTANCE_CARDS = {
+/** 课标向物质补充说明 */
+export interface SubstanceCard {
+  category: string;
+  uses: string;
+  caution: string;
+  point?: string;
+}
+
+export const SUBSTANCE_CARDS: Record<string, SubstanceCard> = {
   h2: {
     category: '单质 · 非金属气体',
     uses: '清洁能源、冶金还原、有机加氢',
@@ -163,7 +170,7 @@ export const SUBSTANCE_CARDS = {
   },
 };
 
-export function getSubstanceCard(moleculeId) {
+export function getSubstanceCard(moleculeId: string | null): SubstanceCard | null {
   if (!moleculeId) return null;
   return SUBSTANCE_CARDS[moleculeId] || null;
 }
