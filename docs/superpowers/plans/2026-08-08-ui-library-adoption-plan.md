@@ -521,7 +521,7 @@ npm run quality:fast
 
 - [ ] P4.1 Dialog 主路径  
 - [ ] P4.2 Toast/Status  
-- [ ] P4.3 焦点/滚动  
+- [x] P4.3 焦点/滚动
 
 ### P5
 
@@ -645,6 +645,7 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | | P0 完成 | |
 | | P1 完成 | |
 | 2026-08-08 | P2 完成（P2.1+P2.2 组件合同硬化：dispose/泄漏测试矩阵 20 例 + a11y 基线；P2.3 Stable API v1 文档；P2.4 app-dialog Adapter） | 8a97d38（codex/ui-p2） |
+| | P4.3 完成（app-dialog 滚动锁定：打开 lock body、关闭动画结束后按引用计数释放；新增 test/web/app-dialog-scroll-lock.test.cjs 5 例） | 42186a3（codex/ui-p4-3） |
 | | … | |
 
 ---
