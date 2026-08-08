@@ -45,7 +45,8 @@ function collectReferences() {
   const refs = new Set();
   for (const f of collectSourceFiles()) {
     const srcText = fs.readFileSync(f, 'utf8');
-    for (const m of srcText.matchAll(/['"](\/assets\/[^'"]+)['"]/g)) refs.add(m[1].replace(/^\//, ''));
+    for (const m of srcText.matchAll(/['"](\/assets\/[^'"]+)['"]/g))
+      refs.add(m[1].replace(/^\//, ''));
     if (f.endsWith('.css')) {
       for (const m of srcText.matchAll(/url\(\s*['"]?(\/assets\/[^'")]+)['"]?\s*\)/g)) {
         refs.add(m[1].replace(/^\//, ''));
@@ -104,7 +105,12 @@ function duplicates() {
         fs.readSync(fd, head, 0, head.length, 0);
         fs.readSync(fd, tail, 0, tail.length, Math.max(0, size - tail.length));
         fs.closeSync(fd);
-        const hash = crypto.createHash('md5').update(head).update(tail).update(String(size)).digest('hex');
+        const hash = crypto
+          .createHash('md5')
+          .update(head)
+          .update(tail)
+          .update(String(size))
+          .digest('hex');
         if (seen.has(hash)) {
           violations.push(`重复大文件: ${path.relative(root, full)} 与 ${seen.get(hash)} 相同`);
         } else {
@@ -129,7 +135,11 @@ function collectAssetEntries() {
       }
       if (!/\.(png|jpg|jpeg|webp|gif|svg|mp3|wav|json|glb|fbx)$/.test(e.name)) continue;
       const size = fs.statSync(full).size;
-      const hash = crypto.createHash('sha256').update(fs.readFileSync(full)).digest('hex').slice(0, 16);
+      const hash = crypto
+        .createHash('sha256')
+        .update(fs.readFileSync(full))
+        .digest('hex')
+        .slice(0, 16);
       const isCover = rel.includes('subject-covers');
       entries.push({
         id: rel,
@@ -156,8 +166,17 @@ function collectAssetEntries() {
 function generateManifest() {
   const entries = collectAssetEntries();
   const manifestPath = path.join(root, 'docs/engineering/assets-manifest.json');
-  fs.writeFileSync(manifestPath, JSON.stringify({ generatedAt: new Date().toISOString().slice(0, 10), count: entries.length, entries }, null, 2) + '\n');
-  console.log(`[assets] manifest 已生成：${entries.length} 项 → ${path.relative(root, manifestPath)}`);
+  fs.writeFileSync(
+    manifestPath,
+    JSON.stringify(
+      { generatedAt: new Date().toISOString().slice(0, 10), count: entries.length, entries },
+      null,
+      2,
+    ) + '\n',
+  );
+  console.log(
+    `[assets] manifest 已生成：${entries.length} 项 → ${path.relative(root, manifestPath)}`,
+  );
 }
 
 if (manifestMode) {
@@ -212,19 +231,62 @@ function orphans() {
   }
 }
 
-/** manifest 漂移：已提交 manifest 与当前资源目录生成结果不一致 */
+/**
+ * manifest 漂移：已提交 manifest 与当前资源目录生成结果不一致。
+ * 规范化比较字段：id/path/format/size/hash/themeVariants。
+ *
+ * 以下字段当前为固定默认值（source=repo, license=unknown, preloadPolicy=lazy,
+ * fallback=null），且 generatedAt 每次生成都会变，故不参与漂移判断。
+ */
+function normalizeEntry(entry) {
+  return {
+    id: entry.id,
+    path: entry.path,
+    format: entry.format,
+    size: entry.size,
+    hash: entry.hash,
+    themeVariants: Array.isArray(entry.themeVariants)
+      ? [...entry.themeVariants].map(String).sort()
+      : [],
+  };
+}
+
 function manifestDrift() {
   const committedPath = path.join(root, 'docs/engineering/assets-manifest.json');
   if (!fs.existsSync(committedPath)) return;
   const committed = JSON.parse(fs.readFileSync(committedPath, 'utf8'));
   const entries = collectAssetEntries();
-  const committedIds = new Set((committed.entries || []).map((e) => e.id));
-  const generatedIds = new Set(entries.map((e) => e.id));
-  for (const id of generatedIds) {
-    if (!committedIds.has(id)) violations.push(`manifest 漂移: 新资源未登记 ${id}（运行 --manifest 更新）`);
+  const committedById = new Map((committed.entries || []).map((e) => [e.id, e]));
+  const generatedById = new Map(entries.map((e) => [e.id, e]));
+
+  for (const id of generatedById.keys()) {
+    if (!committedById.has(id)) {
+      violations.push(`manifest 漂移: 新资源未登记 ${id}（运行 --manifest 更新）`);
+    }
   }
-  for (const id of committedIds) {
-    if (!generatedIds.has(id)) violations.push(`manifest 漂移: 已删除资源仍登记 ${id}`);
+  for (const id of committedById.keys()) {
+    if (!generatedById.has(id)) {
+      violations.push(`manifest 漂移: 已删除资源仍登记 ${id}`);
+    }
+  }
+  for (const [id, generated] of generatedById) {
+    const committedEntry = committedById.get(id);
+    if (!committedEntry) continue;
+    const a = normalizeEntry(committedEntry);
+    const b = normalizeEntry(generated);
+    const fields = [];
+    for (const key of ['path', 'format', 'size', 'hash', 'themeVariants']) {
+      const av = JSON.stringify(a[key]);
+      const bv = JSON.stringify(b[key]);
+      if (av !== bv) fields.push(key);
+    }
+    if (fields.length) {
+      const detail =
+        fields.includes('hash') || fields.includes('size')
+          ? 'hash 或 size 不一致'
+          : fields.join('/');
+      violations.push(`manifest 漂移: ${id} ${detail}`);
+    }
   }
 }
 
