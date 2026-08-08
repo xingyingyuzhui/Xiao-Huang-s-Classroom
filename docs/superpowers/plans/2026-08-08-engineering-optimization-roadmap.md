@@ -598,6 +598,12 @@ npm run verify:electron-package
 - 出 ADR：接受 / 升级 / CSP / 替代
 - 禁止用「关掉 warning」假装解决
 
+**D-jessie 完成（2026-08-08）：**
+
+- [x] ADR-0003（已接受）：项目不启用 JessieCode，渲染路径不把表达式字符串交给 JSXGraph——eval 风险面锁定在第三方包内部；升级时复查，B7 落地后再评估收窄
+- [x] `test/web/jsxgraph-eval-guard.test.cjs` 守门（2/2）：生产代码无 `JXG.evaluate` / `.jc(` / `JessieCode` 调用
+- [x] debt-registry D8 → **已评估**（ADR + 使用面锁定）
+
 ---
 
 ## 10. 排期与人力模型
