@@ -41,6 +41,13 @@ html[data-theme='pixel'] {
   --btn-primary-hover: #ff4757;
   --btn-primary-border: #2f3542;
 
+  /* 危险操作（ui-kit is-danger / error 态）：扁平红块 */
+  --danger: #ee5253;
+  --danger-hover: #ff4757;
+  --danger-soft: #ffe4e6;
+  /* 强调填充按钮上的文字色（primary/danger/tool 激活态） */
+  --ink-on-accent: #ffffff;
+
   /* 硬像素阴影：纯色偏移，无模糊 */
   --shadow-sm: 2px 2px 0 #2f3542;
   --shadow-md: 3px 3px 0 #2f3542;
