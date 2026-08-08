@@ -24,15 +24,21 @@ dist-exe/
 dist-electron/
 .electron-stage/
 
-# Agent / IDE scratch (do not publish)
+# Agent / IDE local config & skills (private — do not publish to public GitHub)
+.grok/
+.cursor/
+.claude/
+.agents/
+.opencode/
 .mimocode/
-.cursor/*
-!.cursor/skills/
-!.cursor/skills/**
 .superpowers/
-.claude/*
-!.claude/skills/
-!.claude/skills/**
+.codex/
+.continue/
+.windsurf/
+.aider*
+.idea/
+.vscode/
+*.code-workspace
 .tmp-ref-books/
 .turbo
 coverage/

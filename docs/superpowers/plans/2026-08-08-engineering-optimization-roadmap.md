@@ -82,8 +82,8 @@
 ├── tooling/       architecture · coverage · performance · release
 ├── scripts/       stage · sync · lint-baseline · typecheck-apps …
 ├── docs/          engineering/ · superpowers/ · adr/
-├── .grok/skills/  xiaohuang-classroom（项目 OS）
-└── .github/workflows/
+├── .github/workflows/
+└── （本地私有，不进公开仓）.grok/ .cursor/ .claude/ 等 agent skill
     ├── quality.yml
     └── electron-package.yml
 ```
@@ -235,7 +235,8 @@ npm install
 
 ### 5.4 Agent / 人工协作
 
-- 项目 OS：`.grok/skills/xiaohuang-classroom/`  
+- 公开导航：根 `AGENTS.md` + `docs/engineering/` + 子树 `AGENTS.md`  
+- 本地 agent skill（`.grok/` 等）不进公开仓库  
 - 数学硬规则：`apps/web/src/math/AGENTS.md`  
 - 书架：`apps/web/src/subjects/bookshelf/AGENTS.md`  
 - 事实冲突：以代码与 CI 为准，再改文档  
@@ -745,10 +746,9 @@ npm run lint:assets
 
 | 文档 | 用途 |
 | --- | --- |
-| `.grok/skills/xiaohuang-classroom/SKILL.md` | 项目 OS 入口 |
-| `.grok/skills/xiaohuang-classroom/references/architecture.md` | 分层与依赖 |
-| `.grok/skills/xiaohuang-classroom/references/maintenance.md` | Git / 用户数据 / 生成物 |
+| 根 `AGENTS.md` | 公开仓库运行约束与导航 |
 | `docs/superpowers/plans/2026-08-07-unified-engineering-system.md` | Program 0–7 原文 |
+| 本地 `.grok/skills/...`（不提交） | 开发者本机 Agent OS |
 | `docs/engineering/debt-registry.md` | 旧债与删除条件 |
 | `docs/engineering/js-allowlist.md` | TS 迁移批次 |
 | `docs/engineering/behavior-compatibility.md` | 行为红线 |

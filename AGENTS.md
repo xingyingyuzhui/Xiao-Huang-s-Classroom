@@ -2,7 +2,7 @@
 
 本仓库由「小黄的化学实验室」整仓迁移而来，当前以化学为第一个学科模块运行。
 
-**Agent OS（架构 / 理念 / 排障 / 加功能）：** 项目 skill `.grok/skills/xiaohuang-classroom/`（`/xiaohuang-classroom`）。非琐碎改动先读该 skill 与对应 `references/*`。
+**工程导航（公开仓库）：** 根 `AGENTS.md`（本文件）+ `docs/engineering/`（债务、质量、基线、兼容）+ `docs/superpowers/specs|plans/`（设计与计划）+ 子树 `apps/web/src/math/AGENTS.md`、`apps/web/src/subjects/bookshelf/AGENTS.md`。本地 AI/IDE skill（`.grok/`、`.cursor/` 等）**不进公开仓库**，仅开发者本机使用。
 
 后续任务（多学科切换壳、其它学科内容）在独立计划中展开。化学功能改动仍按原图层边界（browser / Express / Electron）处理。
 
