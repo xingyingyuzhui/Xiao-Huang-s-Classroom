@@ -2,5 +2,9 @@
   "name": "@xiaohuang/desktop",
   "private": true,
   "version": "0.0.1",
-  "main": "main.cjs"
+  "main": "main.cjs",
+  "scripts": {
+    "test": "node --test ../../test/server/electron-startup.test.cjs ../../test/server/electron-ipc-contract.test.cjs",
+    "typecheck": "node ../../scripts/typecheck-apps.mjs desktop"
+  }
 }
