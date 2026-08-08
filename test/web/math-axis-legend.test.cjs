@@ -73,7 +73,7 @@ test('graph provides legend items for main curve', () => {
 
 test('math classroom dismisses axis legend bubble with overlays', () => {
   const src = fs.readFileSync(
-    path.join(root, 'apps/web/src/subjects/classrooms/math-classroom.js'),
+    path.join(root, 'apps/web/src/subjects/classrooms/math-classroom.ts'),
     'utf8',
   );
   assert.match(src, /dismissAxisLegendBubble/);

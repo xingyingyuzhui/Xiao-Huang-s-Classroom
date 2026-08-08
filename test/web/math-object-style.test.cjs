@@ -157,11 +157,11 @@ test('object style bubble module uses singleton pattern', () => {
 
 test('math classroom dismisses object style bubble on tab switch and leave', () => {
   const src = fs.readFileSync(
-    path.join(root, 'apps/web/src/subjects/classrooms/math-classroom.js'),
+    path.join(root, 'apps/web/src/subjects/classrooms/math-classroom.ts'),
     'utf8',
   );
   assert.match(src, /dismissObjectStyleBubble/);
   assert.match(src, /dismissMathOverlays/);
-  assert.match(src, /deactivateTab\(\)\s*\{[\s\S]*dismissMathOverlays/);
-  assert.match(src, /leave\(\)\s*\{[\s\S]*dismissMathOverlays/);
+  assert.match(src, /deactivateTab\(\)[^{]*\{[\s\S]*dismissMathOverlays/);
+  assert.match(src, /leave\(\)[^{]*\{[\s\S]*dismissMathOverlays/);
 });

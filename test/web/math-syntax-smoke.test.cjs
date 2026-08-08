@@ -14,7 +14,7 @@ function walkJs(dir, acc = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, ent.name);
     if (ent.isDirectory()) walkJs(p, acc);
-    else if (ent.name.endsWith('.js')) acc.push(p);
+    else if (ent.name.endsWith('.js') || ent.name.endsWith('.ts')) acc.push(p);
   }
   return acc;
 }
@@ -29,7 +29,7 @@ test('math classroom modules parse with node --check', () => {
     // classroom 相关 + 各 lab 入口
     return (
       f.includes(`${path.sep}math${path.sep}`) ||
-      base === 'math-classroom.js' ||
+      base === 'math-classroom.ts' ||
       base.startsWith('math-')
     );
   });
