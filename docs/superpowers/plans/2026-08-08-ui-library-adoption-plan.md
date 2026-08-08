@@ -498,10 +498,10 @@ npm run quality:fast
 
 ### P1
 
-- [ ] P1.1 `_ui-kit.css` + 接入入口  
-- [ ] P1.2 组件 class 对齐  
-- [ ] P1.3 catalog 验收场  
-- [ ] P1.4 主题补丁（按需）  
+- [x] P1.1 `_ui-kit.css` + 接入入口
+- [x] P1.2 组件 class 对齐
+- [x] P1.3 catalog 验收场
+- [ ] P1.4 主题补丁（按需）——P1 未做：五主题 ui-* 全部走语义 token（danger/ink-on-accent 已按各主题对比度选色），lint:theme-tokens / lint:css 绿；真实浏览器目检待 P2 前统一做
 
 ### P2
 
@@ -643,7 +643,7 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
 | | P0 完成 | |
-| | P1 完成 | |
+| 2026-08-08 | **P1 完成**：P1.1 `_ui-kit.css`（+五主题补 `--danger`/`--danger-hover`/`--danger-soft`/`--ink-on-accent` 四个缺失 token）；P1.2 根 class 契约测试（`packages/ui/test/class-names.test.ts`，27 测试绿，组件 class 已对齐无需改源码）；P1.3 catalog 验收场（全组件 + 桥接对比）。P1.4 未做（按需项，token 已按主题对比度选色，浏览器目检留 P2）。已知组件缺陷：`createDialog` update 时 `setText` 清空消费方挂载的子节点，留 P2.4 硬化 | codex/ui-p1 `19a3b72`（P1.1）/ `b55ba0a`（P1.2）/ `95632a8`（P1.3） |
 | | … | |
 
 ---
