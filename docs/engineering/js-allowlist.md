@@ -37,6 +37,11 @@
 | B6                                                                      | 化学与数学非视觉纯逻辑    | ~90                                                                                      | 行为合同测试通过后逐模块   |
 | B7                                                                      | Three.js/JSXGraph adapter | ~20                                                                                      | 集中 adapter 隔离后        |
 
+### B7 已评估（2026-08-08）
+
+- three 使用面已集中为 4 个渲染器（molecule/viewer3d、electron/renderer、math/solid、bookshelf/stage——产品视觉）；jsxgraph 已集中为 jsx-board 单点（graph 渲染经其间接）
+- `test/web/renderer-adapter-boundary.test.cjs` 锁定边界（2/2）：无散落 import；控制器/纯逻辑层不得直接 import 渲染器
+
 ### B1 已落地（以 TS 为权威源）
 
 | 文件                                           | 状态     | 说明                                                                                                     |
