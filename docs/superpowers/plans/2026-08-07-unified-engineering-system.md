@@ -363,8 +363,10 @@ ui/design-tokens 两包全绿；至少 1 个真实面板使用 ui 组件；五�
 - **Verify:** migration 测试全绿；现有 DB 数据不动（只读验证）。
 - **Commit:** `feat(eng): add versioned db migration framework (P5)`
 
-- [x] **Task 5.6：Seed versioning**
-> ✅ R0 缺口已解决（R5.3）：builtin-molecules seed 走统一版本框架（seed_versions，custom 数据不覆盖）
+- [ ] **Task 5.6：Seed versioning**
+> ⚠ 部分完成：builtin-molecules 已接入统一版本框架（seed_versions，
+> custom 数据不覆盖）；labs、offline-quiz-bank 等剩余 seed 仍未接入
+> （版本记录/同版本跳过/新版本重放/启动路径接线待补）
 - **Files:** `apps/server/src/seed/`、`apps/server/src/db/seed.ts`、`test/server/seed-versioning.test.cjs`
 - **Test（先写失败）:** 幂等 upsert；内容版本记录；与 migration 分离。
 - **Steps:** 现有 seed（labs、quiz bank）改为 versioned 幂等。
