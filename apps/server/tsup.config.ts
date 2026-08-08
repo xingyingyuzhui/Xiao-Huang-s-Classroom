@@ -22,6 +22,7 @@ export default defineConfig({
     'routes/chemistry/reactions': 'src/routes/chemistry/reactions.ts',
     'routes/chemistry/labs': 'src/routes/chemistry/labs.ts',
     'routes/chemistry/lesson-packs': 'src/routes/chemistry/lesson-packs.ts',
+    'routes/chemistry/mastery': 'src/routes/chemistry/mastery.ts',
   },
   format: ['cjs'],
   dts: true,

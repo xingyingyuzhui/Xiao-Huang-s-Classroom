@@ -69,7 +69,10 @@ const studentsRouter = require('./routes/chemistry/students')({
   run,
   runBatch,
 });
-const masteryRouter = require('./routes/chemistry/mastery');
+const masteryRouter = require('./routes/chemistry/mastery')({
+  query,
+  ensureQuizSchema: require('./db/ensure-quiz-schema').ensureQuizSchema,
+});
 const lessonPacksRouter = require('./routes/chemistry/lesson-packs')({
   query,
   queryOne,
