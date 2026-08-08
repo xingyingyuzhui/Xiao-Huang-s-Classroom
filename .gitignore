@@ -36,3 +36,6 @@ dist-electron/
 .tmp-ref-books/
 .turbo
 coverage/
+# keep coverage gate source (not runtime reports)
+!tooling/coverage/
+!tooling/coverage/**
