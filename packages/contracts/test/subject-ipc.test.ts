@@ -25,6 +25,12 @@ describe('subject manifest / IPC schema', () => {
     expect(r.success).toBe(false);
   });
 
+  it('ipcChannelSchema 含 app:get-version 且为唯一 allowlist 源', async () => {
+    const { ipcChannelSchema } = await import('../src/ipc.js');
+    expect(ipcChannelSchema.options).toContain('app:get-version');
+    expect(ipcChannelSchema.options.length).toBeGreaterThanOrEqual(1);
+  });
+
   it('未登记 IPC channel 被拒绝', () => {
     const r = ipcRequestSchema.safeParse({ channel: 'shell:exec-anything', payload: {} });
     expect(r.success).toBe(false);
