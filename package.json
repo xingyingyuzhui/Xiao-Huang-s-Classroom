@@ -37,6 +37,7 @@
     "format": "prettier --write \".prettierrc.json\" \"tsconfig*.json\" \"tooling/**/*.json\" \"tooling/**/*.mjs\" \"docs/engineering/**/*.md\" \"scripts/*.mjs\"",
     "format:check": "prettier --check \".prettierrc.json\" \"tsconfig*.json\" \"tooling/**/*.json\" \"tooling/**/*.mjs\" \"docs/engineering/**/*.md\" \"scripts/*.mjs\"",
     "quality": "npm run format:check && npm run lint && npm run lint:css && npm run lint:baseline && npm run typecheck && npm run lint:arch && npm run lint:theme-tokens && npm run lint:assets && npm test && npm run build && npm run budget && npm run coverage && git diff --check",
+    "quality:fast": "npm run format:check && npm run lint && npm run lint:css && npm run typecheck && npm test && npm run build && git diff --check",
     "lint:css": "stylelint \"apps/web/src/shared/styles/**/*.css\" \"packages/**/*.css\"",
     "lint:css:all": "stylelint \"apps/web/src/shared/styles/**/*.css\"",
     "lint:arch": "node tooling/architecture/check-dependencies.mjs",
