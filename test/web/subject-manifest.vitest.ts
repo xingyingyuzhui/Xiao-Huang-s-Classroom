@@ -4,13 +4,13 @@
  * 断言：化学 manifest 与现状一致（status/默认面板/面板 catalog）；
  * 数学 manifest 保留函数画布合同入口；物理/生物为 locked placeholder。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
-async function load(rel) {
+async function load(rel: string) {
   return import(pathToFileURL(path.join(root, rel)).href);
 }
 
