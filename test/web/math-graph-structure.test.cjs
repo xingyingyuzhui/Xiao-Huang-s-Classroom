@@ -57,6 +57,25 @@ test('graph orchestrator delegates function collection UI and record creation', 
   );
 });
 
+test('graph orchestrator keeps probe/analysis/readouts/transform/mount/follow internals out of index', () => {
+  const orchestrator = read('index.js');
+  // 职责 → [模块文件, index 必须委托的导出, index 禁止出现的函数定义（内联特征）]
+  const contracts = [
+    ['probe-controller.js', 'createProbeController', /function (renderReadout|samplesAt)\s*\(/],
+    ['numeric-analysis-runner.js', 'createNumericAnalysisRunner', /function (analyze|invalidateKey)\s*\(/],
+    ['graph-readouts.js', 'createGraphReadouts', /function (formatProbeNumber|escapeHtml)\s*\(/],
+    ['transform-model.js', 'describePresetTransform', /function (normalizeCoeffs|scaleText)\s*\(/],
+    ['graph-mount-controller.js', 'createGraphMountController', /function (ensurePreset|openCoeffTransaction)\s*\(/],
+    ['graph-follow-targets.js', 'createGraphFollowTargets', /function (mirrorActiveToLegacy|followIdForFn)\s*\(/],
+  ];
+  for (const [file, delegatedExport, inlineFeature] of contracts) {
+    assert.equal(fs.existsSync(path.join(graphDir, file)), true, `${file} is required`);
+    assert.match(read(file), new RegExp(`export function ${delegatedExport}`), `${file} must export ${delegatedExport}`);
+    assert.match(orchestrator, new RegExp(delegatedExport), `index must delegate to ${delegatedExport}`);
+    assert.doesNotMatch(orchestrator, inlineFeature, `index must not inline ${file} implementation`);
+  }
+});
+
 test('graph document architecture files exist and stay DOM/JSXGraph-free', () => {
   for (const file of [
     'graph-document.js',
