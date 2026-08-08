@@ -581,7 +581,7 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 | 日期 | Track | 变更 | 分支 / Commit | 验证 |
 | ---- | ----- | ---- | ------------- | ---- |
 | 2026-08-08 | — | 计划 v1.0 创建 | 文档 | — |
-| 2026-08-08 | H | Track H 完成：UI 计划 §13 勾选对齐（P0–P3/P6/P7.2–P7.3 依代码补勾，P7.1 未闭合见 UI 计划附录 B）+ 路线图 §9.1 D2 暂缓说明/§9.3 D7 指针 + debt-registry D2/D4/D7 对齐 + §9 交接卡 + `ui-library.md` 遗留冲突标记清理 | `codex/handoff-docs` @ `<hash 提交后回填>` | `git diff --stat docs/`、`npm run format:check`、`git diff --check` |
+| 2026-08-08 | H | Track H 完成：UI 计划 §13 勾选对齐（P0–P3/P6/P7.2–P7.3 依代码补勾，P7.1 未闭合见 UI 计划附录 B）+ 路线图 §9.1 D2 暂缓说明/§9.3 D7 指针 + debt-registry D2/D4/D7 对齐 + §9 交接卡 + `ui-library.md` 遗留冲突标记清理 | `codex/handoff-docs` @ `ed5c418` | `git diff --stat docs/`、`npm run format:check`、`git diff --check` |
 
 ---
 
