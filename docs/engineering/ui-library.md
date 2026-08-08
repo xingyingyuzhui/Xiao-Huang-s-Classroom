@@ -58,7 +58,6 @@ apps/web 全局样式
 
 ## Stable API v1
 
-<<<<<<< HEAD
 冻结时间：2026-08-08（计划 Phase 2）。后续破坏性变更必须升包版本并回写此处登记。
 
 通用 props（`BaseProps`）：`label?`、`disabled?`、`loading?`、`error?`、`'aria-label'?`。
@@ -120,37 +119,52 @@ apps/web 全局样式
 **残留差异（已知）：** 每次弹窗新建/销毁节点（原实现复用单 root）；关闭动画期间
 （220ms 内）重复 Esc/点击由 `settled` 守卫吸收；库的 Esc 为 bubble 阶段、Enter 为
 capture 阶段（原实现两者均 capture）——行为等价，边界场景可接受。
-=======
+
+相关文档：
 
 - 计划：`docs/superpowers/plans/2026-08-08-ui-library-adoption-plan.md`
 - 采用计数合同：`test/shared/ui-adoption-contract.test.cjs`
 - 债务：D4（innerHTML）见 `docs/engineering/debt-registry.md`
 
-## 6. 采用指南（@xiaohuang/ui 消费者）
+## 采用指南（@xiaohuang/ui 消费者）
 
 > P7 前置阶段追加（2026-08-08）。`packages/ui/README.md` 由 P2 统一产出前，本段为
 > 权威消费说明；P2 完成后 README 与本段同源，本段可收敛为指针。
 
-### 6.1 何时用库
+### 何时用库
 
 - 新 UI 一律默认 `@xiaohuang/ui` 的 `create*` 工厂（`createButton` / `createDialog` / `createToast` / `createToolGroup` / `createReadoutCard` 等）；禁止新写 HTML partial、手写 DOM 拼按钮或模板 innerHTML。
-- 存量 UI 迁移期允许 Bridge 模式：`createButton({ className: 'math-fn-btn …' })` 挂接既有样式类（见 §3.3 与 §1.2 试点）。
+- 存量 UI 迁移期允许 Bridge 模式：`createButton({ className: 'math-fn-btn …' })` 挂接既有样式类（见上文「架构」与「采用表」）。
 - 组件内部一律 `textContent` / 受控 DOM；不可信字符串不得进 `innerHTML`。
 
-### 6.2 dispose
+### dispose
 
 - 组件返回 `UiController`（`element` / `update` / `on` / `dispose`）；消费方必须在 classroom dispose / panel teardown / 换 tab 时调用 `dispose()`，与 B5 DOM 捕获样板一致。
 - dispose 逆序、容错、幂等：重复调用无副作用。
 
-### 6.3 className 桥接
+### className 桥接
 
 - 迁移期 `className` 可同时挂 `ui-*` 基类与业务旧类（如 `math-fn-btn`）；最终以 `ui-*` + token 为主，业务 CSS 变薄。
 
-## 7. 门禁与豁免（P7.2 前置，2026-08-08）
+## 门禁与豁免（P7.2 前置，2026-08-08）
 
 - 合同测试：`test/shared/ui-no-raw-button-contract.test.cjs` 扫描 `apps/web/src/math/graph/**` 的 .js/.ts，命中「裸按钮拼 UI」（`createElement('button')`，或模板字符串 innerHTML 中的 `<button>`）即失败，除非登记豁免。
 - 豁免登记：`docs/engineering/ui-legacy-allowlist.md`（表格：文件 | 原因 | 移除条件）。豁免只消化存量（当前仅 `function-panel.js`，P3 并行迁移中）；新增裸按钮代码不适用豁免、直接失败。
 - 登记项不再命中模式时，门禁输出清理提示，由后续任务移除登记。
-- 相关：D4（innerHTML 债务）见 `docs/engineering/debt-registry.md`；计划见 §12 Phase 7。
+- 相关：D4（innerHTML 债务）见 `docs/engineering/debt-registry.md`；计划见「Phase 7」。
 
-> > > > > > > codex/ui-p7a
+## 产品确认框必须走 app-dialog（U4，2026-08-08）
+
+**规则：** 产品面（`apps/web/src` 业务代码）的确认 / 提示 / 输入弹窗一律走
+`appAlert` / `appConfirm` / `appPrompt`（`apps/web/src/shared/ui/app-dialog.js`），
+**禁止直接调用 `window.confirm` / `window.alert` / `window.prompt`**。
+app-dialog 已 Adapter 到 `@xiaohuang/ui` 的 `createDialog`（role=dialog、aria-modal、
+Esc 关闭、opener 焦点归还、dispose 生命周期），并带滚动锁定与焦点合同
+（见 `test/web/app-dialog-scroll-lock.test.cjs`，10 条）。
+
+- 审计基线：`docs/engineering/ui-dialog-audit.md`（U1，2026-08-08）——`window.confirm/alert/prompt`
+  在 `apps/web/src` 为 **0 残留**；17 个使用面已统一走 app-dialog 家族；`dev/catalog` 为豁免（dev 工具）。
+- 新代码红线：新增危险操作确认不得用 `window.confirm` 或手写裸弹窗；复用时先查
+  `appConfirm`，不足再补参数（danger/okText/cancelText 等），不新增第三套弹窗。
+- 依赖注入场景（如 `graph-persistence.js` 的 `confirm/alert` 形参）：保持注入，装配点必须接
+  `appConfirm/appAlert`，不得接 `window.*`。新增此类 context 时在 JSDoc 标注「由调用方注入」。
