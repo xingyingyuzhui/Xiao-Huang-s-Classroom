@@ -4,11 +4,11 @@
 
 ## 1. 三类数据位置（权威：`apps/server/src/paths.js`）
 
-| 运行形态 | 数据目录 | 解析链 |
-| --- | --- | --- |
+| 运行形态                         | 数据目录            | 解析链                                                       |
+| -------------------------------- | ------------------- | ------------------------------------------------------------ |
 | Web 开发（`npm run dev:server`） | `apps/server/data/` | `getWritableRoot()` → server 包根 → `getDataDir()` → `data/` |
-| Electron 桌面端 | `<userData>/data/` | `main` 设 `CHEM_LAB_DATA_DIR`（userData 可写） |
-| pkg 便携版（过渡产物） | exe 同目录 `data/` | `isPkg()` → `process.execPath` 目录 |
+| Electron 桌面端                  | `<userData>/data/`  | `main` 设 `CHEM_LAB_DATA_DIR`（userData 可写）               |
+| pkg 便携版（过渡产物）           | exe 同目录 `data/`  | `isPkg()` → `process.execPath` 目录                          |
 
 - 数据库文件：`<dataDir>/chem-lab.db`
 - 只读资源（`init.sql`、内嵌 `public`）：`getSnapshotRoot()`（源码/asar 内），与数据分离
