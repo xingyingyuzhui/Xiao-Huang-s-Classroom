@@ -64,16 +64,24 @@ function budgetPathToFull(rel) {
 
 // 1. 现有大文件必须登记 + 类别合法 + 行数未超预算容差
 for (const file of collectSources()) {
-  const rel = path.relative(repoRoot, file).split(path.sep).join('/').replace(/^apps\//, '');
+  const rel = path
+    .relative(repoRoot, file)
+    .split(path.sep)
+    .join('/')
+    .replace(/^apps\//, '');
   const lines = lineCount(file);
   if (lines <= LIMIT) continue;
   const entry = budget[rel];
   if (!entry) {
-    problems.push(`>${LIMIT} 行未登记预算: ${rel}（${lines} 行）——请拆分子模块或在 tooling/architecture/large-file-budget.json 登记类别+拆分计划`);
+    problems.push(
+      `>${LIMIT} 行未登记预算: ${rel}（${lines} 行）——请拆分子模块或在 tooling/architecture/large-file-budget.json 登记类别+拆分计划`,
+    );
     continue;
   }
   if (!ALLOWED_CATEGORIES.has(entry.category)) {
-    problems.push(`登记类别非法: ${rel} -> ${entry.category}（允许: ${[...ALLOWED_CATEGORIES].join('/')}）`);
+    problems.push(
+      `登记类别非法: ${rel} -> ${entry.category}（允许: ${[...ALLOWED_CATEGORIES].join('/')}）`,
+    );
   }
   if (!entry.plan || typeof entry.plan !== 'string' || entry.plan.length < 8) {
     problems.push(`登记缺少拆分计划说明: ${rel}`);
@@ -101,4 +109,6 @@ if (problems.length) {
   for (const p of problems) console.error(`  - ${p}`);
   process.exit(1);
 }
-console.log(`[large-files] OK：${Object.keys(budget).length} 个 >${LIMIT} 行文件均有预算登记，无膨胀/残留`);
+console.log(
+  `[large-files] OK：${Object.keys(budget).length} 个 >${LIMIT} 行文件均有预算登记，无膨胀/残留`,
+);
