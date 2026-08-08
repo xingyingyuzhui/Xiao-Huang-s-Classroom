@@ -3,26 +3,28 @@
  */
 
 import { getSubjectMeta as getSubject } from './manifest.js';
+import type { SubjectManifest } from '@xiaohuang/subject-kit';
 
-/**
- * @param {object} opts
- * @param {(sel: string) => Element | null} opts.select
- * @param {() => void} opts.onBackToHub
- */
-export function bindSubjectChrome({ select, onBackToHub }) {
+/** manifest 透传的目录字段（manifest.js 返回超集，单一数据源仍是 catalog） */
+export interface SubjectMeta extends SubjectManifest {
+  name: string;
+}
+
+export interface SubjectChromeOptions {
+  select: (sel: string) => Element | null;
+  onBackToHub: () => void;
+}
+
+export function bindSubjectChrome({ select, onBackToHub }: SubjectChromeOptions) {
   const $ = select;
-  const chip = $('#btnSubjectChip');
+  const chip = $('#btnSubjectChip') as HTMLElement | null;
   const hubBtn = $('#btnSettingsSubjectHub');
 
   chip?.addEventListener('click', () => onBackToHub());
   hubBtn?.addEventListener('click', () => onBackToHub());
 
-  /**
-   * @param {'hub' | 'lab'} mode
-   * @param {string | null} subjectId
-   */
-  function sync(mode, subjectId) {
-    const meta = subjectId ? getSubject(subjectId) : null;
+  function sync(mode: 'hub' | 'lab', subjectId: string | null): void {
+    const meta = subjectId ? (getSubject(subjectId) as SubjectMeta | null) : null;
     if (chip) {
       if (mode === 'lab' && meta) {
         chip.hidden = false;

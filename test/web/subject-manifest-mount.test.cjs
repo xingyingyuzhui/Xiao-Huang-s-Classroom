@@ -49,7 +49,7 @@ test('hub/chrome/shell 数据源统一到 manifest（旧 catalog 直连禁止回
   const fs = require('node:fs');
   for (const rel of [
     'apps/web/src/subjects/hub.js',
-    'apps/web/src/subjects/chrome.js',
+    'apps/web/src/subjects/chrome.ts',
     'apps/web/src/app/shell.js',
   ]) {
     const src = fs.readFileSync(path.join(root, rel), 'utf8');
