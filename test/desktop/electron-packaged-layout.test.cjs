@@ -279,10 +279,12 @@ test('copyRuntimePackage：只复制 package.json + files 白名单', async () =
   }
 });
 
-test('生产 settings.js 产物引用是单一 ../../dist 合同（真实文件结构断言）', () => {
-  const src = fs.readFileSync(path.join(root, 'apps/server/src/routes/settings.js'), 'utf8');
+test('生产 settings 路由权威源产物引用是单一 ../../dist 合同（真实文件结构断言）', () => {
+  // B2 迁移后：src/routes/settings.js 为薄转发桥（require dist/routes/settings.js），
+  // 单一产物合同断言指向 TS 权威源（settings.ts，见 3a3c5ec 提交说明）。
+  const src = fs.readFileSync(path.join(root, 'apps/server/src/routes/settings.ts'), 'utf8');
   const requireRefs = src.match(/require\([^)]*settings-policy[^)]*\)/g) || [];
-  assert.equal(requireRefs.length, 1, '生产 settings.js 只 require 一处产物路径');
+  assert.equal(requireRefs.length, 1, '生产 settings.ts 只 require 一处产物路径');
   assert.match(requireRefs[0], /dist\/domain\/settings-policy\.js/, '引用 <root>/dist/domain');
 });
 
