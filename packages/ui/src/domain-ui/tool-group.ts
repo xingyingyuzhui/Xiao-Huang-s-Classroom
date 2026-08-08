@@ -26,6 +26,8 @@ export function createToolGroup(
   let props: ToolGroupProps = { ...initial };
   let changeHandler: ((payload: unknown) => void) | null = null;
   const buttons = new Map<string, HTMLElement>();
+  /** 当前按钮的 click 解绑函数（render 重建与 dispose 时执行，防泄漏） */
+  let clickCleanups: Array<() => void> = [];
 
   const select = (id: string) => {
     if (!props.tools?.some((t) => t.id === id)) return;
@@ -34,6 +36,8 @@ export function createToolGroup(
   };
 
   const render = () => {
+    for (const off of clickCleanups) off();
+    clickCleanups = [];
     element.replaceChildren();
     buttons.clear();
     for (const tool of props.tools ?? []) {
@@ -45,7 +49,9 @@ export function createToolGroup(
       if (tool.id === props.activeId) btn.classList.add('is-active');
       if (tool.tip) btn.setAttribute('aria-label', tool.tip);
       setText(btn, tool.label);
-      btn.addEventListener('click', () => select(tool.id));
+      const onClick = () => select(tool.id);
+      btn.addEventListener('click', onClick);
+      clickCleanups.push(() => btn.removeEventListener('click', onClick));
       buttons.set(tool.id, btn);
       element.appendChild(btn);
     }
@@ -65,6 +71,8 @@ export function createToolGroup(
       };
     },
     dispose() {
+      for (const off of clickCleanups) off();
+      clickCleanups = [];
       element.remove();
     },
   };

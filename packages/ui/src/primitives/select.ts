@@ -1,5 +1,5 @@
 import type { BaseProps, UiController } from '../contract.js';
-import { applyStates, setText } from '../contract.js';
+import { applyAriaLabel, applyStates, setText } from '../contract.js';
 
 export interface SelectOption {
   value: string;
@@ -30,6 +30,7 @@ export function createSelect(initial: SelectProps = {}): UiController<SelectProp
     element.value = props.value ?? props.options?.[0]?.value ?? '';
     element.disabled = Boolean(props.disabled);
     applyStates(element, props);
+    applyAriaLabel(element, props['aria-label']);
   };
   const onChange = () => {
     props.onChange?.(element.value);

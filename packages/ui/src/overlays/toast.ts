@@ -25,6 +25,8 @@ export function createToast(initial: ToastProps = {}): UiController<ToastProps, 
     element.classList.toggle('is-info', props.kind === 'info');
     element.classList.toggle('is-success', props.kind === 'success');
     element.classList.toggle('is-error', props.kind === 'error');
+    // a11y：错误提示用 alert 角色（立即播报），其余 status
+    element.setAttribute('role', props.kind === 'error' ? 'alert' : 'status');
     setText(element, props.message ?? '');
   };
   const schedule = () => {

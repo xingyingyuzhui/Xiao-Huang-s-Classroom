@@ -1,5 +1,5 @@
 import type { BaseProps, UiController } from '../contract.js';
-import { applyStates } from '../contract.js';
+import { applyAriaLabel, applyStates } from '../contract.js';
 
 export interface NumberInputProps extends BaseProps {
   value?: number;
@@ -35,6 +35,7 @@ export function createNumberInput(
     element.value = String(clamp(props.value ?? 0));
     element.disabled = Boolean(props.disabled);
     applyStates(element, props);
+    applyAriaLabel(element, props['aria-label']);
     if (props.min != null) element.setAttribute('min', String(props.min));
     if (props.max != null) element.setAttribute('max', String(props.max));
   };

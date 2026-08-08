@@ -1,5 +1,5 @@
 import type { BaseProps, UiController } from '../contract.js';
-import { applyStates } from '../contract.js';
+import { applyAriaLabel, applyStates } from '../contract.js';
 
 export interface SliderProps extends BaseProps {
   value?: number;
@@ -24,6 +24,7 @@ export function createSlider(initial: SliderProps = {}): UiController<SliderProp
     element.step = String(props.step ?? 1);
     element.disabled = Boolean(props.disabled);
     applyStates(element, props);
+    applyAriaLabel(element, props['aria-label']);
   };
   const onInput = () => {
     const v = Number(element.value);

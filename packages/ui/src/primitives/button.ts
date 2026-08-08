@@ -31,9 +31,18 @@ export function createButton(initial: ButtonProps = {}): UiController<ButtonProp
     element.classList.toggle('is-lg', props.size === 'lg');
     applyStates(element, props);
     setText(element, props.loading ? '加载中…' : (props.label ?? ''));
-    if (props.disabled) element.setAttribute('disabled', '');
-    else element.removeAttribute('disabled');
+    if (props.disabled) {
+      element.setAttribute('disabled', '');
+      element.setAttribute('aria-disabled', 'true');
+    } else {
+      element.removeAttribute('disabled');
+      element.removeAttribute('aria-disabled');
+    }
+    // loading 提示给辅助技术（aria-busy）
+    if (props.loading) element.setAttribute('aria-busy', 'true');
+    else element.removeAttribute('aria-busy');
     if (props['aria-label']) element.setAttribute('aria-label', props['aria-label']);
+    else element.removeAttribute('aria-label');
     if (props.title) element.setAttribute('title', props.title);
   };
   const onClick = () => {
