@@ -42,7 +42,12 @@ const quizRouter = require('./routes/chemistry/quiz')({
 });
 const offlineQuizRouter = require('./routes/chemistry/offline-quiz');
 const reactionsRouter = require('./routes/chemistry/reactions');
-const studentsRouter = require('./routes/chemistry/students');
+const studentsRouter = require('./routes/chemistry/students')({
+  query,
+  queryOne,
+  run,
+  runBatch,
+});
 const masteryRouter = require('./routes/chemistry/mastery');
 const lessonPacksRouter = require('./routes/chemistry/lesson-packs');
 const labsRouter = require('./routes/chemistry/labs');
