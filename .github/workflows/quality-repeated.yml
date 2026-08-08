@@ -1,0 +1,29 @@
+name: quality-repeatability
+
+# 独立 repeatability job：验证完整 quality 连续两次稳定（coverage 产物
+# 生成后 lint/format/arch 不被污染；不在普通单测中递归执行）。
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  repeated:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Quality run 1
+        run: npm run quality
+
+      - name: Quality run 2
+        run: npm run quality

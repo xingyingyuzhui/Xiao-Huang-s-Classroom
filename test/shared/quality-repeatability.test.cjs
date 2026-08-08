@@ -1,6 +1,8 @@
 /**
- * quality 可重复执行合同（R3）：
- * 生成 coverage 后 lint:css 仍必须通过（排除生成目录），连续两次 quality 稳定。
+ * coverage 产物生成后 lint/style/format/architecture 不受污染（R3/五轮）。
+ *
+ * 注意：本测试不递归执行完整 quality（避免嵌套）；完整 quality 连续两次
+ * 由 CI 独立 repeatability job（quality-repeated.yml）验证。
  */
 const test = require('node:test');
 const assert = require('node:assert/strict');
@@ -16,7 +18,7 @@ test('stylelint 配置排除 coverage 等生成目录', () => {
   }
 });
 
-test('生成 coverage 后 lint:css 仍通过（回归合同）', () => {
+test('coverage 产物生成后 lint:css 仍通过（回归合同）', () => {
   // 先生成 coverage（若存在产物则复用；不存在则跑一次）
   if (!fs.existsSync(path.join(root, 'packages/domain-core/coverage'))) {
     execFileSync('npm', ['run', 'coverage'], { cwd: root, stdio: 'pipe' });
@@ -30,7 +32,7 @@ test('生成 coverage 后 lint:css 仍通过（回归合同）', () => {
   assert.doesNotMatch(out, /✖/, 'lint:css 无错误');
 });
 
-test('eslint/prettier/arch 不扫描 coverage', () => {
+test('eslint/prettier/arch 不扫描 coverage（生成目录隔离）', () => {
   const eslint = fs.readFileSync(path.join(root, 'eslint.config.mjs'), 'utf8');
   assert.match(eslint, /coverage/, 'eslint 排除 coverage');
   const prettier = fs.readFileSync(path.join(root, '.prettierignore'), 'utf8');
