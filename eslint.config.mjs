@@ -27,6 +27,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/dist/**',
       '**/public/**',
+      '**/coverage/**',
       '**/.electron-stage/**',
       'dist-electron/**',
       'dist-exe/**',

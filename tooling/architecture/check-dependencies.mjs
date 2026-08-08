@@ -23,7 +23,7 @@ const rules = JSON.parse(fs.readFileSync(path.join(scriptDir, 'rules.json'), 'ut
 /** 收集可扫描源码文件（排除生成/依赖目录） */
 function collectSources() {
   const results = [];
-  const ignoreDirs = new Set(['node_modules', 'dist', 'public', 'data', '.electron-stage']);
+  const ignoreDirs = new Set(['node_modules', 'dist', 'public', 'data', '.electron-stage', 'coverage']);
   const walk = (dir) => {
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
       if (ignoreDirs.has(entry.name)) continue;

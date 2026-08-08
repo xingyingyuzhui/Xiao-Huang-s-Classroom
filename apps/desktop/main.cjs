@@ -332,12 +332,12 @@ function cleanup() {
       httpServer.close();
       httpServer = null;
     }
-  } catch (_) {
+  } catch {
     /* ignore */
   }
   try {
     if (typeof shutdownServer === 'function') shutdownServer();
-  } catch (_) {
+  } catch {
     /* ignore */
   }
   startup.closing();

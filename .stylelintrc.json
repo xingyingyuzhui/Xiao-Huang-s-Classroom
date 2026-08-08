@@ -5,7 +5,12 @@
   "ignoreFiles": [
     "**/dist/**",
     "**/public/**",
-    "apps/server/data/**"
+    "**/coverage/**",
+    "**/.electron-stage/**",
+    "dist-electron/**",
+    "dist-exe/**",
+    "apps/server/data/**",
+    "apps/server/src/data/**"
   ],
   "rules": {
     "custom-property-empty-line-before": null,

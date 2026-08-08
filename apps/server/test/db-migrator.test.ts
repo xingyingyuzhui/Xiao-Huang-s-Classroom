@@ -79,10 +79,8 @@ describe('DB migrator（真实 migration v1）', () => {
   });
 
   it('precondition 失败：迁移不执行且返回 PRECONDITION_FAILED', () => {
-    // 构造一个带失败 precondition 的迁移（临时注入）
     const db = fakeDb(0);
-    const orig = (mod as { MIGRATIONS: Array<Record<string, unknown>> }).MIGRATIONS;
-    // 直接验证现有 migration 的 precondition 通过；用 fake precondition 场景模拟
+    // 现有 migration 的 precondition 通过（真实执行）
     const r = migrateToLatest(db);
     expect(r.ok).toBe(true);
     // 高版本拒绝

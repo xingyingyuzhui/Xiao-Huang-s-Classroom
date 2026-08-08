@@ -7,3 +7,4 @@ apps/server/public
 apps/server/data
 apps/server/src/data
 package-lock.json
+coverage
