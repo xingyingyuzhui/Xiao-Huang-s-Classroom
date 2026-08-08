@@ -32,9 +32,7 @@ type StartupStateMachine = {
   subscribe(fn: (state: string) => void): () => void;
 };
 
-const { createStartupStateMachine } = require('./startup-state-machine.js') as {
-  createStartupStateMachine: () => StartupStateMachine;
-};
+import { createStartupStateMachine } from './startup-state-machine.js';
 
 // ───────────────────────── 常量与环境（require server 之前固定数据目录） ─────────────────────────
 
@@ -52,7 +50,7 @@ let mainWindow: BrowserWindow | null = null;
 let httpServer: { close(): void } | null = null;
 let shutdownServer: (() => void) | null = null;
 /** 启动状态机（R6.2）：idle→staging→serverStarting→ready→closing→closed/failed */
-const startup = createStartupStateMachine();
+const startup: StartupStateMachine = createStartupStateMachine();
 
 function getServerEntry(): string {
   if (app.isPackaged) {
@@ -256,6 +254,7 @@ async function startBackend(): Promise<{ server: { close(): void }; url: string 
       throw new Error(`找不到后端入口: ${serverEntry}`);
     }
     // serverEntry 是打包/开发双路径的运行时变量：CJS require 动态加载
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { startServer, shutdown } = require(serverEntry) as {
       startServer: (opts: { openBrowser: boolean; host: string }) => Promise<{
         server: { close(): void };
