@@ -498,17 +498,17 @@ npm run quality:fast
 
 ### P1
 
-- [ ] P1.1 `_ui-kit.css` + 接入入口  
-- [ ] P1.2 组件 class 对齐  
-- [ ] P1.3 catalog 验收场  
-- [ ] P1.4 主题补丁（按需）  
+- [x] P1.1 `_ui-kit.css` + 接入入口
+- [x] P1.2 组件 class 对齐
+- [x] P1.3 catalog 验收场
+- [ ] P1.4 主题补丁（按需）——P1 未做：五主题 ui-* 全部走语义 token（danger/ink-on-accent 已按各主题对比度选色），lint:theme-tokens / lint:css 绿；真实浏览器目检待 P2 前统一做
 
 ### P2
 
-- [x] P2.1 dispose 测试矩阵
-- [x] P2.2 a11y 基线
-- [x] P2.3 Stable API v1 文档
-- [x] P2.4 app-dialog 决策 + 实现
+- [ ] P2.1 dispose 测试矩阵  
+- [ ] P2.2 a11y 基线  
+- [ ] P2.3 Stable API v1 文档  
+- [ ] P2.4 app-dialog 决策 + 实现  
 
 ### P3
 
@@ -520,8 +520,8 @@ npm run quality:fast
 ### P4
 
 - [ ] P4.1 Dialog 主路径  
-- [ ] P4.2 Toast/Status  
-- [x] P4.3 焦点/滚动
+- [x] P4.2 Toast/Status（设置抽屉轻提示消费 createToast，见附录 B）
+- [ ] P4.3 焦点/滚动  
 
 ### P5
 
@@ -643,9 +643,8 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
 | | P0 完成 | |
-| | P1 完成 | |
-| 2026-08-08 | P2 完成（P2.1+P2.2 组件合同硬化：dispose/泄漏测试矩阵 20 例 + a11y 基线；P2.3 Stable API v1 文档；P2.4 app-dialog Adapter） | 8a97d38（codex/ui-p2） |
-| | P4.3 完成（app-dialog 滚动锁定：打开 lock body、关闭动画结束后按引用计数释放；新增 test/web/app-dialog-scroll-lock.test.cjs 5 例） | 42186a3（codex/ui-p4-3） |
+| 2026-08-08 | **P1 完成**：P1.1 `_ui-kit.css`（+五主题补 `--danger`/`--danger-hover`/`--danger-soft`/`--ink-on-accent` 四个缺失 token）；P1.2 根 class 契约测试（`packages/ui/test/class-names.test.ts`，27 测试绿，组件 class 已对齐无需改源码）；P1.3 catalog 验收场（全组件 + 桥接对比）。P1.4 未做（按需项，token 已按主题对比度选色，浏览器目检留 P2）。已知组件缺陷：`createDialog` update 时 `setText` 清空消费方挂载的子节点，留 P2.4 硬化 | codex/ui-p1 `19a3b72`（P1.1）/ `b55ba0a`（P1.2）/ `95632a8`（P1.3） |
+| 2026-08-08 | **P4.2 完成**：设置抽屉轻提示消费 `createToast`——`shared/ui/settings.js` 内联 `setStatus`（settings-status 写入 + 2800ms 清除）整体替换为 toast `notify(text, ok)`，16 处调用点内容/时限不变（kind: ok→success / !ok→error，durationMs 2800，覆盖式单条）；返回控制器补 `dispose()`（幂等回收活动 toast，抽屉为应用单例无卸载路径）；index.html 四枚死 `settings-status` 元素删除（aria-live 由 toast `role=status` 承接）。选型理由：molar 提示与结果内容/加载态同元素耦合（AI 建议链路还叠加在本地配平状态上），替换面不净；settings `setStatus` 是唯一收口、语义恰为瞬态成功/失败。测试：源合同 `test/web/settings-toast-consumption.test.cjs` 2 例 + 执行 `settings-toast-consumption.vitest.ts` 1 例（fake DOM + 假 fetch；settings→client→ai-subject→session.js(TS) 链路沿用 B5 vitest 先例）。验证：ui 包 27 测、web node:test 383/385（2 例基线既有失败：mastery-map/subject-hub，与本次无关）、web vitest 56 测、typecheck/build/lint:css/lint:theme-tokens 绿 | codex/ui-p4-2 `85c012f` |
 | | … | |
 
 ---

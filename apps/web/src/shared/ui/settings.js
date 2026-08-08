@@ -5,6 +5,7 @@
  */
 
 import { settingsApi } from '../api/client.js';
+import { createToast } from '@xiaohuang/ui';
 import { THEME_CATALOG, normalizeTheme, DEFAULT_THEME_ID } from '../theme/catalog.js';
 import { applyTheme } from '../theme/apply.js';
 import {
@@ -206,12 +207,9 @@ export async function initSettingsUI({
   const brandTitleInput = $('#brandTitleInput');
   const btnSaveBrand = $('#btnSaveBrand');
   const btnResetBrand = $('#btnResetBrand');
-  const brandStatus = $('#brandStatus');
 
   const themePicker = $('#themePicker');
-  const themeStatus = $('#themeStatus');
   const defaultPage = $('#settingDefaultPage');
-  const defaultPageStatus = $('#defaultPageStatus');
   const defaultPageBlock = $('#settingsDefaultPageBlock');
   const aiSection = $('#settingsAiSection');
 
@@ -258,18 +256,30 @@ export async function initSettingsUI({
   const apiKey = $('#aiApiKey');
   const apiModel = $('#aiModel');
   const btnSaveAi = $('#btnSaveAi');
-  const aiStatus = $('#aiStatus');
 
   let pendingIconDataUrl = null;
 
-  function setStatus(el, text, ok) {
-    if (!el) return;
-    el.textContent = text;
-    el.className = 'settings-status ' + (ok ? 'is-ok' : 'is-err');
-    setTimeout(() => {
-      el.textContent = '';
-      el.className = 'settings-status';
-    }, 2800);
+  /** 当前活动轻提示：同一时刻只保留一条，新提示覆盖旧提示（与旧内联状态行为一致） */
+  let activeToast = null;
+
+  function dismissActiveToast() {
+    if (activeToast) {
+      activeToast.dispose();
+      activeToast = null;
+    }
+  }
+
+  /** 操作成功/失败轻提示：统一走 @xiaohuang/ui Toast（2800ms 自动消失，与旧内联状态时限一致） */
+  function notify(text, ok) {
+    dismissActiveToast();
+    const toast = createToast({
+      message: text,
+      kind: ok ? 'success' : 'error',
+      durationMs: 2800,
+      onDismiss: () => toast.dispose(),
+    });
+    activeToast = toast;
+    document.body.appendChild(toast.element);
   }
 
   function syncBrandInputs(brand) {
@@ -291,15 +301,11 @@ export async function initSettingsUI({
     }
     try {
       await saveSettings({ theme: { id: nextId } });
-      setStatus(themeStatus, `已切换为「${label}」`, true);
+      notify(`已切换为「${label}」`, true);
     } catch (err) {
       /* 后端未启动时仍保留本地主题，避免「保存失败」连封面也不换的错觉 */
       console.warn('主题已应用，但未能写入服务器:', err);
-      setStatus(
-        themeStatus,
-        `已切换为「${label}」（未同步服务器，请确认后端 npm run dev:server 已启动）`,
-        false,
-      );
+      notify(`已切换为「${label}」（未同步服务器，请确认后端 npm run dev:server 已启动）`, false);
     }
   }
 
@@ -357,23 +363,23 @@ export async function initSettingsUI({
     const file = brandIconInput.files?.[0];
     if (!file) return;
     if (!file.type.startsWith('image/')) {
-      setStatus(brandStatus, '请选择图片文件', false);
+      notify('请选择图片文件', false);
       return;
     }
     if (file.size > BRAND_ICON_MAX_BYTES) {
-      setStatus(brandStatus, '图片过大（限 500KB）', false);
+      notify('图片过大（限 500KB）', false);
       return;
     }
     try {
       const dataUrl = await readFileAsDataUrl(file);
       if (dataUrl.length > BRAND_ICON_MAX_BYTES * 1.4) {
-        setStatus(brandStatus, '编码后过大', false);
+        notify('编码后过大', false);
         return;
       }
       pendingIconDataUrl = dataUrl;
       if (brandIconPreview) brandIconPreview.src = dataUrl;
     } catch {
-      setStatus(brandStatus, '读取文件失败', false);
+      notify('读取文件失败', false);
     }
   });
 
@@ -382,7 +388,7 @@ export async function initSettingsUI({
     if (!subjectId) return;
     const title = brandTitleInput?.value?.trim();
     if (!title) {
-      setStatus(brandStatus, '标题不能为空', false);
+      notify('标题不能为空', false);
       return;
     }
     try {
@@ -395,9 +401,9 @@ export async function initSettingsUI({
       await saveSubjectSettingsPatch(subjectId, { brand });
       applySubjectBrand(subjectId);
       pendingIconDataUrl = null;
-      setStatus(brandStatus, '已保存', true);
+      notify('已保存', true);
     } catch (err) {
-      setStatus(brandStatus, '保存失败: ' + err.message, false);
+      notify('保存失败: ' + err.message, false);
     }
   });
 
@@ -413,9 +419,9 @@ export async function initSettingsUI({
       applySubjectBrand(subjectId);
       syncBrandInputs(brand);
       pendingIconDataUrl = null;
-      setStatus(brandStatus, '已恢复默认', true);
+      notify('已恢复默认', true);
     } catch (err) {
-      setStatus(brandStatus, '重置失败: ' + err.message, false);
+      notify('重置失败: ' + err.message, false);
     }
   });
 
@@ -426,9 +432,9 @@ export async function initSettingsUI({
     try {
       await saveSubjectSettingsPatch(subjectId, { defaultPage: pageId });
       onDefaultPageChange?.(subjectId, pageId);
-      setStatus(defaultPageStatus, '已保存', true);
+      notify('已保存', true);
     } catch (err) {
-      setStatus(defaultPageStatus, '保存失败: ' + err.message, false);
+      notify('保存失败: ' + err.message, false);
     }
   });
 
@@ -437,7 +443,7 @@ export async function initSettingsUI({
     if (!subjectId) return;
     const model = apiModel?.value;
     if (!ALLOWED_MODELS.has(model)) {
-      setStatus(aiStatus, '不支持的模型', false);
+      notify('不支持的模型', false);
       return;
     }
     try {
@@ -447,9 +453,9 @@ export async function initSettingsUI({
         model,
       };
       await saveSubjectSettingsPatch(subjectId, { ai });
-      setStatus(aiStatus, '已保存', true);
+      notify('已保存', true);
     } catch (err) {
-      setStatus(aiStatus, '保存失败: ' + err.message, false);
+      notify('保存失败: ' + err.message, false);
     }
   });
 
@@ -480,6 +486,10 @@ export async function initSettingsUI({
         return resolveDefaultPage(subjectId, slice.defaultPage);
       }
       return slice.defaultPage;
+    },
+    /** 设置抽屉为应用级单例（shell 无卸载路径）；dispose 幂等，回收活动轻提示 */
+    dispose() {
+      dismissActiveToast();
     },
   };
 }
