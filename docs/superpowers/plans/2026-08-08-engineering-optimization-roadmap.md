@@ -860,6 +860,7 @@ tooling/architecture/
 | 2026-08-08 | B5 落地（function-panel/editor dispose 样板，D3 样板）  | B5 提交；二次 mount 合同测试                      |
 | 2026-08-08 | D-data 落地（数据路径收口，D9 关闭）                    | D-data 提交；data-paths.md + 合同测试             |
 | 2026-08-08 | D-jessie 落地（JSXGraph eval ADR-0003，D8 已评估）      | D-jessie 提交；使用面守门                         |
+| 2026-08-08 | D10/D11 收口（边界脚本化确认 + CSS 清零）               | 债务表 D10/D11 → 已关闭                           |
 | 2026-08-08 | C4 落地（Electron main TS 单产物）                      | C4 提交；asar 含 dist/main.js                     |
 | 2026-08-08 | C3 落地（frame-task TS 切片 + web vitest 样板）         | C3 提交；web 438 绿                               |
 
