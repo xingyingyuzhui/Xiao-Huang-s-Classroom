@@ -12,6 +12,7 @@ export default defineConfig({
     'domain/settings-policy': 'src/domain/settings-policy.ts',
     'services/settings-service': 'src/services/settings-service.ts',
     'routes/settings': 'src/routes/settings.ts',
+    'routes/ai/lesson': 'src/routes/ai/lesson.ts',
   },
   format: ['cjs'],
   dts: true,

@@ -55,7 +55,12 @@ function makeCleanCopy() {
     path.join(dir, 'src/routes/settings.ts'),
   );
   fs.mkdirSync(path.join(dir, 'src/utils'), { recursive: true });
-  for (const f of ['response.js', 'ai-config.js']) {
+  fs.mkdirSync(path.join(dir, 'src/routes/ai'), { recursive: true });
+  fs.copyFileSync(
+    path.join(root, 'apps/server/src/routes/ai/lesson.ts'),
+    path.join(dir, 'src/routes/ai/lesson.ts'),
+  );
+  for (const f of ['response.js', 'ai-config.js', 'ai-request.js']) {
     fs.copyFileSync(path.join(root, 'apps/server/src/utils', f), path.join(dir, 'src/utils', f));
   }
   // 模拟 settings.js 的产物引用（与生产同一相对结构 routes → ../../dist）
