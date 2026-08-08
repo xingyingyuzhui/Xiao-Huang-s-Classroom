@@ -5,8 +5,8 @@
 
 ## 当前规模（2026-08-08）
 
-- 生产/工具 JS 文件：274
-- TS 文件：67（全部在 packages/ 与 apps 测试目录；apps 生产 TS 为 0）
+- 生产/工具 JS 文件：266
+- TS 文件：75（全部在 packages/ 与 apps 测试目录；apps 生产 TS 为 11，B5 首批 shell）
 
 ## 迁移顺序（按依赖序，R8）
 
@@ -33,6 +33,19 @@
 | `test/web/math-{frame-task,graph-readouts,graph-performance}.vitest.ts` | vitest                    | node:test 迁移（D7 样板，`*.vitest.ts` glob 与 cjs 不交叉）                              |
 | `apps/web/src/chemistry/ai-classroom/chem-text.ts`                      | TS 权威                   | C3 后续（2026-08-08）：LaTeX→HTML 纯字符串处理；消费方 Vite 解析 .ts，测试迁 vitest      |
 | `test/web/chem-text.vitest.ts`                                          | vitest                    | D-test 第二批（随 TS 化迁移，glob 与 cjs 不交叉）                                        |
+
+### B5 已落地（2026-08-08，shell 首批 8 文件）
+
+| 文件                                                                   | 状态    | 说明                                                                                                  |
+| ---------------------------------------------------------------------- | ------- | ----------------------------------------------------------------------------------------------------- |
+| `apps/web/src/subjects/session.ts`                                     | TS 权威 | localStorage 会话助手；消费方（shell/ai-subject/brand-tip）保留 .js 导入路径，Vite 解析 .ts            |
+| `apps/web/src/subjects/chrome.ts`                                      | TS 权威 | 顶栏学科标签；SubjectMeta 透传 manifest 超集字段                                                      |
+| `apps/web/src/subjects/classrooms/home-shell.ts`                       | TS 权威 | 首页占位教室；manifest 单一权威入口                                                                    |
+| `apps/web/src/subjects/classrooms/tabbed-classroom.ts`                 | TS 权威 | 多 Tab 公共壳；types.js typedef 转 interface（DefaultPageOption 复用 types.js 权威）                   |
+| `apps/web/src/subjects/classrooms/{physics,biology}-classroom.ts`      | TS 权威 | 壳学科工厂转发；返回类型标注 SubjectClassroom 合同                                                    |
+| `apps/web/src/subjects/classrooms/chemistry-classroom.ts`              | TS 权威 | 模块变量用 typeof import 类型；新增 `vite-env.d.ts`（vite/client 提供 `*?raw` 声明）                  |
+| `apps/web/src/subjects/classrooms/math-classroom.ts`                   | TS 权威 | 数学教室壳；lab-bridge 等 JSDoc 提供上下文类型                                                         |
+| `test/web/math-function-panel-lifecycle.vitest.ts`                     | vitest  | function-panel→client→ai-subject→session 间接链 Node ESM 无法解析 .js→.ts，随 B5 迁 vitest             |
 | B5                                                                      | subject/classroom shell   | ~25                                                                                      | manifest/loader 消费方迁移 |
 | B6                                                                      | 化学与数学非视觉纯逻辑    | ~90                                                                                      | 行为合同测试通过后逐模块   |
 | B7                                                                      | Three.js/JSXGraph adapter | ~20                                                                                      | 集中 adapter 隔离后        |
