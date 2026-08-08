@@ -539,7 +539,7 @@ npm run quality:fast
 - [ ] 阈值抬高  
 - [ ] 危险模式门禁  
 - [ ] D4 更新  
-- [ ] README + AGENTS 链接  
+- [x] README + AGENTS 链接（P7.4：packages/ui/README.md 采用指南完成于 `codex/ui-p7-4b`；AGENTS 链接与 ui-library.md §6/§7 由 P7a 完成）
 - [ ] quality:fast 绿  
 
 ---
@@ -643,6 +643,7 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
 | 2026-08-08 | P5 完成（5A 工具条：board-tools.js 按钮 → createButton bridge，dispose 对齐） | `codex/ui-p5a` @ bc2639f |
+| 2026-08-08 | P7.4 文档收官：packages/ui/README.md 追加「采用指南」段（何时用库 / dispose / className 桥接 / 主题 / 安装） | `codex/ui-p7-4b` @ e1d4a06 |
 | | P0 完成 | |
 | | P1 完成 | |
 | | … | |
