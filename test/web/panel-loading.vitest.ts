@@ -5,36 +5,34 @@
  * 3) DOM 助手 show/hide/error 行为
  * 4) main 集成：使用 panel-loading 模块 + switchSeq 成功后会 hide
  */
-const fs = require('node:fs');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import root from '../helpers/repo-root.js';
 
-const root = require('../helpers/repo-root.js');
-
-function source(rel) {
+function source(rel: string) {
   return fs.readFileSync(path.join(root, rel), 'utf8');
 }
 
 /** 极简 panel mock，足够跑 panel-loading 助手 */
 function createMockPanel() {
-  /** @type {any[]} */
-  const nodes = [];
+  const nodes: MockElement[] = [];
   const doc = {
-    createElement(tag) {
+    createElement(tag: string) {
       const el = {
         tagName: String(tag).toUpperCase(),
         className: '',
         textContent: '',
         hidden: false,
         attrs: Object.create(null),
-        setAttribute(k, v) {
+        setAttribute(k: string, v: string | null) {
           this.attrs[k] = v == null ? '' : String(v);
         },
-        getAttribute(k) {
+        getAttribute(k: string) {
           return Object.prototype.hasOwnProperty.call(this.attrs, k) ? this.attrs[k] : null;
         },
-        hasAttribute(k) {
+        hasAttribute(k: string) {
           return Object.prototype.hasOwnProperty.call(this.attrs, k);
         },
       };
@@ -43,13 +41,13 @@ function createMockPanel() {
   };
   const panel = {
     ownerDocument: doc,
-    querySelector(sel) {
+    querySelector(sel: string) {
       if (sel === '[data-panel-loading]') {
         return nodes.find((n) => n.hasAttribute('data-panel-loading')) || null;
       }
       return null;
     },
-    prepend(el) {
+    prepend(el: MockElement) {
       nodes.unshift(el);
     },
     get _nodes() {
@@ -58,6 +56,18 @@ function createMockPanel() {
   };
   return panel;
 }
+
+/** createMockPanel 生成的极简元素形状（与 panel-loading.js 访问面一致） */
+type MockElement = {
+  tagName: string;
+  className: string;
+  textContent: string;
+  hidden: boolean;
+  attrs: Record<string, string>;
+  setAttribute(k: string, v: string | null): void;
+  getAttribute(k: string): string | null;
+  hasAttribute(k: string): boolean;
+};
 
 test('layout CSS: panel-loading is absolute overlay (does not steal grid rows)', () => {
   const css = source('apps/web/src/shared/styles/_layout.css');
