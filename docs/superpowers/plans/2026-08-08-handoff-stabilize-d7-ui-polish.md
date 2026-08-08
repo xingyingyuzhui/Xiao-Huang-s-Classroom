@@ -1,14 +1,14 @@
 # 小黄的教室 · 交接稳定 + D7 再迁 + UI 体验深化计划
 
-| 字段 | 内容 |
-| --- | --- |
-| **文档类型** | 可执行计划（Agent / 人类共用；优先少翻车、好交接） |
-| **版本** | 2026-08-08 v1.0 |
-| **仓库** | 小黄的教室 monorepo |
-| **当前开发线（写本文时）** | 分支 `codex/c3-frame-task-ts` @ `6b7af19`（约领先 `origin/main` 113 提交；以 `git rev-parse` 为准） |
-| **分支约定** | 每个 Phase / 大切片用 `codex/<track>-*`；验证后可合入**当前开发线**；**本计划不包含合 main / 推 main** |
-| **权威冲突** | 以**当前代码 + CI / 本地 quality 证据**为准，再回写本文与相关计划勾选 |
-| **关联文档** | 见 [附录 A](#附录-a--关联文档) |
+| 字段                       | 内容                                                                                                   |
+| -------------------------- | ------------------------------------------------------------------------------------------------------ |
+| **文档类型**               | 可执行计划（Agent / 人类共用；优先少翻车、好交接）                                                     |
+| **版本**                   | 2026-08-08 v1.0                                                                                        |
+| **仓库**                   | 小黄的教室 monorepo                                                                                    |
+| **当前开发线（写本文时）** | 分支 `codex/c3-frame-task-ts` @ `6b7af19`（约领先 `origin/main` 113 提交；以 `git rev-parse` 为准）    |
+| **分支约定**               | 每个 Phase / 大切片用 `codex/<track>-*`；验证后可合入**当前开发线**；**本计划不包含合 main / 推 main** |
+| **权威冲突**               | 以**当前代码 + CI / 本地 quality 证据**为准，再回写本文与相关计划勾选                                  |
+| **关联文档**               | 见 [附录 A](#附录-a--关联文档)                                                                         |
 
 ---
 
@@ -73,24 +73,24 @@ npm run test -w @xiaohuang/web
 
 ### 1.1 四条 Track
 
-| 序 | Track | 主题 | 目标体感 | 建议工期 |
-| -- | ----- | ---- | -------- | -------- |
-| 1 | **H** Handoff | 计划勾选对齐 + 债务/暂缓标注 | 少翻车、好交接 | 0.5–1 天 |
-| 2 | **Q** Quality | quality / CI 可引用再确认 | 少翻车 | 0.5–1 天 |
-| 3 | **T** Test D7 | `test/web`（及 shared 纯逻辑）再迁一批 Vitest | 工程长期省心 | 2–4 天 |
-| 4 | **U** UI polish | 统一 Dialog/焦点/高流量面体验 | 界面更像成品 | 2–4 天 |
+| 序  | Track           | 主题                                          | 目标体感       | 建议工期 |
+| --- | --------------- | --------------------------------------------- | -------------- | -------- |
+| 1   | **H** Handoff   | 计划勾选对齐 + 债务/暂缓标注                  | 少翻车、好交接 | 0.5–1 天 |
+| 2   | **Q** Quality   | quality / CI 可引用再确认                     | 少翻车         | 0.5–1 天 |
+| 3   | **T** Test D7   | `test/web`（及 shared 纯逻辑）再迁一批 Vitest | 工程长期省心   | 2–4 天   |
+| 4   | **U** UI polish | 统一 Dialog/焦点/高流量面体验                 | 界面更像成品   | 2–4 天   |
 
 ### 1.2 成功标准（本计划「完成」口令）
 
 仅当下列**全部为真**可答「交接稳定 + D7 再迁 + UI 体验深化计划完成」：
 
-| # | 标准 |
-| - | ---- |
-| S1 | 工程路线图 + UI 采用计划 **§勾选与附录** 与代码一致；D2 标明暂缓 |
-| S2 | 当前开发线本地 `npm run quality` **通过**；结果写入本文状态日志（日期 + 短 hash） |
-| S3 | D7 本批：至少 **N≥12** 个原 `test/web/*.cjs` 纯逻辑/低依赖用例迁至 Vitest，且**无双份权威**；web vitest 绿 |
-| S4 | UI：危险确认路径审计表落地；高流量面无 `window.confirm`；焦点/滚动合同测覆盖 app-dialog；至少 **2** 个高流量面体验补丁（见 U3） |
-| S5 | 本文状态日志完整；**未**在本计划流程中合 main |
+| #   | 标准                                                                                                                            |
+| --- | ------------------------------------------------------------------------------------------------------------------------------- |
+| S1  | 工程路线图 + UI 采用计划 **§勾选与附录** 与代码一致；D2 标明暂缓                                                                |
+| S2  | 当前开发线本地 `npm run quality` **通过**；结果写入本文状态日志（日期 + 短 hash）                                               |
+| S3  | D7 本批：至少 **N≥12** 个原 `test/web/*.cjs` 纯逻辑/低依赖用例迁至 Vitest，且**无双份权威**；web vitest 绿                      |
+| S4  | UI：危险确认路径审计表落地；高流量面无 `window.confirm`；焦点/滚动合同测覆盖 app-dialog；至少 **2** 个高流量面体验补丁（见 U3） |
+| S5  | 本文状态日志完整；**未**在本计划流程中合 main                                                                                   |
 
 > **非目标：** 全仓 TS、pkg/Win 包、大厅 3D 大改、新学科功能、把 72 个 web cjs 一次清零。
 
@@ -107,25 +107,25 @@ npm run test -w @xiaohuang/web
 
 ### 2.1 工程 / 债务
 
-| 项 | 状态（约 2026-08-08 开发线） |
-| -- | ---------------------------- |
-| Track A CI 可复现 | 已修 coverage 竞态 + turbo 先 build web 依赖 |
-| Server 测试 | **node:test 归零**，Vitest 全量 |
-| Web 测试 | `test/web` 约 **72** 个 `.cjs` + 已有约 **13** 个 `*.vitest.ts` |
-| Shared 测试 | 约 **18** 个 `test/shared/*.cjs`（合同/门禁类，迁移优先级低于纯逻辑） |
-| D2 pkg/Win | **未验收；本计划暂缓** |
-| D7 | server 完成；web/desktop 分批中 |
-| D14 server 全量 TS | 样板在；全量不在本计划范围 |
+| 项                 | 状态（约 2026-08-08 开发线）                                          |
+| ------------------ | --------------------------------------------------------------------- |
+| Track A CI 可复现  | 已修 coverage 竞态 + turbo 先 build web 依赖                          |
+| Server 测试        | **node:test 归零**，Vitest 全量                                       |
+| Web 测试           | `test/web` 约 **72** 个 `.cjs` + 已有约 **13** 个 `*.vitest.ts`       |
+| Shared 测试        | 约 **18** 个 `test/shared/*.cjs`（合同/门禁类，迁移优先级低于纯逻辑） |
+| D2 pkg/Win         | **未验收；本计划暂缓**                                                |
+| D7                 | server 完成；web/desktop 分批中                                       |
+| D14 server 全量 TS | 样板在；全量不在本计划范围                                            |
 
 ### 2.2 UI 采用
 
-| 项 | 状态 |
-| -- | ---- |
+| 项                            | 状态                                                                          |
+| ----------------------------- | ----------------------------------------------------------------------------- |
 | 业务侧 `@xiaohuang/ui` import | 约 **9** 文件（含 graph/settings/molecule/lesson-packs/board-tools/notes 等） |
-| `app-dialog` | 已 Adapter 到 `createDialog`；对外 `appAlert` / `appConfirm` / `appPrompt` |
-| 已走 appConfirm 的面 | 函数侧栏删除、分子列表/反应、对战重开、AI 课壳多处、备课包删除等 |
-| UI 计划 §13 | **大量未勾**，与附录 B「已完成」**不一致**（H1 主修对象） |
-| 危险模式门禁 / D4 | 代码侧已有进展；§13 与 debt 表述需对齐 |
+| `app-dialog`                  | 已 Adapter 到 `createDialog`；对外 `appAlert` / `appConfirm` / `appPrompt`    |
+| 已走 appConfirm 的面          | 函数侧栏删除、分子列表/反应、对战重开、AI 课壳多处、备课包删除等              |
+| UI 计划 §13                   | **大量未勾**，与附录 B「已完成」**不一致**（H1 主修对象）                     |
+| 危险模式门禁 / D4             | 代码侧已有进展；§13 与 debt 表述需对齐                                        |
 
 ### 2.3 测试迁移经验（必须复用）
 
@@ -149,17 +149,17 @@ npm run test -w @xiaohuang/web
 2. 对仍不确定的项：打开对应文件/测试核对后再勾；勾不上的保持 `[ ]` 并在附录 B 写「未闭合原因」。
 3. 建议勾选对照（执行时用代码复核，勿盲勾）：
 
-| §13 项 | 预期（复核后） |
-| ------ | -------------- |
-| P0.1–P0.2 | 应已完成 |
-| P1.1–P1.3 | 应已完成；P1.4 按需 |
-| P2.1–P2.4 | 应已完成 |
-| P3.1–P3.4 | 应已完成 |
-| P4.* | 文档已有 [x] |
-| P5.* | 文档已有 [x] |
-| P6 化学一面板 / Dialog / adoption≥8 | 代码上应已满足；勾选对齐 |
-| P7 危险模式门禁 / D4 更新 | 按 `ui-p7a` 与 debt-registry 复核后勾 |
-| P7 README / quality | 文档已有 [x] |
+| §13 项                              | 预期（复核后）                        |
+| ----------------------------------- | ------------------------------------- |
+| P0.1–P0.2                           | 应已完成                              |
+| P1.1–P1.3                           | 应已完成；P1.4 按需                   |
+| P2.1–P2.4                           | 应已完成                              |
+| P3.1–P3.4                           | 应已完成                              |
+| P4.*                                | 文档已有 [x]                          |
+| P5.*                                | 文档已有 [x]                          |
+| P6 化学一面板 / Dialog / adoption≥8 | 代码上应已满足；勾选对齐              |
+| P7 危险模式门禁 / D4 更新           | 按 `ui-p7a` 与 debt-registry 复核后勾 |
+| P7 README / quality                 | 文档已有 [x]                          |
 
 **完成定义：**
 
@@ -285,12 +285,12 @@ rg -n "window\\.confirm" apps/web/src --glob '*.{js,ts}' || true
 
 ### 5.1 目标与边界
 
-| 做 | 不做 |
-| -- | ---- |
-| 优先 **纯逻辑 / 无浏览器或可 fake DOM** 的 `test/web/*.cjs` | 大厅 Three、完整 classroom 挂载、截图类 |
-| 迁后 **删除或停止引用** 旧 cjs，保证单权威 | 复制一份 vitest 却保留同内容 cjs |
-| 保持 `apps/web` 的 `test` 脚本：vitest + 剩余 cjs | 一次改 root 去掉所有 node:test（未迁完前） |
-| 用例行为对齐（断言语义不变） | 借迁移大改产品逻辑 |
+| 做                                                          | 不做                                       |
+| ----------------------------------------------------------- | ------------------------------------------ |
+| 优先 **纯逻辑 / 无浏览器或可 fake DOM** 的 `test/web/*.cjs` | 大厅 Three、完整 classroom 挂载、截图类    |
+| 迁后 **删除或停止引用** 旧 cjs，保证单权威                  | 复制一份 vitest 却保留同内容 cjs           |
+| 保持 `apps/web` 的 `test` 脚本：vitest + 剩余 cjs           | 一次改 root 去掉所有 node:test（未迁完前） |
+| 用例行为对齐（断言语义不变）                                | 借迁移大改产品逻辑                         |
 
 **本批数量门禁：** 至少 **12** 个文件完成迁移（可分 2 个 PR/分支，但计划完成时合计 ≥12）。
 
@@ -300,31 +300,31 @@ rg -n "window\\.confirm" apps/web/src --glob '*.{js,ts}' || true
 
 #### Batch T1 · 数学纯逻辑（首选，约 8–12 个）
 
-| 优先级 | 候选 `test/web/` | 说明 |
-| ------ | ---------------- | ---- |
-| P0 | `math-function-evaluator.test.cjs` | 纯求值 |
-| P0 | `math-function-roots.test.cjs` | 数值 |
-| P0 | `math-intersection-numeric.test.cjs` | 数值 |
-| P0 | `math-graph-id-allocator.test.cjs` | 纯 ID |
-| P0 | `math-graph-migrations.test.cjs` | 文档迁移 |
-| P0 | `math-graph-store.test.cjs` | 若无真实 DOM |
-| P1 | `math-graph-history.test.cjs` | 历史栈 |
-| P1 | `math-transform-model.test.cjs` | 模型 |
-| P1 | `math-construction-geometry.test.cjs` | 几何纯函数 |
-| P1 | `math-construction-operations.test.cjs` | 操作纯函数 |
-| P1 | `math-construction-records.test.cjs` | 记录 |
-| P1 | `math-function-records.test.cjs` | 记录 |
-| P2 | `math-rate-of-change.test.cjs` | 数值特征 |
-| P2 | `math-object-style.test.cjs` | 样式表纯数据 |
-| P2 | `math-expr-safe.test.cjs` | 与 math-expr 边界（注意是否与 package 测重复） |
+| 优先级 | 候选 `test/web/`                        | 说明                                           |
+| ------ | --------------------------------------- | ---------------------------------------------- |
+| P0     | `math-function-evaluator.test.cjs`      | 纯求值                                         |
+| P0     | `math-function-roots.test.cjs`          | 数值                                           |
+| P0     | `math-intersection-numeric.test.cjs`    | 数值                                           |
+| P0     | `math-graph-id-allocator.test.cjs`      | 纯 ID                                          |
+| P0     | `math-graph-migrations.test.cjs`        | 文档迁移                                       |
+| P0     | `math-graph-store.test.cjs`             | 若无真实 DOM                                   |
+| P1     | `math-graph-history.test.cjs`           | 历史栈                                         |
+| P1     | `math-transform-model.test.cjs`         | 模型                                           |
+| P1     | `math-construction-geometry.test.cjs`   | 几何纯函数                                     |
+| P1     | `math-construction-operations.test.cjs` | 操作纯函数                                     |
+| P1     | `math-construction-records.test.cjs`    | 记录                                           |
+| P1     | `math-function-records.test.cjs`        | 记录                                           |
+| P2     | `math-rate-of-change.test.cjs`          | 数值特征                                       |
+| P2     | `math-object-style.test.cjs`            | 样式表纯数据                                   |
+| P2     | `math-expr-safe.test.cjs`               | 与 math-expr 边界（注意是否与 package 测重复） |
 
 #### Batch T2 · 化学纯逻辑（补足 ≥12）
 
-| 候选 | 说明 |
-| ---- | ---- |
-| `lab-model.test.cjs` | 若纯模型 |
-| `hybridization.test.cjs` | 杂化逻辑 |
-| `mastery-map.test.cjs` | 若无 DOM |
+| 候选                     | 说明                            |
+| ------------------------ | ------------------------------- |
+| `lab-model.test.cjs`     | 若纯模型                        |
+| `hybridization.test.cjs` | 杂化逻辑                        |
+| `mastery-map.test.cjs`   | 若无 DOM                        |
 | 已有 vitest 的 chem 文件 | **不要**再迁；可作 API 风格参考 |
 
 #### Batch T3 · 明确本批跳过（留给后续）
@@ -422,12 +422,12 @@ rg -n "appConfirm|appAlert|appPrompt" apps/web/src --glob '*.{js,ts}'
 
 **补强项（按缺口选做，至少完成 2 条）：**
 
-| ID | 项 | 完成定义 |
-| -- | -- | -------- |
-| U2.1 | 打开时焦点落入对话框（优先主按钮或首个可聚焦控件） | 单测或可靠集成断言 |
-| U2.2 | 关闭后焦点回到 `opener` / 触发元素 | 单测 |
-| U2.3 | Esc / 取消 / 确定 均释放滚动锁（引用计数不泄漏） | 扩展现有 scroll-lock 测 |
-| U2.4 | 嵌套或连续两次 confirm 不丢锁、不抢错焦点 | 测或手动清单 + 代码审查 |
+| ID   | 项                                                 | 完成定义                |
+| ---- | -------------------------------------------------- | ----------------------- |
+| U2.1 | 打开时焦点落入对话框（优先主按钮或首个可聚焦控件） | 单测或可靠集成断言      |
+| U2.2 | 关闭后焦点回到 `opener` / 触发元素                 | 单测                    |
+| U2.3 | Esc / 取消 / 确定 均释放滚动锁（引用计数不泄漏）   | 扩展现有 scroll-lock 测 |
+| U2.4 | 嵌套或连续两次 confirm 不丢锁、不抢错焦点          | 测或手动清单 + 代码审查 |
 
 **完成定义：**
 
@@ -438,13 +438,13 @@ rg -n "appConfirm|appAlert|appPrompt" apps/web/src --glob '*.{js,ts}'
 
 从下表选 **≥2** 面做「成品感」补丁（每面一个小提交）：
 
-| 面 | 路径提示 | 建议补丁 |
-| -- | -------- | -------- |
-| 设置 | `shared/ui/settings.js` | Toast 已用库；检查错误态/按钮 loading/焦点顺序；危险操作确认 |
-| 函数侧栏 | `function-panel` / `function-list-view` / `function-editor` | 删除确认文案一致性；主按钮尺寸/间距与 ui-kit；dispose 无泄漏 |
-| 分子列表 | `chemistry/molecule/list.js` | 工具条与空态；删除确认；列表按钮焦点可见 |
-| AI 课壳 | `lesson-packs` / `lab-shell` / `quiz-shell` | 连续危险确认的按钮标签（删除/放弃/恢复）语气统一 |
-| 板工具/笔记 | `board-tools.js` / `board-notes.js` | 折叠/选中态与 ui-btn 焦点环；避免 `display` 覆盖隐藏 |
+| 面          | 路径提示                                                    | 建议补丁                                                     |
+| ----------- | ----------------------------------------------------------- | ------------------------------------------------------------ |
+| 设置        | `shared/ui/settings.js`                                     | Toast 已用库；检查错误态/按钮 loading/焦点顺序；危险操作确认 |
+| 函数侧栏    | `function-panel` / `function-list-view` / `function-editor` | 删除确认文案一致性；主按钮尺寸/间距与 ui-kit；dispose 无泄漏 |
+| 分子列表    | `chemistry/molecule/list.js`                                | 工具条与空态；删除确认；列表按钮焦点可见                     |
+| AI 课壳     | `lesson-packs` / `lab-shell` / `quiz-shell`                 | 连续危险确认的按钮标签（删除/放弃/恢复）语气统一             |
+| 板工具/笔记 | `board-tools.js` / `board-notes.js`                         | 折叠/选中态与 ui-btn 焦点环；避免 `display` 覆盖隐藏         |
 
 **每面完成定义：**
 
@@ -491,13 +491,13 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 ## 8. 风险、回滚与并行
 
-| 风险 | 缓解 |
-| ---- | ---- |
-| 误勾计划导致后续 agent 跳过真缺口 | H 以代码+测试为准；不确定保持 `[ ]` |
-| Vitest 迁后 flake | 先稳断言；禁止 `sleep` 硬等；沿用 fake timer/test-kit |
-| 误删未迁 cjs | 先绿 vitest 再删；一次一个文件 |
-| app-dialog 焦点改坏键盘流 | U2 先加测再改行为 |
-| 大分支与 main 继续分叉 | 本计划仍不合 main；仅降低开发线内部熵 |
+| 风险                              | 缓解                                                  |
+| --------------------------------- | ----------------------------------------------------- |
+| 误勾计划导致后续 agent 跳过真缺口 | H 以代码+测试为准；不确定保持 `[ ]`                   |
+| Vitest 迁后 flake                 | 先稳断言；禁止 `sleep` 硬等；沿用 fake timer/test-kit |
+| 误删未迁 cjs                      | 先绿 vitest 再删；一次一个文件                        |
+| app-dialog 焦点改坏键盘流         | U2 先加测再改行为                                     |
+| 大分支与 main 继续分叉            | 本计划仍不合 main；仅降低开发线内部熵                 |
 
 **回滚：** 按 feature 分支 revert；文档与测试迁移可独立回滚。
 
@@ -505,16 +505,16 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 ## 9. 交接卡（执行中更新）
 
-| 字段 | 值 |
-| ---- | -- |
-| 开发线 | `codex/c3-frame-task-ts`（tip `6b7af19`；Track H 文档提交在 `codex/handoff-docs`，完成后合回开发线） |
-| 写计划时 tip | `6b7af19`（`git rev-parse` 为准，未再前进） |
-| H 状态 | 完成（提交见 §12 日志） |
-| Q 状态 | 未开始；quality 证据：— |
-| T 状态 | **完成**：T1（15 数学文件 / 79 用例，`codex/t1-batch`）+ T2（9 化学/其它文件 / 62 用例，`codex/t2-batch`）= 24 文件 ≥12；T3 无配置/脚本改动（glob 双轨不变）；T4 回写见 §12 与路线图 §9.3 |
-| U 状态 | 未开始；审计表：—；U2 条数：0；U3 面：— |
-| 禁止事项 | 合 main；D2 Win exe/pkg 验收（D2 已标「暂缓」，见路线图 §9.1 与 debt-registry D2） |
-| 下一刀 | Track Q |
+| 字段         | 值                                                                                                                                                                                                    |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 开发线       | `codex/c3-frame-task-ts`（tip `6b7af19`；Track H 文档提交在 `codex/handoff-docs`，完成后合回开发线）                                                                                                  |
+| 写计划时 tip | `6b7af19`（`git rev-parse` 为准，未再前进）                                                                                                                                                           |
+| H 状态       | 完成（提交见 §12 日志）                                                                                                                                                                               |
+| Q 状态       | 未开始；quality 证据：—                                                                                                                                                                               |
+| T 状态       | 未开始；已迁文件数：0 / 目标 ≥12                                                                                                                                                                      |
+| U 状态       | 部分：U1 完成（审计表 `docs/engineering/ui-dialog-audit.md`，`window.confirm/alert/prompt` 残留 0）；U2 完成（焦点/滚动合同 4 条全部落地，测试 10/10 绿）；U3 并行中；U4 文档回写已做 ui-library 小节 |
+| 禁止事项     | 合 main；D2 Win exe/pkg 验收（D2 已标「暂缓」，见路线图 §9.1 与 debt-registry D2）                                                                                                                    |
+| 下一刀       | Track Q                                                                                                                                                                                               |
 
 ---
 
@@ -536,17 +536,17 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 ### Track T
 
-- [x] T1 数学纯逻辑批（15 文件 / 79 用例迁 vitest，≥8 达标）
-- [x] T2 化学/其它纯逻辑补至合计 ≥12（T2 9 文件 / 62 用例；T1+T2 = 24 ≥12）
+- [ ] T1 数学纯逻辑批（建议 ≥8 文件）
+- [ ] T2 化学/其它纯逻辑补至合计 ≥12
 - [ ] T3 配置/脚本无双权威
 - [ ] T4 回写路线图 §9.3 + D7 备注
 
 ### Track U
 
-- [ ] U1 确认路径审计表 + 清 `window.confirm` 族
-- [ ] U2 焦点/滚动至少 2 条
-- [ ] U3 高流量面 ≥2 面体验补丁
-- [ ] U4 ui-library / 计划附录 / D4 回写
+- [x] U1 确认路径审计表 + 清 `window.confirm` 族（审计 0 残留，见 `docs/engineering/ui-dialog-audit.md`）
+- [x] U2 焦点/滚动至少 2 条（U2.1–U2.4 全部落地，`app-dialog.js` + 测试 10/10）
+- [ ] U3 高流量面 ≥2 面体验补丁（并行分支推进中）
+- [ ] U4 文档与债务回写（**部分完成**：ui-library.md「产品确认框必须走 app-dialog」小节已由 U1/U2 批追加；UI 计划附录 B polish 日志、D4 debt-registry 更新待收官）
 
 ### 收官
 
@@ -560,6 +560,7 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 ```markdown
 ### Task ID: （如 T1-math-function-roots）
+
 - 分支：codex/
 - 背景：
 - 完成定义：
@@ -578,12 +579,11 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 ## 12. 状态日志（执行者追加）
 
-| 日期 | Track | 变更 | 分支 / Commit | 验证 |
-| ---- | ----- | ---- | ------------- | ---- |
-| 2026-08-08 | — | 计划 v1.0 创建 | 文档 | — |
-| 2026-08-08 | H | Track H 完成：UI 计划 §13 勾选对齐（P0–P3/P6/P7.2–P7.3 依代码补勾，P7.1 未闭合见 UI 计划附录 B）+ 路线图 §9.1 D2 暂缓说明/§9.3 D7 指针 + debt-registry D2/D4/D7 对齐 + §9 交接卡 + `ui-library.md` 遗留冲突标记清理 | `codex/handoff-docs` @ `ed5c418` | `git diff --stat docs/`、`npm run format:check`、`git diff --check` |
-| 2026-08-08 | T1 | 数学纯逻辑测试迁 Vitest：**15 文件 / 79 用例**（P0：function-evaluator 4 / function-roots 3 / intersection-numeric 2 / graph-id-allocator 3 / graph-migrations 5 / graph-store 19；P1：graph-history 14 / transform-model 6 / construction-geometry 4 / construction-operations 1 / construction-records 1 / function-records 3；P2：rate-of-change 7 / object-style 5 / expr-safe 2）。每文件一个提交，旧 cjs 均 git mv 移除，无双权威。web node:test 404→325、vitest 63→142。注意：fresh worktree 需先 build `@xiaohuang/subject-settings` + `@xiaohuang/server`（dist 为 gitignored 产物，`mastery-map`/`subject-hub` 两个 node:test 依赖） | `codex/t1-batch` @ `a1e2d5c`（提交 a4bf9ff→a1e2d5c 共 15 个） | `npm run test -w @xiaohuang/web` 全绿（node:test 325/325 + vitest 142/142）、`npm run quality:fast` 通过、`git diff --check` |
-| 2026-08-08 | T2 | 化学/其它纯逻辑测试迁 Vitest：**9 文件 / 62 用例**（lab-model 3 / hybridization 17 / mastery-map 8 / molecule-list 5 / subject-manifest 3 / feature-loader 9 / app-session 3 / offline-quiz-layout 3 / panel-loading 11）。每文件一个提交，旧 cjs 均 git mv 移除，无双权威；server CJS 依赖走 createRequire（mastery-map/offline-quiz-layout）。本分支 web vitest 文件 13→22、用例 63→125；node:test 用例 404→342（文件 72→63）。注意：mastery-map/subject-hub 依赖 `@xiaohuang/server` dist（pretest 构建）；fresh worktree 另需 build `@xiaohuang/subject-settings`；`test/desktop/electron-packaged-layout`「生产 settings.js 单一 dist 合同」在 base `83428e6` 即失败（既有、非本批；T3 队列外） | `codex/t2-batch`（提交 af11d80→5b704fe 共 9 个） | `npm run test -w @xiaohuang/web` 全绿（node:test 342/342 + vitest 125/125）、`npm run quality:fast` 通过、`git diff --check` |
+| 日期       | Track | 变更                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 分支 / Commit                    | 验证                                                                                                                                                                              |
+| ---------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2026-08-08 | —     | 计划 v1.0 创建                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | 文档                             | —                                                                                                                                                                                 |
+| 2026-08-08 | H     | Track H 完成：UI 计划 §13 勾选对齐（P0–P3/P6/P7.2–P7.3 依代码补勾，P7.1 未闭合见 UI 计划附录 B）+ 路线图 §9.1 D2 暂缓说明/§9.3 D7 指针 + debt-registry D2/D4/D7 对齐 + §9 交接卡 + `ui-library.md` 遗留冲突标记清理                                                                                                                                                                                                                                                                                                                                                                           | `codex/handoff-docs` @ `ed5c418` | `git diff --stat docs/`、`npm run format:check`、`git diff --check`                                                                                                               |
+| 2026-08-08 | U     | U1 完成：确认路径审计（`window.confirm/alert/prompt` 残留 **0**，唯一命中为 app-dialog.js 注释；裸 `confirm/alert` 仅 graph-persistence 的注入形参，装配点接 `appConfirm/appAlert`）→ 新建 `docs/engineering/ui-dialog-audit.md`（17 个已统一使用面 + dev catalog 豁免 + 热点复核）。U2 完成 4/4：U2.1 打开焦点落主按钮/prompt 输入框；U2.2 关闭焦点归还 opener（确定/取消/Esc）；U2.3 引用计数不泄漏 + Enter 不误触取消（修 `onKey` 焦点按钮分支 + 连续开关测试）；U2.4 队列链式复用首 opener（修 showDialog 链捕获，连续 confirm 焦点回到最初触发元素）。`app-dialog.js` 行为保持、签名不变 | `codex/u12-batch` @ 见提交       | `node --test test/web/app-dialog-scroll-lock.test.cjs`（10/10）、`npm run test -w @xiaohuang/ui`（51/51）、`typecheck`/`build`/`lint:css`/`lint:theme-tokens`/`format:check` 全绿 |
 
 ---
 
@@ -608,22 +608,22 @@ test/web/*.cjs | *.vitest.ts
 
 ## 附录 B · 给其它 Agent 的一分钟说明
 
-1. 先读本文 **§0 纪律** 与 **§9 交接卡**。  
-2. 严格按 **H → Q → T → U**；不要先做 Win 包或合 main。  
-3. H/Q 是「少翻车」；T 是「省心」；U 是「成品感」。  
-4. 每完成一个 Track，改 §10 勾选 + §12 日志 + §9 卡。  
-5. 权威永远是 **代码 + 测试**，不是旧勾选框。  
+1. 先读本文 **§0 纪律** 与 **§9 交接卡**。
+2. 严格按 **H → Q → T → U**；不要先做 Win 包或合 main。
+3. H/Q 是「少翻车」；T 是「省心」；U 是「成品感」。
+4. 每完成一个 Track，改 §10 勾选 + §12 日志 + §9 卡。
+5. 权威永远是 **代码 + 测试**，不是旧勾选框。
 6. 做完后用 **§1.2 S1–S5** 回答「做完了吗」。
 
 ---
 
 ## 附录 C · 与旧计划的关系
 
-| 旧计划 | 关系 |
-| ------ | ---- |
-| 工程优化路线图 | 本计划 **承接** D7 持续项与文档暂缓 D2；不替代 90 天总图 |
-| UI 采用计划 | 主线 Phase 视为开发线上已落地；本计划 **U = 体验深化二期**，并强制 **H1 勾选对齐** |
-| Skill v2 计划 | **不在范围**；勿卷入本分支 |
+| 旧计划         | 关系                                                                               |
+| -------------- | ---------------------------------------------------------------------------------- |
+| 工程优化路线图 | 本计划 **承接** D7 持续项与文档暂缓 D2；不替代 90 天总图                           |
+| UI 采用计划    | 主线 Phase 视为开发线上已落地；本计划 **U = 体验深化二期**，并强制 **H1 勾选对齐** |
+| Skill v2 计划  | **不在范围**；勿卷入本分支                                                         |
 
 ---
 

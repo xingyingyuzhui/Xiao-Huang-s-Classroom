@@ -9,6 +9,9 @@
  * 差异说明：每次弹窗新建实例，关闭动画结束后 dispose（原实现复用单 root）。
  * P4.3（2026-08-08）：弹窗打开期间锁定背景滚动（document.body.ui-scroll-lock），
  * 关闭动画结束后按引用计数释放——队列/多弹窗场景计数归零才解锁。
+ * U2（2026-08-08）：焦点合同加固——打开聚焦主按钮/prompt 输入框；关闭焦点归还
+ * 触发元素；队列链复用首个 opener（连续 confirm 不把焦点丢给已销毁按钮）；
+ * Enter 只拦截非按钮区域（焦点在取消/关闭按钮上时回车 = 原生 click，不再误确定）。
  */
 import { createDialog } from '@xiaohuang/ui';
 
@@ -24,6 +27,9 @@ function escapeHtml(s) {
 const queue = [];
 let busy = false;
 let dialogSeq = 0;
+
+/** 队列链首个触发元素（U2）：链式 confirm 复用，避免捕获到会随前一个弹窗销毁的按钮。 */
+let chainOpener = null;
 
 /**
  * 背景滚动锁定（P4.3）：引用计数——队列中多个 dialog 顺序打开时，
@@ -55,8 +61,16 @@ function unlockBodyScroll() {
  */
 function showDialog(opts) {
   return new Promise((resolve) => {
-    // 记录触发元素（a11y：关闭后焦点归还；队列中逐条记录）
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    // 记录触发元素（a11y：关闭后焦点归还）。队列链场景（已有弹窗打开/排队）复用
+    // 链首 opener——若逐条记录，后一个弹窗的 opener 会是指向前一个弹窗内部按钮的
+    // 引用，该按钮随弹窗销毁后焦点归还落空。
+    const hasChain = busy || queue.length > 0;
+    const opener = hasChain
+      ? chainOpener
+      : document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    if (!hasChain) chainOpener = opener;
     queue.push(() => runDialog(opts, resolve, opener));
     drain();
   });
@@ -140,6 +154,7 @@ function runDialog(opts, resolve, opener) {
   inputEl.type = 'text';
   inputEl.className = 'app-dialog-input';
   inputEl.id = inputId;
+  inputEl.setAttribute('data-app-dialog-input', '');
   inputEl.autocomplete = 'off';
   if (isPrompt) {
     inputEl.value = opts.defaultValue != null ? String(opts.defaultValue) : '';
@@ -212,12 +227,23 @@ function runDialog(opts, resolve, opener) {
     else finish();
   };
   const onKey = (e) => {
-    if (e.key === 'Enter' && !(e.target instanceof HTMLTextAreaElement)) {
-      // prompt 输入框回车提交；确认/提示框 Enter 确定
-      if (isPrompt || mode === 'alert' || mode === 'confirm') {
+    if (e.key !== 'Enter') return;
+    const target = e.target;
+    const tag = target && target.tagName;
+    // 焦点在按钮/多行文本上：交给原生行为（Enter 激活聚焦的按钮 → 确定/取消/关闭各归其位）
+    if (tag === 'BUTTON' || tag === 'TEXTAREA') return;
+    // prompt 输入框回车提交
+    if (tag === 'INPUT') {
+      if (isPrompt) {
         e.preventDefault();
         onOk();
       }
+      return;
+    }
+    // 其余区域（面板/遮罩/body）回车 = 确定
+    if (isPrompt || mode === 'alert' || mode === 'confirm') {
+      e.preventDefault();
+      onOk();
     }
   };
 

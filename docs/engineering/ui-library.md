@@ -152,3 +152,22 @@ capture 阶段（原实现两者均 capture）——行为等价，边界场景�
 - 豁免登记：`docs/engineering/ui-legacy-allowlist.md`（表格：文件 | 原因 | 移除条件）。豁免只消化存量（当前仅 `function-panel.js`，P3 并行迁移中）；新增裸按钮代码不适用豁免、直接失败。
 - 登记项不再命中模式时，门禁输出清理提示，由后续任务移除登记。
 - 相关：D4（innerHTML 债务）见 `docs/engineering/debt-registry.md`；计划见「Phase 7」。
+<<<<<<< HEAD
+=======
+
+## 产品确认框必须走 app-dialog（U4，2026-08-08）
+
+**规则：** 产品面（`apps/web/src` 业务代码）的确认 / 提示 / 输入弹窗一律走
+`appAlert` / `appConfirm` / `appPrompt`（`apps/web/src/shared/ui/app-dialog.js`），
+**禁止直接调用 `window.confirm` / `window.alert` / `window.prompt`**。
+app-dialog 已 Adapter 到 `@xiaohuang/ui` 的 `createDialog`（role=dialog、aria-modal、
+Esc 关闭、opener 焦点归还、dispose 生命周期），并带滚动锁定与焦点合同
+（见 `test/web/app-dialog-scroll-lock.test.cjs`，10 条）。
+
+- 审计基线：`docs/engineering/ui-dialog-audit.md`（U1，2026-08-08）——`window.confirm/alert/prompt`
+  在 `apps/web/src` 为 **0 残留**；17 个使用面已统一走 app-dialog 家族；`dev/catalog` 为豁免（dev 工具）。
+- 新代码红线：新增危险操作确认不得用 `window.confirm` 或手写裸弹窗；复用时先查
+  `appConfirm`，不足再补参数（danger/okText/cancelText 等），不新增第三套弹窗。
+- 依赖注入场景（如 `graph-persistence.js` 的 `confirm/alert` 形参）：保持注入，装配点必须接
+  `appConfirm/appAlert`，不得接 `window.*`。新增此类 context 时在 JSDoc 标注「由调用方注入」。
+>>>>>>> codex/u12-batch
