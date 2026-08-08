@@ -40,6 +40,21 @@ const quizRouter = require('./routes/chemistry/quiz')({
   listWrongBook: require('./services/chemistry/quiz/wrong-book').listWrongBook,
   attemptWrongBook: require('./services/chemistry/quiz/wrong-book').attemptWrongBook,
 });
+const labsRouter = require('./routes/chemistry/labs')({
+  query,
+  queryOne,
+  run,
+  runBatch,
+  ensureLabsSeeded: require('./seed/import-labs').ensureLabsSeeded,
+  resetBuiltinLabs: require('./seed/import-labs').resetBuiltinLabs,
+  resetOneBuiltin: require('./seed/import-labs').resetOneBuiltin,
+  listLabs: require('./seed/import-labs').listLabs,
+  getLab: require('./seed/import-labs').getLab,
+  insertLab: require('./seed/import-labs').insertLab,
+  updateLabRow: require('./seed/import-labs').updateLabRow,
+  importLabsSafe: require('./seed/import-labs').importLabsSafe,
+  builtinCount: require('./seed/import-labs').LABS_BUILTIN.length,
+});
 const offlineQuizRouter = require('./routes/chemistry/offline-quiz');
 const reactionsRouter = require('./routes/chemistry/reactions')({
   query,
@@ -56,7 +71,7 @@ const studentsRouter = require('./routes/chemistry/students')({
 });
 const masteryRouter = require('./routes/chemistry/mastery');
 const lessonPacksRouter = require('./routes/chemistry/lesson-packs');
-const labsRouter = require('./routes/chemistry/labs');
+
 const balanceScriptsRouter = require('./routes/chemistry/balance-scripts');
 
 const app = express();
