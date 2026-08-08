@@ -82,3 +82,43 @@ test('settings.js 注释与实际 stage 路径一致', () => {
   assert.match(src, /\.electron-stage\/dist/, '注释描述 stage 布局为 .electron-stage/dist');
   assert.match(src, /Contents\/Resources\/dist/, '注释描述最终包布局');
 });
+
+test('真实打包产物验证（electron-builder 生成的应用目录，动态发现 Resources）', () => {
+  const distRoot = path.join(root, 'dist-electron');
+  if (!fs.existsSync(distRoot)) {
+    // 未打包时跳过（pack:electron 验收单独执行）；有产物则必须验证
+    return;
+  }
+  // 动态发现任意平台的 Resources（不写死 Mac 路径）
+  const walk = (dir, depth = 0) => {
+    if (depth > 5) return null;
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const full = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        if (e.name === 'Resources') return full;
+        const found = walk(full, depth + 1);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  const resources = walk(distRoot);
+  assert.ok(resources, '发现打包产物的 Resources 目录');
+  // 三个关键文件存在
+  for (const f of ['server/index.js', 'server/routes/settings.js', 'dist/domain/settings-policy.js']) {
+    assert.ok(fs.existsSync(path.join(resources, f)), `最终包含 ${f}`);
+  }
+  // 从最终包加载 settings 路由（不再 MODULE_NOT_FOUND）
+  const script = [
+    "const path = require('path');",
+    "const resources = path.resolve(process.argv[1]);",
+    "require(path.join(resources, 'server/routes/settings.js'));",
+    "console.log('PACKAGED_SETTINGS_REQUIRE=ok');",
+  ].join('\n');
+  const out = execFileSync(process.execPath, ['-e', script, resources], {
+    cwd: root,
+    encoding: 'utf8',
+    env: { ...process.env, NODE_PATH: path.join(resources, 'server', 'node_modules') },
+  });
+  assert.match(out, /PACKAGED_SETTINGS_REQUIRE=ok/, '最终包 settings 路由可加载');
+});
