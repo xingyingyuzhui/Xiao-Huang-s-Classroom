@@ -77,7 +77,7 @@
   "web/src/chemistry/molecule/list.js": {
     "category": "controller",
     "plan": "交互控制器（功能内聚，行为测试覆盖）",
-    "lines": 415
+    "lines": 523
   },
   "web/src/chemistry/molecule/reactions.js": {
     "category": "controller",
@@ -198,5 +198,10 @@
     "category": "controller",
     "plan": "书架 3D 编排（stage/fx/covers/floaters/build）",
     "lines": 1312
+  },
+  "web/src/chemistry/ai-classroom/lesson-packs.js": {
+    "category": "controller",
+    "plan": "备课包控制器（U3 补丁后 412 行）；顶栏/导入导出/删除确认逻辑内聚，行为测试覆盖",
+    "lines": 412
   }
 }
