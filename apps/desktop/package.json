@@ -4,7 +4,7 @@
   "version": "0.0.1",
   "main": "main.cjs",
   "scripts": {
-    "test": "node --test ../../test/server/electron-startup.test.cjs ../../test/server/electron-ipc-contract.test.cjs",
+    "test": "node --test ../../test/desktop/*.cjs",
     "typecheck": "node ../../scripts/typecheck-apps.mjs desktop"
   }
 }

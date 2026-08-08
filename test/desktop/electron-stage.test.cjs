@@ -8,26 +8,20 @@ const path = require('node:path');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
+const { pathToFileURL } = require('node:url');
 const root = require('../helpers/repo-root.js');
 
 function source(rel) {
   return fs.readFileSync(path.join(root, rel), 'utf8');
 }
 
-test('stage-electron-server COPY_DIRS includes services (Win 秒退根因)', () => {
-  const script = source('scripts/stage-electron-server.js');
-  const m = script.match(/const COPY_DIRS\s*=\s*\[([^\]]+)\]/);
-  assert.ok(m, 'COPY_DIRS must be defined');
-  const dirs = m[1]
-    .split(',')
-    .map((s) => s.replace(/['"\s]/g, ''))
-    .filter(Boolean);
-  assert.ok(dirs.includes('services'), `COPY_DIRS must include services, got: ${dirs.join(',')}`);
-  assert.ok(dirs.includes('routes'));
-  assert.ok(dirs.includes('seed'));
-  assert.ok(dirs.includes('utils'));
-  assert.ok(dirs.includes('db'));
-  assert.ok(dirs.includes('public'));
+test('electron-stage-layout COPY_DIRS includes services (Win 秒退根因)', async () => {
+  const { COPY_DIRS } = await import(
+    pathToFileURL(path.join(root, 'scripts/electron-stage-layout.mjs')).href
+  );
+  for (const d of ['services', 'routes', 'seed', 'utils', 'db', 'public']) {
+    assert.ok(COPY_DIRS.includes(d), `COPY_DIRS must include ${d}, got: ${COPY_DIRS.join(',')}`);
+  }
 });
 
 test('server AI routes require services that exist on disk', () => {
