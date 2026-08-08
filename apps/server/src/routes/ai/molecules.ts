@@ -125,11 +125,11 @@ export function createMoleculeRouter(deps: MoleculeRouterDeps): Router {
       let parsed: unknown;
       try {
         parsed = JSON.parse(content.trim());
-      } catch (e1) {
-        let s = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      } catch {
+        const s = content.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
         try {
           parsed = JSON.parse(s);
-        } catch (e2) {
+        } catch {
           const a = s.indexOf('{');
           const b = s.lastIndexOf('}');
           if (a >= 0 && b > a) {
