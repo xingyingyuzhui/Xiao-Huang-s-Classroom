@@ -445,6 +445,12 @@ dispose() {
 
 **验证：** 换 tab / 二次 mount 的合同测试；无「点按钮无反应」类幽灵引用。
 
+**完成定义（B5 样板）：**
+
+- [x] `function-panel` / `function-editor` 提供 `dispose`（清除 `dataset.bound`/`ready`/`mathEditorBound` 标记 + 委托 listView/editor 解绑；红验证：旧代码无 dispose 时测试 3 fail）
+- [x] 二次 mount 合同测试（`math-function-panel-lifecycle.test.cjs`：create → bind → dispose → 标记清除 → 二次 create → bind 重建成功；dispose 幂等）；模块顶层无 DOM 捕获断言
+- [x] debt-registry D3 状态更新为「样板已建（B5）」，其余模块逐步套样板
+
 ### 7.7 任务 B6 — innerHTML 高风险点一轮（D4）
 
 **步骤：**
@@ -827,6 +833,7 @@ tooling/architecture/
 | 2026-08-08 | B2 落地（graph pure 层白名单 4→18 + 注入红验证）        | `3ae706a`                                         |
 | 2026-08-08 | B4 落地（manifest 单一入口，关 D13）                    | B4 提交；debt-registry D13 → 已关闭               |
 | 2026-08-08 | B3 落地（offline-quiz-bank 数据/加载边界拆分）          | B3 提交；1860 → 22 行 loader                      |
+| 2026-08-08 | B5 落地（function-panel/editor dispose 样板，D3 样板）  | B5 提交；二次 mount 合同测试                      |
 
 ---
 
