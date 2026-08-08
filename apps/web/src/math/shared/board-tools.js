@@ -3,6 +3,8 @@
  * 各 lab 传入自己的工具定义；这里不承载任何学科业务工具。
  */
 
+import { createButton } from '@xiaohuang/ui';
+
 /**
  * @typedef {{
  *   id: string,
@@ -68,39 +70,66 @@ export function attachBoardToolStrip(opts) {
   }
 
   const panelId = `math-board-tool-panel-${Math.random().toString(36).slice(2, 9)}`;
+  // P5.1：可点击控件一律走 @xiaohuang/ui createButton（自带 ui-btn 基类 + className 桥接旧类），
+  // 不再用大段 HTML 字符串生成按钮；隐藏其它工具仍靠 CSS（.is-collapsed .btn:not(.is-on)）。
   const wrap = document.createElement('div');
   wrap.className = 'math-board-tool-strip';
   wrap.setAttribute('role', 'toolbar');
   wrap.setAttribute('aria-label', '画板作图工具');
-  // 箭头在工具列顶部；收起后只保留当前选中工具 + 下箭头
-  // 注意：隐藏其它工具必须靠 CSS（.is-collapsed .btn:not(.is-on)），
-  // 不能只设 HTML hidden——.math-board-tool-btn 的 display:inline-flex 会盖掉 hidden。
-  wrap.innerHTML = `
-    <div class="math-board-tool-strip-panel" id="${panelId}" data-role="panel">
-      <div class="math-board-tool-strip-btns">
-        <button type="button" class="math-board-tool-collapse" data-role="collapse"
-          aria-expanded="true" aria-controls="${panelId}" title="收起工具" aria-label="收起工具">
-          <span class="math-board-tool-collapse-arrow" aria-hidden="true">▲</span>
-        </button>
-        ${tools
-          .map(
-            (t) => `
-          <button type="button" class="math-board-tool-btn${t.id === active ? ' is-on' : ''}"
-            data-tool="${t.id}" title="${t.label}" aria-label="${t.label}" aria-pressed="${t.id === active ? 'true' : 'false'}">
-            <span class="math-board-tool-label">${t.label}</span>
-          </button>`,
-          )
-          .join('')}
-      </div>
-      <p class="math-board-tool-hint" data-role="hint" hidden></p>
-    </div>
-  `;
+
+  const panel = document.createElement('div');
+  panel.className = 'math-board-tool-strip-panel';
+  panel.id = panelId;
+  panel.setAttribute('data-role', 'panel');
+
+  const btns = document.createElement('div');
+  btns.className = 'math-board-tool-strip-btns';
+
+  // 收起/展开按钮（bridge：ui-btn + math-board-tool-collapse；箭头 span 结构保留）
+  const collapseCtrl = createButton({
+    className: 'math-board-tool-collapse',
+    title: '收起工具',
+    'aria-label': '收起工具',
+  });
+  const collapseBtn = collapseCtrl.element;
+  collapseBtn.setAttribute('data-role', 'collapse');
+  collapseBtn.setAttribute('aria-expanded', 'true');
+  collapseBtn.setAttribute('aria-controls', panelId);
+  const collapseArrow = document.createElement('span');
+  collapseArrow.className = 'math-board-tool-collapse-arrow';
+  collapseArrow.setAttribute('aria-hidden', 'true');
+  collapseArrow.textContent = '▲';
+  collapseBtn.replaceChildren(collapseArrow);
+  btns.appendChild(collapseBtn);
+
+  // 工具按钮（bridge：ui-btn + math-board-tool-btn；label span 结构保留）
+  const toolCtrls = tools.map((t) => {
+    const ctrl = createButton({
+      className: 'math-board-tool-btn',
+      title: t.label,
+      'aria-label': t.label,
+    });
+    const btn = ctrl.element;
+    btn.setAttribute('data-tool', t.id);
+    const label = document.createElement('span');
+    label.className = 'math-board-tool-label';
+    label.textContent = t.label;
+    btn.replaceChildren(label);
+    btns.appendChild(btn);
+    return ctrl;
+  });
+
+  panel.appendChild(btns);
+
+  const hintEl = document.createElement('p');
+  hintEl.className = 'math-board-tool-hint';
+  hintEl.setAttribute('data-role', 'hint');
+  hintEl.hidden = true;
+  panel.appendChild(hintEl);
+  wrap.appendChild(panel);
 
   // 固定在画板右下（CSS 竖排叠在 FAB 上方）
   host.appendChild(wrap);
-
-  const hintEl = /** @type {HTMLElement} */ (wrap.querySelector('[data-role="hint"]'));
-  const collapseBtn = /** @type {HTMLButtonElement} */ (wrap.querySelector('[data-role="collapse"]'));
   /** @type {string} */
   let stickyHint = '';
   let collapsed = false;
@@ -209,11 +238,26 @@ export function attachBoardToolStrip(opts) {
   return {
     el: wrap,
     dispose() {
+      // 逆序、容错、幂等：先释放组件控制器，再摘除容器（B5 样板）
+      const errors = [];
+      for (let i = toolCtrls.length - 1; i >= 0; i -= 1) {
+        try {
+          toolCtrls[i].dispose();
+        } catch (err) {
+          errors.push(err);
+        }
+      }
+      try {
+        collapseCtrl.dispose();
+      } catch (err) {
+        errors.push(err);
+      }
       try {
         wrap.remove();
-      } catch {
-        /* */
+      } catch (err) {
+        errors.push(err);
       }
+      if (errors.length) console.error('[board-tools] dispose errors:', errors);
     },
     getTool: () => active,
     setTool,

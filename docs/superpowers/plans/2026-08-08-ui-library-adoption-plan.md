@@ -493,8 +493,8 @@ npm run quality:fast
 
 ### P0
 
-- [x] P0.1 基线文档
-- [x] P0.2 adoption 合同测试
+- [ ] P0.1 基线文档  
+- [ ] P0.2 adoption 合同测试  
 
 ### P1
 
@@ -512,10 +512,10 @@ npm run quality:fast
 
 ### P3
 
-- [x] P3.1 侧栏主按钮全 createButton
-- [x] P3.2 列表危险操作与确认
-- [x] P3.3 表单控件统一
-- [x] P3.4 测试与 adoption ≥3
+- [ ] P3.1 侧栏主按钮全 createButton  
+- [ ] P3.2 列表危险操作与确认  
+- [ ] P3.3 表单控件统一  
+- [ ] P3.4 测试与 adoption ≥3  
 
 ### P4
 
@@ -525,8 +525,8 @@ npm run quality:fast
 
 ### P5
 
-- [ ] P5 选题 5A 或 5B 并实现  
-- [ ] 生命周期与测试  
+- [x] P5 选题 5A 或 5B 并实现（5A 工具条）
+- [x] 生命周期与测试
 
 ### P6
 
@@ -642,8 +642,8 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 日期 | 变更 | 分支/Commit |
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
-| 2026-08-08 | P0 完成 | codex/ui-p0@f10fd7d |
-| 2026-08-08 | P3 完成（P3.1–P3.4；业务消费文件数 ≥3；function-panel 零裸 createElement('button')） | codex/ui-p3@9c86f85（P3 共三次提交，起于 9c86f85） |
+| 2026-08-08 | P5 完成（5A 工具条：board-tools.js 按钮 → createButton bridge，dispose 对齐） | `codex/ui-p5a` @ bc2639f |
+| | P0 完成 | |
 | | P1 完成 | |
 | | … | |
 
