@@ -1,9 +1,9 @@
 /** 函数求值 sidecar：记录不携带 evalFn，编译与缓存收敛到 evaluator。 */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 async function evaluator() {
   return import(
