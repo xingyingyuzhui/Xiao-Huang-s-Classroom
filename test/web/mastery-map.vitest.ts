@@ -1,21 +1,20 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+
+// CJS server 模块经 createRequire 导入（与 apps/server/test 的 vitest 惯例一致）
+const require = createRequire(import.meta.url);
 
 const { app } = require('../../apps/server/src');
-const {
-  initDatabase,
-  closeDatabase,
-  queryOne,
-  run,
-} = require('../../apps/server/src/db/sqlite');
+const { initDatabase, closeDatabase, run } = require('../../apps/server/src/db/sqlite');
 
-async function withApiServer(fn) {
+async function withApiServer(fn: (baseUrl: string) => Promise<unknown>) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-mastery-'));
   const dbPath = path.join(dir, 'chem-lab.db');
-  let server;
+  let server: ReturnType<typeof app.listen> | undefined;
   try {
     await initDatabase(dbPath);
     server = app.listen(0, '127.0.0.1');

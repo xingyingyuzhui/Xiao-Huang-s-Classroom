@@ -1,20 +1,20 @@
 /**
  * App session 与分层错误边界（Program 4 Task 4.2）。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
-async function load(rel) {
+async function load(rel: string) {
   return import(pathToFileURL(path.join(root, rel)).href);
 }
 
 test('session：hub → intro → classroom → hub 状态机', async () => {
   const { createAppSession } = await load('apps/web/src/app/session.js');
   const session = createAppSession();
-  const seen = [];
+  const seen: string[] = [];
   session.subscribe((s) => seen.push(s.surface));
 
   assert.equal(session.getState().surface, 'hub');
@@ -43,7 +43,7 @@ test('session：非法 subjectId 拒绝；dialog 状态独立', async () => {
 test('错误边界：panel 错误不级联；classroom 错误隔离；rendererFatal 触发只读回调', async () => {
   const { createErrorBoundary, BOUNDARY_LEVELS } = await load('apps/web/src/app/error-boundary.js');
   assert.deepEqual(BOUNDARY_LEVELS, ['boot', 'classroom', 'panel', 'rendererFatal']);
-  const calls = [];
+  const calls: Array<[string, string]> = [];
   const boundary = createErrorBoundary({
     onFatal: (e) => calls.push(['fatal', e.level]),
     onClassroomError: (e) => calls.push(['classroom', e.level]),

@@ -1,5 +1,8 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import root from '../helpers/repo-root.js';
 
 test('lab draftToPayload rejects incomplete predict without placeholders', async () => {
   const { draftToPayload, emptyStep, labToDraft, formatLabsImportSummary } = await import(
@@ -77,9 +80,6 @@ test('lab draftToPayload rejects incomplete predict without placeholders', async
 });
 
 test('AI classroom lab modules: shell uses model + views', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const root = require('../helpers/repo-root.js');
   const shell = fs.readFileSync(path.join(root, 'apps/web/src/chemistry/ai-classroom/lab-shell.js'), 'utf8');
   assert.match(shell, /from '\.\/lab-model\.js'/);
   assert.match(shell, /from '\.\/lab-views\.js'/);

@@ -507,14 +507,14 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 | 字段 | 值 |
 | ---- | -- |
-| 开发线 | `codex/c3-frame-task-ts`（tip `83428e6`；Track H 文档提交在 `codex/handoff-docs`，Track Q 提交在 `codex/quality-reaffirm`，完成后合回开发线） |
-| 写计划时 tip | `6b7af19`（复核：dev 线 tip 已前进至 `83428e6`） |
+| 开发线 | `codex/c3-frame-task-ts`（tip `6b7af19`；Track H 文档提交在 `codex/handoff-docs`，完成后合回开发线） |
+| 写计划时 tip | `6b7af19`（`git rev-parse` 为准，未再前进） |
 | H 状态 | 完成（提交见 §12 日志） |
-| Q 状态 | 完成（2026-08-08；quality 证据：`npm run quality` exit 0 + 强制全量 turbo 45/45 绿，详见 §12） |
-| T 状态 | 未开始；已迁文件数：0 / 目标 ≥12 |
+| Q 状态 | 未开始；quality 证据：— |
+| T 状态 | **完成**：T1（15 数学文件 / 79 用例，`codex/t1-batch`）+ T2（9 化学/其它文件 / 62 用例，`codex/t2-batch`）= 24 文件 ≥12；T3 无配置/脚本改动（glob 双轨不变）；T4 回写见 §12 与路线图 §9.3 |
 | U 状态 | 未开始；审计表：—；U2 条数：0；U3 面：— |
 | 禁止事项 | 合 main；D2 Win exe/pkg 验收（D2 已标「暂缓」，见路线图 §9.1 与 debt-registry D2） |
-| 下一刀 | Track T |
+| 下一刀 | Track Q |
 
 ---
 
@@ -529,15 +529,15 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 ### Track Q
 
-- [x] Q1 `npm run quality` 绿并记日志（2026-08-08 exit 0，见 §12）
-- [x] Q2 若有失败，按处置顺序修完（desktop:test 陈旧断言 → 指向 TS 权威源）
+- [ ] Q1 `npm run quality` 绿并记日志
+- [ ] Q2 若有失败，按处置顺序修完
 - [ ] Q3 （可选）远端 CI 绿
-- [x] Q4 基线数字写入日志（cjs=72 / vitest=13 / ui import=10 / confirm=0，见 §12）
+- [ ] Q4 基线数字写入日志
 
 ### Track T
 
-- [ ] T1 数学纯逻辑批（建议 ≥8 文件）
-- [ ] T2 化学/其它纯逻辑补至合计 ≥12
+- [x] T1 数学纯逻辑批（15 文件 / 79 用例迁 vitest，≥8 达标）
+- [x] T2 化学/其它纯逻辑补至合计 ≥12（T2 9 文件 / 62 用例；T1+T2 = 24 ≥12）
 - [ ] T3 配置/脚本无双权威
 - [ ] T4 回写路线图 §9.3 + D7 备注
 
@@ -582,7 +582,8 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 | ---- | ----- | ---- | ------------- | ---- |
 | 2026-08-08 | — | 计划 v1.0 创建 | 文档 | — |
 | 2026-08-08 | H | Track H 完成：UI 计划 §13 勾选对齐（P0–P3/P6/P7.2–P7.3 依代码补勾，P7.1 未闭合见 UI 计划附录 B）+ 路线图 §9.1 D2 暂缓说明/§9.3 D7 指针 + debt-registry D2/D4/D7 对齐 + §9 交接卡 + `ui-library.md` 遗留冲突标记清理 | `codex/handoff-docs` @ `ed5c418` | `git diff --stat docs/`、`npm run format:check`、`git diff --check` |
-| 2026-08-08 | Q | Track Q 完成：`npm run quality` exit 0。首跑全缓存假绿（desktop:test 输入不含 test/desktop 与 apps/server/src，turbo 缓存掩盖了真回归）→ 强制全量 `npx turbo run typecheck test build coverage --force` 暴露 `@xiaohuang/desktop:test` 失败：`test/desktop/electron-packaged-layout.test.cjs`「单一产物合同」断言仍指向 `src/routes/settings.js`，但 B2 迁移后该文件是薄转发桥（89cafbe），`settings-policy` require 已移入 TS 权威源 `settings.ts`（3a3c5ec 提交说明即写明「单一产物合同断言指向 TS」）；开发线 main 侧同样失败（非 T/U 并行所致）。按 Q2 最小修复：断言改为读 `settings.ts`（未碰 test/web 与 apps/web/src）→ 强制全量 45/45 绿 → `npm run quality` exit 0。Q4 基线：`test/web` cjs=72、vitest.ts=13、`@xiaohuang/ui` import 文件=10、`window.confirm` 命中=0 | `codex/quality-reaffirm` @ `83428e6`（修复提交见 §9） | `npm run quality`、`npx turbo run typecheck test build coverage --force`、`node --test test/desktop/*.cjs`（22/22） |
+| 2026-08-08 | T1 | 数学纯逻辑测试迁 Vitest：**15 文件 / 79 用例**（P0：function-evaluator 4 / function-roots 3 / intersection-numeric 2 / graph-id-allocator 3 / graph-migrations 5 / graph-store 19；P1：graph-history 14 / transform-model 6 / construction-geometry 4 / construction-operations 1 / construction-records 1 / function-records 3；P2：rate-of-change 7 / object-style 5 / expr-safe 2）。每文件一个提交，旧 cjs 均 git mv 移除，无双权威。web node:test 404→325、vitest 63→142。注意：fresh worktree 需先 build `@xiaohuang/subject-settings` + `@xiaohuang/server`（dist 为 gitignored 产物，`mastery-map`/`subject-hub` 两个 node:test 依赖） | `codex/t1-batch` @ `a1e2d5c`（提交 a4bf9ff→a1e2d5c 共 15 个） | `npm run test -w @xiaohuang/web` 全绿（node:test 325/325 + vitest 142/142）、`npm run quality:fast` 通过、`git diff --check` |
+| 2026-08-08 | T2 | 化学/其它纯逻辑测试迁 Vitest：**9 文件 / 62 用例**（lab-model 3 / hybridization 17 / mastery-map 8 / molecule-list 5 / subject-manifest 3 / feature-loader 9 / app-session 3 / offline-quiz-layout 3 / panel-loading 11）。每文件一个提交，旧 cjs 均 git mv 移除，无双权威；server CJS 依赖走 createRequire（mastery-map/offline-quiz-layout）。本分支 web vitest 文件 13→22、用例 63→125；node:test 用例 404→342（文件 72→63）。注意：mastery-map/subject-hub 依赖 `@xiaohuang/server` dist（pretest 构建）；fresh worktree 另需 build `@xiaohuang/subject-settings`；`test/desktop/electron-packaged-layout`「生产 settings.js 单一 dist 合同」在 base `83428e6` 即失败（既有、非本批；T3 队列外） | `codex/t2-batch`（提交 af11d80→5b704fe 共 9 个） | `npm run test -w @xiaohuang/web` 全绿（node:test 342/342 + vitest 125/125）、`npm run quality:fast` 通过、`git diff --check` |
 
 ---
 

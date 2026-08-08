@@ -1,5 +1,16 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+
+/** createMockPanel 生成的极简元素形状（无 DOM，仅满足 panel-loading 助手访问面） */
+type MockElement = {
+  className: string;
+  textContent: string;
+  hidden: boolean;
+  attrs: Record<string, string>;
+  setAttribute(k: string, v: string | null): void;
+  hasAttribute(k: string): boolean;
+  getAttribute(k: string): string | null;
+};
 
 test('feature loader: same feature only loads factory once', async () => {
   const { createFeatureLoader } = await import('../../apps/web/src/app/feature-loader.js');
@@ -57,7 +68,7 @@ test('feature loader: re-enter after other feature still returns cache (not fals
 
   // 模拟 main：switchSeq 保护切页；loader 不得因加载了 classroom 而拒绝 molecule
   let switchSeq = 0;
-  async function enter(name) {
+  async function enter(name: string) {
     const mySeq = ++switchSeq;
     if (name === 'molecule') {
       await ensureMol();
@@ -85,9 +96,9 @@ test('feature loader: rapid tab switch discards stale activation via switchSeq',
   const { createFeatureLoader } = await import('../../apps/web/src/app/feature-loader.js');
   const loader = createFeatureLoader();
   let switchSeq = 0;
-  const started = [];
+  const started: string[] = [];
 
-  async function switchTo(name, delayMs) {
+  async function switchTo(name: string, delayMs: number) {
     const mySeq = ++switchSeq;
     const { mod } = await loader.load(name, async () => {
       await new Promise((r) => setTimeout(r, delayMs));
@@ -120,7 +131,7 @@ test('feature loader: failed load allows retry', async () => {
     });
     assert.fail('should have thrown');
   } catch (e) {
-    assert.equal(e.message, 'network');
+    assert.equal((e as Error).message, 'network');
     assert.equal(attempts, 1);
   }
 
@@ -166,7 +177,7 @@ test('runFeatureLoad-like lifecycle always hides overlay after success or cancel
   } = await import('../../apps/web/src/app/panel-loading.js');
 
   function createMockPanel() {
-    const nodes = [];
+    const nodes: MockElement[] = [];
     const doc = {
       createElement() {
         return {
@@ -174,13 +185,13 @@ test('runFeatureLoad-like lifecycle always hides overlay after success or cancel
           textContent: '',
           hidden: false,
           attrs: {},
-          setAttribute(k, v) {
+          setAttribute(k: string, v: string | null) {
             this.attrs[k] = v == null ? '' : String(v);
           },
-          hasAttribute(k) {
+          hasAttribute(k: string) {
             return Object.prototype.hasOwnProperty.call(this.attrs, k);
           },
-          getAttribute(k) {
+          getAttribute(k: string) {
             return this.attrs[k] ?? null;
           },
         };
@@ -188,13 +199,13 @@ test('runFeatureLoad-like lifecycle always hides overlay after success or cancel
     };
     return {
       ownerDocument: doc,
-      querySelector(sel) {
+      querySelector(sel: string) {
         if (sel === '[data-panel-loading]') {
           return nodes.find((n) => n.hasAttribute('data-panel-loading')) || null;
         }
         return null;
       },
-      prepend(el) {
+      prepend(el: MockElement) {
         nodes.unshift(el);
       },
     };
@@ -204,7 +215,7 @@ test('runFeatureLoad-like lifecycle always hides overlay after success or cancel
   let switchSeq = 0;
   const panel = createMockPanel();
 
-  async function runFeatureLoad(mySeq, ensureReady) {
+  async function runFeatureLoad(mySeq: number, ensureReady: () => Promise<unknown>) {
     showPanelLoading(panel);
     try {
       await ensureReady();

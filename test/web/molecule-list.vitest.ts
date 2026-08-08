@@ -8,13 +8,13 @@
  * - ai.js 通过 setOnMoleculeAdd 注册「＋」入口，不再直接查 #btnAddMolecule；
  * - list.js 导出幂等 disposeMoleculeList（B5 合同：dispose 后可重建）。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import root from '../helpers/repo-root.js';
 
-function source(relativePath) {
+function source(relativePath: string) {
   return fs.readFileSync(path.join(root, relativePath), 'utf8');
 }
 

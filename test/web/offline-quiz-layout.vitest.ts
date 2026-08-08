@@ -4,12 +4,15 @@
  * 断言：offline-quiz-bank.js 是聚合加载器（<400 行），题目数据本体在
  * offline-questions-part{1,2}.js；运行时聚合完整且顺序保持。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { createRequire } from 'node:module';
+import root from '../helpers/repo-root.js';
+
+const require = createRequire(import.meta.url);
 
 const dataDir = path.join(root, 'apps/web/src/chemistry/data');
 const bankPath = path.join(dataDir, 'offline-quiz-bank.js');
