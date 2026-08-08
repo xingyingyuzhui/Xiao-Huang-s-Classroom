@@ -9,16 +9,11 @@ const {
 } = require('@xiaohuang/subject-settings');
 const { loadSubjectSettings } = require('../services/settings-service');
 
-// R5.1：业务规则收敛到 TS domain policy（src/domain/settings-policy.ts，
-// tsup 产物 dist/domain/settings-policy.js；route 不再重复实现）。
-// 仓库布局：apps/server/dist；Electron stage 布局：.electron-stage/server/dist
-let settingsPolicy;
-try {
-  settingsPolicy = require('../../dist/domain/settings-policy.js');
-} catch {
-  settingsPolicy = require('../dist/domain/settings-policy.js');
-}
-const { MAX_ICON_DATA_URL, maskApiKey, isMaskedKey, validateIconDataUrl } = settingsPolicy;
+// R5.1：业务规则收敛到 TS domain policy（src/domain/settings-policy.ts）。
+// 产物合同：<server 根>/dist/domain/settings-policy.js（仓库 = apps/server/dist；
+// Electron stage = .electron-stage/server/dist）。构建链（turbo build / stage
+// 预构建）保证加载前产物已生成；禁止双路径 try/catch 掩盖位置不确定。
+const { MAX_ICON_DATA_URL, maskApiKey, isMaskedKey, validateIconDataUrl } = require('../../dist/domain/settings-policy.js');
 
 const DEFAULT_THEME = { id: 'default' };
 

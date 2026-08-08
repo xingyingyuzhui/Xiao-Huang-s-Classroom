@@ -45,7 +45,8 @@
     "lint:assets": "node tooling/architecture/check-assets.mjs",
     "budget": "node tooling/performance/budget.mjs",
     "test:vitest": "turbo run test",
-    "coverage": "turbo run coverage"
+    "coverage": "turbo run coverage",
+    "pretest": "npm run build -w @xiaohuang/server"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

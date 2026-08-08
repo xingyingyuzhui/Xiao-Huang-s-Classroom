@@ -1,0 +1,107 @@
+/**
+ * Server TS 干净构建链合同（R1）。
+ *
+ * 用临时副本模拟干净环境（不触碰生产 apps/server/dist，保证与并行
+ * server 测试隔离）：
+ * 1. 无 dist 的副本中，构建命令生成 settings-policy 产物。
+ * 2. 无产物时加载失败（运行时真实依赖产物）。
+ * 3. 构建后产物可加载（单一产物合同）。
+ * 4. stage 脚本含"产物缺失时主动构建"逻辑。
+ */
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
+const { execFileSync } = require('node:child_process');
+const root = require('../helpers/repo-root.js');
+
+/** 临时副本：复制 server 的 TS 源码 + tsup 配置（无 dist） */
+function makeCleanCopy() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-server-clean-'));
+  fs.mkdirSync(path.join(dir, 'src/domain'), { recursive: true });
+  fs.copyFileSync(
+    path.join(root, 'apps/server/src/domain/settings-policy.ts'),
+    path.join(dir, 'src/domain/settings-policy.ts'),
+  );
+  fs.copyFileSync(
+    path.join(root, 'apps/server/tsup.config.ts'),
+    path.join(dir, 'tsup.config.ts'),
+  );
+  const tsconfig = JSON.parse(
+    fs.readFileSync(path.join(root, 'apps/server/tsconfig.json'), 'utf8'),
+  );
+  tsconfig.extends = './tsconfig.base.json'; // 副本内相对路径
+  fs.writeFileSync(path.join(dir, 'tsconfig.json'), JSON.stringify(tsconfig, null, 2));
+  fs.copyFileSync(
+    path.join(root, 'tsconfig.base.json'),
+    path.join(dir, 'tsconfig.base.json'),
+  );
+  // 复用仓库 node_modules（只读），tsup/typescript 在副本内可解析
+  fs.symlinkSync(path.join(root, 'node_modules'), path.join(dir, 'node_modules'), 'dir');
+  fs.writeFileSync(
+    path.join(dir, 'package.json'),
+    JSON.stringify({ name: '@xiaohuang/server', private: true, type: 'commonjs' }),
+  );
+  // 模拟 settings.js 的产物引用（与生产同一相对结构 routes → ../../dist）
+  fs.mkdirSync(path.join(dir, 'src/routes'), { recursive: true });
+  fs.writeFileSync(
+    path.join(dir, 'src/routes/settings.js'),
+    "module.exports = require('../../dist/domain/settings-policy.js');\n",
+  );
+  return dir;
+}
+
+test('干净副本（无 dist）：server build 生成 policy 产物且路由可加载', () => {
+  const dir = makeCleanCopy();
+  try {
+    const policyPath = path.join(dir, 'dist/domain/settings-policy.js');
+    assert.equal(fs.existsSync(policyPath), false, '前置：副本无 dist');
+    // 无产物时加载必须失败
+    assert.throws(
+      () => require(path.join(dir, 'src/routes/settings.js')),
+      /settings-policy/,
+      '无产物时路由加载失败（运行时真实依赖）',
+    );
+    // 构建（cwd=副本，tsup 读本地配置）
+    execFileSync(process.execPath, [path.join(root, 'node_modules/tsup/dist/cli-default.js')], {
+      cwd: dir,
+      stdio: 'pipe',
+      env: { ...process.env, NODE_PATH: path.join(root, 'node_modules') },
+    });
+    assert.ok(fs.existsSync(policyPath), 'build 后产物必须存在');
+    const policy = require(policyPath);
+    assert.equal(policy.validateIconDataUrl('data:image/png;base64,AAAA') !== null, true);
+    // 构建后路由可加载（单一产物合同）
+    assert.doesNotThrow(() => require(path.join(dir, 'src/routes/settings.js')), '构建后路由加载成功');
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+});
+
+test('settings.js 使用单一产物合同（无双路径 try/catch）', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/server/src/routes/settings.js'), 'utf8');
+  const requireRefs = src.match(/require\([^)]*settings-policy[^)]*\)/g) || [];
+  assert.equal(requireRefs.length, 1, '只 require 一处产物路径');
+  assert.doesNotMatch(src, /try \{[^}]*settings-policy/, '不得用 try/catch 双路径掩盖');
+});
+
+test('stage 脚本含产物缺失时主动构建逻辑', () => {
+  const stage = fs.readFileSync(path.join(root, 'scripts/stage-electron-server.js'), 'utf8');
+  assert.match(stage, /dist.*domain.*settings-policy/, 'stage 检查 server 产物路径');
+  assert.match(stage, /先构建 @xiaohuang\/server/, 'stage 主动构建 server');
+});
+
+test('tsup 配置唯一（空骨架 tsup.config.js 已删除）', () => {
+  assert.equal(fs.existsSync(path.join(root, 'apps/server/tsup.config.js')), false, '空骨架配置必须删除');
+  assert.ok(fs.existsSync(path.join(root, 'apps/server/tsup.config.ts')), '真实配置保留');
+});
+
+test('server package.json 提供标准 build/test/typecheck 任务', () => {
+  const pkg = JSON.parse(
+    fs.readFileSync(path.join(root, 'apps/server/package.json'), 'utf8'),
+  );
+  for (const task of ['build', 'test', 'typecheck']) {
+    assert.equal(typeof pkg.scripts?.[task], 'string', `apps/server 必须有 ${task} 脚本`);
+  }
+});

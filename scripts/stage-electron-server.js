@@ -22,6 +22,13 @@ const srcServer = join(root, 'apps', 'server');
 const srcCode = join(srcServer, 'src');
 
 const COPY_DIRS = ['db', 'routes', 'seed', 'utils', 'services', 'public', 'dist/domain'];
+
+// R1：Electron staging 主动构建 Server TS 产物（不依赖本机残留 dist）
+const serverDistPolicy = join(srcServer, 'dist', 'domain', 'settings-policy.js');
+if (!existsSync(serverDistPolicy)) {
+  console.log('[stage] Server TS 产物缺失，先构建 @xiaohuang/server …');
+  execSync('npm run build -w @xiaohuang/server', { cwd: root, stdio: 'inherit' });
+}
 const COPY_FILES = ['index.js', 'paths.js'];
 
 function rimraf(p) {
