@@ -511,7 +511,7 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 | 写计划时 tip | `6b7af19`（`git rev-parse` 为准，未再前进） |
 | H 状态 | 完成（提交见 §12 日志） |
 | Q 状态 | 未开始；quality 证据：— |
-| T 状态 | 未开始；已迁文件数：0 / 目标 ≥12 |
+| T 状态 | 部分：**T1 完成**——15 个 math 纯逻辑测试迁 vitest（79 用例，`codex/t1-batch` @ `a1e2d5c`，提交明细见 §12）；T2/T3/T4 未做 |
 | U 状态 | 未开始；审计表：—；U2 条数：0；U3 面：— |
 | 禁止事项 | 合 main；D2 Win exe/pkg 验收（D2 已标「暂缓」，见路线图 §9.1 与 debt-registry D2） |
 | 下一刀 | Track Q |
@@ -536,7 +536,7 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 ### Track T
 
-- [ ] T1 数学纯逻辑批（建议 ≥8 文件）
+- [x] T1 数学纯逻辑批（15 文件 / 79 用例迁 vitest，≥8 达标）
 - [ ] T2 化学/其它纯逻辑补至合计 ≥12
 - [ ] T3 配置/脚本无双权威
 - [ ] T4 回写路线图 §9.3 + D7 备注
@@ -582,6 +582,7 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 | ---- | ----- | ---- | ------------- | ---- |
 | 2026-08-08 | — | 计划 v1.0 创建 | 文档 | — |
 | 2026-08-08 | H | Track H 完成：UI 计划 §13 勾选对齐（P0–P3/P6/P7.2–P7.3 依代码补勾，P7.1 未闭合见 UI 计划附录 B）+ 路线图 §9.1 D2 暂缓说明/§9.3 D7 指针 + debt-registry D2/D4/D7 对齐 + §9 交接卡 + `ui-library.md` 遗留冲突标记清理 | `codex/handoff-docs` @ `ed5c418` | `git diff --stat docs/`、`npm run format:check`、`git diff --check` |
+| 2026-08-08 | T1 | 数学纯逻辑测试迁 Vitest：**15 文件 / 79 用例**（P0：function-evaluator 4 / function-roots 3 / intersection-numeric 2 / graph-id-allocator 3 / graph-migrations 5 / graph-store 19；P1：graph-history 14 / transform-model 6 / construction-geometry 4 / construction-operations 1 / construction-records 1 / function-records 3；P2：rate-of-change 7 / object-style 5 / expr-safe 2）。每文件一个提交，旧 cjs 均 git mv 移除，无双权威。web node:test 404→325、vitest 63→142。注意：fresh worktree 需先 build `@xiaohuang/subject-settings` + `@xiaohuang/server`（dist 为 gitignored 产物，`mastery-map`/`subject-hub` 两个 node:test 依赖） | `codex/t1-batch` @ `a1e2d5c`（提交 a4bf9ff→a1e2d5c 共 15 个） | `npm run test -w @xiaohuang/web` 全绿（node:test 325/325 + vitest 142/142）、`npm run quality:fast` 通过、`git diff --check` |
 
 ---
 
