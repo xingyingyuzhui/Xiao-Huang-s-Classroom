@@ -16,9 +16,16 @@
 | B2   | server route 与 composition                             | ~36  | 全部 route 迁移后 src/index.js 换 dist 入口 |
 | B3   | Electron main/preload                                   | 2    | tsup CJS 产物被 electron-builder 引用       |
 | B4   | web shared contracts/controller                         | ~30  | Vite 原生支持 TS                            |
-| B5   | subject/classroom shell                                 | ~25  | manifest/loader 消费方迁移                  |
-| B6   | 化学与数学非视觉纯逻辑                                  | ~90  | 行为合同测试通过后逐模块                    |
-| B7   | Three.js/JSXGraph adapter                               | ~20  | 集中 adapter 隔离后                         |
+
+### B4 已落地（C3 首批）
+
+| 文件                                                                    | 状态                      | 说明                                                                                     |
+| ----------------------------------------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------- |
+| `apps/web/src/math/shared/frame-task.ts`                                | TS 权威                   | C3 样板（2026-08-08）：无 DOM 纯逻辑（帧合并调度）；Vite 消费路径不变，相关测试迁 vitest |
+| `test/web/math-{frame-task,graph-readouts,graph-performance}.vitest.ts` | vitest                    | node:test 迁移（D7 样板，`*.vitest.ts` glob 与 cjs 不交叉）                              |
+| B5                                                                      | subject/classroom shell   | ~25                                                                                      | manifest/loader 消费方迁移 |
+| B6                                                                      | 化学与数学非视觉纯逻辑    | ~90                                                                                      | 行为合同测试通过后逐模块   |
+| B7                                                                      | Three.js/JSXGraph adapter | ~20                                                                                      | 集中 adapter 隔离后        |
 
 ### B1 已落地（以 TS 为权威源）
 

@@ -7,11 +7,11 @@
  * 3. reset() 重新武装（readouts 是模块级单例，跨 mount 复用）。
  * 4. 过期的异步数值分析回调（dispose 后 / 活动函数已切换）不更新 DOM。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 async function readoutsModule() {
   return import(

@@ -530,6 +530,12 @@ npm run test -w @xiaohuang/server
 
 Vite 原生 TS；测试可继续 cjs 动态 import 编译结果或改 vitest。
 
+**C3 完成（2026-08-08，frame-task 切片）：**
+
+- [x] `math/shared/frame-task.ts` TS 权威（无 DOM 纯逻辑，帧合并调度）；消费方 import 路径不变（Vite 解析到 .ts）
+- [x] 相关测试迁 vitest（D7 样板）：`math-frame-task` / `math-graph-readouts` / `math-graph-performance` → `*.vitest.ts`；`apps/web/vitest.config.ts`（glob 与 node:test cjs 不交叉）
+- [x] 验证：web 全量 node:test 410 + vitest 28 = 438 绿；typecheck 1 TS；Vite build 通过；lint:arch 337 文件无违规
+
 ### 8.5 切片 C4 — Electron main TS
 
 **前置：** 尽量不与未完成的 pkg 退役硬绑；产物 CJS 给 electron-builder。
@@ -834,6 +840,7 @@ tooling/architecture/
 | 2026-08-08 | B4 落地（manifest 单一入口，关 D13）                    | B4 提交；debt-registry D13 → 已关闭               |
 | 2026-08-08 | B3 落地（offline-quiz-bank 数据/加载边界拆分）          | B3 提交；1860 → 22 行 loader                      |
 | 2026-08-08 | B5 落地（function-panel/editor dispose 样板，D3 样板）  | B5 提交；二次 mount 合同测试                      |
+| 2026-08-08 | C3 落地（frame-task TS 切片 + web vitest 样板）         | C3 提交；web 438 绿                               |
 
 ---
 

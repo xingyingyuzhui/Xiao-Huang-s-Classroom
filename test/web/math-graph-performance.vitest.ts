@@ -27,11 +27,11 @@
  * 当前已满足的不变量直接通过：生产 frame-task 合并（1 次 apply/1 条 history）、
  * point move 零函数重建、只更新 active 函数及其依赖、列表/读数“该渲染才渲染”的正例。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 // ───────────────────────── 生产模块加载 ─────────────────────────
 
