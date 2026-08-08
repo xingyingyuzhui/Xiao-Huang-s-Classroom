@@ -218,7 +218,9 @@
   box-shadow: var(--shadow-print-sm);
   font: inherit;
   color: var(--text-primary);
-  transition: transform var(--dur-fast) var(--ease-spring), box-shadow var(--dur-fast) ease,
+  transition:
+    transform var(--dur-fast) var(--ease-spring),
+    box-shadow var(--dur-fast) ease,
     background var(--dur-fast) ease;
 }
 
@@ -268,6 +270,12 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.45rem;
+}
+
+/* 保存忙态：禁用按钮的视觉反馈（主题令牌，无硬编码色） */
+.settings-actions .btn:disabled {
+  opacity: 0.6;
+  cursor: wait;
 }
 
 .settings-status {
