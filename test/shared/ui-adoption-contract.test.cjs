@@ -12,7 +12,7 @@ const repoRoot = path.resolve(__dirname, '../..');
 
 // P0 基线 = function-panel 唯一业务试点；P3 后 >=3（function-panel + function-editor +
 // function-list-view）、P5 后 >=5、P6 后 >=8（计划 P7.1）
-const MIN_BUSINESS_CONSUMERS = 3;
+const MIN_BUSINESS_CONSUMERS = 8  // P7.1 终态：P3 后 ≥3，P5/P6 后 ≥8（业务实际 9 文件）;
 
 function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -64,7 +64,7 @@ test('packages/ui/src/index.ts exports the P0 contract factories', () => {
   }
 });
 
-test(`business UI consumers >= ${MIN_BUSINESS_CONSUMERS} (P3 threshold)`, () => {
+test(`business UI consumers >= ${MIN_BUSINESS_CONSUMERS} (P7.1 final)`, () => {
   const consumers = businessUiConsumers();
   assert.ok(
     consumers.length >= MIN_BUSINESS_CONSUMERS,
