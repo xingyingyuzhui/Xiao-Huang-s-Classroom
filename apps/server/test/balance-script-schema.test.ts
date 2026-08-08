@@ -1,6 +1,16 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { validateBalanceScript, validateStep } = require('../../apps/server/src/utils/balance-script-schema');
+/**
+ * 配平脚本 schema 合同
+ * （D-test 第四批：node:test → vitest）
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+
+const { validateBalanceScript } = require(path.join(path.dirname(fileURLToPath(import.meta.url)), '../src/utils/balance-script-schema.js'));
 
 test('rejects missing title', () => {
   const r = validateBalanceScript({

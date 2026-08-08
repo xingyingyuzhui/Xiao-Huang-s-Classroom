@@ -598,6 +598,7 @@ npm run verify:electron-package
 - [x] 第一批（C3）：frame-task 相关 3 文件迁 vitest（`*.vitest.ts` glob 与 cjs 不交叉）
 - [x] 第二批（2026-08-08）：chem-text TS 化随迁（`chem-text.vitest.ts`）；web vitest 30 用例
 - [x] 第三批（2026-08-08）：server settings-service 测试迁 vitest（`apps/server/test/settings-service.test.ts`，4 用例）；server vitest 10 用例
+- [x] 第四批（2026-08-08）：server 纯逻辑 4 文件迁 vitest（ai-response-parser / balance-script-schema / builtin-molecule-properties / structured-logger，18 用例）；server vitest 28 用例
 - [ ] 后续批次随模块 TS 化推进
 
 ### 9.4 D-jessie — JSXGraph eval 警告（D8）
