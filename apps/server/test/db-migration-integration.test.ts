@@ -1,17 +1,23 @@
 /**
  * migration 生产接线（R5.2）：真实 sql.js DB 通过 initDatabase 升级。
+ * （D-test 批次：node:test → vitest 迁移，行为逐字保持）
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = require(path.join(dirname, '../../../test/helpers/repo-root.js'));
 
 const { initDatabase, closeDatabase, query } = require(path.join(root, 'apps/server/src/db/sqlite.js'));
 const { MAX_SCHEMA_VERSION } = require(path.join(root, 'apps/server/src/db/migrator.js'));
 
-function withDb(fn) {
+function withDb(fn: (dbPath: string, dir: string) => Promise<void>): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-mig-int-'));
   const dbPath = path.join(dir, 'chem.db');
   return initDatabase(dbPath).then(async () => {
@@ -54,7 +60,7 @@ test('高版本 DB 拒绝写入（只读失败）', () => {
   const dbPath = path.join(dir, 'future.db');
   // 构造一个版本高于应用最大支持的 DB
   const SQL = require(path.join(root, 'node_modules/sql.js'));
-  return SQL().then((sqlModule) => {
+  return SQL().then((sqlModule: { Database: new () => { run: (sql: string) => void; export: () => Uint8Array; close: () => void } }) => {
     const db = new sqlModule.Database();
     db.run('CREATE TABLE t (x INTEGER)');
     db.run(`PRAGMA user_version = ${MAX_SCHEMA_VERSION + 1}`);
@@ -66,7 +72,7 @@ test('高版本 DB 拒绝写入（只读失败）', () => {
         closeDatabase();
         assert.fail('高版本 DB 必须拒绝启动');
       })
-      .catch((err) => {
+      .catch((err: { message?: unknown }) => {
         closeDatabase();
         assert.match(String(err.message), /数据库迁移失败.*DB_NEWER_THAN_APP/, '拒绝原因含 DB_NEWER_THAN_APP');
       })
@@ -78,7 +84,7 @@ test('升级前创建 checksum backup（旧版本升级路径）', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-mig-int-'));
   const dbPath = path.join(dir, 'old.db');
   const SQL = require(path.join(root, 'node_modules/sql.js'));
-  return SQL().then(async (sqlModule) => {
+  return SQL().then(async (sqlModule: { Database: new () => { run: (sql: string) => void; export: () => Uint8Array; close: () => void } }) => {
     const db = new sqlModule.Database();
     db.run('CREATE TABLE old_table (x INTEGER)');
     db.run('PRAGMA user_version = 0');

@@ -1,13 +1,21 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+/**
+ * database lock 合同（D-test 批次：node:test → vitest 迁移，行为逐字保持）。
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const {
   acquireDatabaseLock,
   releaseDatabaseLock,
-} = require('../../apps/server/src/db/sqlite');
+} = require(path.join(dirname, '../src/db/sqlite'));
 
 test('database lock prevents a second writer and is released cleanly', () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-lock-test-'));

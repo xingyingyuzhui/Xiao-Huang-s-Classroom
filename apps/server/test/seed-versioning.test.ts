@@ -1,15 +1,21 @@
 /**
  * Seed versioning 合同（Program 5 Task 5.6）。
+ * （D-test 批次：node:test → vitest 迁移，行为逐字保持）
  *
  * 断言：幂等 upsert（同版本跳过、新版本重放）；版本记录持久化；
  * 与 migration 分离（不依赖 schema migration）。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = require(path.join(dirname, '../../../test/helpers/repo-root.js'));
 
 const { initDatabase, closeDatabase, query, run, exec } = require(path.join(
   root,
@@ -18,7 +24,7 @@ const { initDatabase, closeDatabase, query, run, exec } = require(path.join(
 const { applySeed } = require(path.join(root, 'apps/server/src/db/seed-versioning.js'));
 const { MAX_SCHEMA_VERSION } = require(path.join(root, 'apps/server/src/db/migrator.js'));
 
-function withDb(fn) {
+function withDb(fn: () => Promise<void>): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-seed-test-'));
   const dbPath = path.join(dir, 'seed.db');
   return initDatabase(dbPath).then(async () => {
@@ -31,7 +37,7 @@ function withDb(fn) {
   });
 }
 
-const db = { exec, run, queryOne: (sql, params) => query(sql, params)[0] ?? null };
+const db = { exec, run, queryOne: (sql: string, params?: unknown[]) => query(sql, params)[0] ?? null };
 
 test('seed 幂等：同版本只应用一次，内容版本变化时重放', async () => {
   await withDb(async () => {
