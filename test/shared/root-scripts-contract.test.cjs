@@ -31,6 +31,14 @@ test('根标准脚本齐全且语义一致（quality/lint/format/typecheck/test/
   assert.match(pkg.scripts.quality, /build/, 'quality 必须包含 build');
 });
 
+test('quality:fast 是本地快路径：含 test/build、不含慢门禁（coverage）', () => {
+  const fast = pkg.scripts['quality:fast'];
+  assert.ok(fast, '根 scripts.quality:fast 必须存在（本地日常快路径）');
+  assert.match(fast, /test/, 'quality:fast 必须包含 test');
+  assert.match(fast, /build/, 'quality:fast 必须包含 build');
+  assert.doesNotMatch(fast, /coverage/, 'quality:fast 不含 coverage（CI/合并前才跑满 quality）');
+});
+
 test('tooling 骨架目录与 README 就位', () => {
   for (const dir of ['architecture', 'performance', 'release']) {
     const readme = path.join(root, 'tooling', dir, 'README.md');
