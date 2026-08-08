@@ -52,14 +52,8 @@
               <button type="button" class="side-drawer-toggle" aria-label="收起侧栏">«</button>
             </div>
             <div class="side-drawer-body">
-              <div class="mol-toolbar">
-                <button type="button" class="mol-btn mol-btn-add" id="btnAddMolecule" title="AI 生成分子">
-                  <strong class="mol-add-plus">＋</strong>
-                </button>
-                <button type="button" class="mol-btn mol-btn-edit" id="btnEditMolecules" title="编辑列表">
-                  编辑
-                </button>
-              </div>
+              <!-- 工具条按钮由 molecule/list.js 用 @xiaohuang/ui createButton 挂载（P6） -->
+              <div class="mol-toolbar"></div>
               <div id="moleculeList" class="molecule-list"></div>
             </div>
           </aside>

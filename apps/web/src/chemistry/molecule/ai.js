@@ -4,7 +4,7 @@
  */
 
 import { aiApi, moleculeApi } from '../../shared/api/client.js';
-import { renderMolList, loadMolecule, setMolEditMode } from './list.js';
+import { renderMolList, loadMolecule, setMolEditMode, setOnMoleculeAdd } from './list.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -27,7 +27,6 @@ const genStatus = $('#genMolStatus');
 const btnGenSubmit = $('#btnGenMolSubmit');
 const btnGenCancel = $('#btnGenMolCancel');
 const btnGenClose = $('#btnGenMolClose');
-const btnAddMolecule = $('#btnAddMolecule');
 
 /**
  * 打开生成弹窗
@@ -114,8 +113,8 @@ async function handleGenerate() {
  * 初始化 AI 生成弹窗
  */
 export function initMoleculeAI() {
-  // 绑定添加按钮
-  btnAddMolecule?.addEventListener('click', () => openGenModal());
+  // 「＋」工具条按钮由 list.js createButton 渲染（P6），此处只注册打开弹窗回调
+  setOnMoleculeAdd(() => openGenModal());
 
   // 绑定取消/关闭按钮
   btnGenCancel?.addEventListener('click', () => closeGenModal());

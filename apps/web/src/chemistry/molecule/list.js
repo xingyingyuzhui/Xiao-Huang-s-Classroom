@@ -9,6 +9,7 @@ import { refreshMolarPresets } from '../molar/ui.js';
 import { getSubstanceCard } from '../data/substance-cards.js';
 import { inferHybridization } from '../chem/hybridization.js';
 import { appAlert, appConfirm } from '../../shared/ui/app-dialog.js';
+import { createButton } from '@xiaohuang/ui';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -35,8 +36,6 @@ function escapeHtml(s) {
 const molList = $('#moleculeList');
 const molTitle = $('#moleculeTitle');
 const molDesc = $('#moleculeDesc');
-const btnAddMolecule = $('#btnAddMolecule');
-const btnEditMolecules = $('#btnEditMolecules');
 const btnLabelToggle = $('#molLabelToggle');
 
 // 状态
@@ -49,6 +48,20 @@ let molStarted = false;
 let currentMolData = null;
 /** @type {null | ((mol: object | null) => void)} */
 let onMoleculeChange = null;
+/** @type {ReturnType<typeof createButton> | null} 「＋ AI 生成分子」工具条按钮 */
+let addBtnController = null;
+/** @type {ReturnType<typeof createButton> | null} 「编辑/保存」工具条按钮 */
+let editBtnController = null;
+/** @type {null | (() => void)} AI 生成入口（ai.js 经 setOnMoleculeAdd 注册） */
+let onAddMolecule = null;
+
+/**
+ * 注册「＋ 生成分子」入口回调（AI 生成弹窗模块 ai.js 挂载）
+ * @param {(() => void) | null} fn
+ */
+export function setOnMoleculeAdd(fn) {
+  onAddMolecule = typeof fn === 'function' ? fn : null;
+}
 
 /**
  * 注册分子切换回调（反应面板等）
@@ -262,9 +275,9 @@ function bindMolDrag() {
  */
 export function setMolEditMode(on) {
   molEditMode = on;
-  if (btnEditMolecules) {
-    btnEditMolecules.textContent = on ? '保存' : '编辑';
-    btnEditMolecules.classList.toggle('is-active', on);
+  if (editBtnController) {
+    editBtnController.update({ label: on ? '保存' : '编辑' });
+    editBtnController.element.classList.toggle('is-active', on);
   }
   molList.classList.toggle('is-edit-mode', on);
   renderMolList();
@@ -386,16 +399,32 @@ export function initMoleculeList() {
     molViewer?.clearSelection?.();
   });
 
-  // 绑定编辑按钮
-  btnEditMolecules?.addEventListener('click', async () => {
-    if (molEditMode) {
-      setMolEditMode(false);
-    } else {
-      setMolEditMode(true);
-    }
-  });
+  // 工具条主按钮：@xiaohuang/ui createButton 渲染（P6 采用），className 桥接旧 mol-btn 样式
+  const toolbar = document.querySelector('.mol-toolbar');
+  if (toolbar && !addBtnController) {
+    addBtnController = createButton({
+      className: 'mol-btn mol-btn-add',
+      title: 'AI 生成分子',
+      onClick: () => onAddMolecule?.(),
+    });
+    // 旧 partial 的 ＋ 图标是 strong.mol-add-plus 子节点（createButton 仅 textContent）
+    const plus = document.createElement('strong');
+    plus.className = 'mol-add-plus';
+    plus.textContent = '＋';
+    addBtnController.element.appendChild(plus);
+    toolbar.appendChild(addBtnController.element);
+  }
+  if (toolbar && !editBtnController) {
+    editBtnController = createButton({
+      className: 'mol-btn mol-btn-edit',
+      title: '编辑列表',
+      label: '编辑',
+      onClick: () => setMolEditMode(!molEditMode),
+    });
+    toolbar.appendChild(editBtnController.element);
+  }
 
-  // 绑定标签切换按钮
+  // 绑定标签切换按钮（阶段操作区，不在本 Task 工具条范围）
   if (btnLabelToggle) {
     btnLabelToggle.addEventListener('click', async () => {
       if (molViewer) {
@@ -412,4 +441,18 @@ export function initMoleculeList() {
   renderMolList()
     .then(() => ensureDefaultMolecule())
     .catch((err) => console.error('初始化分子列表失败:', err));
+}
+
+/**
+ * 释放本模块创建的工具条按钮控制器并清空挂接（幂等，可再次 initMoleculeList() 重建）。
+ * 当前教室对分子模块为单例加载（离开时隐藏面板而非销毁），课堂 teardown 路径调用本函数。
+ */
+export function disposeMoleculeList() {
+  addBtnController?.dispose();
+  editBtnController?.dispose();
+  addBtnController = null;
+  editBtnController = null;
+  onAddMolecule = null;
+  molEditMode = false;
+  molList?.classList.remove('is-edit-mode');
 }
