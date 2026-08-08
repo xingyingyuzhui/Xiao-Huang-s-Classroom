@@ -1,8 +1,8 @@
 # 覆盖率基线（分层）
 
-> Program 7 Task 7.2 / R7.2 产物。基线 2026-08-08（vitest coverage-v8）。
-> 分层阈值：contracts/domain-core 高分支；test-kit/subject-settings 逐步提升。
-> 已达标目录不得回退（CI 检查由 R7.2 后续接入）。
+> Program 7 Task 7.2 / R5 产物。基线 2026-08-08（vitest coverage-v8）。
+> 分层阈值已写入各包 vitest.config.ts 并由 `npm run coverage`（turbo）强制：
+> 低于阈值 exit 1（有不可达阈值失败测试证明）；coverage 已接入 quality/CI。
 
 | 层                           | 文件                                         | % Stmts | % Branch | % Funcs | % Lines | 阈值                                |
 | ---------------------------- | -------------------------------------------- | ------- | -------- | ------- | ------- | ----------------------------------- |

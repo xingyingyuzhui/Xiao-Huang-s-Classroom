@@ -65,7 +65,8 @@
 - **Verify:** `npm run quality`（当前阶段=test+build）通过；contract 测试过。
 - **Commit:** `feat(eng): add root scripts and Node baseline (P1)`
 
-- [ ] **Task 1.2：TypeScript 配置体系**
+- [x] **Task 1.2：TypeScript 配置体系**
+> ✅ 三个 app（web/server/desktop）均提供标准 typecheck 任务并经 typecheck-apps.mjs 真实执行（server 2 个 TS 文件被检查）
 > ⚠ R0 审计缺口：根 typecheck 仍是 echo+exit 0 假绿；workspace 无真实检查（R1.1）
 - **Files:** `tsconfig.base.json`、`tsconfig.web.json`、`tsconfig.node.json`、`tsconfig.electron.json`（根）、各 workspace `tsconfig.json`（先只做类型检查骨架，不开 allowJs）、`tooling/config/README.md`
 - **Test:** `test/shared/tsconfig-contract.test.cjs`：断言 strict 系五选项全部开启（`noUncheckedIndexedAccess`、`exactOptionalPropertyTypes`、`noImplicitOverride`、`useUnknownInCatchVariables`、`noFallthroughCasesInSwitch`），且没有任何 `strict:false` 覆盖。
@@ -81,7 +82,8 @@
 - **Verify:** `npm run lint`（阶段范围）通过；contract 测试过。
 - **Commit:** `feat(eng): add ESLint flat config with TS rules (P1)`
 
-- [ ] **Task 1.4：Prettier + Stylelint**
+- [x] **Task 1.4：Prettier + Stylelint**
+> ✅ lint:css 检查真实 CSS 并排除 coverage/dist 等生成目录；coverage→quality 可重复执行（回归合同 3 项）
 > ⚠ R0 审计缺口：lint:css 无匹配文件（packages/**/*.css 不存在）；未检查真实 CSS（R1.2）
 - **Files:** `.prettierrc.json`、`.prettierignore`、`.stylelintrc.json`、`stylelint.config` 覆盖 `apps/web/src/shared/styles/**`
 - **Test:** `test/shared/format-config-contract.test.cjs`：断言配置存在、stylelint 关键规则（selector 层级、token 变量）开启。
@@ -104,7 +106,8 @@
 - **Verify:** `npm run lint:arch` 通过；新违规为 0。
 - **Commit:** `feat(eng): add architecture boundary gate (P1)`
 
-- [ ] **Task 1.7：CI 门禁**
+- [x] **Task 1.7：CI 门禁**
+> ✅ 干净 CI 链可生成 Server TS 产物：根 pretest 先构建、stage 主动预构建、turbo test/typecheck dependsOn ^build；quality 与 CI 同一命令
 > ⚠ R0 审计缺口：CI 引用假绿脚本（typecheck/lint/lint:css 空跑），未形成真实门禁（R1.3）
 - **Files:** `.github/workflows/quality.yml`（新建）
 - **Steps:** PR 工作流按 spec §18.1 顺序：format check → lint → typecheck → architecture → unit/contract tests → server integration → web build → bundle budget（先记录不阻塞）→ dependency scan（先记录）。
@@ -437,7 +440,8 @@ Electron main/preload TS + IPC schema + 启动状态机 + stage manifest；pkg �
 - **Verify:** 全仓测试数不下降。
 - **Commit:** `test(eng): migrate first test directory to vitest (P7)`
 
-- [ ] **Task 7.2：覆盖率阈值分层**
+- [x] **Task 7.2：覆盖率阈值分层**
+> ✅ 9 包真实 vitest coverage 阈值（src 口径），不可达阈值 exit 1 有失败测试，coverage 进 quality/CI
 > ⚠ R0 审计缺口：coverage-baseline.md 不存在；无根 coverage 脚本（R7.2）
 - **Files:** `vitest.config.ts` 覆盖率配置、`docs/engineering/coverage-baseline.md`
 - **Steps:** domain/contracts/store/migrations/service 分层阈值；记录基线；达标目录不回退。
