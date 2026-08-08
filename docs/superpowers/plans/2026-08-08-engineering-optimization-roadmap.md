@@ -599,7 +599,8 @@ npm run verify:electron-package
 - [x] 第二批（2026-08-08）：chem-text TS 化随迁（`chem-text.vitest.ts`）；web vitest 30 用例
 - [x] 第三批（2026-08-08）：server settings-service 测试迁 vitest（`apps/server/test/settings-service.test.ts`，4 用例）；server vitest 10 用例
 - [x] 第四批（2026-08-08）：server 纯逻辑 4 文件迁 vitest（ai-response-parser / balance-script-schema / builtin-molecule-properties / structured-logger，18 用例）；server vitest 28 用例
-- [ ] 后续批次随模块 TS 化推进
+- [x] B2 批次完成（2026-08-08）：16 个 route TS 权威源（settings + ai/* 5 + chemistry/* 8 + v2/settings）；模式：createXxxRouter 工厂 + 组合根注入 db/服务/seed（防 sql.js 双实例与限流双计数）；薄转发桥 + clean-build fixture 同步
+- [ ] 后续批次随模块 TS 化推进（B6/B5/B7）
 
 ### 9.4 D-jessie — JSXGraph eval 警告（D8）
 
