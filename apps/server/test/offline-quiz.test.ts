@@ -1,33 +1,46 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+/**
+ * 离线题库 API 合同（D-test 批次：node:test → vitest 迁移，行为逐字保持）。
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+import type { Server } from 'node:http';
 
-const { app } = require('../../apps/server/src');
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+
+const { app } = require(path.join(dirname, '../src'));
 const {
   initDatabase,
   closeDatabase,
   query,
-  queryOne,
-} = require('../../apps/server/src/db/sqlite');
+} = require(path.join(dirname, '../src/db/sqlite'));
+const { OFFLINE_QUESTIONS: CJS_OFFLINE_QUESTIONS } = require(
+  path.join(dirname, '../src/seed/offline-quiz-bank'),
+);
 
-async function withApiServer(fn) {
+async function withApiServer(fn: (baseUrl: string) => unknown): Promise<void> {
   const dir = fs.mkdtempSync(
     path.join(os.tmpdir(), 'chem-lab-offline-test-'),
   );
   const dbPath = path.join(dir, 'chem-lab.db');
-  let server;
+  let server: Server | undefined;
   try {
     await initDatabase(dbPath);
-    server = app.listen(0, '127.0.0.1');
-    await new Promise((resolve) => server.once('listening', resolve));
-    const baseUrl = `http://127.0.0.1:${server.address().port}`;
-    return await fn(baseUrl);
+    const srv = app.listen(0, '127.0.0.1') as Server;
+    server = srv;
+    await new Promise<void>((resolve) => srv.once('listening', resolve));
+    const baseUrl = `http://127.0.0.1:${(srv.address() as import('node:net').AddressInfo).port}`;
+    await fn(baseUrl);
   } finally {
-    if (server) {
-      await new Promise((resolve, reject) =>
-        server.close((e) => (e ? reject(e) : resolve())),
+    const s = server;
+    if (s) {
+      await new Promise<void>((resolve, reject) =>
+        s.close((e) => (e ? reject(e) : resolve())),
       );
     }
     closeDatabase();
@@ -37,12 +50,11 @@ async function withApiServer(fn) {
 
 // T1: bank schema — every question has the required source metadata fields
 test('offline quiz bank has source metadata on every question', () => {
-  const { OFFLINE_QUESTIONS } = require('../../apps/server/src/seed/offline-quiz-bank');
   assert.ok(
-    OFFLINE_QUESTIONS.length >= 200,
+    CJS_OFFLINE_QUESTIONS.length >= 200,
     'bank must contain at least 200 questions',
   );
-  for (const q of OFFLINE_QUESTIONS) {
+  for (const q of CJS_OFFLINE_QUESTIONS) {
     assert.equal(typeof q.sourceQuestionId, 'string');
     assert.ok(q.sourceQuestionId.length > 0, 'sourceQuestionId required');
     assert.equal(typeof q.stem, 'string');
@@ -57,8 +69,7 @@ test('offline quiz bank has source metadata on every question', () => {
 
 // T1b: bank contains questions with HTML table stems (tabular conversion)
 test('offline quiz bank contains HTML table stems for tabular questions', () => {
-  const { OFFLINE_QUESTIONS } = require('../../apps/server/src/seed/offline-quiz-bank');
-  const withTable = OFFLINE_QUESTIONS.filter(q => q.stem.includes('<table'));
+  const withTable = CJS_OFFLINE_QUESTIONS.filter((q: { stem: string }) => q.stem.includes('<table'));
   assert.ok(withTable.length >= 20, 'should have at least 20 table questions');
   for (const q of withTable) {
     assert.ok(q.stem.includes('</table>'), 'table must be closed');
@@ -69,14 +80,16 @@ test('offline quiz bank contains HTML table stems for tabular questions', () => 
 
 // T1c: ESM source and CJS seed have identical question data
 test('offline quiz ESM source and CJS seed are in sync', async () => {
-  const { OFFLINE_QUESTIONS: esmQuestions } = await import('../../apps/web/src/chemistry/data/offline-quiz-bank.js');
-  const { OFFLINE_QUESTIONS: cjsQuestions } = require('../../apps/server/src/seed/offline-quiz-bank');
+  const { OFFLINE_QUESTIONS: esmQuestions } = (await import(
+    '../../web/src/chemistry/data/offline-quiz-bank.js'
+  )) as { OFFLINE_QUESTIONS: Array<Record<string, unknown>> };
+  const cjsQuestions: Array<Record<string, unknown>> = CJS_OFFLINE_QUESTIONS;
 
   assert.equal(esmQuestions.length, cjsQuestions.length, 'ESM and CJS must have same question count');
 
   for (let i = 0; i < esmQuestions.length; i++) {
-    const e = esmQuestions[i];
-    const c = cjsQuestions[i];
+    const e = esmQuestions[i] ?? {};
+    const c = cjsQuestions[i] ?? {};
     assert.equal(e.sourceQuestionId, c.sourceQuestionId, `question ${i} sourceQuestionId mismatch`);
     assert.equal(e.stem, c.stem, `question ${i} stem mismatch`);
     assert.equal(e.answer, c.answer, `question ${i} answer mismatch`);
@@ -145,7 +158,7 @@ test('POST /api/offline-quiz/submit scores and persists session', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         paperId,
-        answers: questions.map((q) => ({
+        answers: questions.map((q: { sourceQuestionId: string }) => ({
           id: q.sourceQuestionId,
           chosen: 0,
         })),
@@ -184,7 +197,7 @@ test('offline quiz wrong answers are added to wrong book', async () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         paperId,
-        answers: questions.map((q) => ({
+        answers: questions.map((q: { sourceQuestionId: string }) => ({
           id: q.sourceQuestionId,
           chosen: 9,
         })),
