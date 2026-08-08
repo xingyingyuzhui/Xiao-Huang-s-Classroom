@@ -1,5 +1,8 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { beforeAll, test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import root from '../helpers/repo-root.js';
 
 // Minimal molecule fixtures matching real chemistry/data/molecules.js structure
 const FIXTURES = {
@@ -69,9 +72,25 @@ const FIXTURES = {
   },
 };
 
-let inferHybridization;
+/** inferHybridization 返回结果的测试面契约（源为 JS，此处仅收窄测试用字段） */
+type HybridResult = {
+  atomIndex: number;
+  el: string;
+  hybrid: string;
+  hybridLabel: string;
+  geometry: string;
+  sigmaDirs: number;
+  lonePairs?: number;
+  electronPairs?: number;
+  reason: string;
+  tip: string;
+  label: string;
+  source: string;
+};
 
-test.before(async () => {
+let inferHybridization: (molecule: unknown, atomIndex: number) => HybridResult;
+
+beforeAll(async () => {
   const mod = await import('../../apps/web/src/chemistry/chem/hybridization.js');
   inferHybridization = mod.inferHybridization;
 });
@@ -237,9 +256,7 @@ test('ethylene tip mentions actual sigma dirs and pi', () => {
 });
 
 test('molecule3d load clears selection handlers (source contract)', () => {
-  const fs = require('node:fs');
-  const path = require('node:path');
-  const src = fs.readFileSync(path.join(__dirname, '../../apps/web/src/chemistry/molecule/viewer3d.js'), 'utf8');
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/chemistry/molecule/viewer3d.js'), 'utf8');
   // load 中应在 clearRoot 之前 clearSelection，并始终通知 handler null
   const loadFn = src.match(/function load\(molecule\)\s*\{[\s\S]*?\n  function resize/);
   assert.ok(loadFn, 'load function body');
