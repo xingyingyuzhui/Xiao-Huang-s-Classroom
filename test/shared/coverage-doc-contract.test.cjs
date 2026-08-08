@@ -13,7 +13,7 @@ const PACKAGES = ['config', 'domain-core', 'contracts', 'test-kit', 'design-toke
 test('coverage-baseline.md 覆盖全部 9 个 workspace', () => {
   const doc = fs.readFileSync(path.join(root, 'docs/engineering/coverage-baseline.md'), 'utf8');
   for (const name of PACKAGES) {
-    assert.match(doc, new RegExp(`\\| ${name} \\|`), `文档必须含 ${name} 行`);
+    assert.match(doc, new RegExp(`\\|\\s*${name}\\s+\\|`), `文档必须含 ${name} 行`);
   }
   assert.match(doc, /强制阈值/, '文档有强制阈值列');
   assert.match(doc, /观察指标/, '文档区分强制/观察指标');

@@ -6,17 +6,17 @@
 
 ## 9 包真实覆盖率与强制阈值（2026-08-08 实测）
 
-| 包 | Stmts | Branch | Funcs | Lines | 强制阈值（vitest） |
-|---|---|---|---|---|---|
-| config | 100 | 100 | 100 | 100 | stmts≥80、branches≥80、funcs≥80、lines≥80 |
-| domain-core | 94.1 | 94.9 | 87.5 | 95.1 | stmts≥90、branches≥90 |
-| contracts | 95.2 | 100 | 100 | 95.2 | stmts≥95、branches≥90 |
-| test-kit | 69.2 | 31.8 | 62.1 | 68.1 | stmts≥65（branches/funcs/lines 为观察指标） |
-| design-tokens | 100 | 100 | 100 | 100 | stmts≥95、branches≥95 |
-| ui | 81.0 | 46.2 | 66.9 | 86.8 | stmts≥75（branches 为观察指标） |
-| subject-kit | 100 | 88.9 | 100 | 100 | stmts≥95、branches≥85 |
-| math-expr | 91.1 | 77.8 | 100 | 94.1 | stmts≥80（branches 为观察指标） |
-| subject-settings | 64.9 | 54.4 | 46.7 | 71.2 | stmts≥50（其余观察指标） |
+| 包               | Stmts | Branch | Funcs | Lines | 强制阈值（vitest）                          |
+| ---------------- | ----- | ------ | ----- | ----- | ------------------------------------------- |
+| config           | 100   | 100    | 100   | 100   | stmts≥80、branches≥80、funcs≥80、lines≥80   |
+| domain-core      | 94.1  | 94.9   | 87.5  | 95.1  | stmts≥90、branches≥90                       |
+| contracts        | 95.2  | 100    | 100   | 95.2  | stmts≥95、branches≥90                       |
+| test-kit         | 69.2  | 31.8   | 62.1  | 68.1  | stmts≥65（branches/funcs/lines 为观察指标） |
+| design-tokens    | 100   | 100    | 100   | 100   | stmts≥95、branches≥95                       |
+| ui               | 81.0  | 46.2   | 66.9  | 86.8  | stmts≥75（branches 为观察指标）             |
+| subject-kit      | 100   | 88.9   | 100   | 100   | stmts≥95、branches≥85                       |
+| math-expr        | 91.1  | 77.8   | 100   | 94.1  | stmts≥80（branches 为观察指标）             |
+| subject-settings | 64.9  | 54.4   | 46.7  | 71.2  | stmts≥50（其余观察指标）                    |
 
 ## 口径
 
