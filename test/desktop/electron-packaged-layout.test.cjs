@@ -72,6 +72,10 @@ test('resolveStageLayout：复制清单正确（最小 fixture，临时目录）
       layout.copyRootDirs.some((c) => c.to.endsWith(path.join('dist', 'domain'))),
       'dist/domain 根级复制',
     );
+    assert.ok(
+      layout.copyRootDirs.some((c) => c.to.endsWith(path.join('dist', 'services'))),
+      'dist/services 根级复制（C1 settings-service TS 产物）',
+    );
     for (const d of ['seed', 'public']) {
       if (!fs.existsSync(path.join(dir, 'src', d)) && !fs.existsSync(path.join(dir, d))) {
         assert.ok(layout.missing.includes(d), `missing 含 ${d}`);

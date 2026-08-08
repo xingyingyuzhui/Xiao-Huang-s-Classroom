@@ -20,9 +20,14 @@ const root = require('../helpers/repo-root.js');
 function makeCleanCopy() {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-server-clean-'));
   fs.mkdirSync(path.join(dir, 'src/domain'), { recursive: true });
+  fs.mkdirSync(path.join(dir, 'src/services'), { recursive: true });
   fs.copyFileSync(
     path.join(root, 'apps/server/src/domain/settings-policy.ts'),
     path.join(dir, 'src/domain/settings-policy.ts'),
+  );
+  fs.copyFileSync(
+    path.join(root, 'apps/server/src/services/settings-service.ts'),
+    path.join(dir, 'src/services/settings-service.ts'),
   );
   fs.copyFileSync(
     path.join(root, 'apps/server/tsup.config.ts'),
@@ -72,6 +77,12 @@ test('干净副本（无 dist）：server build 生成 policy 产物且路由可
     assert.ok(fs.existsSync(policyPath), 'build 后产物必须存在');
     const policy = require(policyPath);
     assert.equal(policy.validateIconDataUrl('data:image/png;base64,AAAA') !== null, true);
+    // C1：service 产物同样生成且行为可用（薄转发依赖）
+    const servicePath = path.join(dir, 'dist/services/settings-service.js');
+    assert.ok(fs.existsSync(servicePath), 'build 后 service 产物必须存在');
+    const service = require(servicePath);
+    const result = service.loadSubjectSettings({ queryOne: () => null });
+    assert.equal(result.ok, true, '无记录回退默认设置');
     // 构建后路由可加载（单一产物合同）
     assert.doesNotThrow(() => require(path.join(dir, 'src/routes/settings.js')), '构建后路由加载成功');
   } finally {
