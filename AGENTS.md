@@ -44,6 +44,8 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 
 **质量门禁（根脚本）：** `npm run quality`（test+build）为主入口；`lint`（新代码范围）+ `lint:all`（全仓 baseline 不增长）+ `lint:arch`（依赖方向）+ `lint:theme-tokens`（主题分支禁硬编码色）+ `lint:assets`（资源引用/封面/重复大文件）+ `budget`（bundle 预算）+ `format:check` + `typecheck`。CI（`.github/workflows/quality.yml`）按此顺序门禁。
 
+**UI 库采用（`@xiaohuang/ui`）：** 采用指南、dispose 与危险模式门禁见 `docs/engineering/ui-library.md`；豁免登记表 `docs/engineering/ui-legacy-allowlist.md`（`test/shared/ui-no-raw-button-contract.test.cjs` 锁定）。
+
 **TypeScript 包矩阵（`packages/*`，tsup 双产物 + d.ts + strict）：**
 
 | 包                               | 职责                                                                                                                            |
