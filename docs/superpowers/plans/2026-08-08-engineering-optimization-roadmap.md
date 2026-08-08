@@ -389,9 +389,9 @@ rg -n "jsxgraph|getElementById|querySelector|localStorage" \
 
 **完成定义：**
 
-- [ ] 目标文件行数明显下降（建议 ≥20%）
-- [ ] 相关 test 绿
-- [ ] debt 或本文记录「下一刀」
+- [x] 目标文件行数明显下降（`offline-quiz-bank.js` 1860 → 22 行 loader，-98.8%；数据本体拆 `offline-questions-part{1,2}.js`，加载/完整性校验在 loader）
+- [x] 相关 test 绿（`offline-quiz-layout.test.cjs` + `chem-text.test.cjs` 4/4；web 全量 435/435）
+- [x] 本文记录「下一刀」（balance-shell/lab-shell 已 model/views 分层，剩余为编排；下一刀可选 `battle/ui.js` 编排瘦身或 `quiz-shell` 抽纯逻辑，需先量行为测试覆盖）
 
 ### 7.5 任务 B4 — 单一 manifest 入口（关 D13）
 
@@ -826,6 +826,7 @@ tooling/architecture/
 | 2026-08-08 | C1 落地（settings service TS 样板 + Electron 布局同步） | `63f8ab5`；verify:electron-package 通过           |
 | 2026-08-08 | B2 落地（graph pure 层白名单 4→18 + 注入红验证）        | `3ae706a`                                         |
 | 2026-08-08 | B4 落地（manifest 单一入口，关 D13）                    | B4 提交；debt-registry D13 → 已关闭               |
+| 2026-08-08 | B3 落地（offline-quiz-bank 数据/加载边界拆分）          | B3 提交；1860 → 22 行 loader                      |
 
 ---
 
