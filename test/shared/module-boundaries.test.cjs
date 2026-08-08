@@ -40,7 +40,11 @@ test('chemistry domain routes and services live under chemistry/ namespaces', ()
 });
 
 test('chemistry web shared modules are not left at chemistry/ root', () => {
-  assert.ok(fs.existsSync(path.join(root, 'apps/web/src/chemistry/chem/equation-balance.js')));
+  assert.ok(
+    fs.existsSync(path.join(root, 'apps/web/src/chemistry/chem/equation-balance.js')) ||
+      fs.existsSync(path.join(root, 'apps/web/src/chemistry/chem/equation-balance.ts')),
+    'equation-balance 必须在 chem/ 子目录（JS 或 TS 权威源）',
+  );
   assert.ok(fs.existsSync(path.join(root, 'apps/web/src/chemistry/shared/chem-keypad.js')));
   assert.ok(fs.existsSync(path.join(root, 'apps/web/src/chemistry/ai-classroom/rollcall.js')));
   assert.equal(fs.existsSync(path.join(root, 'apps/web/src/chemistry/equation-balance.js')), false);

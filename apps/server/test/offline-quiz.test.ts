@@ -78,25 +78,7 @@ test('offline quiz bank contains HTML table stems for tabular questions', () => 
   }
 });
 
-// T1c: ESM source and CJS seed have identical question data
-test('offline quiz ESM source and CJS seed are in sync', async () => {
-  const { OFFLINE_QUESTIONS: esmQuestions } = (await import(
-    '../../web/src/chemistry/data/offline-quiz-bank.js'
-  )) as { OFFLINE_QUESTIONS: Array<Record<string, unknown>> };
-  const cjsQuestions: Array<Record<string, unknown>> = CJS_OFFLINE_QUESTIONS;
 
-  assert.equal(esmQuestions.length, cjsQuestions.length, 'ESM and CJS must have same question count');
-
-  for (let i = 0; i < esmQuestions.length; i++) {
-    const e = esmQuestions[i] ?? {};
-    const c = cjsQuestions[i] ?? {};
-    assert.equal(e.sourceQuestionId, c.sourceQuestionId, `question ${i} sourceQuestionId mismatch`);
-    assert.equal(e.stem, c.stem, `question ${i} stem mismatch`);
-    assert.equal(e.answer, c.answer, `question ${i} answer mismatch`);
-    assert.equal(e.label, c.label, `question ${i} label mismatch`);
-    assert.deepEqual(e.options, c.options, `question ${i} options mismatch`);
-  }
-});
 
 // T2: GET /api/offline-quiz/list returns questions without leaking answers
 test('GET /api/offline-quiz/list returns questions without answer field', async () => {

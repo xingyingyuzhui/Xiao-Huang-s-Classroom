@@ -1,10 +1,14 @@
 /**
  * 客户端 equation-balance 与服务端 eq-sides 解析结果对齐，防止双份实现漂移
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
 
-const serverEq = require('../../apps/server/src/utils/eq-sides');
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import root from '../helpers/repo-root.js';
+const require = createRequire(import.meta.url);
+const serverEq = require(path.join(root, 'apps/server/src/utils/eq-sides.js'));
 
 const FIXTURES = [
   'H2 + O2 = H2O',
