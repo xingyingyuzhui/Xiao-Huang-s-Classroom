@@ -505,10 +505,10 @@ npm run quality:fast
 
 ### P2
 
-- [ ] P2.1 dispose 测试矩阵  
-- [ ] P2.2 a11y 基线  
-- [ ] P2.3 Stable API v1 文档  
-- [ ] P2.4 app-dialog 决策 + 实现  
+- [x] P2.1 dispose 测试矩阵
+- [x] P2.2 a11y 基线
+- [x] P2.3 Stable API v1 文档
+- [x] P2.4 app-dialog 决策 + 实现
 
 ### P3
 
@@ -644,6 +644,7 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
 | | P0 完成 | |
 | | P1 完成 | |
+| 2026-08-08 | P2 完成（P2.1+P2.2 组件合同硬化：dispose/泄漏测试矩阵 20 例 + a11y 基线；P2.3 Stable API v1 文档；P2.4 app-dialog Adapter） | 8a97d38（codex/ui-p2） |
 | | … | |
 
 ---
