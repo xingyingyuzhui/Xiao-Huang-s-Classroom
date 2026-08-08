@@ -21,7 +21,8 @@
     "build": "tsup",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "coverage": "vitest run --coverage"
+    "coverage": "vitest run --coverage",
+    "pretest": "npm run build"
   },
   "devDependencies": {
     "tsup": "^8.5.1",

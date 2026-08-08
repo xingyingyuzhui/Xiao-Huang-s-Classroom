@@ -25,3 +25,11 @@ test('根 build 脚本委托 turbo；test 保持全仓 node:test 入口', () => 
   assert.match(pkg.scripts.build, /turbo run build/, '根 build 必须委托 turbo');
   assert.match(pkg.scripts.test, /node --test/, '根 test 保持 node:test 全仓入口（迁移前）');
 });
+
+test('test 任务必须依赖自身 build 与上游 ^build（避免 dist 竞态）', () => {
+  const cfg = JSON.parse(fs.readFileSync(path.join(root, 'turbo.json'), 'utf8'));
+  const deps = cfg.tasks.test.dependsOn || [];
+  assert.ok(deps.includes('build'), 'test.dependsOn 必须含 build（自身先构建）');
+  assert.ok(deps.includes('^build'), 'test.dependsOn 必须含 ^build');
+});
+
