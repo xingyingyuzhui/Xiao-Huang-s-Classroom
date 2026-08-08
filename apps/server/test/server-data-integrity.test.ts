@@ -1,8 +1,16 @@
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+/**
+ * server 数据完整性合同（D-test 批次：node:test → vitest 迁移，行为逐字保持）。
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const {
   initDatabase,
@@ -10,32 +18,32 @@ const {
   query,
   queryOne,
   run,
-} = require('../../apps/server/src/db/sqlite');
+} = require(path.join(dirname, '../src/db/sqlite'));
 const {
   BUILTIN_MOLECULES,
-} = require('../../apps/server/src/seed/builtin-molecules');
+} = require(path.join(dirname, '../src/seed/builtin-molecules'));
 const {
   syncBuiltinMolecules,
-} = require('../../apps/server/src/seed/import-builtin');
+} = require(path.join(dirname, '../src/seed/import-builtin'));
 const {
   reserveGlobalAiCall,
   releaseGlobalAiCall,
-} = require('../../apps/server/src/utils/ai-rate-limit');
+} = require(path.join(dirname, '../src/utils/ai-rate-limit'));
 const {
   tryReserveAiCall,
   releaseAiCall,
-} = require('../../apps/server/src/utils/chem-tips');
+} = require(path.join(dirname, '../src/utils/chem-tips'));
 const {
   reserveCall: reserveQuizAssistCall,
   releaseCall: releaseQuizAssistCall,
-} = require('../../apps/server/src/utils/quiz-assist-limit');
+} = require(path.join(dirname, '../src/utils/quiz-assist-limit'));
 
-async function withTempDatabase(fn) {
+async function withTempDatabase(fn: () => unknown): Promise<void> {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'chem-lab-test-'));
   const dbPath = path.join(dir, 'chem-lab.db');
   try {
     await initDatabase(dbPath);
-    return await fn();
+    await fn();
   } finally {
     closeDatabase();
     fs.rmSync(dir, { recursive: true, force: true });
@@ -75,7 +83,7 @@ test('built-in molecule sync adds missing built-ins without touching custom mole
 
 test('built-in molecule sync backfills empty properties in an existing database', async () => {
   await withTempDatabase(() => {
-    const water = BUILTIN_MOLECULES.find((molecule) => molecule.id === 'h2o');
+    const water = BUILTIN_MOLECULES.find((molecule: { id: string }) => molecule.id === 'h2o');
     run(
       `INSERT INTO molecules (id, name, formula, desc, atoms, bonds, custom, physics, chemistry)
        VALUES (?, ?, ?, ?, ?, ?, 0, '{}', '{}')`,

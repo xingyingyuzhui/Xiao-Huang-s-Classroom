@@ -1,5 +1,7 @@
 /**
  * Server TS 干净构建链合同（R1）。
+ * （D-test 批次：node:test → vitest 迁移，行为逐字保持；execFileSync 构建
+ * 需要 >5s，显式设置 test timeout）
  *
  * 用临时副本模拟干净环境（不触碰生产 apps/server/dist，保证与并行
  * server 测试隔离）：
@@ -8,13 +10,18 @@
  * 3. 构建后产物可加载（单一产物合同）。
  * 4. stage 脚本含"产物缺失时主动构建"逻辑。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const os = require('node:os');
-const path = require('node:path');
-const { execFileSync } = require('node:child_process');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const root = require(path.join(dirname, '../../../test/helpers/repo-root.js'));
 
 /** 临时副本：复制 server 的 TS 源码 + tsup 配置（无 dist） */
 function makeCleanCopy() {
@@ -155,7 +162,7 @@ test('干净副本（无 dist）：server build 生成 policy 产物且路由可
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
-});
+}, 180000);
 
 test('settings.ts 使用单一产物合同（无双路径 try/catch，B2 后指向 TS 权威源）', () => {
   const src = fs.readFileSync(path.join(root, 'apps/server/src/routes/settings.ts'), 'utf8');

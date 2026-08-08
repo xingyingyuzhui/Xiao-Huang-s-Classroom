@@ -1,9 +1,18 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
+/**
+ * AI chat client 合同（D-test 批次：node:test → vitest 迁移，行为逐字保持）。
+ */
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const require = createRequire(import.meta.url);
+const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const {
   requestChatCompletion,
-} = require('../../apps/server/src/services/ai/chat-client');
+} = require(path.join(dirname, '../src/services/ai/chat-client'));
 
 test('AI client aborts an unresponsive provider request with a timeout error', async () => {
   await assert.rejects(
@@ -14,7 +23,7 @@ test('AI client aborts an unresponsive provider request with a timeout error', a
       system: 'system',
       user: 'user',
       timeoutMs: 5,
-      fetchImpl(_url, options) {
+      fetchImpl(_url: string, options: { signal: { addEventListener: (event: string, listener: () => void) => void } }) {
         return new Promise((_resolve, reject) => {
           options.signal.addEventListener('abort', () => {
             const error = new Error('aborted');
@@ -24,7 +33,7 @@ test('AI client aborts an unresponsive provider request with a timeout error', a
         });
       },
     }),
-    (error) => error.status === 504 && /超时/.test(error.message),
+    (error: { status?: number; message?: string }) => error.status === 504 && /超时/.test(error.message ?? ''),
   );
 });
 
@@ -56,6 +65,6 @@ test('AI client returns content and turns provider errors into a safe gateway er
         json: async () => ({ error: { message: 'provider limit' } }),
       }),
     }),
-    (error) => error.status === 502 && /429/.test(error.message),
+    (error: { status?: number; message?: string }) => error.status === 502 && /429/.test(error.message ?? ''),
   );
 });
