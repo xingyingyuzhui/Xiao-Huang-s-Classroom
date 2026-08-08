@@ -143,5 +143,16 @@ const { manifestPath } = buildStageManifest({
   stageRoot,
   appVersion: process.env.APP_VERSION || pkg.version || '0.0.1',
 });
+// 发布前 smoke：从 stage 布局加载 server 入口（等价 Electron 启动时 require）
+try {
+  execSync(
+    `node -e "process.env.CHEM_LAB_ELECTRON='1';process.env.CHEM_LAB_DATA_DIR=require('os').tmpdir()+require('path').sep+'chem-lab-stage-smoke';process.env.OPEN_BROWSER='0';require(${JSON.stringify(join(layout.stageServer, 'index.js'))});console.log('stage require ok');"`,
+    { cwd: root, stdio: 'inherit' },
+  );
+} catch {
+  console.error('Stage smoke require FAILED — Electron 包会启动即退出');
+  process.exit(1);
+}
+
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
 console.log(`[stage-manifest] ${manifest.fileCount} 个文件，version=${manifest.appVersion}`);
