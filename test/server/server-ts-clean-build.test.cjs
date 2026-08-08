@@ -85,6 +85,10 @@ function makeCleanCopy() {
     path.join(root, 'apps/server/src/routes/chemistry/students.ts'),
     path.join(dir, 'src/routes/chemistry/students.ts'),
   );
+  fs.copyFileSync(
+    path.join(root, 'apps/server/src/routes/chemistry/reactions.ts'),
+    path.join(dir, 'src/routes/chemistry/reactions.ts'),
+  );
   for (const f of ['response.js', 'ai-config.js', 'ai-request.js', 'molecule-validate.js', 'quiz-assist-limit.js']) {
     fs.copyFileSync(path.join(root, 'apps/server/src/utils', f), path.join(dir, 'src/utils', f));
   }

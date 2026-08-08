@@ -41,7 +41,13 @@ const quizRouter = require('./routes/chemistry/quiz')({
   attemptWrongBook: require('./services/chemistry/quiz/wrong-book').attemptWrongBook,
 });
 const offlineQuizRouter = require('./routes/chemistry/offline-quiz');
-const reactionsRouter = require('./routes/chemistry/reactions');
+const reactionsRouter = require('./routes/chemistry/reactions')({
+  query,
+  queryOne,
+  run,
+  insertReaction: require('./seed/import-reactions').insertReaction,
+  rowFromReaction: require('./seed/import-reactions').rowFromReaction,
+});
 const studentsRouter = require('./routes/chemistry/students')({
   query,
   queryOne,
