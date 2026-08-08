@@ -493,29 +493,29 @@ npm run quality:fast
 
 ### P0
 
-- [ ] P0.1 基线文档  
-- [ ] P0.2 adoption 合同测试  
+- [x] P0.1 基线文档（`docs/engineering/ui-library.md`：现状/架构/采用表/禁止事项）
+- [x] P0.2 adoption 合同测试（`test/shared/ui-adoption-contract.test.cjs`，5 断言）
 
 ### P1
 
-- [ ] P1.1 `_ui-kit.css` + 接入入口  
-- [ ] P1.2 组件 class 对齐  
-- [ ] P1.3 catalog 验收场  
-- [ ] P1.4 主题补丁（按需）  
+- [x] P1.1 `_ui-kit.css` + 接入入口（`shared/styles/index.css` @import 挂载；纯 token）
+- [x] P1.2 组件 class 对齐（`packages/ui/test/class-names.test.ts` 契约测试）
+- [x] P1.3 catalog 验收场（`dev/catalog/main.js`：全工厂 + 桥接模式对比）
+- [x] P1.4 主题补丁（按需：五主题 tokens.css 补 `--danger`/`--ink-on-accent`，`_ui-kit.css` 消费；主题目检归 Track U 视觉验收兜底）
 
 ### P2
 
-- [ ] P2.1 dispose 测试矩阵  
-- [ ] P2.2 a11y 基线  
-- [ ] P2.3 Stable API v1 文档  
-- [ ] P2.4 app-dialog 决策 + 实现  
+- [x] P2.1 dispose 测试矩阵（`contract-hardening.test.ts`：create→update→dispose 后不触发 + 幂等）
+- [x] P2.2 a11y 基线（`ui-library.md`「a11y 基线」+ 测试 aria/role/Esc 41 断言）
+- [x] P2.3 Stable API v1 文档（`ui-library.md`「Stable API v1」工厂表）
+- [x] P2.4 app-dialog 决策 + 实现（Adapter 方案 A：`app-dialog.js` 内部 `createDialog`，对外 API 不变）
 
 ### P3
 
-- [ ] P3.1 侧栏主按钮全 createButton  
-- [ ] P3.2 列表危险操作与确认  
-- [ ] P3.3 表单控件统一  
-- [ ] P3.4 测试与 adoption ≥3  
+- [x] P3.1 侧栏主按钮全 createButton（合同断言 function-panel 裸 `createElement('button')` = 0）
+- [x] P3.2 列表危险操作与确认（function-list-view 受控 DOM 无 innerHTML；删除走 appConfirm）
+- [x] P3.3 表单控件统一（function-editor 消费 `@xiaohuang/ui` + 无 innerHTML）
+- [x] P3.4 测试与 adoption ≥3（合同阈值 3 + remount 测试 `math-function-panel-lifecycle.vitest.ts`；业务实达 9 文件）
 
 ### P4
 
@@ -530,16 +530,16 @@ npm run quality:fast
 
 ### P6
 
-- [ ] P6 化学一面板全按钮库化  
-- [ ] Dialog 至少一处  
-- [ ] adoption ≥8  
+- [x] P6 化学一面板全按钮库化（分子列表 `molecule/list.js` 工具条 + AI 课壳 `lesson-packs.js` 顶栏，均 createButton + dispose）
+- [x] Dialog 至少一处（`molecule/list.js` 删除确认走 appConfirm → app-dialog Adapter）
+- [x] adoption ≥8（业务 `@xiaohuang/ui` import 9 文件，排除 dev/catalog）
 
 ### P7
 
-- [x] 阈值抬高（P3 后 ≥3 ✓；终态 ≥8 ✓——业务 import 9 文件）  
-- [ ] 危险模式门禁  
-- [ ] D4 更新  
-- [x] README + AGENTS 链接（P7.4：packages/ui/README.md 采用指南完成于 `codex/ui-p7-4b`；AGENTS 链接与 ui-library.md §6/§7 由 P7a 完成）
+- [ ] 阈值抬高（P3 后 ≥3 ✓；终态 ≥8 指标达成——业务 import 9 文件——但合同门禁未抬：`test/shared/ui-adoption-contract.test.cjs` `MIN_BUSINESS_CONSUMERS` 仍为 3；未闭合原因见附录 B）
+- [x] 危险模式门禁（`test/shared/ui-no-raw-button-contract.test.cjs` 3 用例 + `ui-legacy-allowlist.md` 豁免表 + AGENTS.md 链接）
+- [x] D4 更新（debt-registry D4 已记：门禁已建 + 豁免清单）
+- [x] README + AGENTS 链接（P7.4：packages/ui/README.md 采用指南完成于 `codex/ui-p7-4b`；AGENTS 链接与 ui-library.md「采用指南/门禁与豁免」由 P7a 完成）
 - [x] quality:fast 绿（quality ×2 全绿）  
 
 ---
@@ -656,6 +656,8 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 2026-08-08 | P7.4 完成：README 采用指南（何时用库/dispose/桥接/主题/安装） | `codex/ui-p7-4b` @ e1d4a06 |
 | 2026-08-08 | 修复：createButton className 空格串真实 DOM SyntaxError（applyClassName 助手） | `codex/ui-fix-button-class` @ 908c322 |
 | 2026-08-08 | 合并收口：13 分支并入开发分支；业务 import 9 文件（阈值 8 达成）；quality ×2 绿 | 合并提交 |
+| 2026-08-08 | H1 复核（handoff 计划 Track H）：§13 P0–P3 / P6 / P7.2–P7.3 依代码核对后勾选；P4/P5/P7.1-P7.5 原有勾选核对一致（P7.1 除外，见下） | `codex/handoff-docs` |
+| 2026-08-08 | **未闭合原因（P7.1）**：§13 原勾「终态 ≥8 ✓」依据为业务 import 9 文件（指标达成），但合同门禁 `test/shared/ui-adoption-contract.test.cjs` 的 `MIN_BUSINESS_CONSUMERS` 仍为 3（P3 阈值），未按 P7.1 抬到 8；待后续任务将常量抬至 8 并重跑合同测试后勾选 | `codex/handoff-docs` |
 
 ---
 ## 20. 附录 C · 给执行 Agent 的验收口令
