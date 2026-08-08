@@ -157,6 +157,30 @@
   box-shadow: var(--shadow-print);
 }
 
+/* 空态：整行虚线「＋ 生成分子」入口 + 提示（与工具条 ＋ 按钮同构） */
+.mol-empty {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.4rem;
+  margin: 0.25rem 0 0.5rem;
+}
+
+.mol-empty-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+/* 列表加载失败（主题令牌色，不用内联硬编码色） */
+.mol-list-error {
+  grid-column: 1 / -1;
+  margin: 0.25rem 0 0.5rem;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--danger);
+}
+
 .mol-card {
   position: relative;
   min-width: 0;
@@ -189,6 +213,11 @@
 
 .molecule-list.is-edit-mode .mol-card-del {
   display: grid;
+}
+
+.mol-card-del:disabled {
+  opacity: 0.55;
+  cursor: wait;
 }
 
 .mol-card.is-editing {
@@ -240,7 +269,9 @@
   z-index: 110;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.22s var(--ease-out), transform 0.28s var(--ease-spring);
+  transition:
+    opacity 0.22s var(--ease-out),
+    transform 0.28s var(--ease-spring);
 }
 
 .modal-panel.is-open {
