@@ -46,7 +46,9 @@
     "budget": "node tooling/performance/budget.mjs",
     "test:vitest": "turbo run test",
     "coverage": "turbo run coverage",
-    "pretest": "npm run build -w @xiaohuang/server"
+    "pretest": "npm run build -w @xiaohuang/server",
+    "test:electron-packaged": "node --test test/release/electron-packaged.test.cjs",
+    "verify:electron-package": "npm run pack:electron && npm run test:electron-packaged"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
