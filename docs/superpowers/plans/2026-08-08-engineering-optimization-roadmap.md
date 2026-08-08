@@ -601,7 +601,11 @@ npm run verify:electron-package
 - [x] 第四批（2026-08-08）：server 纯逻辑 4 文件迁 vitest（ai-response-parser / balance-script-schema / builtin-molecule-properties / structured-logger，18 用例）；server vitest 28 用例
 - [x] B2 批次完成（2026-08-08）：16 个 route TS 权威源（settings + ai/* 5 + chemistry/* 8 + v2/settings）；模式：createXxxRouter 工厂 + 组合根注入 db/服务/seed（防 sql.js 双实例与限流双计数）；薄转发桥 + clean-build fixture 同步
 - [x] B6 首批（2026-08-08）：math/plane/model.ts（254 行纯函数类型化）+ math-models 测试迁 vitest
-- [ ] 后续批次随模块 TS 化推进（B6 剩余 / B5 / B7——90 天持续项）
+- [x] B5 批次（2026-08-08，agent 并行）：8 个 subject/classroom shell TS（session/chrome/home-shell/tabbed/physics/biology/chemistry/math classroom）
+- [x] B6 化学批次（2026-08-08，agent 并行）：7 个纯逻辑/数据 TS（elements/molecules/chem-topics/substance-cards/battle-cards/lab-prestudy/equation-balance）
+- [x] D-test server 全量（2026-08-08，agent 并行）：16 个集成测试迁 vitest——server node:test 归零（107 vitest 用例）
+- [x] B7 评估（2026-08-08）：three 4 渲染器 + jsxgraph 单点边界守门
+- [ ] 持续项：B6 剩余（math 纯逻辑 / graph 层）/ B5 剩余（manifest/hub 入口）——随产品迭代推进
 
 ### 9.4 D-jessie — JSXGraph eval 警告（D8）
 
