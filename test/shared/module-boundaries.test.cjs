@@ -72,7 +72,7 @@ test('AI classroom quiz engine lives under chemistry/ai-classroom/quiz-* modules
 
 test('app shell does not static-import heavy modules (Three.js, battle, classroom)', () => {
   const entry = source('apps/web/src/app/shell.js');
-  const chemistry = source('apps/web/src/subjects/classrooms/chemistry-classroom.js');
+  const chemistry = source('apps/web/src/subjects/classrooms/chemistry-classroom.ts');
 
   assert.equal(
     /import\s+.*from\s+['"].*molecule-list\.js['"]/.test(entry),
@@ -120,7 +120,7 @@ test('app shell does not static-import heavy modules (Three.js, battle, classroo
   assert.match(chemistry, /chemistry\/molar\/ui/);
   assert.match(chemistry, /@xiaohuang\/subject-settings/);
   assert.match(chemistry, /tabbed-classroom\.js/);
-  const tabbed = source('apps/web/src/subjects/classrooms/tabbed-classroom.js');
+  const tabbed = source('apps/web/src/subjects/classrooms/tabbed-classroom.ts');
   assert.match(tabbed, /feature-loader\.js/);
 });
 
@@ -134,13 +134,13 @@ test('panel-loading module exists and is used for lazy tab overlay', () => {
 });
 
 test('molecule feature is packaged under chemistry/molecule/', () => {
-  const entry = source('apps/web/src/subjects/classrooms/chemistry-classroom.js');
+  const entry = source('apps/web/src/subjects/classrooms/chemistry-classroom.ts');
   assert.match(entry, /import\(['"].*chemistry\/molecule\//);
   assert.ok(fs.existsSync(path.join(root, 'apps/web/src/chemistry/molecule/index.js')));
 });
 
 test('math classroom mounts multi-tab panels like chemistry', () => {
-  const classroom = source('apps/web/src/subjects/classrooms/math-classroom.js');
+  const classroom = source('apps/web/src/subjects/classrooms/math-classroom.ts');
   assert.match(classroom, /lab-math-root/);
   assert.match(classroom, /math-panels\.partial\.html/);
   assert.match(classroom, /createTabbedClassroom/);

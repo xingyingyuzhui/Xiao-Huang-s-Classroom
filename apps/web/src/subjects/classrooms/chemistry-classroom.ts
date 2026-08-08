@@ -9,10 +9,12 @@ import { createTabbedClassroom } from './tabbed-classroom.js';
 import { mountPartialHtml, unhidePanelHost } from './panel-mount.js';
 import modalsHtml from './partials/chemistry-modals.partial.html?raw';
 import panelsHtml from './partials/chemistry-panels.partial.html?raw';
+import type { ClassroomEnterContext } from './types.js';
+import type { TabActivateContext } from './tabbed-classroom.js';
 
 let panelsMounted = false;
 
-function ensureChemistryPanelsMounted() {
+function ensureChemistryPanelsMounted(): void {
   if (panelsMounted) return;
   const chromeHost = document.getElementById('lab-chemistry-chrome');
   const panelsHost = document.getElementById('lab-panels-root');
@@ -21,25 +23,36 @@ function ensureChemistryPanelsMounted() {
   panelsMounted = true;
 }
 
-function showChemistryLabHosts() {
+function showChemistryLabHosts(): void {
   unhidePanelHost('#lab-chemistry-chrome');
   unhidePanelHost('#lab-panels-root');
 }
 
-function hideChemistryLabHosts() {
+function hideChemistryLabHosts(): void {
   const chromeHost = document.getElementById('lab-chemistry-chrome');
   const panelsHost = document.getElementById('lab-panels-root');
   if (chromeHost) chromeHost.hidden = true;
   if (panelsHost) panelsHost.hidden = true;
 }
 
-/**
- * @param {{ select: (sel: string) => Element | null }} deps
- */
-export function createChemistryClassroom({ select }) {
-  const $ = select;
+export interface ChemistryClassroomOptions {
+  select: (sel: string) => Element | null;
+}
 
-  const panels = {
+type MoleculeListModule = typeof import('../../chemistry/molecule/list.js');
+type MoleculeAiModule = typeof import('../../chemistry/molecule/ai.js');
+type MoleculeReactionsModule = typeof import('../../chemistry/molecule/reactions.js');
+type ElectronListModule = typeof import('../../chemistry/electron/list.js');
+type ElectronRendererModule = typeof import('../../chemistry/electron/renderer.js');
+type AiClassroomModule = typeof import('../../chemistry/ai-classroom/entry.js');
+type BattleModule = typeof import('../../chemistry/battle/index.js');
+type ElectronViewer = ReturnType<ElectronRendererModule['createElectronViewer']>;
+
+export function createChemistryClassroom({ select }: ChemistryClassroomOptions) {
+  // 面板均为真实 HTMLElement（hidden/offsetWidth 等成员需要）
+  const $ = select as (sel: string) => HTMLElement | null;
+
+  const panels: Record<string, () => HTMLElement | null> = {
     table: () => $('#panel-table'),
     molecule: () => $('#panel-molecule'),
     molar: () => $('#panel-molar'),
@@ -48,28 +61,29 @@ export function createChemistryClassroom({ select }) {
     ai: () => $('#panel-ai'),
   };
 
-  let molModule = null;
-  let molAIModule = null;
-  let molRxnModule = null;
-  let elecListModule = null;
-  let elecRendererModule = null;
-  let aiClassroomModule = null;
-  let battleModule = null;
-  let electronViewer = null;
+  let molModule: MoleculeListModule | null = null;
+  let molAIModule: MoleculeAiModule | null = null;
+  let molRxnModule: MoleculeReactionsModule | null = null;
+  let elecListModule: ElectronListModule | null = null;
+  let elecRendererModule: ElectronRendererModule | null = null;
+  let aiClassroomModule: AiClassroomModule | null = null;
+  let battleModule: BattleModule | null = null;
+  let electronViewer: ElectronViewer | null = null;
   let resizePending = false;
 
-  function panelEl(key) {
+  function panelEl(key: string): HTMLElement | null {
     return panels[key]?.() ?? null;
   }
 
-  async function ensureMoleculeModules(loader) {
+  async function ensureMoleculeModules(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('molecule', () =>
       import('../../chemistry/molecule/index.js'),
     );
     if (!molModule) {
-      molModule = mod.list;
-      molAIModule = mod.ai;
-      molRxnModule = mod.reactions;
+      // mod 来自 JS feature-loader（any）；模块形状由下方 typeof 类型锁定
+      molModule = mod.list as MoleculeListModule;
+      molAIModule = mod.ai as MoleculeAiModule;
+      molRxnModule = mod.reactions as MoleculeReactionsModule;
       molModule.setOnMoleculeChange(molRxnModule.onMoleculeChanged);
       molModule.initMoleculeList();
       molAIModule.initMoleculeAI();
@@ -77,7 +91,7 @@ export function createChemistryClassroom({ select }) {
     }
   }
 
-  async function ensureElectronModules(loader) {
+  async function ensureElectronModules(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('electron', () =>
       Promise.all([
         import('../../chemistry/electron/list.js'),
@@ -85,48 +99,52 @@ export function createChemistryClassroom({ select }) {
       ]).then(([list, renderer]) => ({ list, renderer })),
     );
     if (!elecListModule) {
-      elecListModule = mod.list;
-      elecRendererModule = mod.renderer;
+      elecListModule = mod.list as ElectronListModule;
+      elecRendererModule = mod.renderer as ElectronRendererModule;
       await elecListModule.initElectronList();
     }
   }
 
-  function ensureElectronViewerAndLoad(mySeq, switchSeq) {
+  function ensureElectronViewerAndLoad(mySeq: number, switchSeq: number): void {
     const root = $('#electron-root');
     if (!root || !elecRendererModule || !elecListModule) return;
 
+    // 提前捕获非空引用：rAF 回调内对模块级 let 不做窄化
+    const renderer = elecRendererModule;
+    const list = elecListModule;
+
     if (!electronViewer) {
-      electronViewer = elecRendererModule.createElectronViewer(root);
-      elecListModule.setElectronViewer(electronViewer);
+      electronViewer = renderer.createElectronViewer(root);
+      list.setElectronViewer(electronViewer);
     }
 
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
         if (mySeq !== switchSeq || !electronViewer) return;
         electronViewer.start();
-        const z = elecListModule.getCurrentElementZ() || 1;
-        elecListModule.loadElement(z);
+        const z = list.getCurrentElementZ() || 1;
+        list.loadElement(z);
         electronViewer.resize();
       });
     });
   }
 
-  async function ensureClassroomModule(loader) {
+  async function ensureClassroomModule(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('classroom', () =>
       import('../../chemistry/ai-classroom/entry.js'),
     );
     if (!aiClassroomModule) {
-      aiClassroomModule = mod;
+      aiClassroomModule = mod as AiClassroomModule;
       aiClassroomModule.initAiClassroom();
     }
   }
 
-  async function ensureBattleModule(loader) {
+  async function ensureBattleModule(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('battle', () =>
       import('../../chemistry/battle/index.js'),
     );
     if (!battleModule) {
-      battleModule = mod;
+      battleModule = mod as BattleModule;
       battleModule.initElementBattle();
     }
   }
@@ -162,7 +180,7 @@ export function createChemistryClassroom({ select }) {
       initMolarUI();
     },
 
-    deactivateTab(tabId) {
+    deactivateTab(tabId: string): void {
       // 与对局里「← 大厅」一致：离开乱斗 Tab 即清局、停 AI、停 BGM
       if (tabId === 'battle' && battleModule) {
         battleModule.setScreen('hub');
@@ -175,7 +193,7 @@ export function createChemistryClassroom({ select }) {
       }
     },
 
-    async activateTab(tabId, ctx) {
+    async activateTab(tabId: string, ctx: TabActivateContext): Promise<void> {
       const loader = ctx.loader;
 
       if (tabId === 'table') {
@@ -185,13 +203,15 @@ export function createChemistryClassroom({ select }) {
       if (tabId === 'molecule') {
         const ok = await ctx.runFeatureLoad('molecule', () => ensureMoleculeModules(loader));
         if (!ok || ctx.isStale()) return;
-        molModule.ensureMolViewer();
-        await molModule.ensureDefaultMolecule();
+        // runFeatureLoad 成功 ⇒ ensureMoleculeModules 已置 molModule
+        const mol = molModule!;
+        mol.ensureMolViewer();
+        await mol.ensureDefaultMolecule();
         if (ctx.isStale()) return;
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             if (ctx.isStale()) return;
-            const viewer = molModule.getMolViewer();
+            const viewer = mol.getMolViewer();
             if (viewer) {
               viewer.start();
               viewer.resize();
@@ -219,13 +239,13 @@ export function createChemistryClassroom({ select }) {
       }
     },
 
-    onEnterTab(tabId) {
+    onEnterTab(tabId: string): void {
       if (tabId === 'table' || tabId === 'molar') {
         runMolar();
       }
     },
 
-    onResize() {
+    onResize(): void {
       if (resizePending) return;
       resizePending = true;
       requestAnimationFrame(() => {
@@ -242,7 +262,7 @@ export function createChemistryClassroom({ select }) {
       });
     },
 
-    onSideDrawerToggle(key, collapsed) {
+    onSideDrawerToggle(key: string, collapsed: boolean): void {
       if (collapsed && key === 'molecule' && molModule) molModule.setMolEditMode(false);
       if (collapsed && key === 'electron' && elecListModule) {
         elecListModule.setElectronEditMode(false);
@@ -266,16 +286,16 @@ export function createChemistryClassroom({ select }) {
 
   return {
     ...classroom,
-    async enter(ctx) {
+    async enter(ctx: ClassroomEnterContext): Promise<void> {
       ensureChemistryPanelsMounted();
       showChemistryLabHosts();
       return classroom.enter(ctx);
     },
-    leave() {
+    leave(): void {
       classroom.leave();
       hideChemistryLabHosts();
     },
-    onAppRevealed() {
+    onAppRevealed(): void {
       scheduleFit();
     },
   };
