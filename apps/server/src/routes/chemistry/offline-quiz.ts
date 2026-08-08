@@ -48,7 +48,7 @@ function uid(prefix: string): string {
 }
 
 export function createOfflineQuizRouter(deps: OfflineQuizRouterDeps): Router {
-  const { query, queryOne, run, runBatch, ensureQuizSchema, OFFLINE_QUESTIONS } = deps;
+  const { queryOne, run, runBatch, ensureQuizSchema, OFFLINE_QUESTIONS } = deps;
   const router = Router();
 
   /** 2 小时内生成的离线试卷（提交后删除；过期清理）。 */
@@ -112,7 +112,10 @@ export function createOfflineQuizRouter(deps: OfflineQuizRouterDeps): Router {
       const shuffled = [...pool];
       for (let i = shuffled.length - 1; i > 0; i -= 1) {
         const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+        const a = shuffled[i]!;
+        const b = shuffled[j]!;
+        shuffled[i] = b;
+        shuffled[j] = a;
       }
       const picked = shuffled.slice(0, Math.min(count, shuffled.length));
       const paperId = uid('op');
@@ -120,12 +123,12 @@ export function createOfflineQuizRouter(deps: OfflineQuizRouterDeps): Router {
       offlinePapers.set(paperId, {
         created: Date.now(),
         questions: picked.map((q) => ({
-          sourceQuestionId: q.sourceQuestionId,
+          sourceQuestionId: String(q.sourceQuestionId),
           question: q.stem,
           options: q.options,
           answer: q.answer ?? -1,
-          sourceExam: q.sourceExam,
-          sourceYear: q.sourceYear,
+          ...(q.sourceExam !== undefined ? { sourceExam: q.sourceExam } : {}),
+          sourceYear: q.sourceYear ?? null,
         })),
       });
 
@@ -178,7 +181,7 @@ export function createOfflineQuizRouter(deps: OfflineQuizRouterDeps): Router {
         );
 
         for (let idx = 0; idx < paper.questions.length; idx += 1) {
-          const q = paper.questions[idx];
+          const q = paper.questions[idx]!;
           const chosen = chosenOf(q);
           const isCorrect = chosen !== null && chosen === q.answer ? 1 : 0;
           if (chosen !== null) answered += 1;
@@ -198,7 +201,7 @@ export function createOfflineQuizRouter(deps: OfflineQuizRouterDeps): Router {
         ]);
 
         for (let idx = 0; idx < paper.questions.length; idx += 1) {
-          const q = paper.questions[idx];
+          const q = paper.questions[idx]!;
           const chosen = chosenOf(q);
           const isCorrect = chosen !== null && chosen === q.answer;
           const stem = q.question;
