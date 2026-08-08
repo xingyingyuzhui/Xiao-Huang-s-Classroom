@@ -13,9 +13,6 @@ const root = require('../helpers/repo-root.js');
 async function load(rel) {
   return import(pathToFileURL(path.join(root, rel)).href);
 }
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const unused = null;
-
 test('CLASSROOM_FACTORIES 是 registry 公开导出（manifest 引用有效）', async () => {
   // registry 顶层连带 HTML 无法在 Node 加载——验证导出声明存在于源码
   const src = require('node:fs').readFileSync(

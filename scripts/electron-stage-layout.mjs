@@ -16,10 +16,10 @@ export const COPY_FILES = ['index.js', 'paths.js'];
 export const COPY_ROOT_DIRS = ['dist/domain'];
 
 /**
- * @param {{ repoRoot: string, stageRoot: string, serverSourceRoot: string, serverRoot: string }} options
+ * @param {{ stageRoot: string, serverSourceRoot: string, serverRoot: string }} options
  * @returns {{ stageServer: string, copyFiles: Array<{from: string, to: string}>, copyDirs: Array<{from: string, to: string}>, copyRootDirs: Array<{from: string, to: string}>, missing: string[] }}
  */
-export function resolveStageLayout({ repoRoot, stageRoot, serverSourceRoot, serverRoot }) {
+export function resolveStageLayout({ stageRoot, serverSourceRoot, serverRoot }) {
   const stageServer = path.join(stageRoot, 'server');
   const copyFiles = COPY_FILES.map((f) => ({
     from: path.join(serverSourceRoot, f),
@@ -52,7 +52,11 @@ export function resolveStageLayout({ repoRoot, stageRoot, serverSourceRoot, serv
  * @param {{ stageRoot: string, appVersion: string, now?: () => string }} options
  * @returns {{ manifestPath: string, manifest: object }}
  */
-export function buildStageManifest({ stageRoot, appVersion, now = () => new Date().toISOString() }) {
+export function buildStageManifest({
+  stageRoot,
+  appVersion,
+  now = () => new Date().toISOString(),
+}) {
   const files = [];
   const walk = (dir) => {
     for (const name of fs.readdirSync(dir)) {

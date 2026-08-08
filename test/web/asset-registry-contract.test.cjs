@@ -34,7 +34,7 @@ test('孤儿资源被检出（未登记封面家族 + 未被引用的资源）',
     ] }),
   );
   try {
-    const out = execFileSync(process.execPath, [script], {
+    execFileSync(process.execPath, [script], {
       cwd: dir,
       encoding: 'utf8',
       env: { ...process.env, ARCH_ROOT: dir },
@@ -62,7 +62,7 @@ test('manifest 漂移被检出（新资源未登记）', () => {
     JSON.stringify({ entries: [] }),
   );
   try {
-    const out = execFileSync(process.execPath, [script], {
+    execFileSync(process.execPath, [script], {
       cwd: dir,
       encoding: 'utf8',
       env: { ...process.env, ARCH_ROOT: dir },
