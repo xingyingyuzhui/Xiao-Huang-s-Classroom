@@ -7,6 +7,7 @@
  * - 入口按钮与图例设置共用右下角 fab dock，保证对齐
  */
 
+import { createButton } from '@xiaohuang/ui';
 import { ensureMathBoardFabDock, pruneMathBoardFabDock } from './board-fab-dock.js';
 
 /** 高对比预置色：色相拉开，避免蓝/青/紫发糊 */
@@ -189,10 +190,7 @@ export function attachBoardNotes(board, opts = {}) {
     };
   }
 
-  const host =
-    opts.host ||
-    /** @type {HTMLElement} */ (boardEl.parentElement) ||
-    boardEl;
+  const host = opts.host || /** @type {HTMLElement} */ (boardEl.parentElement) || boardEl;
 
   // 同 host 只挂一份
   if (host.dataset.mathNotesBound === '1') {
@@ -253,51 +251,178 @@ function createNotesController(board, boardEl, host, storageKey) {
   // 画笔层：仅 canvas，覆盖整个 host
   const root = document.createElement('div');
   root.className = 'math-board-notes';
-  root.innerHTML = `<canvas class="math-board-notes-canvas" aria-hidden="true"></canvas>`;
+  const canvas = document.createElement('canvas');
+  canvas.className = 'math-board-notes-canvas';
+  canvas.setAttribute('aria-hidden', 'true');
+  root.appendChild(canvas);
   host.appendChild(root);
 
   // 工具条 + 入口：与图例设置共用右下角 dock，水平垂直对齐
   const dock = ensureMathBoardFabDock(host) || host;
   const chrome = document.createElement('div');
   chrome.className = 'math-board-notes-chrome';
-  chrome.innerHTML = `
-    <div class="math-board-notes-toolbar" data-role="toolbar" hidden>
-      <div class="math-board-notes-tools" role="group" aria-label="笔记工具">
-        <button type="button" class="math-board-notes-tool is-on" data-tool="pen" title="画笔">笔</button>
-        <button type="button" class="math-board-notes-tool" data-tool="eraser" title="橡皮">橡皮</button>
-      </div>
-      <div class="math-board-notes-widths" role="group" aria-label="线宽">
-        ${WIDTHS.map(
-          (w) =>
-            `<button type="button" class="math-board-notes-width${w.id === 'm' ? ' is-on' : ''}" data-width="${w.id}" title="${w.label}" aria-label="${w.label}"><i style="--nw:${w.px}px"></i></button>`,
-        ).join('')}
-      </div>
-      <div class="math-board-notes-colors" role="group" aria-label="颜色">
-        ${PEN_COLORS.map(
-          (c) =>
-            `<button type="button" class="math-board-notes-color${c.id === 'ink' ? ' is-on' : ''}" data-color="${c.id}" data-color-name="${c.id}" title="${c.label}" aria-label="${c.label}" style="--nc:${c.value}"></button>`,
-        ).join('')}
-      </div>
-      <div class="math-board-notes-actions">
-        <button type="button" class="math-board-notes-action" data-role="undo" title="撤销">撤销</button>
-        <button type="button" class="math-board-notes-action" data-role="clear" title="清空">清空</button>
-        <button type="button" class="math-board-notes-action is-done" data-role="done" title="完成笔记">完成</button>
-      </div>
-    </div>
-    <button type="button" class="math-board-notes-toggle" data-role="toggle" title="笔记" aria-pressed="false" aria-label="笔记">
-      <span class="math-board-notes-toggle-icon" aria-hidden="true">✎</span>
-      <span class="math-board-notes-toggle-label">笔记</span>
-    </button>
-  `;
+
+  // 全部按钮经 @xiaohuang/ui createButton 构建（ui-btn 基类 + 旧类桥接，
+  // 布局样式仍走 math-board-notes-* 类）；禁止 HTML 字符串生成可点击控件。
+  /** @type {Array<ReturnType<typeof createButton>>} */
+  const uiControls = [];
+  /** @type {Map<string, HTMLButtonElement>} */
+  const toolButtons = new Map();
+  /** @type {Map<string, HTMLButtonElement>} */
+  const widthButtons = new Map();
+  /** @type {Map<string, HTMLButtonElement>} */
+  const colorButtons = new Map();
+
+  const toolbar = document.createElement('div');
+  toolbar.className = 'math-board-notes-toolbar';
+  toolbar.setAttribute('data-role', 'toolbar');
+  toolbar.hidden = true;
+  chrome.appendChild(toolbar);
+
+  /** @param {string} className @param {string} ariaLabel */
+  function makeGroup(className, ariaLabel) {
+    const group = document.createElement('div');
+    group.className = className;
+    group.setAttribute('role', 'group');
+    group.setAttribute('aria-label', ariaLabel);
+    toolbar.appendChild(group);
+    return group;
+  }
+
+  // 工具：笔 / 橡皮（单选，is-on 标记当前工具）
+  const toolsGroup = makeGroup('math-board-notes-tools', '笔记工具');
+  const toolItems = [
+    { id: 'pen', label: '笔', tip: '画笔' },
+    { id: 'eraser', label: '橡皮', tip: '橡皮' },
+  ];
+  for (const t of toolItems) {
+    const ctrl = createButton({
+      label: t.label,
+      title: t.tip,
+      className: 'math-board-notes-tool',
+      onClick: () => {
+        tool = /** @type {'pen' | 'eraser'} */ (t.id);
+        toolButtons.forEach((btn, id) => {
+          btn.classList.toggle('is-on', id === tool);
+        });
+        syncChrome();
+      },
+    });
+    ctrl.element.dataset.tool = t.id;
+    if (t.id === tool) ctrl.element.classList.add('is-on');
+    uiControls.push(ctrl);
+    toolButtons.set(t.id, ctrl.element);
+    toolsGroup.appendChild(ctrl.element);
+  }
+
+  // 线宽：细/中/粗（is-on 标记当前线宽）
+  const widthsGroup = makeGroup('math-board-notes-widths', '线宽');
+  for (const w of WIDTHS) {
+    const ctrl = createButton({
+      label: '',
+      title: w.label,
+      'aria-label': w.label,
+      className: 'math-board-notes-width',
+      onClick: () => {
+        widthId = w.id;
+        widthButtons.forEach((btn, id) => {
+          btn.classList.toggle('is-on', id === widthId);
+        });
+      },
+    });
+    const bar = document.createElement('i');
+    bar.style.setProperty('--nw', `${w.px}px`);
+    ctrl.element.appendChild(bar);
+    ctrl.element.dataset.width = w.id;
+    if (w.id === widthId) ctrl.element.classList.add('is-on');
+    uiControls.push(ctrl);
+    widthButtons.set(w.id, ctrl.element);
+    widthsGroup.appendChild(ctrl.element);
+  }
+
+  // 颜色：高对比预置色（is-on 标记当前颜色）
+  const colorsGroup = makeGroup('math-board-notes-colors', '颜色');
+  for (const c of PEN_COLORS) {
+    const ctrl = createButton({
+      label: '',
+      title: c.label,
+      'aria-label': c.label,
+      className: 'math-board-notes-color',
+      onClick: () => {
+        colorId = c.id;
+        colorButtons.forEach((btn, id) => {
+          btn.classList.toggle('is-on', id === colorId);
+        });
+      },
+    });
+    ctrl.element.dataset.color = c.id;
+    ctrl.element.dataset.colorName = c.id;
+    ctrl.element.style.setProperty('--nc', c.value);
+    if (c.id === colorId) ctrl.element.classList.add('is-on');
+    uiControls.push(ctrl);
+    colorButtons.set(c.id, ctrl.element);
+    colorsGroup.appendChild(ctrl.element);
+  }
+
+  // 操作：撤销 / 清空 / 完成
+  const actionsGroup = document.createElement('div');
+  actionsGroup.className = 'math-board-notes-actions';
+  toolbar.appendChild(actionsGroup);
+  const actions = [
+    { role: 'undo', label: '撤销', tip: '撤销' },
+    { role: 'clear', label: '清空', tip: '清空' },
+    { role: 'done', label: '完成', tip: '完成笔记', done: true },
+  ];
+  for (const a of actions) {
+    const ctrl = createButton({
+      label: a.label,
+      title: a.tip,
+      className: 'math-board-notes-action',
+      onClick: () => {
+        if (a.role === 'undo') undo();
+        else if (a.role === 'clear') clearAll();
+        else if (a.role === 'done') setActive(false);
+      },
+    });
+    ctrl.element.dataset.role = a.role;
+    if (a.done) ctrl.element.classList.add('is-done');
+    uiControls.push(ctrl);
+    actionsGroup.appendChild(ctrl.element);
+  }
+
+  // 入口按钮：收起状态下保持常驻
+  const toggleCtrl = createButton({
+    label: '',
+    title: '笔记',
+    'aria-label': '笔记',
+    className: 'math-board-notes-toggle',
+    onClick: () => setActive(!active),
+  });
+  const toggleIcon = document.createElement('span');
+  toggleIcon.className = 'math-board-notes-toggle-icon';
+  toggleIcon.setAttribute('aria-hidden', 'true');
+  toggleIcon.textContent = '✎';
+  const toggleLabel = document.createElement('span');
+  toggleLabel.className = 'math-board-notes-toggle-label';
+  toggleLabel.textContent = '笔记';
+  toggleCtrl.element.append(toggleIcon, toggleLabel);
+  toggleCtrl.element.dataset.role = 'toggle';
+  toggleCtrl.element.setAttribute('aria-pressed', 'false');
+  const toggleBtn = toggleCtrl.element;
+  uiControls.push(toggleCtrl);
+  chrome.appendChild(toggleBtn);
+
   // 插到图例按钮之前：… [工具条] [笔记] [图例]
   const axisBtn = dock.querySelector?.('.math-axis-settings-btn');
   if (axisBtn) dock.insertBefore(chrome, axisBtn);
   else dock.appendChild(chrome);
 
-  const canvas = /** @type {HTMLCanvasElement} */ (root.querySelector('.math-board-notes-canvas'));
+  // 原逐按钮 stopPropagation 的等价收口：chrome 内点击不冒泡到 board/宿主
+  chrome.addEventListener('click', (e) => {
+    e.stopPropagation();
+  });
+
   const ctx = canvas.getContext('2d');
-  const toggleBtn = /** @type {HTMLButtonElement} */ (chrome.querySelector('[data-role="toggle"]'));
-  const toolbar = /** @type {HTMLElement} */ (chrome.querySelector('[data-role="toolbar"]'));
 
   function currentColor() {
     const meta = PEN_COLORS.find((c) => c.id === colorId) || PEN_COLORS[0];
@@ -688,45 +813,6 @@ function createNotesController(board, boardEl, host, storageKey) {
   // 避免触摸滚动
   canvas.style.touchAction = 'none';
 
-  toggleBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setActive(!active);
-  });
-
-  toolbar.addEventListener('click', (e) => {
-    const t = /** @type {HTMLElement} */ (e.target).closest?.('button');
-    if (!t) return;
-    e.preventDefault();
-    e.stopPropagation();
-    if (t.dataset.tool) {
-      tool = /** @type {'pen' | 'eraser'} */ (t.dataset.tool);
-      toolbar.querySelectorAll('[data-tool]').forEach((btn) => {
-        btn.classList.toggle('is-on', btn.getAttribute('data-tool') === tool);
-      });
-      syncChrome();
-      return;
-    }
-    if (t.dataset.width) {
-      widthId = t.dataset.width;
-      toolbar.querySelectorAll('[data-width]').forEach((btn) => {
-        btn.classList.toggle('is-on', btn.getAttribute('data-width') === widthId);
-      });
-      return;
-    }
-    if (t.dataset.color) {
-      colorId = t.dataset.color;
-      toolbar.querySelectorAll('[data-color]').forEach((btn) => {
-        btn.classList.toggle('is-on', btn.getAttribute('data-color') === colorId);
-      });
-      return;
-    }
-    const role = t.getAttribute('data-role');
-    if (role === 'undo') undo();
-    else if (role === 'clear') clearAll();
-    else if (role === 'done') setActive(false);
-  });
-
   // 视窗变化重绘
   const onBoardUpdate = () => {
     redraw();
@@ -779,7 +865,19 @@ function createNotesController(board, boardEl, host, storageKey) {
       } catch {
         /* */
       }
-      pruneMathBoardFabDock(/** @type {HTMLElement | null} */ (dock?.classList?.contains('math-board-fab-dock') ? dock : null));
+      // 释放全部 ui 控制器（幂等：重复 dispose 安全）
+      for (const ctrl of uiControls) {
+        try {
+          ctrl.dispose();
+        } catch {
+          /* */
+        }
+      }
+      pruneMathBoardFabDock(
+        /** @type {HTMLElement | null} */ (
+          dock?.classList?.contains('math-board-fab-dock') ? dock : null
+        ),
+      );
       delete host.dataset.mathNotesBound;
       delete host._mathNotesCtrl;
       if (activeNotes === api) activeNotes = null;

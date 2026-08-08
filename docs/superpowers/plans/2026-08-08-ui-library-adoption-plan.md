@@ -525,7 +525,7 @@ npm run quality:fast
 
 ### P5
 
-- [x] P5 选题 5A 或 5B 并实现（5A 工具条）
+- [x] P5 选题 5A 或 5B 并实现（选题 **5B 笔记条**）
 - [x] 生命周期与测试
 
 ### P6
@@ -642,9 +642,9 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 日期 | 变更 | 分支/Commit |
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
-| 2026-08-08 | P5 完成（5A 工具条：board-tools.js 按钮 → createButton bridge，dispose 对齐） | `codex/ui-p5a` @ bc2639f |
 | | P0 完成 | |
 | | P1 完成 | |
+| | P5 完成（5B 笔记条）：`math/shared/board-notes.js` 全部按钮经 createButton 构建（ui-btn 基类 + `math-board-notes-*` 旧类桥接），事件委托改逐按钮 onClick，dispose 统一释放 uiControls；新增源码契约断言 + vitest 生命周期测试 | `codex/ui-p5b` fcafd7d |
 | | … | |
 
 ---

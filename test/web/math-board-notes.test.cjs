@@ -9,10 +9,7 @@ const { pathToFileURL } = require('node:url');
 const root = require('../helpers/repo-root.js');
 
 test('board-notes module exports attach + dismiss + hit helpers', () => {
-  const src = fs.readFileSync(
-    path.join(root, 'apps/web/src/math/shared/board-notes.js'),
-    'utf8',
-  );
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/shared/board-notes.js'), 'utf8');
   assert.match(src, /export function attachBoardNotes/);
   assert.match(src, /export function dismissBoardNotesMode/);
   assert.match(src, /export function screenToUser/);
@@ -73,10 +70,7 @@ test('math classroom css has notes layer styles', () => {
 });
 
 test('notes and axis settings share fab dock', () => {
-  const notes = fs.readFileSync(
-    path.join(root, 'apps/web/src/math/shared/board-notes.js'),
-    'utf8',
-  );
+  const notes = fs.readFileSync(path.join(root, 'apps/web/src/math/shared/board-notes.js'), 'utf8');
   const axis = fs.readFileSync(
     path.join(root, 'apps/web/src/math/shared/axis-legend-settings.js'),
     'utf8',
@@ -93,7 +87,7 @@ test('notes and axis settings share fab dock', () => {
 
 test('notes controller exposes the document snapshot API contract', async () => {
   const { attachBoardNotes } = await import(
-    pathToFileURL(path.join(root, 'apps/web/src/math/shared/board-notes.js')).href,
+    pathToFileURL(path.join(root, 'apps/web/src/math/shared/board-notes.js')).href
   );
   // 无 board 的 fallback 也必须提供完整契约
   const fallback = attachBoardNotes({}, {});
@@ -105,4 +99,29 @@ test('notes controller exposes the document snapshot API contract', async () => 
   assert.deepEqual(fallback.getSnapshot(), { version: 1, strokes: [] });
   const unsubscribe = fallback.onSnapshotChange(() => {});
   assert.equal(typeof unsubscribe, 'function');
+});
+
+test('board-notes chrome is ui-kit built: createButton + className bridge, no HTML strings', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/shared/board-notes.js'), 'utf8');
+  // 库化：笔记条按钮全部经 @xiaohuang/ui createButton 构建
+  assert.match(src, /import\s*\{[^}]*\bcreateButton\b[^}]*\}\s*from\s*['"]@xiaohuang\/ui['"]/);
+  assert.match(src, /className:\s*'math-board-notes-tool'/);
+  assert.match(src, /className:\s*'math-board-notes-width'/);
+  assert.match(src, /className:\s*'math-board-notes-color'/);
+  assert.match(src, /className:\s*'math-board-notes-action'/);
+  assert.match(src, /className:\s*'math-board-notes-toggle'/);
+  // 禁止大段 HTML 字符串生成可点击控件
+  assert.doesNotMatch(src, /innerHTML/);
+  assert.doesNotMatch(src, /<button/);
+  // 原事件委托改为逐按钮 onClick（同一语义分派）
+  assert.doesNotMatch(src, /toolbar\.addEventListener\('click'/);
+  assert.match(src, /uiControls/);
+});
+
+test('board-notes dispose releases ui controllers idempotently', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/shared/board-notes.js'), 'utf8');
+  assert.match(src, /for \(const ctrl of uiControls\)/);
+  assert.match(src, /ctrl\.dispose\(\)/);
+  assert.match(src, /delete host\.dataset\.mathNotesBound/);
+  assert.match(src, /delete host\._mathNotesCtrl/);
 });
