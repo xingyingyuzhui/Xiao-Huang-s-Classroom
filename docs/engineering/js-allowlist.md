@@ -47,6 +47,8 @@
 | `apps/server/src/routes/settings.js`           | 薄转发桥 | 仅导出 `createSettingsRouter`（组合根注入 db 调用）；B2 完成后删除                                       |
 | `apps/server/src/routes/ai/lesson.ts`          | TS 权威  | B2 第三批（2026-08-08）：服务注入模式（explainConcept 组合根注入，产物无 db 状态）                       |
 | `apps/server/src/routes/ai/lesson.js`          | 薄转发桥 | 仅导出 `createLessonRouter`；B2 完成后删除                                                               |
+| `apps/server/src/routes/ai/molecules.ts`       | TS 权威  | B2 第四批（2026-08-08）：服务注入（callDeepSeekChat 组合根注入）；AI 提示词随源                          |
+| `apps/server/src/routes/ai/molecules.js`       | 薄转发桥 | 仅导出 `createMoleculeRouter`；B2 完成后删除                                                             |
 | `apps/server/src/services/settings-service.js` | 薄转发桥 | 仅 `require('../../dist/services/settings-service.js')`；B2 route 迁移后随 src/index.js 换 dist 入口删除 |
 
 ## 保留为 JS 的第三方桥/工具（最终 allowlist 允许）
