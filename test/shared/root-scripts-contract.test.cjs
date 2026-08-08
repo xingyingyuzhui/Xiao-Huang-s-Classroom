@@ -39,6 +39,19 @@ test('quality:fast 是本地快路径：含 test/build、不含慢门禁（cover
   assert.doesNotMatch(fast, /coverage/, 'quality:fast 不含 coverage（CI/合并前才跑满 quality）');
 });
 
+test('quality 链含大文件预算门禁（G3：>400 行文件必须登记）', () => {
+  assert.equal(
+    typeof pkg.scripts['lint:large-files'],
+    'string',
+    '根 scripts.lint:large-files 必须存在',
+  );
+  assert.match(
+    pkg.scripts.quality,
+    /lint:large-files/,
+    'quality 必须包含 lint:large-files（新增 >400 行文件需登记预算或拆分）',
+  );
+});
+
 test('tooling 骨架目录与 README 就位', () => {
   for (const dir of ['architecture', 'performance', 'release']) {
     const readme = path.join(root, 'tooling', dir, 'README.md');

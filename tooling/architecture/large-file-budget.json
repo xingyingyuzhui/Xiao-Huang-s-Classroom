@@ -1,0 +1,202 @@
+{
+  "desktop/src/main.ts": {
+    "category": "entry",
+    "plan": "Electron main 单产物（C4）；tsup bundle，源行数不随产物增长",
+    "lines": 406
+  },
+  "server/src/seed/builtin-reactions.js": {
+    "category": "data",
+    "plan": "seed 数据本体（生成或只读数据资产，sync 脚本产出）",
+    "lines": 662
+  },
+  "server/src/seed/labs-builtin.js": {
+    "category": "data",
+    "plan": "seed 数据本体（生成或只读数据资产，sync 脚本产出）",
+    "lines": 562
+  },
+  "server/src/seed/offline-quiz-bank.js": {
+    "category": "data",
+    "plan": "seed 数据本体（生成或只读数据资产，sync 脚本产出）",
+    "lines": 2862
+  },
+  "server/src/services/ai/quiz-service.js": {
+    "category": "service",
+    "plan": "server 应用服务（错误码/行为合同测试覆盖）",
+    "lines": 474
+  },
+  "server/src/services/chemistry/ai-service.js": {
+    "category": "service",
+    "plan": "server 应用服务（错误码/行为合同测试覆盖）",
+    "lines": 499
+  },
+  "web/src/chemistry/ai-classroom/balance-shell.js": {
+    "category": "shell",
+    "plan": "教室编排壳（已 model/views 分层）",
+    "lines": 1388
+  },
+  "web/src/chemistry/ai-classroom/lab-shell.js": {
+    "category": "shell",
+    "plan": "教室编排壳（已 model/views 分层）",
+    "lines": 968
+  },
+  "web/src/chemistry/ai-classroom/quiz-shell.js": {
+    "category": "shell",
+    "plan": "教室编排壳（已 model/views 分层）",
+    "lines": 434
+  },
+  "web/src/chemistry/battle/actions.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 493
+  },
+  "web/src/chemistry/battle/fx.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 630
+  },
+  "web/src/chemistry/battle/html.js": {
+    "category": "view",
+    "plan": "对战视图 HTML/UI 生成",
+    "lines": 579
+  },
+  "web/src/chemistry/battle/sfx.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 479
+  },
+  "web/src/chemistry/battle/ui.js": {
+    "category": "view",
+    "plan": "对战视图 HTML/UI 生成",
+    "lines": 541
+  },
+  "web/src/chemistry/electron/renderer.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 517
+  },
+  "web/src/chemistry/molecule/list.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 415
+  },
+  "web/src/chemistry/molecule/reactions.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 848
+  },
+  "web/src/chemistry/molecule/viewer3d.js": {
+    "category": "adapter",
+    "plan": "渲染适配层（JSXGraph/Three.js）",
+    "lines": 551
+  },
+  "web/src/math/classroom/entry.js": {
+    "category": "shell",
+    "plan": "教室编排壳（已 model/views 分层）",
+    "lines": 579
+  },
+  "web/src/math/graph/function-panel.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 583
+  },
+  "web/src/math/graph/graph-document.js": {
+    "category": "logic",
+    "plan": "graph 纯逻辑层（B2 pure 白名单成员，无 DOM/JSXGraph）",
+    "lines": 621
+  },
+  "web/src/math/graph/graph-mount-controller.js": {
+    "category": "controller",
+    "plan": "挂载生命周期控制器（disposer 栈），职责内聚",
+    "lines": 950
+  },
+  "web/src/math/graph/graph-record-validation.js": {
+    "category": "logic",
+    "plan": "graph 纯逻辑层（B2 pure 白名单成员，无 DOM/JSXGraph）",
+    "lines": 519
+  },
+  "web/src/math/graph/graph-renderer.js": {
+    "category": "adapter",
+    "plan": "渲染适配层（JSXGraph/Three.js）",
+    "lines": 428
+  },
+  "web/src/math/graph/graph-store.js": {
+    "category": "logic",
+    "plan": "graph 纯逻辑层（B2 pure 白名单成员，无 DOM/JSXGraph）",
+    "lines": 514
+  },
+  "web/src/math/graph/index.js": {
+    "category": "entry",
+    "plan": "graph 编排入口，<700 行门禁已锁（math-graph-structure）",
+    "lines": 690
+  },
+  "web/src/math/graph/user-points.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 572
+  },
+  "web/src/math/shared/axis-legend-settings.js": {
+    "category": "controller",
+    "plan": "board 工具/面板控制器",
+    "lines": 689
+  },
+  "web/src/math/shared/board-label.js": {
+    "category": "logic",
+    "plan": "board 标签纯函数（无 import 叶子模块）",
+    "lines": 594
+  },
+  "web/src/math/shared/board-notes.js": {
+    "category": "controller",
+    "plan": "board 工具/面板控制器",
+    "lines": 790
+  },
+  "web/src/math/shared/board-tools.js": {
+    "category": "controller",
+    "plan": "board 工具/面板控制器",
+    "lines": 451
+  },
+  "web/src/math/shared/object-style-panel.js": {
+    "category": "controller",
+    "plan": "board 工具/面板控制器",
+    "lines": 738
+  },
+  "web/src/shared/api/client.js": {
+    "category": "adapter",
+    "plan": "API 客户端（HTTP 边界适配）",
+    "lines": 529
+  },
+  "web/src/shared/ui/brand-tip.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 414
+  },
+  "web/src/shared/ui/settings.js": {
+    "category": "controller",
+    "plan": "交互控制器（功能内聚，行为测试覆盖）",
+    "lines": 485
+  },
+  "web/src/subjects/bookshelf/build-book.js": {
+    "category": "controller",
+    "plan": "书架 3D 编排（stage/fx/covers/floaters/build）",
+    "lines": 503
+  },
+  "web/src/subjects/bookshelf/covers.js": {
+    "category": "controller",
+    "plan": "书架 3D 编排（stage/fx/covers/floaters/build）",
+    "lines": 1029
+  },
+  "web/src/subjects/bookshelf/enter-fx.js": {
+    "category": "controller",
+    "plan": "书架 3D 编排（stage/fx/covers/floaters/build）",
+    "lines": 1202
+  },
+  "web/src/subjects/bookshelf/floaters.js": {
+    "category": "controller",
+    "plan": "书架 3D 编排（stage/fx/covers/floaters/build）",
+    "lines": 514
+  },
+  "web/src/subjects/bookshelf/stage.js": {
+    "category": "controller",
+    "plan": "书架 3D 编排（stage/fx/covers/floaters/build）",
+    "lines": 1312
+  }
+}

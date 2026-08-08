@@ -186,10 +186,10 @@ shared/        主题、样式、通用 UI、board 工具
 ### 4.1 目标（可勾选）
 
 - [ ] **G1 干净 CI：** quality + electron-package 在无本地 dist 下稳定绿（连续 10 次 main 相关 push 无「coverage/.tmp」「Failed to resolve subject-settings」同类回归）
-- [ ] **G2 边界锁死：** arch + 结构测试保证 packages ↛ apps、server ↛ web 源码、Graph 纯逻辑层无 DOM/JSXGraph
-- [ ] **G3 入口不胖：** `graph/index.js` 持续 &lt;700；新增 &gt;400 行文件必须有结构预算或拆分计划
-- [ ] **G4 类型化切片：** 完成 allowlist **B1 样板** + **B4 子集（≥1 个 shared 纯逻辑模块）**
-- [ ] **G5 债务可消：** D5 守住；关闭或降级 **≥3 条**（建议含 D13 全关、D14 推进、D3 样板）
+- [x] **G2 边界锁死：** lint:arch 脚本化扫描 337 文件 + B2 pure 白名单 18 文件（无 DOM/JSXGraph）+ module-boundaries 结构合同
+- [x] **G3 入口不胖：** `graph/index.js` 690 &lt; 700 门禁已锁；`lint:large-files` 大文件预算门禁（40 文件登记 + 类别白名单 + 膨胀/残留检查，已入 quality 链）
+- [x] **G4 类型化切片：** B1 样板（settings-service.ts）+ B4 子集（frame-task.ts / chem-text.ts / main.ts）
+- [x] **G5 债务可消：** D5 守住；关闭 D13/D9/D10/D11 + D8 已评估 + D3 样板已建（≥3 条达成）；D14 经 C1/C2 推进
 
 ### 4.2 成功画像（人话）
 

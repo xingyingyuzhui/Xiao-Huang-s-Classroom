@@ -36,7 +36,7 @@
     "lint:baseline": "node scripts/lint-baseline.mjs",
     "format": "prettier --write \".prettierrc.json\" \"tsconfig*.json\" \"tooling/**/*.json\" \"tooling/**/*.mjs\" \"docs/engineering/**/*.md\" \"scripts/*.mjs\"",
     "format:check": "prettier --check \".prettierrc.json\" \"tsconfig*.json\" \"tooling/**/*.json\" \"tooling/**/*.mjs\" \"docs/engineering/**/*.md\" \"scripts/*.mjs\"",
-    "quality": "npm run format:check && npm run lint && npm run lint:css && npm run lint:baseline && npm run typecheck && npm run lint:arch && npm run lint:theme-tokens && npm run lint:assets && npm test && npm run build && npm run budget && npm run coverage && git diff --check",
+    "quality": "npm run format:check && npm run lint && npm run lint:css && npm run lint:baseline && npm run typecheck && npm run lint:arch && npm run lint:large-files && npm run lint:theme-tokens && npm run lint:assets && npm test && npm run build && npm run budget && npm run coverage && git diff --check",
     "quality:fast": "npm run format:check && npm run lint && npm run lint:css && npm run typecheck && npm test && npm run build && git diff --check",
     "lint:css": "stylelint \"apps/web/src/shared/styles/**/*.css\" \"packages/**/*.css\"",
     "lint:css:all": "stylelint \"apps/web/src/shared/styles/**/*.css\"",
@@ -49,7 +49,8 @@
     "coverage": "turbo run coverage",
     "pretest": "npm run build -w @xiaohuang/server",
     "test:electron-packaged": "node --test test/release/electron-packaged.test.cjs",
-    "verify:electron-package": "npm run pack:electron && npm run test:electron-packaged"
+    "verify:electron-package": "npm run pack:electron && npm run test:electron-packaged",
+    "lint:large-files": "node tooling/architecture/check-large-files.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
