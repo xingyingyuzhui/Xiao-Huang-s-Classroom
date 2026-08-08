@@ -493,8 +493,8 @@ npm run quality:fast
 
 ### P0
 
-- [ ] P0.1 基线文档  
-- [ ] P0.2 adoption 合同测试  
+- [x] P0.1 基线文档
+- [x] P0.2 adoption 合同测试
 
 ### P1
 
@@ -642,7 +642,7 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 日期 | 变更 | 分支/Commit |
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
-| | P0 完成 | |
+| 2026-08-08 | P0 完成 | codex/ui-p0@f10fd7d |
 | | P1 完成 | |
 | | … | |
 
