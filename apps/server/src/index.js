@@ -24,7 +24,13 @@ const { importBuiltinReactionsIfEmpty } = require('./seed/import-reactions');
 const moleculesRouter = require('./routes/chemistry/molecules');
 const settingsRouter = require('./routes/settings');
 const aiRouter = require('./routes/ai');
-const quizRouter = require('./routes/chemistry/quiz');
+const quizRouter = require('./routes/chemistry/quiz')({
+  getQuizStats: require('./services/chemistry/quiz/sessions').getQuizStats,
+  createQuizSession: require('./services/chemistry/quiz/sessions').createQuizSession,
+  updateSessionSummary: require('./services/chemistry/quiz/sessions').updateSessionSummary,
+  listWrongBook: require('./services/chemistry/quiz/wrong-book').listWrongBook,
+  attemptWrongBook: require('./services/chemistry/quiz/wrong-book').attemptWrongBook,
+});
 const offlineQuizRouter = require('./routes/chemistry/offline-quiz');
 const reactionsRouter = require('./routes/chemistry/reactions');
 const studentsRouter = require('./routes/chemistry/students');
