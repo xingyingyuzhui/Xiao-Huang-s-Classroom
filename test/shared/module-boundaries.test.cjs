@@ -1,3 +1,10 @@
+/**
+ * 模块结构合同测试（D10 收口后定位：补充 lint:arch）。
+ *
+ * 依赖方向已由 tooling/architecture/check-dependencies.mjs 脚本化扫描
+ * （337 文件，无人工清单）；本文件保留**结构合同**断言：组合根薄转发、
+ * 命名空间归属、动态加载纪律（重型 feature 不静态 import）。
+ */
 const fs = require('node:fs');
 const path = require('node:path');
 const test = require('node:test');
