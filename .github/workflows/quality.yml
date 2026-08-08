@@ -19,5 +19,8 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Quality gate（与本地同一组根脚本）
+      - name: Quality run 1（干净环境）
+        run: npm run quality
+
+      - name: Quality run 2（coverage/build 产物生成后可重复性）
         run: npm run quality
