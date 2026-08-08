@@ -8,7 +8,7 @@ const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
 const { exec } = require('child_process');
-const { initDatabase, closeDatabase } = require('./db/sqlite');
+const { initDatabase, closeDatabase, query, queryOne, run, runBatch } = require('./db/sqlite');
 const {
   isPkg,
   isElectron,
@@ -21,8 +21,17 @@ const {
 } = require('./seed/import-builtin');
 const { importBuiltinReactionsIfEmpty } = require('./seed/import-reactions');
 
-const moleculesRouter = require('./routes/chemistry/molecules');
-const settingsRouter = require('./routes/settings');
+const moleculesRouter = require('./routes/chemistry/molecules')({
+  query,
+  queryOne,
+  run,
+  runBatch,
+});
+const settingsRouter = require('./routes/settings')({
+  query,
+  queryOne,
+  run,
+});
 const aiRouter = require('./routes/ai');
 const quizRouter = require('./routes/chemistry/quiz')({
   getQuizStats: require('./services/chemistry/quiz/sessions').getQuizStats,

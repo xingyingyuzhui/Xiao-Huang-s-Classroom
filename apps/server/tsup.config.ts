@@ -17,6 +17,7 @@ export default defineConfig({
     'routes/ai/quiz': 'src/routes/ai/quiz.ts',
     'routes/ai/chemistry': 'src/routes/ai/chemistry.ts',
     'routes/chemistry/quiz': 'src/routes/chemistry/quiz.ts',
+    'routes/chemistry/molecules': 'src/routes/chemistry/molecules.ts',
   },
   format: ['cjs'],
   dts: true,
