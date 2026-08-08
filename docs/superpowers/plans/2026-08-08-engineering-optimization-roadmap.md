@@ -610,6 +610,7 @@ npm run verify:electron-package
 - [x] D-test server 全量（2026-08-08，agent 并行）：16 个集成测试迁 vitest——server node:test 归零（107 vitest 用例）
 - [x] B7 评估（2026-08-08）：three 4 渲染器 + jsxgraph 单点边界守门
 - [x] T1 批次（2026-08-08，agent）：15 个 math 纯逻辑测试迁 vitest（79 用例，`codex/t1-batch` @ `a1e2d5c`）——明细见 handoff 计划 §12
+- [x] 本批 T2（2026-08-08，agent）：9 个化学/其它纯逻辑测试迁 vitest（62 用例，`codex/t2-batch`：lab-model / hybridization / mastery-map / molecule-list / subject-manifest / feature-loader / app-session / offline-quiz-layout / panel-loading）——T1+T2 合计 24 文件 ≥12 达标；明细见 handoff 计划 §12
 - [ ] 持续项：B6 剩余（math 纯逻辑 / graph 层）/ B5 剩余（manifest/hub 入口）——随产品迭代推进。**下一批执行见 `docs/superpowers/plans/2026-08-08-handoff-stabilize-d7-ui-polish.md` Track T。**
 
 ### 9.4 D-jessie — JSXGraph eval 警告（D8）
