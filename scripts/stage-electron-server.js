@@ -21,7 +21,9 @@ const stageServer = join(stageRoot, 'server');
 const srcServer = join(root, 'apps', 'server');
 const srcCode = join(srcServer, 'src');
 
-const COPY_DIRS = ['db', 'routes', 'seed', 'utils', 'services', 'public', 'dist/domain'];
+const COPY_DIRS = ['db', 'routes', 'seed', 'utils', 'services', 'public'];
+/** 特殊复制：dist/domain 放 stage 根（routes 的 ../../dist 解析到 .electron-stage/dist） */
+const COPY_ROOT_DIRS = ['dist/domain'];
 
 // R1：Electron staging 主动构建 Server TS 产物（不依赖本机残留 dist）
 const serverDistPolicy = join(srcServer, 'dist', 'domain', 'settings-policy.js');
@@ -59,6 +61,17 @@ for (const d of COPY_DIRS) {
     continue;
   }
   cpSync(from, join(stageServer, d), { recursive: true });
+}
+// 根级复制（dist/domain）：目标 .electron-stage/dist/domain
+for (const d of COPY_ROOT_DIRS) {
+  const from = join(srcServer, d);
+  if (existsSync(from)) {
+    mkdirSync(join(stageRoot, dirname(d)), { recursive: true });
+    cpSync(from, join(stageRoot, d), { recursive: true });
+    console.log(`[stage] 根级复制: ${d} → .electron-stage/${d}`);
+  } else {
+    console.warn('skip missing root copy', d);
+  }
 }
 
 // public 在 apps/server 根目录
