@@ -60,7 +60,11 @@ function makeCleanCopy() {
     path.join(root, 'apps/server/src/routes/ai/lesson.ts'),
     path.join(dir, 'src/routes/ai/lesson.ts'),
   );
-  for (const f of ['response.js', 'ai-config.js', 'ai-request.js']) {
+  fs.copyFileSync(
+    path.join(root, 'apps/server/src/routes/ai/molecules.ts'),
+    path.join(dir, 'src/routes/ai/molecules.ts'),
+  );
+  for (const f of ['response.js', 'ai-config.js', 'ai-request.js', 'molecule-validate.js']) {
     fs.copyFileSync(path.join(root, 'apps/server/src/utils', f), path.join(dir, 'src/utils', f));
   }
   // 模拟 settings.js 的产物引用（与生产同一相对结构 routes → ../../dist）

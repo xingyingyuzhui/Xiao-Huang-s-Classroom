@@ -13,6 +13,7 @@ export default defineConfig({
     'services/settings-service': 'src/services/settings-service.ts',
     'routes/settings': 'src/routes/settings.ts',
     'routes/ai/lesson': 'src/routes/ai/lesson.ts',
+    'routes/ai/molecules': 'src/routes/ai/molecules.ts',
   },
   format: ['cjs'],
   dts: true,
