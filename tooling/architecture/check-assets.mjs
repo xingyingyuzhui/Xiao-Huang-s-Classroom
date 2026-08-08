@@ -40,6 +40,21 @@ function collectSourceFiles() {
   return files;
 }
 
+/** 收集全部源码资源引用（绝对 /assets/ 路径集） */
+function collectReferences() {
+  const refs = new Set();
+  for (const f of collectSourceFiles()) {
+    const srcText = fs.readFileSync(f, 'utf8');
+    for (const m of srcText.matchAll(/['"](\/assets\/[^'"]+)['"]/g)) refs.add(m[1].replace(/^\//, ''));
+    if (f.endsWith('.css')) {
+      for (const m of srcText.matchAll(/url\(\s*['"]?(\/assets\/[^'")]+)['"]?\s*\)/g)) {
+        refs.add(m[1].replace(/^\//, ''));
+      }
+    }
+  }
+  return refs;
+}
+
 function referencesExist() {
   for (const f of collectSourceFiles()) {
     const src = fs.readFileSync(f, 'utf8');
@@ -101,8 +116,8 @@ function duplicates() {
   walk(path.join(publicDir, 'assets'));
 }
 
-/** 生成可重复清单（相对路径 + 稳定 owner/theme 推断） */
-function generateManifest() {
+/** 收集资源条目（相对路径 + 稳定 owner/theme 推断；可重复） */
+function collectAssetEntries() {
   const entries = [];
   const walk = (dir, relDir) => {
     for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -134,6 +149,12 @@ function generateManifest() {
   if (fs.existsSync(path.join(publicDir, 'assets'))) {
     walk(path.join(publicDir, 'assets'), 'assets');
   }
+  return entries;
+}
+
+/** 生成可重复清单（相对路径 + 稳定 owner/theme 推断） */
+function generateManifest() {
+  const entries = collectAssetEntries();
   const manifestPath = path.join(root, 'docs/engineering/assets-manifest.json');
   fs.writeFileSync(manifestPath, JSON.stringify({ generatedAt: new Date().toISOString().slice(0, 10), count: entries.length, entries }, null, 2) + '\n');
   console.log(`[assets] manifest 已生成：${entries.length} 项 → ${path.relative(root, manifestPath)}`);
@@ -147,6 +168,68 @@ if (manifestMode) {
 referencesExist();
 coversComplete();
 duplicates();
+
+/**
+ * 孤儿资源：manifest 登记但未被使用。
+ * - 封面家族经 cover-urls.js 的 COVER_ASSET_STEM 登记（动态拼接引用）：
+ *   stem 已登记 → 整族豁免（v1–v5 供五主题切换使用）。
+ * - 非封面资源必须被源码静态引用。
+ */
+function registeredCoverStems() {
+  // 登记数据源始终从脚本所在仓库读取（不受 ARCH_ROOT 影响，类似 rules.json）
+  const repoRoot = path.resolve(scriptDir, '../..');
+  const coverUrls = fs.readFileSync(
+    path.join(repoRoot, 'apps/web/src/subjects/bookshelf/cover-urls.js'),
+    'utf8',
+  );
+  const stems = new Set();
+  for (const m of coverUrls.matchAll(/(\w+):\s*'(\w+)'/g)) {
+    if (m[1] === 'physics' || m[1] === 'biology' || m[1] === 'chemistry' || m[1] === 'math') {
+      stems.add(m[2]);
+    }
+  }
+  return stems;
+}
+
+function orphans() {
+  const manifestPath = path.join(root, 'docs/engineering/assets-manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    violations.push('缺失 docs/engineering/assets-manifest.json（先运行 --manifest）');
+    return;
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+  const refs = collectReferences();
+  const coverStems = registeredCoverStems();
+  for (const entry of manifest.entries || []) {
+    const rel = entry.path.replace(/^assets\//, '');
+    const referenced = refs.has(`assets/${rel}`) || refs.has(`/assets/${rel}`);
+    const isCover = entry.path.includes('subject-covers');
+    const stem = entry.path.match(/([\w-]+)-cover-v\d\.(?:png|jpg|webp)$/)?.[1];
+    const coverRegistered = isCover && stem ? coverStems.has(stem) : false;
+    if (!referenced && !coverRegistered) {
+      violations.push(`孤儿资源: ${entry.path}（未被源码引用且封面家族未登记）`);
+    }
+  }
+}
+
+/** manifest 漂移：已提交 manifest 与当前资源目录生成结果不一致 */
+function manifestDrift() {
+  const committedPath = path.join(root, 'docs/engineering/assets-manifest.json');
+  if (!fs.existsSync(committedPath)) return;
+  const committed = JSON.parse(fs.readFileSync(committedPath, 'utf8'));
+  const entries = collectAssetEntries();
+  const committedIds = new Set((committed.entries || []).map((e) => e.id));
+  const generatedIds = new Set(entries.map((e) => e.id));
+  for (const id of generatedIds) {
+    if (!committedIds.has(id)) violations.push(`manifest 漂移: 新资源未登记 ${id}（运行 --manifest 更新）`);
+  }
+  for (const id of committedIds) {
+    if (!generatedIds.has(id)) violations.push(`manifest 漂移: 已删除资源仍登记 ${id}`);
+  }
+}
+
+orphans();
+manifestDrift();
 
 if (violations.length) {
   console.error(`[assets] ${violations.length} 处资源问题：`);

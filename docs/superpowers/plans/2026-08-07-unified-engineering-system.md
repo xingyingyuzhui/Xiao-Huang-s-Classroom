@@ -473,7 +473,9 @@ Electron main/preload TS + IPC schema + 启动状态机 + stage manifest；pkg �
 - **Commit:** `feat(eng): unify structured logging fields (P7)`
 
 - [x] **Task 7.6：资源清单**
-> ✅ R0 缺口已解决（R3.3）：资源 registry 完整化（清单生成 + CSS url 检查 + 主题变体 + 重复大文件）
+> ✅ 已补齐（R3.3 + 终轮）：清单生成（可重复）/CSS url 检查/主题变体/
+> 重复大文件/**孤儿资源检测（封面家族经 cover-urls 登记豁免）**/
+> **manifest 漂移检测（新资源未登记或已删除仍登记即失败）**；lint:assets 门禁接入
 - **Files:** `tooling/architecture/asset-manifest.mjs`、`docs/engineering/asset-registry.md`
 - **Test:** 构建检查缺失资源/孤儿资源/重复大文件/错误主题映射。
 - **Steps:** 从 `apps/web/public/assets/` 建立清单。
