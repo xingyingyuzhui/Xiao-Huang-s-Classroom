@@ -1,34 +1,5 @@
 /**
- * 数学学科 AI 路由
+ * B2 迁移桥：权威源为 src/routes/ai/math.ts（tsup CJS 产物）。
+ * 本桥直接导出 createMathAiRouter 工厂（组合根注入服务）。
  */
-
-const express = require('express');
-const router = express.Router();
-const { success, error, badRequest } = require('../../utils/response');
-const { generateMathFunction } = require('../../services/ai/math-fn-service');
-
-function mapAiError(res, err, fallbackMessage) {
-  const status = err.status || 500;
-  if (status === 400) return badRequest(res, err.message);
-  if (status === 429) return error(res, err.message, 429);
-  return error(res, err.message || fallbackMessage, status >= 400 ? status : 502);
-}
-
-/**
- * POST /api/ai/math/function
- * body: { prompt: string }
- */
-router.post('/math/function', async (req, res) => {
-  try {
-    const prompt = String(req.body?.prompt || '').trim();
-    if (!prompt) return badRequest(res, '请描述要添加的函数');
-    // 函数生成走数学学科的 AI Key / 额度
-    const data = await generateMathFunction(prompt, 'math');
-    success(res, data);
-  } catch (err) {
-    console.error('AI 生成函数失败:', err);
-    mapAiError(res, err, '生成函数失败');
-  }
-});
-
-module.exports = router;
+module.exports = require('../../../dist/routes/ai/math.js').createMathAiRouter;

@@ -25,6 +25,7 @@ export default defineConfig({
     'routes/chemistry/mastery': 'src/routes/chemistry/mastery.ts',
     'routes/chemistry/balance-scripts': 'src/routes/chemistry/balance-scripts.ts',
     'routes/chemistry/offline-quiz': 'src/routes/chemistry/offline-quiz.ts',
+    'routes/ai/math': 'src/routes/ai/math.ts',
   },
   format: ['cjs'],
   dts: true,

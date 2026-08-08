@@ -31,6 +31,6 @@ router.use(
     generateBalance: require('../services/chemistry/ai-service').generateBalance,
   }),
 );
-router.use(require('./ai/math'));
+router.use(require('./ai/math')({ generateMathFunction: require('../services/ai/math-fn-service').generateMathFunction }));
 
 module.exports = router;
