@@ -143,12 +143,21 @@ const { manifestPath } = buildStageManifest({
   stageRoot,
   appVersion: process.env.APP_VERSION || pkg.version || '0.0.1',
 });
-// 发布前 smoke：从 stage 布局加载 server 入口（等价 Electron 启动时 require）
+// 发布前 smoke：从 stage 布局加载 server 入口（等价 Electron 启动时 require）。
+// 路径经 argv 传入，避免 shell 引号冲突。
+const stageIndex = join(layout.stageServer, 'index.js');
+const smokeScript = [
+  "process.env.CHEM_LAB_ELECTRON='1';",
+  "process.env.CHEM_LAB_DATA_DIR=require('os').tmpdir()+require('path').sep+'chem-lab-stage-smoke';",
+  "process.env.OPEN_BROWSER='0';",
+  "require(process.argv[1]);",
+  "console.log('stage require ok');",
+].join('');
 try {
-  execSync(
-    `node -e "process.env.CHEM_LAB_ELECTRON='1';process.env.CHEM_LAB_DATA_DIR=require('os').tmpdir()+require('path').sep+'chem-lab-stage-smoke';process.env.OPEN_BROWSER='0';require(${JSON.stringify(join(layout.stageServer, 'index.js'))});console.log('stage require ok');"`,
-    { cwd: root, stdio: 'inherit' },
-  );
+  execSync(`node -e ${JSON.stringify(smokeScript)} ${JSON.stringify(stageIndex)}`, {
+    cwd: root,
+    stdio: 'inherit',
+  });
 } catch {
   console.error('Stage smoke require FAILED — Electron 包会启动即退出');
   process.exit(1);
