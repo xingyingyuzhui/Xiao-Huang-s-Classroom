@@ -56,6 +56,14 @@ function escapeHtml(value) {
 export function createFunctionPanelController(context) {
   const { state } = context;
 
+  /** B5 样板：实例内 DOM 绑定登记。dispose 时清除标记，允许二次 mount 重建绑定。 */
+  const boundEls = new Set();
+  const markBound = (el, key = 'bound') => {
+    if (!el) return;
+    boundEls.add(el);
+    el.dataset[key] = '1';
+  };
+
   const nextFnId = () => {
     const allocator = context.idAllocator?.();
     if (allocator) return allocator.nextFunctionId();
@@ -475,18 +483,18 @@ export function createFunctionPanelController(context) {
 
     // 函数列表事件委托已由 function-list-view 接管（含更多菜单/显隐/键盘）
     if (addButton && !addButton.dataset.bound) {
-      addButton.dataset.bound = '1';
+      markBound(addButton);
       addButton.addEventListener('click', showAdd);
     }
     if (aiButton && !aiButton.dataset.bound) {
-      aiButton.dataset.bound = '1';
+      markBound(aiButton);
       aiButton.addEventListener('click', () => {
         hideAdd();
         showAi();
       });
     }
     if (editButton && !editButton.dataset.bound) {
-      editButton.dataset.bound = '1';
+      markBound(editButton);
       editButton.addEventListener('click', () => {
         state.editMode = !state.editMode;
         editButton.classList.toggle('is-on', state.editMode);
@@ -496,26 +504,26 @@ export function createFunctionPanelController(context) {
     }
     for (const element of [cancelButton, closeButton, backdrop]) {
       if (element && !element.dataset.bound) {
-        element.dataset.bound = '1';
+        markBound(element);
         element.addEventListener('click', hideAdd);
       }
     }
     for (const element of [aiBackdrop, aiClose, aiCancel]) {
       if (element && !element.dataset.bound) {
-        element.dataset.bound = '1';
+        markBound(element);
         element.addEventListener('click', hideAi);
       }
     }
     if (aiSubmit && !aiSubmit.dataset.bound) {
-      aiSubmit.dataset.bound = '1';
+      markBound(aiSubmit);
       aiSubmit.addEventListener('click', () => void generateWithAi());
     }
     if (expressionAdd && !expressionAdd.dataset.bound) {
-      expressionAdd.dataset.bound = '1';
+      markBound(expressionAdd);
       expressionAdd.addEventListener('click', () => addCustom(expressionInput?.value || ''));
     }
     if (expressionInput && !expressionInput.dataset.bound) {
-      expressionInput.dataset.bound = '1';
+      markBound(expressionInput);
       expressionInput.setAttribute('inputmode', 'none');
       expressionInput.addEventListener('keydown', (event) => {
         if (event.key === 'Enter') {
@@ -528,7 +536,7 @@ export function createFunctionPanelController(context) {
       });
     }
     if (keypad && !keypad.dataset.bound) {
-      keypad.dataset.bound = '1';
+      markBound(keypad);
       keypad.addEventListener('mousedown', (event) => event.preventDefault());
       keypad.addEventListener('click', (event) => {
         const button = /** @type {HTMLElement} */ (event.target).closest?.('[data-expr-key]');
@@ -544,12 +552,23 @@ export function createFunctionPanelController(context) {
         (preset) =>
           `<button type="button" class="chip" data-math-preset="${preset.id}" title="${preset.tip}">${preset.label}</button>`,
       ).join('');
-      presetsHost.dataset.ready = '1';
+      markBound(presetsHost, 'ready');
       presetsHost.addEventListener('click', (event) => {
         const button = /** @type {HTMLElement} */ (event.target).closest?.('[data-math-preset]');
         if (button) addPreset(button.getAttribute('data-math-preset') || 'quadratic');
       });
     }
+  }
+
+  /** B5 样板：解绑并置空实例捕获，允许二次 mount 重建绑定（关 D3 幽灵引用）。 */
+  function dispose() {
+    for (const el of boundEls) {
+      delete el.dataset.bound;
+      delete el.dataset.ready;
+    }
+    boundEls.clear();
+    editor.dispose?.();
+    listView.dispose?.();
   }
 
   return {
@@ -559,5 +578,6 @@ export function createFunctionPanelController(context) {
     hideAi,
     render,
     syncParams,
+    dispose,
   };
 }

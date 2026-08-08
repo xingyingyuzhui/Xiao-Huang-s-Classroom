@@ -162,5 +162,10 @@ export function createFunctionEditor(options) {
     });
   }
 
-  return { open, close, submit, bind, getEditing: () => editing };
+  /** B5 样板：清除绑定标记，允许二次 mount 重建绑定（与 function-panel.dispose 对称）。 */
+  function dispose() {
+    if (root) delete root.dataset.mathEditorBound;
+  }
+
+  return { open, close, submit, bind, getEditing: () => editing, dispose };
 }
