@@ -48,14 +48,18 @@ export function subjectManifest(subjectId) {
     blurb: meta.blurb,
     modules: meta.modules,
     book: meta.book,
+    // 教室首页文案透传（home-shell 消费；单一数据源仍是 catalog）
+    classroomIntro: meta.classroomIntro,
     classroom: {
       id: subjectId,
       defaultPanel: getDefaultTabId(subjectId),
       panels,
       mount: async () => {
-        // 延迟导入 registry（其工厂依赖 DOM/HTML partial，Node 测试不可静态加载）
-        const { CLASSROOM_FACTORIES } = await import('./classrooms/registry.js');
-        const factory = CLASSROOM_FACTORIES[subjectId];
+        // 教室工厂由装配层注册（classroom-loader 环外注册表，registry 加载时
+        // 注册）。本模块不依赖 registry 工厂链（其依赖 DOM/HTML partial，
+        // Node 测试不可静态加载；且避免 home-shell → manifest 依赖环）。
+        const { getClassroomFactory } = await import('./classroom-loader.js');
+        const factory = getClassroomFactory(subjectId);
         if (!factory) throw new Error(`未注册 classroom 工厂: ${subjectId}`);
         return factory({ select: (sel) => document.querySelector(sel) });
       },

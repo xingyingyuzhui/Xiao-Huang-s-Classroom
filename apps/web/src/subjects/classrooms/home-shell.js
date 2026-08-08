@@ -1,8 +1,10 @@
 /**
  * 非化学学科：仅首页占位教室（无 Tab / 无功能模块）
+ *
+ * B4：学科元数据统一经 manifest.js（单一权威入口，关 D13），不直连 catalog。
  */
 
-import { getSubject } from '../catalog.js';
+import { getSubjectMeta } from '../manifest.js';
 
 /**
  * @param {object} opts
@@ -17,7 +19,7 @@ export function createHomeClassroom({ select }) {
   const modulesEl = $('[data-subject-home-modules]');
 
   function show(subjectId) {
-    const meta = getSubject(subjectId);
+    const meta = getSubjectMeta(subjectId);
     if (!panel || !meta) return;
 
     if (titleEl) titleEl.textContent = `${meta.name}教室`;

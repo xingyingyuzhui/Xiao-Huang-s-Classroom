@@ -1,13 +1,13 @@
 # 小黄的教室 · 工程优化完整计划
 
-| 字段 | 内容 |
-| --- | --- |
-| **文档类型** | 可执行工程优化计划（Agent / 人类共用） |
-| **版本** | 2026-08-08 v1.1（详细可复制版） |
-| **仓库** | 小黄的教室 monorepo |
-| **分支约定** | 非琐碎改动走 `codex/*`，验证后合 `main` |
+| 字段           | 内容                                                       |
+| -------------- | ---------------------------------------------------------- |
+| **文档类型**   | 可执行工程优化计划（Agent / 人类共用）                     |
+| **版本**       | 2026-08-08 v1.1（详细可复制版）                            |
+| **仓库**       | 小黄的教室 monorepo                                        |
+| **分支约定**   | 非琐碎改动走 `codex/*`，验证后合 `main`                    |
 | **权威冲突时** | 以**当前代码 + CI 证据**为准，再回写本文与 `debt-registry` |
-| **相关文档** | 见文末「附录 A」 |
+| **相关文档**   | 见文末「附录 A」                                           |
 
 ---
 
@@ -55,12 +55,12 @@
 
 ### 1.3 四条 Track 一览
 
-| 优先级 | Track | 主题 | 周期感 |
-| --- | --- | --- | --- |
-| P0 | **A** | 构建与 CI 可复现 | 1–2 周（主体已完成，收尾 A3） |
-| P1 | **B** | 结构瘦身与边界硬化 | 2–4 周主战场 |
-| P2 | **C** | 类型化切片（server / web shared / electron） | 3–6 周，与 B 交错 |
-| P3 | **D** | 发布与债务收口（pkg / 测试双轨 / 数据路径） | 弱并行，有门禁 |
+| 优先级 | Track | 主题                                         | 周期感                        |
+| ------ | ----- | -------------------------------------------- | ----------------------------- |
+| P0     | **A** | 构建与 CI 可复现                             | 1–2 周（主体已完成，收尾 A3） |
+| P1     | **B** | 结构瘦身与边界硬化                           | 2–4 周主战场                  |
+| P2     | **C** | 类型化切片（server / web shared / electron） | 3–6 周，与 B 交错             |
+| P3     | **D** | 发布与债务收口（pkg / 测试双轨 / 数据路径）  | 弱并行，有门禁                |
 
 ---
 
@@ -103,15 +103,15 @@ apps/desktop ┘
 
 ### 2.3 规模量级（2026-08-08 附近实测，近似）
 
-| 范围 | 规模 |
-| --- | --- |
-| `apps/web/src` JS | ~192 文件 |
-| `apps/server/src` | ~58 文件（几乎全 JS） |
-| `packages` TS 源 | ~81 文件 |
-| `test/**/*.cjs` | ~115 文件 |
-| 数学 graph 入口 `graph/index.js` | ~690 行（结构门禁 **&lt;700**） |
-| 化学大文件热点 | `ai-classroom/*-shell`、`battle/*`、`molecule/reactions` 等可 &gt;800 行 |
-| 生产 JS allowlist 记账 | ~274 JS / packages 侧 TS ~67（以 `js-allowlist.md` 为准） |
+| 范围                             | 规模                                                                     |
+| -------------------------------- | ------------------------------------------------------------------------ |
+| `apps/web/src` JS                | ~192 文件                                                                |
+| `apps/server/src`                | ~58 文件（几乎全 JS）                                                    |
+| `packages` TS 源                 | ~81 文件                                                                 |
+| `test/**/*.cjs`                  | ~115 文件                                                                |
+| 数学 graph 入口 `graph/index.js` | ~690 行（结构门禁 **&lt;700**）                                          |
+| 化学大文件热点                   | `ai-classroom/*-shell`、`battle/*`、`molecule/reactions` 等可 &gt;800 行 |
+| 生产 JS allowlist 记账           | ~274 JS / packages 侧 TS ~67（以 `js-allowlist.md` 为准）                |
 
 ### 2.4 前端模块地图（apps/web/src）
 
@@ -126,23 +126,23 @@ shared/        主题、样式、通用 UI、board 工具
 
 ### 2.5 质量与 CI 现状
 
-| 项 | 现状 |
-| --- | --- |
-| 本地 `quality` | format → lint → css → baseline → typecheck → arch/theme/assets → test → build → budget → coverage |
-| CI quality | 干净环境跑 1 次 + 产物后可重复性跑 2 次 |
-| CI electron-package | macOS + Windows 打包资源校验 |
-| 2026-08-08 修复后 | `f1ee275` 起 quality + electron **双绿**（覆盖率竞态 + web 依赖 dist 已修） |
+| 项                  | 现状                                                                                              |
+| ------------------- | ------------------------------------------------------------------------------------------------- |
+| 本地 `quality`      | format → lint → css → baseline → typecheck → arch/theme/assets → test → build → budget → coverage |
+| CI quality          | 干净环境跑 1 次 + 产物后可重复性跑 2 次                                                           |
+| CI electron-package | macOS + Windows 打包资源校验                                                                      |
+| 2026-08-08 修复后   | `f1ee275` 起 quality + electron **双绿**（覆盖率竞态 + web 依赖 dist 已修）                       |
 
 ### 2.6 已较好 vs 仍拖累
 
-| 已较好 | 仍拖累 |
-| --- | --- |
-| 三端 + packages 分层清晰 | apps 生产源码仍以 JS 为主 |
-| packages 全 TS + 标准脚本 | 应用层大文件 / orchestrator 复发 |
-| Turbo、quality、Electron CI | quality 链路长、失败定位成本高 |
-| skill + 债务表 + allowlist | D13 双入口、D2 pkg、D14 server JS |
-| 测试按 owner 分层 | node:test 与 Vitest 双轨（D7） |
-| Graph 入口已压到门禁内 | 化学壳文件、offline 题库等巨石 |
+| 已较好                      | 仍拖累                            |
+| --------------------------- | --------------------------------- |
+| 三端 + packages 分层清晰    | apps 生产源码仍以 JS 为主         |
+| packages 全 TS + 标准脚本   | 应用层大文件 / orchestrator 复发  |
+| Turbo、quality、Electron CI | quality 链路长、失败定位成本高    |
+| skill + 债务表 + allowlist  | D13 双入口、D2 pkg、D14 server JS |
+| 测试按 owner 分层           | node:test 与 Vitest 双轨（D7）    |
+| Graph 入口已压到门禁内      | 化学壳文件、offline 题库等巨石    |
 
 ---
 
@@ -150,32 +150,32 @@ shared/        主题、样式、通用 UI、board 工具
 
 ### 3.1 根因分层
 
-| 层级 | 症状 | 根因 |
-| --- | --- | --- |
-| 构建 | 干净 CI 缺 `packages/*/dist` | 入口只 vite、未 turbo 建依赖图 |
-| 测试 | coverage `.tmp` ENOENT | shared 测试真实写共享 coverage + 并行 |
-| 结构 | 入口/壳文件回涨 | 新功能默认堆 index / shell |
-| 类型 | 边界有 Zod/TS，业务无类型 | allowlist 批次未开切 |
-| 发布 | pkg 与 Electron 双轨 | 便携版未验收退役 |
-| 组织 | 文档与代码双账 | Program 文档未随落地更新状态 |
+| 层级 | 症状                         | 根因                                  |
+| ---- | ---------------------------- | ------------------------------------- |
+| 构建 | 干净 CI 缺 `packages/*/dist` | 入口只 vite、未 turbo 建依赖图        |
+| 测试 | coverage `.tmp` ENOENT       | shared 测试真实写共享 coverage + 并行 |
+| 结构 | 入口/壳文件回涨              | 新功能默认堆 index / shell            |
+| 类型 | 边界有 Zod/TS，业务无类型    | allowlist 批次未开切                  |
+| 发布 | pkg 与 Electron 双轨         | 便携版未验收退役                      |
+| 组织 | 文档与代码双账               | Program 文档未随落地更新状态          |
 
 ### 3.2 优化原则（硬）
 
-1. **先可复现，再迁移，再漂亮。**  
-2. **小切片、可回滚、可测完成定义。** 禁止「全仓 TS」「全 graph 再架构」。  
-3. **新代码只进正确层：** 领域/schema → packages；渲染/交互 → feature；禁止回流 god-file。  
-4. **行为默认保持。** 产品红线见 §3.3。  
-5. **债务必须有删除条件。** 无条件债务不准进表。  
-6. **同一时间主 Track ≤1 + 守门任务 ≤1。**  
+1. **先可复现，再迁移，再漂亮。**
+2. **小切片、可回滚、可测完成定义。** 禁止「全仓 TS」「全 graph 再架构」。
+3. **新代码只进正确层：** 领域/schema → packages；渲染/交互 → feature；禁止回流 god-file。
+4. **行为默认保持。** 产品红线见 §3.3。
+5. **债务必须有删除条件。** 无条件债务不准进表。
+6. **同一时间主 Track ≤1 + 守门任务 ≤1。**
 
 ### 3.3 产品红线（本计划不得破坏）
 
-- 大厅全出血、书籍 intro → cover-dissolve 进教室、退出逆 dissolve  
-- 五主题；品牌「小黄的教室」；`chem-theme-change` 事件名  
-- HTTP 兼容 `/api/...`  
-- 化学实验配置驱动、逻辑与渲染分离方向  
-- 函数画布：主题契约、`withPreservedViewport`、detach 先于 filter、document 无 runtime  
-- 用户数据：`apps/server/data/`、Electron userData；禁止当源码改  
+- 大厅全出血、书籍 intro → cover-dissolve 进教室、退出逆 dissolve
+- 五主题；品牌「小黄的教室」；`chem-theme-change` 事件名
+- HTTP 兼容 `/api/...`
+- 化学实验配置驱动、逻辑与渲染分离方向
+- 函数画布：主题契约、`withPreservedViewport`、detach 先于 filter、document 无 runtime
+- 用户数据：`apps/server/data/`、Electron userData；禁止当源码改
 
 详见：`docs/engineering/behavior-compatibility.md`。
 
@@ -193,10 +193,10 @@ shared/        主题、样式、通用 UI、board 工具
 
 ### 4.2 成功画像（人话）
 
-1. 新人读 skill + 本文，能判断代码该落 apps 还是 packages，错误依赖被门禁拦住。  
-2. 干净机器 `npm ci` 后直接 quality / Electron，无需「先随便 build 一次」。  
-3. 数学画布 / 化学 lab **新功能**默认进聚焦模块，入口行数不涨。  
-4. `debt-registry` / `js-allowlist` 有真实提交减少，不是只改文档。  
+1. 新人读 skill + 本文，能判断代码该落 apps 还是 packages，错误依赖被门禁拦住。
+2. 干净机器 `npm ci` 后直接 quality / Electron，无需「先随便 build 一次」。
+3. 数学画布 / 化学 lab **新功能**默认进聚焦模块，入口行数不涨。
+4. `debt-registry` / `js-allowlist` 有真实提交减少，不是只改文档。
 
 ---
 
@@ -230,16 +230,16 @@ shared/        主题、样式、通用 UI、board 工具
 npm install
 ```
 
-- Node 基线：`engines.node >= 20`（与 Electron 33 对齐）  
-- 包管理：根单一 lockfile  
+- Node 基线：`engines.node >= 20`（与 Electron 33 对齐）
+- 包管理：根单一 lockfile
 
 ### 5.4 Agent / 人工协作
 
-- 公开导航：根 `AGENTS.md` + `docs/engineering/` + 子树 `AGENTS.md`  
-- 本地 agent skill（`.grok/` 等）不进公开仓库  
-- 数学硬规则：`apps/web/src/math/AGENTS.md`  
-- 书架：`apps/web/src/subjects/bookshelf/AGENTS.md`  
-- 事实冲突：以代码与 CI 为准，再改文档  
+- 公开导航：根 `AGENTS.md` + `docs/engineering/` + 子树 `AGENTS.md`
+- 本地 agent skill（`.grok/` 等）不进公开仓库
+- 数学硬规则：`apps/web/src/math/AGENTS.md`
+- 书架：`apps/web/src/subjects/bookshelf/AGENTS.md`
+- 事实冲突：以代码与 CI 为准，再改文档
 
 ---
 
@@ -251,12 +251,12 @@ npm install
 
 ### 6.2 背景与已完成
 
-| 任务 | 状态 | 说明 |
-| --- | --- | --- |
-| A1 依赖图构建 | **已完成**（`f1ee275`） | `build:frontend` → `turbo run build --filter=@xiaohuang/web...` 再 copy |
-| A2 coverage 竞态 | **已完成**（`f1ee275`） | shared 不再真实跑 packages coverage；quality-repeatability 改投放合成 CSS |
-| A4 turbo coverage 依赖 | **已完成**（`f1ee275`） | `dependsOn: build/^build`，outputs `coverage/**` |
-| A3 quality 可读性 | **已完成**（`43e7bf7` 起） | `quality:fast` 本地快路径 + `docs/engineering/quality-commands.md` 质量命令地图（root-scripts contract 锁定不含 coverage） |
+| 任务                   | 状态                       | 说明                                                                                                                       |
+| ---------------------- | -------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| A1 依赖图构建          | **已完成**（`f1ee275`）    | `build:frontend` → `turbo run build --filter=@xiaohuang/web...` 再 copy                                                    |
+| A2 coverage 竞态       | **已完成**（`f1ee275`）    | shared 不再真实跑 packages coverage；quality-repeatability 改投放合成 CSS                                                  |
+| A4 turbo coverage 依赖 | **已完成**（`f1ee275`）    | `dependsOn: build/^build`，outputs `coverage/**`                                                                           |
+| A3 quality 可读性      | **已完成**（`43e7bf7` 起） | `quality:fast` 本地快路径 + `docs/engineering/quality-commands.md` 质量命令地图（root-scripts contract 锁定不含 coverage） |
 
 相关 CI 证据（完成后）：
 
@@ -271,8 +271,8 @@ npm install
 
 1. 根 `package.json` 增加：
    - `quality:fast`：不含第二次完整 quality 语义；本地常用：format:check + lint 子集 + typecheck + test + build（**不含** coverage 或可选）
-   - 或 `quality:ci` 与本地说明文档对齐  
-2. `docs/engineering/` 增加一页「质量命令地图」（或本节附录同步）：每一步失败时如何单跑。  
+   - 或 `quality:ci` 与本地说明文档对齐
+2. `docs/engineering/` 增加一页「质量命令地图」（或本节附录同步）：每一步失败时如何单跑。
 3. （可选）CI 把 quality 拆成 named steps 已存在则只补 README。
 
 **文件（预期）：**
@@ -307,9 +307,9 @@ node --test --test-concurrency=1 test/shared/coverage-config-contract.test.cjs \
 
 ### 6.5 Track A 非目标
 
-- 重写 Electron stage 目录布局  
-- 新增 NSIS/DMG 产品验收（属发布，Track D）  
-- 把 quality 拆成多个 GitHub workflow（可选，非必须）  
+- 重写 Electron stage 目录布局
+- 新增 NSIS/DMG 产品验收（属发布，Track D）
+- 把 quality 拆成多个 GitHub workflow（可选，非必须）
 
 ---
 
@@ -325,8 +325,8 @@ node --test --test-concurrency=1 test/shared/coverage-config-contract.test.cjs \
 
 **规则：**
 
-- 新逻辑进：`graph-store` / `graph-document` / `graph-renderer` / `graph-*-controller` / `function-panel` 等  
-- **禁止** 再把 tool 状态机、probe、persistence UI、数值分析堆回 index  
+- 新逻辑进：`graph-store` / `graph-document` / `graph-renderer` / `graph-*-controller` / `function-panel` 等
+- **禁止** 再把 tool 状态机、probe、persistence UI、数值分析堆回 index
 
 **文件：**
 
@@ -345,21 +345,21 @@ wc -l apps/web/src/math/graph/index.js   # 必须 < 700
 **完成定义：**
 
 - [x] 结构测试绿（`64feac0` 补强：probe/analysis/readouts/transform/mount/follow 职责锁在聚焦模块，注入内联实现红验证被抓）
-- [x] 本 Track 周期内 index 行数不升（690 &lt; 700；允许 ± 极小波动，禁止 +50 级）  
+- [x] 本 Track 周期内 index 行数不升（690 &lt; 700；允许 ± 极小波动，禁止 +50 级）
 
 ### 7.3 任务 B2 — Graph 纯逻辑层边界
 
 **目标层：**
 
-| 允许 | 禁止 |
-| --- | --- |
+| 允许                                                                              | 禁止                                                                  |
+| --------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
 | `graph-document.js` / `graph-store.js` / `graph-history.js` / migrations / 纯数值 | import jsxgraph、操作 DOM、`document.` 浏览器 API、持有 board element |
 
 **步骤：**
 
-1. 列出现有 pure 文件清单；grep 是否泄漏  
-2. 有泄漏则下沉调用或拆文件  
-3. 加/强化 arch 或 structure 测试  
+1. 列出现有 pure 文件清单；grep 是否泄漏
+2. 有泄漏则下沉调用或拆文件
+3. 加/强化 arch 或 structure 测试
 
 **验证：**
 
@@ -382,16 +382,16 @@ rg -n "jsxgraph|getElementById|querySelector|localStorage" \
 
 **方法：**
 
-1. 选 **1 个** 最高频改动文件  
-2. 抽出纯数据或纯逻辑 → 同目录新文件或 `shared`  
-3. 壳只保留编排  
-4. 行为测试/结构测试锁住  
+1. 选 **1 个** 最高频改动文件
+2. 抽出纯数据或纯逻辑 → 同目录新文件或 `shared`
+3. 壳只保留编排
+4. 行为测试/结构测试锁住
 
 **完成定义：**
 
-- [ ] 目标文件行数明显下降（建议 ≥20%）  
-- [ ] 相关 test 绿  
-- [ ] debt 或本文记录「下一刀」  
+- [x] 目标文件行数明显下降（`offline-quiz-bank.js` 1860 → 22 行 loader，-98.8%；数据本体拆 `offline-questions-part{1,2}.js`，加载/完整性校验在 loader）
+- [x] 相关 test 绿（`offline-quiz-layout.test.cjs` + `chem-text.test.cjs` 4/4；web 全量 435/435）
+- [x] 本文记录「下一刀」（balance-shell/lab-shell 已 model/views 分层，剩余为编排；下一刀可选 `battle/ui.js` 编排瘦身或 `quiz-shell` 抽纯逻辑，需先量行为测试覆盖）
 
 ### 7.5 任务 B4 — 单一 manifest 入口（关 D13）
 
@@ -424,8 +424,8 @@ rg -n "from ['\"].*registry" apps/web/src/subjects/hub.js
 
 **完成定义：**
 
-- [ ] 消费方权威入口唯一  
-- [ ] D13 状态更新为已删除/关闭，并记 commit  
+- [x] 消费方权威入口唯一（`subject-catalog-entry.test.cjs` 锁定：catalog 仅 manifest 直连；hub/chrome/shell/home-shell 全走 manifest）
+- [x] D13 状态更新为已删除/关闭，并记 commit（debt-registry D13 → 已关闭，2026-08-08）
 
 ### 7.6 任务 B5 — module 级 DOM 捕获样板（D3）
 
@@ -449,16 +449,16 @@ dispose() {
 
 **步骤：**
 
-1. `rg -n "innerHTML" apps/web/src --glob '!**/vendor/**'`  
-2. 标高风险（用户字符串、表达式、导入数据）  
-3. 一轮清 3–5 处到 textContent / DOM API  
-4. 保留低风险且有转义的可登记  
+1. `rg -n "innerHTML" apps/web/src --glob '!**/vendor/**'`
+2. 标高风险（用户字符串、表达式、导入数据）
+3. 一轮清 3–5 处到 textContent / DOM API
+4. 保留低风险且有转义的可登记
 
 ### 7.8 Track B 非目标
 
-- 重写 JSXGraph / Three 渲染器  
-- 大厅视觉大改  
-- 一次拆完所有化学 shell  
+- 重写 JSXGraph / Three 渲染器
+- 大厅视觉大改
+- 一次拆完所有化学 shell
 
 ---
 
@@ -480,15 +480,15 @@ C1 server settings 纯逻辑
 **目标路径（按仓库实际调整）：**
 
 - `apps/server/src/services/settings-service.js` → `.ts`
-- 相关 repository / normalize  
-- `tsup` 产出 CJS  
+- 相关 repository / normalize
+- `tsup` 产出 CJS
 - 入口 **薄转发** 或已有 index 引用 dist（pkg 未退役前允许薄 JS 入口）
 
 **纪律：**
 
-- 错误用 `@xiaohuang/domain-core`  
-- 外部形状用 `@xiaohuang/contracts`  
-- 行为：`test/server` 里 settings 相关测试必须绿  
+- 错误用 `@xiaohuang/domain-core`
+- 外部形状用 `@xiaohuang/contracts`
+- 行为：`test/server` 里 settings 相关测试必须绿
 
 **验证：**
 
@@ -502,15 +502,15 @@ npm run test -w @xiaohuang/server
 
 - [x] 至少 1 个生产 service 以 TS 为权威源（`settings-service.ts`，`63f8ab5`）
 - [x] allowlist 记录该批删除的 JS 路径（js-allowlist.md「B1 已落地」表：settings-service.js 薄转发桥，B2 后删除）
-- [x] 无大面积 `any`（零 any；server typecheck 3 TS 文件通过）  
+- [x] 无大面积 `any`（零 any；server typecheck 3 TS 文件通过）
 
 ### 8.3 切片 C2 — 一条 Route 端到端样板
 
 **选一条低风险 route（建议 settings 或只读 API）：**
 
-1. handler 迁 TS  
-2. 请求/响应走 contracts  
-3. 组合根仍可 JS 薄封装  
+1. handler 迁 TS
+2. 请求/响应走 contracts
+3. 组合根仍可 JS 薄封装
 
 **完成定义：** curl/合同测试覆盖 200 + 校验失败路径。
 
@@ -518,9 +518,9 @@ npm run test -w @xiaohuang/server
 
 **候选（无 DOM 优先）：**
 
-- 主题读色纯函数  
-- `frame-task` 合并调度  
-- 与 DOM 无关的数值/格式化工具  
+- 主题读色纯函数
+- `frame-task` 合并调度
+- 与 DOM 无关的数值/格式化工具
 
 Vite 原生 TS；测试可继续 cjs 动态 import 编译结果或改 vitest。
 
@@ -537,9 +537,9 @@ npm run verify:electron-package
 
 ### 8.6 Track C 非目标
 
-- 一季度清空全部 ~274 JS  
-- 为进度关闭 `no-explicit-any`  
-- pkg 仍在时强行删除 `src/index.js` 权威入口  
+- 一季度清空全部 ~274 JS
+- 为进度关闭 `no-explicit-any`
+- pkg 仍在时强行删除 `src/index.js` 权威入口
 
 ---
 
@@ -549,30 +549,30 @@ npm run verify:electron-package
 
 **删除条件（必须全勾）：**
 
-- [ ] Electron portable/dir 包可启动  
-- [ ] 用户数据导入/路径正确  
-- [ ] 关键 API 可用  
-- [ ] AI 设置可用  
-- [ ] 离线题库/实验关键路径可用  
-- [ ] `pkg-retirement-gate.md` 清单签字式记录  
+- [ ] Electron portable/dir 包可启动
+- [ ] 用户数据导入/路径正确
+- [ ] 关键 API 可用
+- [ ] AI 设置可用
+- [ ] 离线题库/实验关键路径可用
+- [ ] `pkg-retirement-gate.md` 清单签字式记录
 
 **未完成前：** 保持 smoke；不删 build:exe 除非替代已验收。
 
 ### 9.2 D-data — `apps/server/src/data/`（D9）
 
-- 代码：仅识别历史路径，**新写入禁止**  
-- 文档：写明三类数据位置（web dev / electron userData / pkg 邻近）  
+- 代码：仅识别历史路径，**新写入禁止**
+- 文档：写明三类数据位置（web dev / electron userData / pkg 邻近）
 
 ### 9.3 D-test — node:test → Vitest（D7）
 
-- 按 owner 分批：`test/web`、`test/server`…  
-- 禁止双份权威用例长期并存  
-- 迁完后简化根 `test` 脚本；可去掉过严 concurrency 限制（在稳定后）  
+- 按 owner 分批：`test/web`、`test/server`…
+- 禁止双份权威用例长期并存
+- 迁完后简化根 `test` 脚本；可去掉过严 concurrency 限制（在稳定后）
 
 ### 9.4 D-jessie — JSXGraph eval 警告（D8）
 
-- 出 ADR：接受 / 升级 / CSP / 替代  
-- 禁止用「关掉 warning」假装解决  
+- 出 ADR：接受 / 升级 / CSP / 替代
+- 禁止用「关掉 warning」假装解决
 
 ---
 
@@ -590,18 +590,18 @@ Week 11–12  C4 Electron main 启动 或 D-pkg 推进；D-test 启动评估
 
 ### 10.2 人力
 
-| 人力 | 规则 |
-| --- | --- |
-| 1 人全职 | 主 Track 1 + 守门任务 1 |
-| 2 人 | A/B 与 C 可弱并行；**禁止**同时改 server 生产入口与 Electron stage |
-| 有产品并行 | 功能 PR 必须遵守 B1/B2；不得借功能把逻辑塞回 index |
+| 人力       | 规则                                                               |
+| ---------- | ------------------------------------------------------------------ |
+| 1 人全职   | 主 Track 1 + 守门任务 1                                            |
+| 2 人       | A/B 与 C 可弱并行；**禁止**同时改 server 生产入口与 Electron stage |
+| 有产品并行 | 功能 PR 必须遵守 B1/B2；不得借功能把逻辑塞回 index                 |
 
 ### 10.3 每周仪式（15–30 min）
 
-1. CI 是否仍双绿？  
-2. debt-registry 是否有状态变更？  
-3. 本周是否出现新 god-file（&gt;400 行无预算）？  
-4. 下一刀选哪条任务？  
+1. CI 是否仍双绿？
+2. debt-registry 是否有状态变更？
+3. 本周是否出现新 god-file（&gt;400 行无预算）？
+4. 下一刀选哪条任务？
 
 ---
 
@@ -666,59 +666,59 @@ npm run lint:assets
 
 ### 12.1 风险矩阵
 
-| 风险 | 影响 | 缓解 |
-| --- | --- | --- |
-| 大爆炸重构 | 回归难查 | 小切片；先测后码；单职责拆分 |
-| 双轨 TS/JS | 行为漂移 | 同提交删旧权威；禁止长期双实现 |
-| CI 再被本机掩盖 | 假绿 | 干净删 dist 复现；CI 双 workflow |
-| 并行改 server+electron | 打包全挂 | 并行禁区 |
-| 为 TS 引入 any | 类型门禁失效 | no-explicit-any；切片 review |
+| 风险                   | 影响         | 缓解                             |
+| ---------------------- | ------------ | -------------------------------- |
+| 大爆炸重构             | 回归难查     | 小切片；先测后码；单职责拆分     |
+| 双轨 TS/JS             | 行为漂移     | 同提交删旧权威；禁止长期双实现   |
+| CI 再被本机掩盖        | 假绿         | 干净删 dist 复现；CI 双 workflow |
+| 并行改 server+electron | 打包全挂     | 并行禁区                         |
+| 为 TS 引入 any         | 类型门禁失效 | no-explicit-any；切片 review     |
 
 ### 12.2 回滚
 
-- 单 Task：`git revert <commit>`  
-- 整 Track：revert 该 Track 合并区间  
-- 不在用户数据目录做破坏性迁移验证  
+- 单 Task：`git revert <commit>`
+- 整 Track：revert 该 Track 合并区间
+- 不在用户数据目录做破坏性迁移验证
 
 ### 12.3 并行禁区
 
-| 区域 A | 区域 B | 规则 |
-| --- | --- | --- |
+| 区域 A                            | 区域 B                     | 规则                 |
+| --------------------------------- | -------------------------- | -------------------- |
 | `apps/server` 生产入口 / 数据路径 | Electron stage / main 启动 | 禁止同周两人并行大改 |
-| `graph/index.js` | 任意「临时」业务塞入口 | 禁止 |
-| packages 公共 API 大改 | 全 apps 消费方未同 PR | 禁止 |
+| `graph/index.js`                  | 任意「临时」业务塞入口     | 禁止                 |
+| packages 公共 API 大改            | 全 apps 消费方未同 PR      | 禁止                 |
 
 ---
 
 ## 13. 明确不做
 
-1. 不为整齐合并/拆分 monorepo 顶层。  
-2. 不重做大厅书架视觉与 dissolve（走 product/hub 规格）。  
-3. 不把 biology/physics 内容填充绑在本计划。  
-4. 不在 pkg 未退役时强制 server 全量只跑 dist。  
-5. 不靠关 warning 解决 JSXGraph eval。  
-6. 不做「无删除条件」的债务登记。  
+1. 不为整齐合并/拆分 monorepo 顶层。
+2. 不重做大厅书架视觉与 dissolve（走 product/hub 规格）。
+3. 不把 biology/physics 内容填充绑在本计划。
+4. 不在 pkg 未退役时强制 server 全量只跑 dist。
+5. 不靠关 warning 解决 JSXGraph eval。
+6. 不做「无删除条件」的债务登记。
 
 ---
 
 ## 14. 债务映射表
 
-| 债务 ID | 摘要 | 本计划落点 | 目标状态 |
-| --- | --- | --- | --- |
-| D1 | JS/CJS 双份 | C1–C4 | 随迁移删除 |
-| D2 | pkg 便携版 | D-pkg | 验收后退役 |
-| D3 | module DOM 捕获 | B5 | 样板关闭 |
-| D4 | innerHTML | B6 | 高风险一轮清 |
-| D5 | graph/index 膨胀 | B1 | 门禁持续守 |
-| D6 | 旧 JS 无门禁 | 已部分解决 + C | allowlist 推进 |
-| D7 | 测试双轨 | D-test | 分批迁 Vitest |
-| D8 | JSXGraph eval | D-jessie | ADR |
-| D9 | server/src/data | D-data | 只识别不写 |
-| D10 | boundaries 人工 | B2 / arch 脚本 | 脚本化 |
-| D11 | CSS 重复选择器 | 主题/CSS 专项 | stylelint 清零 |
-| D12 | node:test 并行 IPC | 已控制 | Vitest 后去限制 |
-| D13 | hub/registry 双入口 | B4 | **关闭** |
-| D14 | server 仍 JS | C1+ | 切片推进 |
+| 债务 ID | 摘要                | 本计划落点     | 目标状态        |
+| ------- | ------------------- | -------------- | --------------- |
+| D1      | JS/CJS 双份         | C1–C4          | 随迁移删除      |
+| D2      | pkg 便携版          | D-pkg          | 验收后退役      |
+| D3      | module DOM 捕获     | B5             | 样板关闭        |
+| D4      | innerHTML           | B6             | 高风险一轮清    |
+| D5      | graph/index 膨胀    | B1             | 门禁持续守      |
+| D6      | 旧 JS 无门禁        | 已部分解决 + C | allowlist 推进  |
+| D7      | 测试双轨            | D-test         | 分批迁 Vitest   |
+| D8      | JSXGraph eval       | D-jessie       | ADR             |
+| D9      | server/src/data     | D-data         | 只识别不写      |
+| D10     | boundaries 人工     | B2 / arch 脚本 | 脚本化          |
+| D11     | CSS 重复选择器      | 主题/CSS 专项  | stylelint 清零  |
+| D12     | node:test 并行 IPC  | 已控制         | Vitest 后去限制 |
+| D13     | hub/registry 双入口 | B4             | **关闭**        |
+| D14     | server 仍 JS        | C1+            | 切片推进        |
 
 每关闭一条：在 `docs/engineering/debt-registry.md` 写 **达成日期 + commit**。
 
@@ -728,13 +728,13 @@ npm run lint:assets
 
 按风险从低到高：
 
-| 顺序 | 任务 | 预估 | 产出 |
-| --- | --- | --- | --- |
-| 1 | **A3** quality:fast + 命令地图 | 0.5–1 天 | 本地体验与文档 |
-| 2 | **B1** 确认 structure 门禁仍锁 &lt;700 | 0.5 天 | 防 graph 回潮 |
-| 3 | **B2** pure 层 grep + 测试加固 | 1–2 天 | 边界硬化 |
-| 4 | **C1** settings service TS 样板 | 2–4 天 | allowlist 真进展 |
-| 5 | **B4** manifest 单一入口关 D13 | 2–3 天 | 债务表可勾 |
+| 顺序 | 任务                                   | 预估     | 产出             |
+| ---- | -------------------------------------- | -------- | ---------------- |
+| 1    | **A3** quality:fast + 命令地图         | 0.5–1 天 | 本地体验与文档   |
+| 2    | **B1** 确认 structure 门禁仍锁 &lt;700 | 0.5 天   | 防 graph 回潮    |
+| 3    | **B2** pure 层 grep + 测试加固         | 1–2 天   | 边界硬化         |
+| 4    | **C1** settings service TS 样板        | 2–4 天   | allowlist 真进展 |
+| 5    | **B4** manifest 单一入口关 D13         | 2–3 天   | 债务表可勾       |
 
 **推荐默认：** `A3 → B1 → C1`；若有产品功能并行，功能 PR 必须附带 **B1 纪律**。
 
@@ -744,29 +744,29 @@ npm run lint:assets
 
 ### 附录 A · 相关文档索引
 
-| 文档 | 用途 |
-| --- | --- |
-| 根 `AGENTS.md` | 公开仓库运行约束与导航 |
-| `docs/superpowers/plans/2026-08-07-unified-engineering-system.md` | Program 0–7 原文 |
-| 本地 `.grok/skills/...`（不提交） | 开发者本机 Agent OS |
-| `docs/engineering/debt-registry.md` | 旧债与删除条件 |
-| `docs/engineering/js-allowlist.md` | TS 迁移批次 |
-| `docs/engineering/behavior-compatibility.md` | 行为红线 |
-| `docs/engineering/baseline-2026-08-07.md` | 基线数据 |
-| `docs/engineering/coverage-baseline.md` | 覆盖率基线 |
-| `docs/engineering/pkg-retirement-gate.md` | pkg 退役门 |
-| `apps/web/src/math/AGENTS.md` | 数学画板契约 |
-| 根 `AGENTS.md` | 仓库运行约束 |
+| 文档                                                              | 用途                   |
+| ----------------------------------------------------------------- | ---------------------- |
+| 根 `AGENTS.md`                                                    | 公开仓库运行约束与导航 |
+| `docs/superpowers/plans/2026-08-07-unified-engineering-system.md` | Program 0–7 原文       |
+| 本地 `.grok/skills/...`（不提交）                                 | 开发者本机 Agent OS    |
+| `docs/engineering/debt-registry.md`                               | 旧债与删除条件         |
+| `docs/engineering/js-allowlist.md`                                | TS 迁移批次            |
+| `docs/engineering/behavior-compatibility.md`                      | 行为红线               |
+| `docs/engineering/baseline-2026-08-07.md`                         | 基线数据               |
+| `docs/engineering/coverage-baseline.md`                           | 覆盖率基线             |
+| `docs/engineering/pkg-retirement-gate.md`                         | pkg 退役门             |
+| `apps/web/src/math/AGENTS.md`                                     | 数学画板契约           |
+| 根 `AGENTS.md`                                                    | 仓库运行约束           |
 
 ### 附录 B · 与 Program 0–7 对照
 
-| 旧 Program | 本计划 |
-| --- | --- |
-| P0 基线/债务 | 已完成 → 只维护 |
-| P1 工程基座 | 已基本完成 → Track A 守门 |
-| P3/P4 UI / subject-kit | 未完 → B4/B5/B6 |
-| P5/P6 Server / Electron TS | → Track C + D-pkg |
-| P7 质量收口 | → A + B1 + D-test |
+| 旧 Program                 | 本计划                    |
+| -------------------------- | ------------------------- |
+| P0 基线/债务               | 已完成 → 只维护           |
+| P1 工程基座                | 已基本完成 → Track A 守门 |
+| P3/P4 UI / subject-kit     | 未完 → B4/B5/B6           |
+| P5/P6 Server / Electron TS | → Track C + D-pkg         |
+| P7 质量收口                | → A + B1 + D-test         |
 
 ### 附录 C · 关键路径备忘
 
@@ -798,6 +798,7 @@ tooling/architecture/
 
 ```markdown
 ### Task ID: （如 B4）
+
 - 标题：
 - 分支：codex/
 - 背景（问题/债务 ID）：
@@ -815,14 +816,17 @@ tooling/architecture/
 
 ### 附录 E · 状态更新日志
 
-| 日期 | 变更 | Commit / 证据 |
-| --- | --- | --- |
-| 2026-08-08 | 初版路线图 | 文档 |
-| 2026-08-08 | A1/A2/A4 落地；CI quality+electron 双绿 | `f1ee275`；actions runs 31243574386 / 31243574390 |
-| 2026-08-08 | 扩展为详细可复制完整计划 v1.1 | 本文 |
-| 2026-08-08 | A3 落地（quality:fast + 命令地图） | `43e7bf7` |
-| 2026-08-08 | B1 落地（graph 入口冻结守门补强） | `64feac0` |
-| 2026-08-08 | C1 落地（settings service TS 样板 + Electron 布局同步） | `63f8ab5`；verify:electron-package 通过 |
+| 日期       | 变更                                                    | Commit / 证据                                     |
+| ---------- | ------------------------------------------------------- | ------------------------------------------------- |
+| 2026-08-08 | 初版路线图                                              | 文档                                              |
+| 2026-08-08 | A1/A2/A4 落地；CI quality+electron 双绿                 | `f1ee275`；actions runs 31243574386 / 31243574390 |
+| 2026-08-08 | 扩展为详细可复制完整计划 v1.1                           | 本文                                              |
+| 2026-08-08 | A3 落地（quality:fast + 命令地图）                      | `43e7bf7`                                         |
+| 2026-08-08 | B1 落地（graph 入口冻结守门补强）                       | `64feac0`                                         |
+| 2026-08-08 | C1 落地（settings service TS 样板 + Electron 布局同步） | `63f8ab5`；verify:electron-package 通过           |
+| 2026-08-08 | B2 落地（graph pure 层白名单 4→18 + 注入红验证）        | `3ae706a`                                         |
+| 2026-08-08 | B4 落地（manifest 单一入口，关 D13）                    | B4 提交；debt-registry D13 → 已关闭               |
+| 2026-08-08 | B3 落地（offline-quiz-bank 数据/加载边界拆分）          | B3 提交；1860 → 22 行 loader                      |
 
 ---
 

@@ -8,6 +8,7 @@ import {
   isValidDefaultPage,
   READY_SUBJECT_IDS,
 } from '@xiaohuang/subject-settings';
+import { registerClassroomFactory } from '../classroom-loader.js';
 import { createChemistryClassroom } from './chemistry-classroom.js';
 import { createPhysicsClassroom } from './physics-classroom.js';
 import { createBiologyClassroom } from './biology-classroom.js';
@@ -24,6 +25,12 @@ export const CLASSROOM_FACTORIES = {
   biology: createBiologyClassroom,
   math: createMathClassroom,
 };
+
+// 注册到环外注册表（manifest.mount 动态查询；浏览器装配时执行）。
+// classroom-loader 零依赖，不形成 manifest ↔ registry 依赖环。
+for (const [id, factory] of Object.entries(CLASSROOM_FACTORIES)) {
+  registerClassroomFactory(id, factory);
+}
 
 /**
  * @param {{ select: (sel: string) => Element | null }} deps
