@@ -39,6 +39,13 @@ html[data-theme='default'] {
   --btn-primary-hover: #2563eb;
   --btn-primary-border: #1d4ed8;
 
+  /* 危险操作（ui-kit is-danger / error 态） */
+  --danger: #dc2626;
+  --danger-hover: #b91c1c;
+  --danger-soft: #fee2e2;
+  /* 强调填充按钮上的文字色（primary/danger/tool 激活态） */
+  --ink-on-accent: #ffffff;
+
   --shadow-sm: 0 2px 4px rgba(148, 163, 184, 0.15);
   --shadow-md: 0 4px 6px -1px rgba(148, 163, 184, 0.2), 0 2px 4px -1px rgba(148, 163, 184, 0.1);
   --shadow-float: 0 20px 25px -5px rgba(0, 0, 0, 0.08), 0 10px 10px -5px rgba(0, 0, 0, 0.03);

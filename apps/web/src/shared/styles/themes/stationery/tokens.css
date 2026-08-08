@@ -37,6 +37,13 @@ html[data-theme='stationery'] {
   --btn-primary-hover: var(--accent-hover);
   --btn-primary-border: #8f2818;
 
+  /* 危险操作（ui-kit is-danger / error 态） */
+  --danger: #b91c1c;
+  --danger-hover: #991b1b;
+  --danger-soft: #fdecec;
+  /* 强调填充按钮上的文字色（primary/danger/tool 激活态） */
+  --ink-on-accent: #fffaf5;
+
   --shadow-print: 3px 3px 0 color-mix(in srgb, var(--ink) 88%, transparent);
   --shadow-print-sm: 2px 2px 0 color-mix(in srgb, var(--ink) 75%, transparent);
   --shadow-sm: 0 1px 0 color-mix(in srgb, var(--ink) 8%, transparent);
