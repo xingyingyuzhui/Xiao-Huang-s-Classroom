@@ -116,7 +116,7 @@ test('object-select prefers points over lines', () => {
 
 test('math classroom dismisses compass with overlays', () => {
   const src = fs.readFileSync(
-    path.join(root, 'apps/web/src/subjects/classrooms/math-classroom.js'),
+    path.join(root, 'apps/web/src/subjects/classrooms/math-classroom.ts'),
     'utf8',
   );
   assert.match(src, /dismissBoardCompass/);

@@ -146,7 +146,7 @@ test('panel-loading helpers: null panel is no-op', async () => {
 });
 
 test('chemistry classroom wires panel-loading and always hides after successful load', () => {
-  const main = source('apps/web/src/subjects/classrooms/tabbed-classroom.js');
+  const main = source('apps/web/src/subjects/classrooms/tabbed-classroom.ts');
   assert.match(main, /panel-loading\.js/);
   assert.match(main, /showPanelLoading/);
   assert.match(main, /hidePanelLoading/);
@@ -161,8 +161,8 @@ test('chemistry classroom wires panel-loading and always hides after successful 
 });
 
 test('chemistry classroom lazy features go through runFeatureLoad (loading lifecycle)', () => {
-  const main = source('apps/web/src/subjects/classrooms/chemistry-classroom.js');
-  const tabbed = source('apps/web/src/subjects/classrooms/tabbed-classroom.js');
+  const main = source('apps/web/src/subjects/classrooms/chemistry-classroom.ts');
+  const tabbed = source('apps/web/src/subjects/classrooms/tabbed-classroom.ts');
   assert.match(tabbed, /async function runFeatureLoad/);
   for (const name of ['molecule', 'electron', 'ai', 'battle']) {
     assert.match(
@@ -190,10 +190,10 @@ test('settings drawer splits hub vs lab sections', () => {
 
 test('tabbed classroom factory exists for multi-tab subjects', () => {
   assert.ok(
-    fs.existsSync(path.join(root, 'apps/web/src/subjects/classrooms/tabbed-classroom.js')),
+    fs.existsSync(path.join(root, 'apps/web/src/subjects/classrooms/tabbed-classroom.ts')),
   );
   const tabbed = fs.readFileSync(
-    path.join(root, 'apps/web/src/subjects/classrooms/tabbed-classroom.js'),
+    path.join(root, 'apps/web/src/subjects/classrooms/tabbed-classroom.ts'),
     'utf8',
   );
   assert.match(tabbed, /export function createTabbedClassroom/);

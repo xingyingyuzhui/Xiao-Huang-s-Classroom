@@ -36,13 +36,13 @@ test('catalog.js 在 subjects 目录内只被 manifest.js 直连（唯一权威�
 });
 
 test('home-shell 教室元数据经 manifest 取，不得直连 catalog', () => {
-  const src = fs.readFileSync(path.join(subjectsDir, 'classrooms/home-shell.js'), 'utf8');
+  const src = fs.readFileSync(path.join(subjectsDir, 'classrooms/home-shell.ts'), 'utf8');
   assert.doesNotMatch(src, /catalog\.js/, 'home-shell 不得 import catalog.js');
   assert.match(src, /manifest\.js/, 'home-shell 必须从 manifest.js 取元数据');
 });
 
 test('hub/chrome/shell 消费方统一从 manifest.js 取学科元数据', () => {
-  for (const rel of ['hub.js', 'chrome.js']) {
+  for (const rel of ['hub.js', 'chrome.ts']) {
     const src = fs.readFileSync(path.join(subjectsDir, rel), 'utf8');
     assert.match(src, /manifest\.js/, `${rel} 必须从 manifest.js 取元数据`);
   }

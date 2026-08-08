@@ -5,21 +5,30 @@
  */
 
 import { getSubjectMeta } from '../manifest.js';
+import type { SubjectManifest } from '@xiaohuang/subject-kit';
 
-/**
- * @param {object} opts
- * @param {(sel: string) => Element | null} opts.select
- */
-export function createHomeClassroom({ select }) {
+/** manifest 透传的首页字段（manifest.js 返回超集，单一数据源仍是 catalog） */
+export interface HomeSubjectMeta extends SubjectManifest {
+  name: string;
+  en?: string;
+  modules?: string[];
+  classroomIntro?: string;
+}
+
+export interface HomeClassroomOptions {
+  select: (sel: string) => Element | null;
+}
+
+export function createHomeClassroom({ select }: HomeClassroomOptions) {
   const $ = select;
-  const panel = $('#panel-subject-home');
+  const panel = $('#panel-subject-home') as HTMLElement | null;
   const titleEl = $('[data-subject-home-title]');
   const enEl = $('[data-subject-home-en]');
   const descEl = $('[data-subject-home-desc]');
   const modulesEl = $('[data-subject-home-modules]');
 
-  function show(subjectId) {
-    const meta = getSubjectMeta(subjectId);
+  function show(subjectId: string): void {
+    const meta = getSubjectMeta(subjectId) as HomeSubjectMeta | null;
     if (!panel || !meta) return;
 
     if (titleEl) titleEl.textContent = `${meta.name}教室`;
@@ -39,7 +48,7 @@ export function createHomeClassroom({ select }) {
     panel.classList.add('active');
   }
 
-  function hide() {
+  function hide(): void {
     if (!panel) return;
     panel.hidden = true;
     panel.classList.remove('active');

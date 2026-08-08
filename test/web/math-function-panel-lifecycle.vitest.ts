@@ -4,28 +4,31 @@
  * 断言：DOM 捕获只在实例内（模块顶层无 document 访问）；controller 提供
  * dispose（清除 dataset.bound/ready 标记 + 委托 editor/listView 解绑）；
  * 二次 mount（同一 DOM 节点重建实例）能重新绑定，无「点按钮无反应」幽灵引用。
+ *
+ * B5：session.js 已迁 TS，function-panel → client → ai-subject → session 的
+ * 间接链路在 Node 原生 ESM 下无法解析 .js→.ts，本测试迁 vitest（Vite 解析）。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 const panelPath = path.join(root, 'apps/web/src/math/graph/function-panel.js');
 const editorPath = path.join(root, 'apps/web/src/math/graph/function-editor.js');
 
-function makeFakeElement(id) {
+function makeFakeElement(id: string) {
   return {
     id,
     dataset: {},
     listeners: {},
     innerHTML: '',
     classList: { add() {}, remove() {}, toggle() {} },
-    addEventListener(type, fn) {
+    addEventListener(type: string, fn: unknown) {
       this.listeners[type] = fn;
     },
-    removeEventListener(type) {
+    removeEventListener(type: string) {
       delete this.listeners[type];
     },
     querySelector() {
@@ -49,14 +52,14 @@ function makeFakeElement(id) {
 function installFakeDocument() {
   const elements = new Map();
   const document = {
-    getElementById(id) {
+    getElementById(id: string) {
       if (!elements.has(id)) elements.set(id, makeFakeElement(id));
       return elements.get(id);
     },
     querySelector() {
       return null; // 简化：跳过 createUiAddFnButton 的 toolbar 分支
     },
-    createElement(tag) {
+    createElement(tag: string) {
       return makeFakeElement(`_created-${tag}`);
     },
     addEventListener() {},

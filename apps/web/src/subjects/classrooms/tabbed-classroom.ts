@@ -9,38 +9,40 @@ import {
   hidePanelLoading as hideLoadingOn,
   showPanelError as showErrorOn,
 } from '../../app/panel-loading.js';
+import type { ClassroomEnterContext, DefaultPageOption } from './types.js';
 
-/**
- * @typedef {{ id: string, label: string }} DefaultPageOption
- *
- * @typedef {{
- *   mySeq: number,
- *   switchSeq: number,
- *   isStale: () => boolean,
- *   runFeatureLoad: (panelKey: string, ensureReady: () => Promise<void>) => Promise<boolean>,
- *   loader: ReturnType<typeof createFeatureLoader>,
- * }} TabActivateContext
- *
- * @typedef {{
- *   subjectId: string,
- *   panels: Record<string, Element | null | undefined>,
- *   defaultPageOptions: DefaultPageOption[],
- *   defaultTabId: string,
- *   showTabBar?: boolean,
- *   boot?: () => void | Promise<void>,
- *   activateTab?: (tabId: string, ctx: TabActivateContext) => Promise<void>,
- *   deactivateTab?: (tabId: string, nextTabId: string | null) => void,
- *   onEnterTab?: (tabId: string) => void,
- *   onResize?: () => void,
- *   onSideDrawerToggle?: (key: string, collapsed: boolean) => void,
- *   loader?: ReturnType<typeof createFeatureLoader>,
- * }} TabbedClassroomConfig
- */
+export type { DefaultPageOption } from './types.js';
 
-/**
- * @param {TabbedClassroomConfig} config
- */
-export function createTabbedClassroom(config) {
+export interface TabActivateContext {
+  mySeq: number;
+  switchSeq: number;
+  isStale: () => boolean;
+  runFeatureLoad: (panelKey: string, ensureReady: () => Promise<void>) => Promise<boolean>;
+  loader: ReturnType<typeof createFeatureLoader>;
+}
+
+export interface TabbedClassroomConfig {
+  subjectId: string;
+  panels: Record<string, Element | null | undefined>;
+  defaultPageOptions: DefaultPageOption[];
+  defaultTabId: string;
+  showTabBar?: boolean;
+  boot?: () => void | Promise<void>;
+  activateTab?: (tabId: string, ctx: TabActivateContext) => Promise<void>;
+  deactivateTab?: (tabId: string, nextTabId: string | null) => void;
+  onEnterTab?: (tabId: string) => void;
+  onResize?: () => void;
+  onSideDrawerToggle?: (key: string, collapsed: boolean) => void;
+  loader?: ReturnType<typeof createFeatureLoader>;
+}
+
+/** 错误信息提取：与迁移前 `err?.message || String(err)` 语义一致 */
+function messageOf(err: unknown): string {
+  const raw = typeof err === 'object' && err !== null && 'message' in err ? err.message : undefined;
+  return raw ? String(raw) : String(err);
+}
+
+export function createTabbedClassroom(config: TabbedClassroomConfig) {
   const {
     subjectId,
     panels,
@@ -57,22 +59,26 @@ export function createTabbedClassroom(config) {
   } = config;
 
   let switchSeq = 0;
-  let activeTabId = null;
+  let activeTabId: string | null = null;
   const panelKeys = Object.keys(panels);
 
-  function showPanelLoading(name) {
+  function showPanelLoading(name: string): void {
     showLoadingOn(panels[name]);
   }
 
-  function hidePanelLoading(name) {
+  function hidePanelLoading(name: string): void {
     hideLoadingOn(panels[name]);
   }
 
-  function showPanelError(name, message) {
+  function showPanelError(name: string, message: string): void {
     showErrorOn(panels[name], message);
   }
 
-  async function runFeatureLoad(panelName, mySeq, ensureReady) {
+  async function runFeatureLoad(
+    panelName: string,
+    mySeq: number,
+    ensureReady: () => Promise<void>,
+  ): Promise<boolean> {
     showPanelLoading(panelName);
     try {
       await ensureReady();
@@ -88,36 +94,37 @@ export function createTabbedClassroom(config) {
         return false;
       }
       console.error(`[feature] ${panelName}`, err);
-      showPanelError(panelName, err?.message || String(err));
+      showPanelError(panelName, messageOf(err));
       return false;
     }
   }
 
-  function syncTabButtons(activeId) {
-    document.querySelectorAll(`.tab[data-classroom="${subjectId}"]`).forEach((tab) => {
+  function syncTabButtons(activeId: string): void {
+    document.querySelectorAll<HTMLElement>(`.tab[data-classroom="${subjectId}"]`).forEach((tab) => {
       const on = tab.dataset.tab === activeId;
       tab.classList.toggle('active', on);
       tab.setAttribute('aria-selected', on ? 'true' : 'false');
     });
   }
 
-  function syncPanelVisibility(activeId) {
+  function syncPanelVisibility(activeId: string): void {
     Object.entries(panels).forEach(([key, el]) => {
       if (!el) return;
+      const html = el as HTMLElement;
       const on = key === activeId;
       if (on) {
-        el.hidden = false;
-        el.classList.remove('active');
-        void el.offsetWidth;
-        el.classList.add('active');
+        html.hidden = false;
+        html.classList.remove('active');
+        void html.offsetWidth;
+        html.classList.add('active');
       } else {
-        el.classList.remove('active');
-        el.hidden = true;
+        html.classList.remove('active');
+        html.hidden = true;
       }
     });
   }
 
-  async function switchTab(name) {
+  async function switchTab(name: string): Promise<void> {
     const mySeq = ++switchSeq;
     const prevTab = activeTabId;
 
@@ -141,23 +148,24 @@ export function createTabbedClassroom(config) {
     }
   }
 
-  function hidePanels() {
+  function hidePanels(): void {
     if (activeTabId) {
       deactivateTab?.(activeTabId, null);
       activeTabId = null;
     }
     Object.values(panels).forEach((el) => {
       if (!el) return;
-      el.hidden = true;
-      el.classList.remove('active');
+      const html = el as HTMLElement;
+      html.hidden = true;
+      html.classList.remove('active');
     });
-    document.querySelectorAll(`.tab[data-classroom="${subjectId}"]`).forEach((tab) => {
+    document.querySelectorAll<HTMLElement>(`.tab[data-classroom="${subjectId}"]`).forEach((tab) => {
       tab.classList.remove('active');
       tab.setAttribute('aria-selected', 'false');
     });
   }
 
-  function resolveDefaultTabId(requested) {
+  function resolveDefaultTabId(requested: string | null | undefined): string {
     if (requested && defaultPageOptions.some((o) => o.id === requested)) {
       return requested;
     }
@@ -181,7 +189,7 @@ export function createTabbedClassroom(config) {
       return boot?.();
     },
 
-    async enter({ isStale, getDefaultPage }) {
+    async enter({ isStale, getDefaultPage }: ClassroomEnterContext): Promise<void> {
       hidePanels();
       let tabId = defaultTabId;
       if (getDefaultPage) {

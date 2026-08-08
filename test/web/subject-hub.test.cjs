@@ -36,7 +36,7 @@ test('classroom registry maps ready subjects to classroom runtimes', () => {
     fs.existsSync(path.join(root, 'apps/web/src/subjects/classrooms/registry.js')),
   );
   assert.ok(
-    fs.existsSync(path.join(root, 'apps/web/src/subjects/classrooms/chemistry-classroom.js')),
+    fs.existsSync(path.join(root, 'apps/web/src/subjects/classrooms/chemistry-classroom.ts')),
   );
   const registry = fs.readFileSync(
     path.join(root, 'apps/web/src/subjects/classrooms/registry.js'),

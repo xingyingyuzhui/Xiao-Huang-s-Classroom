@@ -17,8 +17,10 @@ import { dismissBoardCompass } from '../../math/shared/board-compass.js';
 import { dismissAxisLegendBubble } from '../../math/shared/axis-legend-settings.js';
 import { dismissBoardNotesMode } from '../../math/shared/board-notes.js';
 import panelsHtml from './partials/math-panels.partial.html?raw';
+import type { ClassroomEnterContext } from './types.js';
+import type { TabActivateContext } from './tabbed-classroom.js';
 
-function dismissMathOverlays() {
+function dismissMathOverlays(): void {
   dismissObjectStyleBubble();
   dismissBoardCompass();
   dismissAxisLegendBubble();
@@ -27,7 +29,7 @@ function dismissMathOverlays() {
   for (const [bd, md] of [
     ['mathFnAddBackdrop', 'mathFnAddModal'],
     ['mathFnAiBackdrop', 'mathFnAiModal'],
-  ]) {
+  ] as const) {
     const backdrop = document.getElementById(bd);
     const modal = document.getElementById(md);
     backdrop?.classList.remove('is-open');
@@ -39,7 +41,7 @@ function dismissMathOverlays() {
 
 let panelsMounted = false;
 
-function ensureMathPanelsMounted() {
+function ensureMathPanelsMounted(): void {
   if (panelsMounted) return;
   const host = document.getElementById('lab-math-root');
   mountPartialHtml(host, panelsHtml, 'data-mounted=math-panels');
@@ -48,35 +50,38 @@ function ensureMathPanelsMounted() {
   panelsMounted = true;
 }
 
-function showMathLabHost() {
+function showMathLabHost(): void {
   unhidePanelHost('#lab-math-root');
 }
 
-function hideMathLabHost() {
+function hideMathLabHost(): void {
   const host = document.getElementById('lab-math-root');
   if (host) host.hidden = true;
 }
 
-/**
- * @param {{ select: (sel: string) => Element | null }} deps
- */
-export function createMathClassroom({ select }) {
-  const $ = select;
+export interface MathClassroomOptions {
+  select: (sel: string) => Element | null;
+}
 
-  /** @type {typeof import('../../math/graph/index.js') | null} */
-  let graphMod = null;
-  /** @type {typeof import('../../math/plane/index.js') | null} */
-  let planeMod = null;
-  /** @type {typeof import('../../math/trig/index.js') | null} */
-  let trigMod = null;
-  /** @type {typeof import('../../math/sequence/index.js') | null} */
-  let sequenceMod = null;
-  /** @type {typeof import('../../math/solid/index.js') | null} */
-  let solidMod = null;
-  /** @type {typeof import('../../math/classroom/entry.js') | null} */
-  let classroomMod = null;
+type GraphModule = typeof import('../../math/graph/index.js');
+type PlaneModule = typeof import('../../math/plane/index.js');
+type TrigModule = typeof import('../../math/trig/index.js');
+type SequenceModule = typeof import('../../math/sequence/index.js');
+type SolidModule = typeof import('../../math/solid/index.js');
+type ClassroomModule = typeof import('../../math/classroom/entry.js');
 
-  const panels = {
+export function createMathClassroom({ select }: MathClassroomOptions) {
+  // 面板均为真实 HTMLElement（hidden 等成员需要）
+  const $ = select as (sel: string) => HTMLElement | null;
+
+  let graphMod: GraphModule | null = null;
+  let planeMod: PlaneModule | null = null;
+  let trigMod: TrigModule | null = null;
+  let sequenceMod: SequenceModule | null = null;
+  let solidMod: SolidModule | null = null;
+  let classroomMod: ClassroomModule | null = null;
+
+  const panels: Record<string, () => HTMLElement | null> = {
     graph: () => $('#panel-math-graph') || document.getElementById('panel-math-graph'),
     plane: () => $('#panel-math-plane') || document.getElementById('panel-math-plane'),
     trig: () => $('#panel-math-trig') || document.getElementById('panel-math-trig'),
@@ -85,50 +90,49 @@ export function createMathClassroom({ select }) {
     ai: () => $('#panel-math-ai') || document.getElementById('panel-math-ai'),
   };
 
-  function panelEl(key) {
+  function panelEl(key: string): HTMLElement | null {
     return panels[key]?.() ?? null;
   }
 
   let resizePending = false;
-  /** @type {ReturnType<typeof createTabbedClassroom> | null} */
-  let classroom = null;
+  let classroom: ReturnType<typeof createTabbedClassroom> | null = null;
 
-  async function ensureGraph(loader) {
+  async function ensureGraph(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('math-graph', () => import('../../math/graph/index.js'));
     if (!graphMod) {
-      graphMod = mod;
+      graphMod = mod as GraphModule;
       graphMod.initGraphUI();
     }
   }
 
-  async function ensurePlane(loader) {
+  async function ensurePlane(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('math-plane', () => import('../../math/plane/index.js'));
     if (!planeMod) {
-      planeMod = mod;
+      planeMod = mod as PlaneModule;
       planeMod.initPlaneUI();
     }
   }
 
-  async function ensureTrig(loader) {
+  async function ensureTrig(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('math-trig', () => import('../../math/trig/index.js'));
     if (!trigMod) {
-      trigMod = mod;
+      trigMod = mod as TrigModule;
       trigMod.initTrigUI();
     }
   }
 
-  async function ensureSequence(loader) {
+  async function ensureSequence(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('math-sequence', () => import('../../math/sequence/index.js'));
     if (!sequenceMod) {
-      sequenceMod = mod;
+      sequenceMod = mod as SequenceModule;
       sequenceMod.initSequenceUI();
     }
   }
 
-  async function ensureSolid(loader) {
+  async function ensureSolid(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('math-solid', () => import('../../math/solid/index.js'));
     if (!solidMod) {
-      solidMod = mod;
+      solidMod = mod as SolidModule;
       solidMod.initSolidUI();
     }
   }
@@ -141,19 +145,19 @@ export function createMathClassroom({ select }) {
       sequence: sequenceMod,
       solid: solidMod,
       activeTabId: null,
-      switchTab: async (tabId) => {
+      switchTab: async (tabId: string) => {
         if (classroom?.switchTab) await classroom.switchTab(tabId);
       },
     };
   }
 
-  async function ensureClassroom(loader) {
+  async function ensureClassroom(loader: TabActivateContext['loader']): Promise<void> {
     const { mod } = await loader.load('math-classroom', () =>
       import('../../math/classroom/entry.js'),
     );
-    classroomMod = mod;
+    classroomMod = mod as ClassroomModule;
     classroomMod.initMathClassroom({
-      switchTab: async (tabId) => {
+      switchTab: async (tabId: string) => {
         if (classroom?.switchTab) await classroom.switchTab(tabId);
       },
       getLabSnapshot: () => {
@@ -197,7 +201,7 @@ export function createMathClassroom({ select }) {
           trig: trigMod,
           sequence: sequenceMod,
           solid: solidMod,
-          switchTab: async (id) => {
+          switchTab: async (id: string) => {
             if (classroom?.switchTab) await classroom.switchTab(id);
           },
         });
@@ -205,7 +209,7 @@ export function createMathClassroom({ select }) {
     });
   }
 
-  function disposeAll() {
+  function disposeAll(): void {
     graphMod?.disposeGraph?.();
     planeMod?.disposePlane?.();
     trigMod?.disposeTrig?.();
@@ -250,12 +254,12 @@ export function createMathClassroom({ select }) {
       ensureMathPanelsMounted();
     },
 
-    deactivateTab() {
+    deactivateTab(): void {
       // 切 Tab 时收起气泡 / 罗盘
       dismissMathOverlays();
     },
 
-    async activateTab(tabId, ctx) {
+    async activateTab(tabId: string, ctx: TabActivateContext): Promise<void> {
       // 进入新 Tab 再兜底一次（含首次 enter / 同 id 重入）
       dismissMathOverlays();
       const loader = ctx.loader;
@@ -289,7 +293,7 @@ export function createMathClassroom({ select }) {
       }
     },
 
-    onResize() {
+    onResize(): void {
       if (resizePending) return;
       resizePending = true;
       requestAnimationFrame(() => {
@@ -307,7 +311,7 @@ export function createMathClassroom({ select }) {
       });
     },
 
-    onSideDrawerToggle() {
+    onSideDrawerToggle(): void {
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           const g = panelEl('graph');
@@ -328,18 +332,18 @@ export function createMathClassroom({ select }) {
   return {
     ...classroom,
     capabilities: getSubjectCapabilities('math'),
-    async enter(ctx) {
+    async enter(ctx: ClassroomEnterContext): Promise<void> {
       ensureMathPanelsMounted();
       showMathLabHost();
       return classroom.enter(ctx);
     },
-    leave() {
+    leave(): void {
       dismissMathOverlays();
       classroom.leave();
       disposeAll();
       hideMathLabHost();
     },
-    hidePanels() {
+    hidePanels(): void {
       hideMathLabHost();
     },
   };

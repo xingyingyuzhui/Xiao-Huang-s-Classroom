@@ -98,7 +98,7 @@ test('leaving the battle tab clears the match the same way as hub exit', () => {
   const classroomSource = fs.readFileSync(
     path.join(
       require('../helpers/repo-root.js'),
-      'apps/web/src/subjects/classrooms/chemistry-classroom.js',
+      'apps/web/src/subjects/classrooms/chemistry-classroom.ts',
     ),
     'utf8',
   );
@@ -109,6 +109,6 @@ test('leaving the battle tab clears the match the same way as hub exit', () => {
   );
   assert.match(
     classroomSource,
-    /deactivateTab\(tabId\) \{[\s\S]*tabId === 'battle'[\s\S]*battleModule\.setScreen\('hub'\)/,
+    /deactivateTab\(tabId[^{]*\{[\s\S]*tabId === 'battle'[\s\S]*battleModule\.setScreen\('hub'\)/,
   );
 });
