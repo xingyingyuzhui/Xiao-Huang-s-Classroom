@@ -4,8 +4,7 @@
 
 const KEY = 'xh-classroom-subject';
 
-/** @returns {string | null} */
-export function getCurrentSubjectId() {
+export function getCurrentSubjectId(): string | null {
   try {
     const id = localStorage.getItem(KEY);
     return id || null;
@@ -14,8 +13,7 @@ export function getCurrentSubjectId() {
   }
 }
 
-/** @param {string | null} id */
-export function setCurrentSubjectId(id) {
+export function setCurrentSubjectId(id: string | null): void {
   try {
     if (!id) localStorage.removeItem(KEY);
     else localStorage.setItem(KEY, id);
