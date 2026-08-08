@@ -13,7 +13,7 @@
     "packages/*"
   ],
   "scripts": {
-    "test": "turbo run test && node --test test/shared/*.cjs",
+    "test": "turbo run test && node --test --test-concurrency=1 test/shared/*.cjs",
     "dev": "npm run dev -w @xiaohuang/web",
     "dev:server": "npm run dev -w @xiaohuang/server",
     "dev:all": "npm run dev:server & npm run dev",

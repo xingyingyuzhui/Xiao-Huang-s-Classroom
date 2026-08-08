@@ -18,18 +18,29 @@ test('stylelint 配置排除 coverage 等生成目录', () => {
   }
 });
 
-test('coverage 产物生成后 lint:css 仍通过（回归合同）', () => {
-  // 先生成 coverage（若存在产物则复用；不存在则跑一次）
-  if (!fs.existsSync(path.join(root, 'packages/domain-core/coverage'))) {
-    execFileSync('npm', ['run', 'coverage'], { cwd: root, stdio: 'pipe' });
+test('coverage 产物存在时 lint:css 仍通过（回归合同）', () => {
+  // 不在 shared 测试里跑真实 turbo coverage（与并行 coverage 写 .tmp 竞态）。
+  // 投放一份合成 coverage CSS，验证 stylelint 忽略规则生效即可。
+  const covDir = path.join(root, 'packages/domain-core/coverage');
+  const planted = path.join(covDir, '__quality-repeatability-plant.css');
+  const plantedHere = !fs.existsSync(planted);
+  fs.mkdirSync(covDir, { recursive: true });
+  // 故意写非法 CSS：若被 stylelint 扫到必失败
+  fs.writeFileSync(planted, 'this is {{{ not valid css !!!\n');
+  try {
+    assert.ok(fs.existsSync(covDir), 'coverage 目录应存在');
+    const out = execFileSync('npm', ['run', 'lint:css'], { cwd: root, encoding: 'utf8' });
+    assert.doesNotMatch(out, /✖/, 'lint:css 无错误（coverage 内脏文件被 ignore）');
+    assert.doesNotMatch(out, /__quality-repeatability-plant/, '不得 lint coverage 投放文件');
+  } finally {
+    if (plantedHere) {
+      try {
+        fs.rmSync(planted, { force: true });
+      } catch {
+        /* best-effort cleanup */
+      }
+    }
   }
-  assert.ok(
-    fs.existsSync(path.join(root, 'packages/domain-core/coverage')),
-    'coverage 产物已生成',
-  );
-  // lint:css 必须通过（不被 coverage CSS 干扰）
-  const out = execFileSync('npm', ['run', 'lint:css'], { cwd: root, encoding: 'utf8' });
-  assert.doesNotMatch(out, /✖/, 'lint:css 无错误');
 });
 
 test('eslint/prettier/arch 不扫描 coverage（生成目录隔离）', () => {
