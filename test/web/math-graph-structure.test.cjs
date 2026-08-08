@@ -76,6 +76,28 @@ test('graph orchestrator keeps probe/analysis/readouts/transform/mount/follow in
   }
 });
 
+/** 纯逻辑层白名单（B2）：只允许纯数据/数值/校验/迁移，禁止 jsxgraph、DOM API、渲染层。 */
+const PURE_LAYERS = [
+  'graph-document.js',
+  'graph-store.js',
+  'graph-history.js',
+  'graph-persistence.js',
+  'graph-document-migrations.js',
+  'graph-record-validation.js',
+  'graph-id-allocator.js',
+  'function-analysis.js',
+  'function-records.js',
+  'function-evaluator.js',
+  'numeric-features.js',
+  'numeric-analysis-runner.js',
+  'transform-model.js',
+  'probe-model.js',
+  'rate-of-change.js',
+  'tool-definitions.js',
+  'model.js',
+  'construction/function-roots.js',
+];
+
 test('graph document architecture files exist and stay DOM/JSXGraph-free', () => {
   for (const file of [
     'graph-document.js',
@@ -87,15 +109,19 @@ test('graph document architecture files exist and stay DOM/JSXGraph-free', () =>
   ]) {
     assert.equal(fs.existsSync(path.join(graphDir, file)), true, `${file} is required`);
   }
-  // 文档模型 / store / history / persistence 是纯逻辑层：禁止直接 import jsxgraph
-  // 或调用浏览器全局 API（参数名 document 不算；这里只拦真实 DOM 调用）
-  const pureLayers = ['graph-document.js', 'graph-store.js', 'graph-history.js', 'graph-persistence.js'];
+  // 纯逻辑层（B2 扩展）：禁止 import jsxgraph / jsx-board / 渲染层，禁止调用
+  // 浏览器全局 API（参数名 document 不算；这里只拦真实 DOM 调用）
   const domApiPattern =
     /(document|window)\.(querySelector|getElementById|createElement|addEventListener|getComputedStyle|matchMedia|localStorage|requestAnimationFrame|ResizeObserver)/;
-  for (const file of pureLayers) {
+  for (const file of PURE_LAYERS) {
     const src = read(file);
     assert.doesNotMatch(src, /from\s+['"]jsxgraph['"]/, `${file} must not import jsxgraph`);
     assert.doesNotMatch(src, /from\s+['"]\.\.\/shared\/jsx-board\.js['"]/, `${file} must not import jsx-board`);
+    assert.doesNotMatch(
+      src,
+      /from\s+['"]\.\/graph-(renderer|document-renderer)\.js['"]/,
+      `${file} must not import renderer layer`,
+    );
     assert.doesNotMatch(src, domApiPattern, `${file} must not touch browser globals`);
   }
 });
