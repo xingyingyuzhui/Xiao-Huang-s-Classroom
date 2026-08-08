@@ -199,7 +199,7 @@ export function createSettingsRouter(deps: SettingsRouterDeps): Router {
     if (existing) {
       run('UPDATE settings SET value = ? WHERE key = ?', [json, key]);
     } else {
-      run('INSERT INTO settings (key, value) VALUES (?, ?)', [json, key]);
+      run('INSERT INTO settings (key, value) VALUES (?, ?)', [key, json]);
     }
   }
 
