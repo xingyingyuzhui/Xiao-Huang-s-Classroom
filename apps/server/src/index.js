@@ -83,7 +83,21 @@ const lessonPacksRouter = require('./routes/chemistry/lesson-packs')({
   importLabsSafe: require('./seed/import-labs').importLabsSafe,
 });
 
-const balanceScriptsRouter = require('./routes/chemistry/balance-scripts');
+const balanceScriptsRouter = require('./routes/chemistry/balance-scripts')({
+  query,
+  queryOne,
+  run,
+  runBatch,
+  ensureBalanceScriptsSeeded: require('./seed/import-balance-scripts').ensureBalanceScriptsSeeded,
+  resetOneBuiltin: require('./seed/import-balance-scripts').resetOneBuiltin,
+  listScripts: require('./seed/import-balance-scripts').listScripts,
+  getScript: require('./seed/import-balance-scripts').getScript,
+  insertScript: require('./seed/import-balance-scripts').insertScript,
+  updateScriptRow: require('./seed/import-balance-scripts').updateScriptRow,
+  toPackScripts: require('./seed/import-balance-scripts').toPackScripts,
+  importBalanceScriptsSafe: require('./seed/import-balance-scripts').importBalanceScriptsSafe,
+  builtinCount: require('./seed/import-balance-scripts').BALANCE_BUILTIN.length,
+});
 
 const app = express();
 const PREFERRED_PORT = Number(process.env.PORT) || 3000;

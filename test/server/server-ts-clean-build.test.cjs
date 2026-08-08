@@ -101,7 +101,11 @@ function makeCleanCopy() {
     path.join(root, 'apps/server/src/routes/chemistry/mastery.ts'),
     path.join(dir, 'src/routes/chemistry/mastery.ts'),
   );
-  for (const f of ['response.js', 'ai-config.js', 'ai-request.js', 'molecule-validate.js', 'quiz-assist-limit.js', 'lab-schema.js']) {
+  fs.copyFileSync(
+    path.join(root, 'apps/server/src/routes/chemistry/balance-scripts.ts'),
+    path.join(dir, 'src/routes/chemistry/balance-scripts.ts'),
+  );
+  for (const f of ['response.js', 'ai-config.js', 'ai-request.js', 'molecule-validate.js', 'quiz-assist-limit.js', 'lab-schema.js', 'balance-script-schema.js']) {
     fs.copyFileSync(path.join(root, 'apps/server/src/utils', f), path.join(dir, 'src/utils', f));
   }
   // 模拟 settings.js 的产物引用（与生产同一相对结构 routes → ../../dist）
