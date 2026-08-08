@@ -23,6 +23,16 @@ export function setText(el: HTMLElement, text: string): void {
   el.textContent = text;
 }
 
+/** 附加 class 应用：className 按空白切分为 token 逐个加入，空串/纯空白安全跳过。
+ *  真实 DOM 的 classList.add 不接受含空白的字符串（抛 SyntaxError），
+ *  而 fake DOM 会把整串当单个 token——统一在此切分，保证两种环境行为一致。 */
+export function applyClassName(el: HTMLElement, className?: string | null): void {
+  if (!className) return;
+  for (const token of className.split(/\s+/)) {
+    if (token) el.classList.add(token);
+  }
+}
+
 /** 状态 class 应用（is-disabled/is-loading）。
  *  注意：is-error 不由这里管理——error 状态类与组件自身 kind/error 语义
  *  （如 StatusProps.kind='error'）冲突，由各组件显式控制。 */

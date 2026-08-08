@@ -3,6 +3,7 @@
  * 新建、编辑、导出、导入、删除备课包。
  */
 
+import { createButton } from '@xiaohuang/ui';
 import { CHEM_TOPICS } from '../data/chem-topics.js';
 import { formatLabsImportSummary, downloadJsonFile } from './lab-model.js';
 import { appAlert, appConfirm } from '../../shared/ui/app-dialog.js';
@@ -11,6 +12,8 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
   let packs = [];
   let editingId = null;
   let viewingId = null;
+  /** 工具区按钮控制器（createButton 实例），dispose 时统一释放 */
+  let toolbarButtons = [];
   /** 编辑器内临时多选状态 */
   let editSelectedTopics = [];
   let editSelectedLabs = [];
@@ -311,22 +314,55 @@ export function createLessonPacksController({ select, escapeHtml, lessonPackApi,
     }
   }
 
+  /** 工具区（.lesson-pack-toolbar）按钮：createButton + className 桥接旧 .btn 样式 */
+  function mountToolbarButtons() {
+    const toolbar = select('.lesson-pack-toolbar');
+    if (!toolbar || toolbarButtons.length) return;
+
+    const newBtn = createButton({
+      label: '新建备课包',
+      // className 只传单 token（classList.add 传含空格串会抛 SyntaxError），
+      // 其余旧类用多参 add 桥接，保持 .btn/.btn-sm/.ghost 外观零回归
+      className: 'btn',
+      onClick: async () => {
+        editingId = null;
+        await refreshLabOptions();
+        renderEditor();
+      },
+    });
+    newBtn.element.classList.add('btn-sm');
+
+    const importBtn = createButton({
+      label: '导入备课包/实验包',
+      className: 'btn',
+      onClick: handleImport,
+    });
+    importBtn.element.classList.add('btn-sm', 'ghost');
+
+    const exportBtn = createButton({
+      label: '导出实验包',
+      className: 'btn',
+      onClick: exportLabPackBranch,
+    });
+    exportBtn.element.classList.add('btn-sm', 'ghost');
+
+    toolbar.append(newBtn.element, importBtn.element, exportBtn.element);
+    toolbarButtons = [newBtn, importBtn, exportBtn];
+  }
+
   async function init() {
     await refreshLabOptions();
     await loadPacks();
-    const importBtn = select('#btnLessonPackImport');
-    if (importBtn) importBtn.addEventListener('click', handleImport);
+    mountToolbarButtons();
     const importInput = select('#lessonPackImportInput');
     if (importInput) importInput.addEventListener('change', onImportFile);
-    const newBtn = select('#btnLessonPackNew');
-    if (newBtn) newBtn.addEventListener('click', async () => {
-      editingId = null;
-      await refreshLabOptions();
-      renderEditor();
-    });
-    const labExportBtn = select('#btnLabPackExport');
-    if (labExportBtn) labExportBtn.addEventListener('click', exportLabPackBranch);
   }
 
-  return { init, loadPacks };
+  /** dispose：释放工具区按钮控制器（幂等，允许重复调用/二次 init） */
+  function dispose() {
+    for (const c of toolbarButtons) c.dispose();
+    toolbarButtons = [];
+  }
+
+  return { init, loadPacks, dispose };
 }

@@ -1,5 +1,5 @@
 import type { BaseProps, UiController } from '../contract.js';
-import { applyStates, setText } from '../contract.js';
+import { applyClassName, applyStates, setText } from '../contract.js';
 
 export interface ButtonProps extends BaseProps {
   kind?: 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -17,7 +17,7 @@ export function createButton(initial: ButtonProps = {}): UiController<ButtonProp
   const element = document.createElement('button');
   element.type = 'button';
   element.className = 'ui-btn';
-  if (initial.className) element.classList.add(initial.className);
+  applyClassName(element, initial.className);
 
   let props: ButtonProps = { ...initial };
   let clickHandler: ((payload: unknown) => void) | null = null;
