@@ -581,6 +581,12 @@ npm run verify:electron-package
 - 代码：仅识别历史路径，**新写入禁止**
 - 文档：写明三类数据位置（web dev / electron userData / pkg 邻近）
 
+**D-data 完成（2026-08-08）：**
+
+- [x] 代码确认无 `src/data` 写入（paths.js 只走三类运行位置）；seed 头注释修正为真实数据源（`apps/web/src/chemistry/data`，sync 重新生成无数据漂移）
+- [x] `docs/engineering/data-paths.md`：三类数据位置 + 历史路径只识别不写说明
+- [x] `test/shared/data-paths-contract.test.cjs` 锁定（4/4）；debt-registry **D9 → 已关闭**
+
 ### 9.3 D-test — node:test → Vitest（D7）
 
 - 按 owner 分批：`test/web`、`test/server`…

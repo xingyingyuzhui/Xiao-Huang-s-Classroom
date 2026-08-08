@@ -1,4 +1,4 @@
-/** CJS seed data — auto-generated from src/data/offline-quiz-bank.js, do not hand-edit */
+/** CJS seed data — auto-generated from chemistry/data/offline-quiz-bank.js, do not hand-edit */
 
 const OFFLINE_QUESTIONS = [
   {

@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-// Minimal molecule fixtures matching real src/data/molecules.js structure
+// Minimal molecule fixtures matching real chemistry/data/molecules.js structure
 const FIXTURES = {
   ch4: {
     atoms: [

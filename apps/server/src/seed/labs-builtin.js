@@ -1,4 +1,5 @@
-/** CJS seed — auto-generated from src/data/lab-scripts.js + lab-prestudy-config.js */
+/** CJS seed — auto-generated from chemistry/data, do not hand-edit */
+
 const LABS_BUILTIN = [
   {
     "id": "lab-o2",
