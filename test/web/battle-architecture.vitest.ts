@@ -1,10 +1,12 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const test = require('node:test');
-const assert = require('node:assert/strict');
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
 
-const battleRoot = path.join(require('../helpers/repo-root.js'), 'apps/web/src/chemistry/battle');
+import root from '../helpers/repo-root.js';
+
+const battleRoot = path.join(root, 'apps/web/src/chemistry/battle');
 
 test('UI layer receives battle actions through the entry point instead of importing them', () => {
   const uiSource = fs.readFileSync(path.join(battleRoot, 'ui.js'), 'utf8');
@@ -97,7 +99,7 @@ test('leaving the battle tab clears the match the same way as hub exit', () => {
   const uiSource = fs.readFileSync(path.join(battleRoot, 'ui.js'), 'utf8');
   const classroomSource = fs.readFileSync(
     path.join(
-      require('../helpers/repo-root.js'),
+      root,
       'apps/web/src/subjects/classrooms/chemistry-classroom.js',
     ),
     'utf8',

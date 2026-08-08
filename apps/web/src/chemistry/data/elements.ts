@@ -4,12 +4,25 @@
  * f 区：period 6→grid row 9，period 7→grid row 10；col 为镧/锕行内列 4–18
  */
 
+/** 主表分区 id（noble 由 isNoble 派生，不出现于 RAW.block） */
+export type BlockId = 's' | 'p' | 'd' | 'ds' | 'f' | 'noble';
+
+/** RAW 中的 block 列取值（noble 为计算属性） */
+type RawBlock = 's' | 'p' | 'd' | 'ds' | 'f';
+
+export interface BlockMeta {
+  id: BlockId;
+  label: string;
+  colorCss: string;
+  color: string;
+}
+
 /**
  * 分区元数据
  * colorCss：主题 token（--zone-*），图例圆点与格子共用，随 data-theme 变化
  * color：无 CSS 时的回落
  */
-export const BLOCKS = {
+export const BLOCKS: Record<BlockId, BlockMeta> = {
   s: { id: 's', label: 's 区', colorCss: 'var(--zone-s)', color: '#ffedd5' },
   p: { id: 'p', label: 'p 区', colorCss: 'var(--zone-p)', color: '#e0f2fe' },
   d: { id: 'd', label: 'd 区', colorCss: 'var(--zone-d)', color: '#fef3c7' },
@@ -18,7 +31,7 @@ export const BLOCKS = {
   noble: { id: 'noble', label: '稀有气体', colorCss: 'var(--zone-noble)', color: '#ddd6fe' },
 };
 
-export const GROUP_OLD = {
+export const GROUP_OLD: Record<number, string> = {
   1: 'IA',
   2: 'IIA',
   3: 'IIIB',
@@ -40,21 +53,37 @@ export const GROUP_OLD = {
 };
 
 /** 族标竖直位置（与常见教材顶栏一致） */
-export function groupLabelRow(group) {
+export function groupLabelRow(group: number): number {
   if (group === 1 || group === 18) return 1;
   if (group === 2 || (group >= 13 && group <= 17)) return 2;
   return 4;
 }
 
-export const PHASE_LABEL = {
+export const PHASE_LABEL: Record<string, string> = {
   solid: '固态',
   liquid: '液态',
   gas: '气态',
 };
 
-// [z, symbol, name, nameEn, massDisplay, period, group, block, stair?, config?]
-// massDisplay 为展示用字符串（含 [ ] 放射性近似值）
-const RAW = [
+/**
+ * RAW 行结构：
+ * [z, symbol, name, nameEn, massDisplay, period, group, block, stair?, config?]
+ * massDisplay 为展示用字符串（含 [ ] 放射性近似值）
+ */
+type ElementRawRow = [
+  z: number,
+  symbol: string,
+  name: string,
+  nameEn: string,
+  massDisplay: string,
+  period: number,
+  group: number,
+  block: RawBlock,
+  stair: boolean,
+  config: string,
+];
+
+const RAW: ElementRawRow[] = [
   [1, 'H', '氢', 'Hydrogen', '1.008', 1, 1, 's', false, '1s¹'],
   [2, 'He', '氦', 'Helium', '4.0026', 1, 18, 'p', false, '1s²'],
 
@@ -189,16 +218,36 @@ const RAW = [
 const LAN_ORDER = [57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71];
 const ACT_ORDER = [89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103];
 
-function parseMass(display) {
+function parseMass(display: string): number {
   const n = Number(String(display).replace(/[\[\]]/g, ''));
   return Number.isFinite(n) ? n : 0;
 }
 
-function toElement(row) {
+/** 主表元素（含镧/锕系定位换算后的 grid 坐标） */
+export interface ElementInfo {
+  z: number;
+  symbol: string;
+  name: string;
+  nameEn: string;
+  massDisplay: string;
+  mass: number;
+  period: number;
+  group: number;
+  block: RawBlock;
+  isNoble: boolean;
+  stair: boolean;
+  config: string;
+  gridRow: number;
+  gridCol: number;
+  series: 'lanthanide' | 'actinide' | null;
+  summary: string;
+}
+
+function toElement(row: ElementRawRow): ElementInfo {
   const [z, symbol, name, nameEn, massDisplay, period, group, block, stair, config] = row;
   let gridRow = period;
   let gridCol = group;
-  let series = null;
+  let series: ElementInfo['series'] = null;
 
   if (block === 'f') {
     if (LAN_ORDER.includes(z)) {
@@ -234,31 +283,31 @@ function toElement(row) {
   };
 }
 
-export const ELEMENTS = RAW.map(toElement);
+export const ELEMENTS: ElementInfo[] = RAW.map(toElement);
 
-export const ELEMENTS_BY_SYMBOL = Object.fromEntries(ELEMENTS.map((e) => [e.symbol, e]));
-export const ELEMENTS_BY_Z = Object.fromEntries(ELEMENTS.map((e) => [e.z, e]));
+export const ELEMENTS_BY_SYMBOL = Object.fromEntries(ELEMENTS.map((e) => [e.symbol, e] as const));
+export const ELEMENTS_BY_Z = Object.fromEntries(ELEMENTS.map((e) => [e.z, e] as const));
 
 /** 分区 id：s / p / d / ds / f / noble（用于 data-zone 与图例） */
-export function blockZoneId(el) {
+export function blockZoneId(el?: ElementInfo): BlockId {
   if (el?.isNoble) return 'noble';
   const id = el?.block;
-  return BLOCKS[id] ? id : 'p';
+  return id && BLOCKS[id] ? id : 'p';
 }
 
 /** 分区背景：主题 CSS 变量（详情徽章、需与周期表分区色一致） */
-export function blockColor(el) {
+export function blockColor(el?: ElementInfo): string {
   const zone = blockZoneId(el);
   return BLOCKS[zone]?.colorCss || BLOCKS.p.colorCss;
 }
 
 /** 硬编码回落色（非 DOM 场景） */
-export function blockColorFallback(el) {
+export function blockColorFallback(el?: ElementInfo): string {
   const zone = blockZoneId(el);
   return BLOCKS[zone]?.color || BLOCKS.p.color;
 }
 
-export function blockLabel(el) {
+export function blockLabel(el: ElementInfo): string {
   if (el.isNoble) return BLOCKS.noble.label;
   return (BLOCKS[el.block] || BLOCKS.p).label;
 }

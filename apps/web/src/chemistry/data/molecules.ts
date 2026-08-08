@@ -2,7 +2,26 @@
  * 高中化学常见分子 · 球棍示意坐标（Å 量级，仅教学用）
  */
 
-export const ATOM_COLORS = {
+/** 分子内原子坐标（球棍示意） */
+export interface MoleculeAtom {
+  el: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** 高中常见分子球棍示意 */
+export interface Molecule {
+  id: string;
+  formula: string;
+  name: string;
+  desc: string;
+  atoms: MoleculeAtom[];
+  /** 键对（原子下标对；重复出现表示重键） */
+  bonds: number[][];
+}
+
+export const ATOM_COLORS: Record<string, number> = {
   H: 0xffffff,
   C: 0x444444,
   N: 0x3050f8,
@@ -24,7 +43,7 @@ export const ATOM_COLORS = {
   default: 0xcc66ff,
 };
 
-export const ATOM_RADIUS = {
+export const ATOM_RADIUS: Record<string, number> = {
   H: 0.26,
   C: 0.4,
   N: 0.38,
@@ -46,8 +65,7 @@ export const ATOM_RADIUS = {
   default: 0.4,
 };
 
-/** @type {Array<{id:string,formula:string,name:string,desc:string,atoms:Array<{el:string,x:number,y:number,z:number}>,bonds:number[][]}>} */
-export const MOLECULES = [
+export const MOLECULES: Molecule[] = [
   // —— 常见单质 / 双原子 ——
   {
     id: 'h2',
@@ -481,7 +499,7 @@ export const MOLECULES = [
     name: '苯',
     desc: '平面正六边形芳香环，键长平均化，高中有机代表物。',
     atoms: (() => {
-      const atoms = [];
+      const atoms: MoleculeAtom[] = [];
       for (let i = 0; i < 6; i++) {
         const a = (i * Math.PI) / 3;
         atoms.push({ el: 'C', x: Math.cos(a) * 1.2, y: Math.sin(a) * 1.2, z: 0 });
@@ -514,4 +532,4 @@ export const MOLECULES = [
   },
 ];
 
-export const MOLECULES_BY_ID = Object.fromEntries(MOLECULES.map((m) => [m.id, m]));
+export const MOLECULES_BY_ID = Object.fromEntries(MOLECULES.map((m) => [m.id, m] as const));

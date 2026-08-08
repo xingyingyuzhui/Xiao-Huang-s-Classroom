@@ -9,7 +9,31 @@
  *   - judge: 结果判断
  */
 
-export const LAB_PRESTUDY_CONFIGS = {
+/** 操作前现象预测（选择题） */
+export interface PrestudyPredict {
+  question: string;
+  options: string[];
+  answer: number;
+  explanation: string;
+}
+
+/** 与实验步骤一一对应的交互配置 */
+export interface PrestudyStep {
+  label: string;
+  tip: string;
+  predict: PrestudyPredict;
+  risk?: string;
+}
+
+export interface LabPrestudyConfig {
+  objective: string;
+  reagents: string[];
+  apparatus: string[];
+  steps: PrestudyStep[];
+  summary: string;
+}
+
+export const LAB_PRESTUDY_CONFIGS: Record<string, LabPrestudyConfig> = {
   'lab-o2': {
     objective: '掌握高锰酸钾加热制取氧气的原理、装置和操作要点。',
     reagents: ['高锰酸钾（KMnO₄）', '棉花'],
@@ -64,7 +88,8 @@ export const LAB_PRESTUDY_CONFIGS = {
           question: '实验结束时，应该先做什么？',
           options: ['先熄灭酒精灯', '先撤导管出水面', '同时进行', '先盖上集气瓶'],
           answer: 1,
-          explanation: '必须先把导管撤出水面，再熄灭酒精灯。否则水会倒流进入热的试管，导致试管炸裂。',
+          explanation:
+            '必须先把导管撤出水面，再熄灭酒精灯。否则水会倒流进入热的试管，导致试管炸裂。',
         },
         risk: '如果先熄灯后撤管，水槽中的水会因试管内气压降低而倒流，引起试管炸裂。',
       },
@@ -82,7 +107,12 @@ export const LAB_PRESTUDY_CONFIGS = {
         tip: '大理石（或石灰石）+ 稀盐酸',
         predict: {
           question: '为什么不用稀硫酸代替稀盐酸？',
-          options: ['稀硫酸太贵', '生成的 CaSO₄ 微溶，覆盖在大理石表面阻止反应继续', '稀硫酸不与碳酸钙反应', '稀硫酸挥发性太强'],
+          options: [
+            '稀硫酸太贵',
+            '生成的 CaSO₄ 微溶，覆盖在大理石表面阻止反应继续',
+            '稀硫酸不与碳酸钙反应',
+            '稀硫酸挥发性太强',
+          ],
           answer: 1,
           explanation: '稀硫酸与碳酸钙反应生成微溶的 CaSO₄，会覆盖在大理石表面，阻止反应继续进行。',
         },
@@ -102,7 +132,12 @@ export const LAB_PRESTUDY_CONFIGS = {
         tip: '向上排空气法（CO₂ 密度大于空气）',
         predict: {
           question: '为什么用向上排空气法收集 CO₂？',
-          options: ['CO₂ 密度比空气大', 'CO₂ 不溶于水', 'CO₂ 能溶于水且密度比空气大', '只能用排空气法'],
+          options: [
+            'CO₂ 密度比空气大',
+            'CO₂ 不溶于水',
+            'CO₂ 能溶于水且密度比空气大',
+            '只能用排空气法',
+          ],
           answer: 2,
           explanation: 'CO₂ 能溶于水（不能用排水法），且密度比空气大（用向上排空气法）。',
         },
@@ -118,7 +153,8 @@ export const LAB_PRESTUDY_CONFIGS = {
         },
       },
     ],
-    summary: '制取 CO₂ 的关键：不用稀硫酸（会生成微溶 CaSO₄ 阻止反应）；向上排空气法收集；用澄清石灰水检验。',
+    summary:
+      '制取 CO₂ 的关键：不用稀硫酸（会生成微溶 CaSO₄ 阻止反应）；向上排空气法收集；用澄清石灰水检验。',
   },
 
   'lab-h2': {
@@ -168,7 +204,8 @@ export const LAB_PRESTUDY_CONFIGS = {
         },
       },
     ],
-    summary: '氢气实验的核心安全规则：必须先验纯再点燃。收集用向下排空气法或排水法；燃烧产生淡蓝色火焰，产物是水。',
+    summary:
+      '氢气实验的核心安全规则：必须先验纯再点燃。收集用向下排空气法或排水法；燃烧产生淡蓝色火焰，产物是水。',
   },
 
   'lab-neutralize': {
@@ -218,7 +255,8 @@ export const LAB_PRESTUDY_CONFIGS = {
         },
       },
     ],
-    summary: '中和反应实质：H⁺ + OH⁻ → H₂O。滴定关键：先快后慢，酚酞由红变无色且半分钟不恢复即为终点。',
+    summary:
+      '中和反应实质：H⁺ + OH⁻ → H₂O。滴定关键：先快后慢，酚酞由红变无色且半分钟不恢复即为终点。',
   },
 
   'lab-ester': {
@@ -231,9 +269,15 @@ export const LAB_PRESTUDY_CONFIGS = {
         tip: '乙醇、乙酸，再缓缓加浓硫酸',
         predict: {
           question: '加料时为什么要先加乙醇再加浓硫酸？',
-          options: ['顺序无所谓', '浓硫酸密度大，先加乙醇可防止飞溅', '乙醇便宜先用', '浓硫酸会与容器反应'],
+          options: [
+            '顺序无所谓',
+            '浓硫酸密度大，先加乙醇可防止飞溅',
+            '乙醇便宜先用',
+            '浓硫酸会与容器反应',
+          ],
           answer: 1,
-          explanation: '浓硫酸密度大于乙醇且稀释放热。先加乙醇再缓缓加入浓硫酸，可利用乙醇吸热缓冲，防止局部过热飞溅。',
+          explanation:
+            '浓硫酸密度大于乙醇且稀释放热。先加乙醇再缓缓加入浓硫酸，可利用乙醇吸热缓冲，防止局部过热飞溅。',
         },
         risk: '浓硫酸有强腐蚀性，必须缓缓加入并搅拌。切勿将水倒入浓硫酸！',
       },
@@ -244,7 +288,8 @@ export const LAB_PRESTUDY_CONFIGS = {
           question: '酯化反应中，羧酸和醇分别脱去什么？',
           options: ['酸脱氢、醇脱羟基', '酸脱羟基、醇脱氢', '都脱氢', '都脱羟基'],
           answer: 1,
-          explanation: '酯化反应机理：羧酸脱去羟基（—OH），醇脱去氢原子（—H），两者结合生成水，剩余部分形成酯。',
+          explanation:
+            '酯化反应机理：羧酸脱去羟基（—OH），醇脱去氢原子（—H），两者结合生成水，剩余部分形成酯。',
         },
       },
       {
@@ -254,7 +299,8 @@ export const LAB_PRESTUDY_CONFIGS = {
           question: '酯化反应是可逆反应，如何提高产率？',
           options: ['多加水', '及时蒸出产物乙酸乙酯', '降低温度', '不加催化剂'],
           answer: 1,
-          explanation: '酯化是可逆反应，及时将产物乙酸乙酯蒸出（沸点低），可使平衡正向移动，提高产率。',
+          explanation:
+            '酯化是可逆反应，及时将产物乙酸乙酯蒸出（沸点低），可使平衡正向移动，提高产率。',
         },
       },
       {
@@ -269,13 +315,15 @@ export const LAB_PRESTUDY_CONFIGS = {
         risk: '加热要均匀，防止暴沸。加入碎瓷片或沸石可起防暴沸作用。',
       },
     ],
-    summary: '酯化实验要点：先醇后酸加浓硫酸（防飞溅）；酸脱羟基醇脱氢；导管口靠近液面防倒吸；碳酸钠溶液吸收并降低酯的溶解度。',
+    summary:
+      '酯化实验要点：先醇后酸加浓硫酸（防飞溅）；酸脱羟基醇脱氢；导管口靠近液面防倒吸；碳酸钠溶液吸收并降低酯的溶解度。',
   },
 };
 
 /**
  * 获取实验的预习配置。若无配置返回 null。
  */
-export function getPrestudyConfig(labId) {
+export function getPrestudyConfig(labId: string | null): LabPrestudyConfig | null {
+  if (!labId) return null;
   return LAB_PRESTUDY_CONFIGS[labId] || null;
 }

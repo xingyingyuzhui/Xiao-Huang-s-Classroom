@@ -4,11 +4,19 @@
  * 数值为教学用近似值（Pauling 电负性、共价半径 pm 量级）
  */
 
-/** @typedef {{ z: number, symbol: string, name: string, block: string, en: number, radius: number, copies?: number }} BattleElementDef */
+/** 元素卡定义（数值为教学用近似值） */
+export interface BattleElementDef {
+  z: number;
+  symbol: string;
+  name: string;
+  block: string;
+  en: number;
+  radius: number;
+  copies?: number;
+}
 
 /** 主推 1–36 + 少量常见元素；每种 2 张 */
-/** @type {BattleElementDef[]} */
-export const BATTLE_ELEMENTS = [
+export const BATTLE_ELEMENTS: BattleElementDef[] = [
   { z: 1, symbol: 'H', name: '氢', block: 's', en: 2.2, radius: 31 },
   { z: 2, symbol: 'He', name: '氦', block: 'noble', en: 0, radius: 28 },
   { z: 3, symbol: 'Li', name: '锂', block: 's', en: 0.98, radius: 128 },
@@ -41,9 +49,18 @@ export const BATTLE_ELEMENTS = [
 
 export const FLIP_COUNT = 4;
 
-/** @typedef {'z' | 'en' | 'radius'} BattleDimension */
+/** 对战比较维度：原子序数 / 电负性 / 原子半径 */
+export type BattleDimension = 'z' | 'en' | 'radius';
 
-export const DIMENSIONS = {
+export interface DimensionMeta {
+  id: BattleDimension;
+  label: string;
+  short: string;
+  unit: string;
+  higherWins: boolean;
+}
+
+export const DIMENSIONS: Record<BattleDimension, DimensionMeta> = {
   z: { id: 'z', label: '原子序数 Z', short: '序数', unit: '', higherWins: true },
   en: { id: 'en', label: '电负性 χ', short: '电负性', unit: '', higherWins: true },
   radius: {
@@ -55,33 +72,31 @@ export const DIMENSIONS = {
   },
 };
 
-/**
- * @param {BattleElementDef} el
- * @param {BattleDimension} dim
- */
-export function strengthOf(el, dim) {
+export function strengthOf(el: BattleElementDef, dim: BattleDimension): number {
   if (dim === 'en') return el.en;
   if (dim === 'radius') return el.radius;
   return el.z;
 }
 
-/**
- * @param {BattleElementDef} a
- * @param {BattleElementDef} b
- * @param {BattleDimension} dim
- * @returns {number} >0 a 更强，<0 b 更强，0 相等
- */
-export function compareStrength(a, b, dim) {
+/** >0 a 更强，<0 b 更强，0 相等 */
+export function compareStrength(
+  a: BattleElementDef,
+  b: BattleElementDef,
+  dim: BattleDimension,
+): number {
   return strengthOf(a, dim) - strengthOf(b, dim);
 }
 
-/**
- * 构建一副可洗的牌（元素各 2 张 + FLIP）
- * @returns {Array<{ uid: string, kind: 'element' | 'flip', element?: BattleElementDef }>}
- */
-export function buildDeck() {
-  /** @type {Array<{ uid: string, kind: 'element' | 'flip', element?: BattleElementDef }>} */
-  const deck = [];
+/** 牌：元素牌（可携带 element）或 FLIP 牌 */
+export interface BattleCard {
+  uid: string;
+  kind: 'element' | 'flip';
+  element?: BattleElementDef;
+}
+
+/** 构建一副可洗的牌（元素各 2 张 + FLIP） */
+export function buildDeck(): BattleCard[] {
+  const deck: BattleCard[] = [];
   let n = 0;
   for (const el of BATTLE_ELEMENTS) {
     const copies = el.copies ?? 2;
@@ -99,12 +114,14 @@ export function buildDeck() {
   return deck;
 }
 
-/** @param {unknown[]} arr */
-export function shuffle(arr) {
+/** Fisher–Yates 洗牌（返回新数组） */
+export function shuffle<T>(arr: T[]): T[] {
   const a = arr.slice();
   for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
+    const tmp = a[i]!;
+    a[i] = a[j]!;
+    a[j] = tmp;
   }
   return a;
 }
