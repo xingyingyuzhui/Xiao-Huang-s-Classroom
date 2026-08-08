@@ -7,50 +7,11 @@
     </div>
     <div class="side-drawer-body">
       <!-- 对标 3D 分子：＋ 手动添加 / AI 生成 / 编辑 -->
-      <div class="math-fn-toolbar">
-        <!-- btnMathAddFn 由 function-panel 用 @xiaohuang/ui createButton 渲染（Program 3 试点） -->
-        <button
-          type="button"
-          class="math-fn-btn math-fn-btn-ai"
-          id="btnMathAiFn"
-          title="AI 生成函数"
-        >
-          <span class="math-fn-ai-label">AI</span>
-        </button>
-        <button
-          type="button"
-          class="math-fn-btn math-fn-btn-edit"
-          id="btnMathEditFns"
-          title="编辑列表"
-        >
-          编辑
-        </button>
-      </div>
+      <!-- 添加/AI/编辑 按钮由 function-panel 用 @xiaohuang/ui createButton 挂载（P3.1） -->
+      <div class="math-fn-toolbar"></div>
       <div class="math-project-row" role="group" aria-label="画布项目">
-        <button
-          type="button"
-          class="math-project-btn"
-          id="btnMathGraphImport"
-          title="导入项目 JSON"
-        >
-          导入
-        </button>
-        <button
-          type="button"
-          class="math-project-btn"
-          id="btnMathGraphExport"
-          title="导出项目 JSON"
-        >
-          导出
-        </button>
-        <button
-          type="button"
-          class="math-project-btn math-project-btn-danger"
-          id="btnMathGraphReset"
-          title="重置画布"
-        >
-          重置
-        </button>
+        <!-- 导入/导出/重置 由 function-panel 用 @xiaohuang/ui createButton 挂载（P3.1）；
+             mathGraphFileInput 保留静态：文件选择任务由 graph-mount-controller 持有 -->
         <input type="file" id="mathGraphFileInput" accept=".json,application/json" hidden />
       </div>
       <div id="mathFnList" class="math-fn-list" aria-label="函数列表"></div>
@@ -912,9 +873,7 @@
     </div>
     <p class="math-edit-status" id="mathFnEditStatus" aria-live="polite"></p>
 
-    <div class="settings-actions math-fn-add-actions">
-      <button type="button" class="btn ghost" id="btnMathFnEditCancel">取消</button>
-      <button type="button" class="btn primary" id="btnMathFnEditSubmit">保存</button>
-    </div>
+    <!-- 保存/取消 由 function-editor 用 @xiaohuang/ui createButton 挂载（P3.3） -->
+    <div class="settings-actions math-fn-add-actions"></div>
   </div>
 </div>

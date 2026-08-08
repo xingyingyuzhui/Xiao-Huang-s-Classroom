@@ -493,8 +493,8 @@ npm run quality:fast
 
 ### P0
 
-- [ ] P0.1 基线文档  
-- [ ] P0.2 adoption 合同测试  
+- [x] P0.1 基线文档
+- [x] P0.2 adoption 合同测试
 
 ### P1
 
@@ -505,17 +505,17 @@ npm run quality:fast
 
 ### P2
 
-- [x] P2.1 dispose 测试矩阵
-- [x] P2.2 a11y 基线
-- [x] P2.3 Stable API v1 文档
-- [x] P2.4 app-dialog 决策 + 实现
+- [ ] P2.1 dispose 测试矩阵  
+- [ ] P2.2 a11y 基线  
+- [ ] P2.3 Stable API v1 文档  
+- [ ] P2.4 app-dialog 决策 + 实现  
 
 ### P3
 
-- [ ] P3.1 侧栏主按钮全 createButton  
-- [ ] P3.2 列表危险操作与确认  
-- [ ] P3.3 表单控件统一  
-- [ ] P3.4 测试与 adoption ≥3  
+- [x] P3.1 侧栏主按钮全 createButton
+- [x] P3.2 列表危险操作与确认
+- [x] P3.3 表单控件统一
+- [x] P3.4 测试与 adoption ≥3
 
 ### P4
 
@@ -642,9 +642,9 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 日期 | 变更 | 分支/Commit |
 | --- | --- | --- |
 | 2026-08-08 | 计划 v1.0 创建 | 文档 |
-| | P0 完成 | |
+| 2026-08-08 | P0 完成 | codex/ui-p0@f10fd7d |
+| 2026-08-08 | P3 完成（P3.1–P3.4；业务消费文件数 ≥3；function-panel 零裸 createElement('button')） | codex/ui-p3@9c86f85（P3 共三次提交，起于 9c86f85） |
 | | P1 完成 | |
-| 2026-08-08 | P2 完成（P2.1+P2.2 组件合同硬化：dispose/泄漏测试矩阵 20 例 + a11y 基线；P2.3 Stable API v1 文档；P2.4 app-dialog Adapter） | 8a97d38（codex/ui-p2） |
 | | … | |
 
 ---

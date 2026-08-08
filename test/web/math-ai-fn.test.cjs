@@ -84,7 +84,10 @@ test('graph wires AI function modal', () => {
     .map((file) => fs.readFileSync(path.join(root, 'apps/web/src/math/graph', file), 'utf8'))
     .join('\n');
   const client = fs.readFileSync(path.join(root, 'apps/web/src/shared/api/client.js'), 'utf8');
-  assert.match(html, /id="btnMathAiFn"/);
+  // P3.1：AI 按钮不再静态内联在 partial——由 function-panel 用 @xiaohuang/ui
+  // createButton 挂载（保留同一 id），partial 只需保留弹窗骨架
+  assert.doesNotMatch(html, /id="btnMathAiFn"/);
+  assert.match(js, /id\s*=\s*['"]btnMathAiFn['"]/);
   assert.match(html, /id="mathFnAiModal"/);
   assert.match(js, /mathFnGenerate|addFromAiSpec|showAi/);
   assert.match(client, /mathFnGenerate/);

@@ -9,6 +9,10 @@
  * 属性内插或 style 模板字符串；颜色经 resolveFunctionColor 解析为
  * 主题色板值或严格校验的 hex，写入 CSS custom property。
  *
+ * P3.2：卡片按钮（显隐 / 删除 / 更多 / 菜单项）经 @xiaohuang/ui createButton
+ * 创建（className 桥接 math-fn-card-* 样式类；不传 onClick——点击仍走 root
+ * 事件委托，避免双触发）；每次 render 重建前先 dispose 上一批控制器。
+ *
  * 键盘：菜单按钮 Enter/Space 打开，Escape 关闭；
  * 连续 render() 不重复绑定（事件委托挂在 root 上）。
  */
@@ -16,6 +20,7 @@
 import { graphFunctionDisplayLabel } from './function-analysis.js';
 import { GRAPH_PRESETS } from './model.js';
 import { resolveFunctionColor } from '../shared/math-theme.js';
+import { createButton } from '@xiaohuang/ui';
 
 /**
  * @param {{
@@ -40,6 +45,25 @@ export function createFunctionListView(options) {
     return node;
   }
 
+  /** 本次 render 挂载的 ui 控制器：重建前先 dispose（节点被 replaceChildren 后须释放）。 */
+  let cardControllers = [];
+
+  /**
+   * P3.2：经 @xiaohuang/ui createButton 创建卡片按钮（无 onClick，点击由 root 委托）。
+   * className 桥接既有 math-fn-card-* 类，视觉零回归；返回元素供调用方挂 dataset/aria。
+   * @param {{ label: string, className: string }} options
+   */
+  function cardButton({ label, className }) {
+    const ctrl = createButton({ label });
+    ctrl.element.classList.add(className);
+    cardControllers.push(ctrl);
+    return ctrl.element;
+  }
+
+  function disposeCardControllers() {
+    for (const ctrl of cardControllers.splice(0)) ctrl.dispose();
+  }
+
   function cardFor(fn, activeId, editMode) {
     const selected = fn.id === activeId;
     const formula = graphFunctionDisplayLabel(fn);
@@ -56,21 +80,17 @@ export function createFunctionListView(options) {
     card.dataset.fnId = fn.id;
     card.style.setProperty('--fn-color', resolveFunctionColor(fn));
 
-    const toggle = el('button', 'math-fn-card-toggle');
-    toggle.type = 'button';
+    const toggle = cardButton({ label: fn.visible ? '隐藏' : '显示', className: 'math-fn-card-toggle' });
     toggle.dataset.fnToggle = fn.id;
     toggle.title = fn.visible ? '隐藏' : '显示';
     toggle.setAttribute('aria-label', `${fn.visible ? '隐藏' : '显示'} ${fn.name || '函数'}`);
     toggle.setAttribute('aria-pressed', fn.visible ? 'true' : 'false');
-    toggle.textContent = fn.visible ? '隐藏' : '显示';
     card.appendChild(toggle);
 
-    const del = el('button', 'math-fn-card-del');
-    del.type = 'button';
+    const del = cardButton({ label: '×', className: 'math-fn-card-del' });
     del.dataset.fnDel = fn.id;
     del.title = '删除';
     del.setAttribute('aria-label', '删除');
-    del.textContent = '×';
     card.appendChild(del);
 
     const main = el('button', 'math-fn-card-main');
@@ -104,14 +124,12 @@ export function createFunctionListView(options) {
     card.appendChild(main);
 
     const more = el('div', 'math-fn-card-more');
-    const menuBtn = el('button', 'math-fn-card-menu-btn');
-    menuBtn.type = 'button';
+    const menuBtn = cardButton({ label: '⋯', className: 'math-fn-card-menu-btn' });
     menuBtn.dataset.fnMenu = fn.id;
     menuBtn.setAttribute('aria-haspopup', 'true');
     menuBtn.setAttribute('aria-expanded', menuOpen ? 'true' : 'false');
     menuBtn.setAttribute('aria-label', `${fn.name || '函数'} 更多操作`);
     menuBtn.title = '更多操作';
-    menuBtn.textContent = '⋯';
     more.appendChild(menuBtn);
     if (menuOpen) {
       const menu = el('div', 'math-fn-menu');
@@ -124,12 +142,10 @@ export function createFunctionListView(options) {
         ['lock', fn.locked ? '解锁' : '锁定'],
       ];
       for (const [action, label] of items) {
-        const item = el('button');
-        item.type = 'button';
+        const item = cardButton({ label, className: 'math-fn-menu-item' });
         item.setAttribute('role', 'menuitem');
         item.dataset.fnAction = action;
         item.dataset.fnActionId = fn.id;
-        item.textContent = label;
         menu.appendChild(item);
       }
       more.appendChild(menu);
@@ -145,6 +161,7 @@ export function createFunctionListView(options) {
    */
   function render(functions, activeId, editMode = false) {
     if (!root) return;
+    disposeCardControllers();
     root.replaceChildren();
     if (!Array.isArray(functions) || !functions.length) {
       const empty = el('p', 'math-fn-empty');
@@ -253,6 +270,7 @@ export function createFunctionListView(options) {
       render(functions, activeId, editMode);
     },
     dispose() {
+      disposeCardControllers();
       root.removeEventListener('click', onClick);
       root.removeEventListener('keydown', onKeyDown);
       if (doc) doc.removeEventListener('click', onDocumentClick, true);

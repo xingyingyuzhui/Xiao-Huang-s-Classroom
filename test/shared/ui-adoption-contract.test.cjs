@@ -10,8 +10,9 @@ const test = require('node:test');
 
 const repoRoot = path.resolve(__dirname, '../..');
 
-// P0 基线 = function-panel 唯一业务试点；P3 后 >=3、P5 后 >=5、P6 后 >=8
-const MIN_BUSINESS_CONSUMERS = 1;
+// P0 基线 = function-panel 唯一业务试点；P3 后 >=3（function-panel + function-editor +
+// function-list-view）、P5 后 >=5、P6 后 >=8（计划 P7.1）
+const MIN_BUSINESS_CONSUMERS = 3;
 
 function read(relativePath) {
   return fs.readFileSync(path.join(repoRoot, relativePath), 'utf8');
@@ -63,7 +64,7 @@ test('packages/ui/src/index.ts exports the P0 contract factories', () => {
   }
 });
 
-test(`business UI consumers >= ${MIN_BUSINESS_CONSUMERS} (P0 baseline)`, () => {
+test(`business UI consumers >= ${MIN_BUSINESS_CONSUMERS} (P3 threshold)`, () => {
   const consumers = businessUiConsumers();
   assert.ok(
     consumers.length >= MIN_BUSINESS_CONSUMERS,
@@ -75,6 +76,46 @@ test('function-panel pilot must keep importing createButton from @xiaohuang/ui',
   const panel = read('apps/web/src/math/graph/function-panel.js');
   assert.match(panel, /from\s+['"]@xiaohuang\/ui['"]/);
   assert.match(panel, /createButton/);
+});
+
+test('P3.1: function-panel creates buttons only via @xiaohuang/ui (no raw createElement button)', () => {
+  const panel = read('apps/web/src/math/graph/function-panel.js');
+  const rawButtons = (panel.match(/createElement\(\s*['"]button['"]\s*\)/g) || []).length;
+  assert.equal(
+    rawButtons,
+    0,
+    `expected 0 raw createElement('button') in function-panel.js, got ${rawButtons} — buttons must go through @xiaohuang/ui`,
+  );
+});
+
+test('P3.1: partial no longer ships static sidebar main buttons (JS-mounted via @xiaohuang/ui)', () => {
+  const partial = read(
+    'apps/web/src/subjects/classrooms/partials/math-panels.partial.html',
+  );
+  for (const id of [
+    'btnMathAiFn',
+    'btnMathEditFns',
+    'btnMathGraphImport',
+    'btnMathGraphExport',
+    'btnMathGraphReset',
+    'btnMathFnEditSubmit',
+    'btnMathFnEditCancel',
+  ]) {
+    assert.doesNotMatch(partial, new RegExp(`id="${id}"`), `static #${id} must be removed from partial (JS-mounted)`);
+  }
+});
+
+test('P3.2: function-list-view renders card controls via ui primitives + controlled DOM (no innerHTML)', () => {
+  const src = read('apps/web/src/math/graph/function-list-view.js');
+  assert.match(src, /from\s+['"]@xiaohuang\/ui['"]/);
+  assert.doesNotMatch(src, /\.innerHTML\s*=/, 'list view must not assign innerHTML (user data stays textContent)');
+  assert.doesNotMatch(src, /insertAdjacentHTML/);
+});
+
+test('P3.3: function-editor consumes @xiaohuang/ui and keeps form fields innerHTML-free', () => {
+  const src = read('apps/web/src/math/graph/function-editor.js');
+  assert.match(src, /from\s+['"]@xiaohuang\/ui['"]/);
+  assert.doesNotMatch(src, /\.innerHTML\s*=/, 'editor must not assign innerHTML (preset options via controlled DOM)');
 });
 
 test('P0.1 dashboard doc exists in public engineering docs', () => {
