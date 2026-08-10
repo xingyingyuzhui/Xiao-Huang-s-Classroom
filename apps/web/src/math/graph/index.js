@@ -252,11 +252,10 @@ const followTargets = createGraphFollowTargets({
   evalFnY,
   fnDisplayLabel,
   recomputeFunctionIntersection,
-  getSelection: () => state.styleBind?.selection || null,
-  setSelection: (sel) => {
-    state.styleBind = sel;
-  },
   createGraphCommitBridge,
+  vertexFeatureOfFn,
+  mainCurveFollowId: MAIN_CURVE_FOLLOW_ID,
+  schedulePointLabelFusion,
 });
 const followIdForFn = followTargets.followIdForFn;
 const activeFn = followTargets.activeFn;
@@ -482,6 +481,8 @@ const functionRuntime = createGraphFunctionRuntime({
   syncParamPanel: (...a) => uiRefs.syncParamPanel?.(...a),
   paintReadouts: (...a) => uiRefs.paintReadouts?.(...a),
   mirrorActiveToLegacy: (...a) => followTargets.mirrorActiveToLegacy(...a),
+  // 延迟求值：makeDrawHost 依赖 followTargets 实例，避免装配期 TDZ
+  makeDrawHost: () => makeDrawHost(),
 });
 const rebuildCurve = functionRuntime.rebuildCurve;
 const createFnCurve = functionRuntime.createFnCurve;
@@ -661,13 +662,12 @@ const graphMount = createGraphMountController({
   removeAllFnCurves,
   freeMathBoard,
   curveRebuildTask,
+  reregisterSelectable: (...a) => followTargets.reregisterSelectable(...a),
   onToolEsc,
   hideAddPanel,
   hideAiFnModal,
   dismissBoardNotesMode,
-  resetReferenceKey: () => {
-    lastReferenceKey = null;
-  },
+  resetReferenceKey: functionRuntime.resetReferenceKey,
   readoutsDispose: () => readouts.dispose(),
   readoutsReset: () => readouts.reset(),
 });

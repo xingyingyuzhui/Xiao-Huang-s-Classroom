@@ -37,10 +37,41 @@ import { detachBoardObject } from '../shared/board-lifecycle.js';
  *   syncParamPanel: () => void,
  *   paintReadouts: () => void,
  *   mirrorActiveToLegacy: () => void,
+ *   makeDrawHost: () => any,
  * }} context
  */
 export function createGraphFunctionRuntime(context) {
-  const { getState, evalFnY, colors, activeFn } = context;
+  const {
+    getState,
+    evalFnY,
+    colors,
+    activeFn,
+    curveRebuildTask,
+    withPreservedViewport,
+    snapshotUserPoints,
+    snapshotConstructions,
+    clearAllConstructions,
+    removeUserPointEls,
+    restoreUserPoints,
+    restoreConstructions,
+    autoIntersectNewLine,
+    lineLikeElOf,
+    reregisterSelectable,
+    renderFnList,
+    syncParamPanel,
+    paintReadouts,
+    mirrorActiveToLegacy,
+    boardLabelAttrs,
+    applyBoardLabel,
+    formatElementCoordsLabel,
+    asymptotes,
+    clearExtras,
+    schedulePointLabelFusion,
+    makeDrawHost,
+  } = context;
+
+  /** 参考曲线签名防抖（实例级；dispose 时由 resetReferenceKey 清空） */
+  let lastReferenceKey = null;
 
   /** 创建单条函数曲线（增量路径与全量重建共用；隐藏函数不建） */
   function createFnCurve(fn) {
@@ -95,14 +126,14 @@ export function createGraphFunctionRuntime(context) {
     const state = getState();
     const board = state.board;
     if (!board) return;
-    context.clearExtras(board);
+    clearExtras(board);
     const c = colors();
     const act = activeFn();
     if (!act || act.visible === false) return;
     if (act?.kind === 'preset' && act.preset) {
       const preset = act.preset;
       const coeffs = act.coeffs;
-      for (const asy of context.asymptotes(preset, coeffs)) {
+      for (const asy of asymptotes(preset, coeffs)) {
         state.asy.push(
           board.create(
             'line',
@@ -161,7 +192,7 @@ export function createGraphFunctionRuntime(context) {
           strokeColor: c.pointRing,
           fixed: true,
           withLabel: true,
-          label: context.boardLabelAttrs({
+          label: boardLabelAttrs({
             offset: labelOffset,
             strokeColor: c.ink,
             color: c.ink,
@@ -171,75 +202,77 @@ export function createGraphFunctionRuntime(context) {
         pt._mathShowCoords = true;
         pt._mathCanFollow = false;
         pt._mathFeatureMark = true;
-        context.applyBoardLabel(pt, {
+        applyBoardLabel(pt, {
           baseName: name,
-          text: () => context.formatElementCoordsLabel(pt, name),
+          text: () => formatElementCoordsLabel(pt, name),
           offset: labelOffset,
         });
         state.marks.push(pt);
       }
     }
-    context.schedulePointLabelFusion();
+    schedulePointLabelFusion();
   }
 
   function refreshActiveMarks() {
     paintActiveFeatureMarks();
   }
 
-function rebuildCurve() {
-  curveRebuildTask.cancel();
-  const board = state.board;
-  if (!board) return;
-  // 生命周期：重建包 withPreservedViewport，避免镜头被图例/fullUpdate 打回
-  withPreservedViewport(board, () => {
-    const savedUsers = snapshotUserPoints();
-    const savedConstr = snapshotConstructions(makeDrawHost());
-    clearAllConstructions(makeDrawHost());
-    removeUserPointEls();
-    clearExtras(board);
-    removeAllFnCurves(board);
-    state.curve = null;
+  function rebuildCurve() {
+    const state = getState();
+    curveRebuildTask.cancel();
+    const board = state.board;
+    if (!board) return;
+    // 生命周期：重建包 withPreservedViewport，避免镜头被图例/fullUpdate 打回
+    withPreservedViewport(board, () => {
+      const savedUsers = snapshotUserPoints();
+      const savedConstr = snapshotConstructions(makeDrawHost());
+      clearAllConstructions(makeDrawHost());
+      removeUserPointEls();
+      clearExtras(board);
+      removeAllFnCurves(board);
+      state.curve = null;
 
-    for (const fn of state.functions) {
-      createFnCurve(fn);
-    }
+      for (const fn of state.functions) {
+        createFnCurve(fn);
+      }
 
-    mirrorActiveToLegacy();
-    paintActiveFeatureMarks();
+      mirrorActiveToLegacy();
+      paintActiveFeatureMarks();
 
-    restoreUserPoints(savedUsers);
-    restoreConstructions(makeDrawHost(), savedConstr, { notify: false });
-    // 曲线重建后：补齐线/垂线与函数的交点（已有则跳过）
-    {
-      const host = makeDrawHost();
-      for (const rec of host.getConstructions().slice()) {
-        if (!rec || rec.kind === 'intersect') continue;
-        if (!lineLikeElOf(rec)) continue;
-        try {
-          autoIntersectNewLine(host, rec);
-        } catch {
-          /* */
+      restoreUserPoints(savedUsers);
+      restoreConstructions(makeDrawHost(), savedConstr, { notify: false });
+      // 曲线重建后：补齐线/垂线与函数的交点（已有则跳过）
+      {
+        const host = makeDrawHost();
+        for (const rec of host.getConstructions().slice()) {
+          if (!rec || rec.kind === 'intersect') continue;
+          if (!lineLikeElOf(rec)) continue;
+          try {
+            autoIntersectNewLine(host, rec);
+          } catch {
+            /* */
+          }
         }
       }
-    }
-    reregisterSelectable();
-    renderFnList();
-    syncParamPanel();
-    paintReadouts();
-    try {
-      board.update();
-    } catch {
-      /* */
-    }
-    schedulePointLabelFusion();
-    try {
-      // refresh 契约：skipViewport，不重置镜头
-      board._mathAxisLegend?.refresh?.();
-    } catch {
-      /* */
-    }
-  });
-}
+      reregisterSelectable();
+      renderFnList();
+      syncParamPanel();
+      paintReadouts();
+      try {
+        board.update();
+      } catch {
+        /* */
+      }
+      schedulePointLabelFusion();
+      try {
+        // refresh 契约：skipViewport，不重置镜头
+        board._mathAxisLegend?.refresh?.();
+      } catch {
+        /* */
+      }
+    });
+  }
+
   /** 参考曲线：同色虚线低透明度；签名不变则跳过重建。 */
   function applyReferenceCurveFromDocument(doc) {
     const state = getState();
@@ -305,6 +338,3 @@ function rebuildCurve() {
     resetReferenceKey,
   };
 }
-
-/** 参考曲线签名防抖（模块级；resetReferenceKey 由 dispose 调用） */
-let lastReferenceKey = null;
