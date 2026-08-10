@@ -93,7 +93,9 @@ for (const file of collectSources()) {
   }
   const hardMax = Number(entry.hardMax);
   if (Number.isFinite(hardMax) && hardMax > 0 && lines > hardMax) {
-    problems.push(`硬顶突破: ${rel} ${lines} 行 > hardMax ${hardMax}——请拆分，禁止抬高 hardMax 掩盖新增`);
+    problems.push(
+      `硬顶突破: ${rel} ${lines} 行 > hardMax ${hardMax}——请拆分，禁止抬高 hardMax 掩盖新增`,
+    );
   }
 }
 
