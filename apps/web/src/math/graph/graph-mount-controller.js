@@ -93,6 +93,7 @@ export function createGraphMountController(deps) {
     curveFollowTargetId,
     parseFeatureFollowTargetId,
     detachConstr,
+    reregisterSelectable,
     renderProbeReadout,
     readoutsDispose,
     readoutsReset,

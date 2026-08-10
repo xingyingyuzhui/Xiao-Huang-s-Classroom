@@ -22,9 +22,9 @@ import {
  *   evalFnY: (fn: any, x: number) => number | null,
  *   fnDisplayLabel: (fn: any) => string,
  *   recomputeFunctionIntersection: (firstId: string, secondId: string, nearX: number) => any,
- *   getSelection: () => any,
- *   setSelection: (sel: any) => void,
- *   reregisterSelectable: () => void,
+ *   createGraphCommitBridge: (ctx: any) => any,
+ *   vertexFeatureOfFn: (fn: any) => { x: number, y: number } | null,
+ *   mainCurveFollowId: string,
  *   schedulePointLabelFusion: () => void,
  * }} context
  */
@@ -35,6 +35,9 @@ export function createGraphFollowTargets(context) {
     fnDisplayLabel,
     recomputeFunctionIntersection,
     createGraphCommitBridge,
+    vertexFeatureOfFn,
+    mainCurveFollowId,
+    schedulePointLabelFusion,
   } = context;
   let pointsCtrlRef = null;
   let rawFactories = { createUserPointRaw: null, deleteUserPoint: null, deleteConstruction: null };
@@ -131,11 +134,11 @@ function listFollowTargets() {
     }
   }
   // 兼容旧跟随 id
-  if (out.length && !out.some((t) => t.id === MAIN_CURVE_FOLLOW_ID)) {
+  if (out.length && !out.some((t) => t.id === mainCurveFollowId)) {
     const first = out.find((t) => t.kind === 'curve') || out[0];
     out.push({
       ...first,
-      id: MAIN_CURVE_FOLLOW_ID,
+      id: mainCurveFollowId,
       label: first.label,
     });
   }
