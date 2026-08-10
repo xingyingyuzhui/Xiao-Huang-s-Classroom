@@ -787,6 +787,31 @@ function nonEmptyDocument() {
   };
 }
 
+test('首次 mount：fullRender 成功后必须 reregisterSelectable（否则双击样式无目标）', async () => {
+  const order = [];
+  const { controller, restore } = await makeController({
+    graphRenderer: {
+      fullRender: () => {
+        order.push('fullRender');
+        return { ok: true };
+      },
+      beforeCommit: () => ({ ok: true }),
+      recover: () => ({ ok: true }),
+      dispose: () => {},
+    },
+    reregisterSelectable: () => order.push('reregisterSelectable'),
+  });
+  try {
+    controller.initGraphUI();
+    const renderIdx = order.indexOf('fullRender');
+    const selectIdx = order.lastIndexOf('reregisterSelectable');
+    assert.ok(renderIdx >= 0, 'fullRender 已执行');
+    assert.ok(selectIdx > renderIdx, 'reregisterSelectable 必须在 fullRender 成功之后（选择注册表才能命中曲线/特征点）');
+  } finally {
+    restore();
+  }
+});
+
 test('首次 mount 将 store 中的非空 GraphDocument 全量投影一次', async () => {
   const loadedDoc = nonEmptyDocument();
   let fullRenderCount = 0;

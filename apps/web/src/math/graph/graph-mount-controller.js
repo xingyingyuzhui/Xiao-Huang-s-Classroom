@@ -659,6 +659,8 @@ function initGraphUI() {
   if (initialRender?.ok) {
     state.startCoeffs = { ...state.coeffs };
     syncSliders();
+    // 投影后才有曲线/特征点；必须登记到 selection，否则首进双击样式无目标
+    reregisterSelectable();
   }
 }
 function resizeGraph() {
