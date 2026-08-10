@@ -4,12 +4,12 @@
  * 后续 Task 引入 GraphDocument/store 时不得破坏这些既有契约；
  * 该文件不依赖 jsxgraph，可在纯 Node 下运行。
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const fs = require('node:fs');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import fs from 'node:fs';
+import root from '../helpers/repo-root.js';
 
 const graphDir = path.join(root, 'apps/web/src/math/graph');
 
