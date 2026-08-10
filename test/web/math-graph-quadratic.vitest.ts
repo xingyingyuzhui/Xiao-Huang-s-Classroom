@@ -1,11 +1,11 @@
 /**
  * 二次函数纯几何量契约（live graph/model）
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { pathToFileURL } = require('node:url');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+import path from 'node:path';
+import root from '../helpers/repo-root.js';
 
 async function load(rel) {
   return import(pathToFileURL(path.join(root, rel)).href);
