@@ -1,11 +1,11 @@
 /**
  * 坐标轴/图例设置：按钮 + 气泡
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import root from '../helpers/repo-root.js';
 
 test('axis-legend-settings module exports attach and dismiss', () => {
   const src = fs.readFileSync(

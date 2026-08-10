@@ -1,12 +1,12 @@
 /**
  * 多曲线跟随目标：最近吸附契约
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const { pathToFileURL } = require('node:url');
-const path = require('node:path');
-const fs = require('node:fs');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import { pathToFileURL } from 'node:url';
+import path from 'node:path';
+import fs from 'node:fs';
+import root from '../helpers/repo-root.js';
 
 async function load(rel) {
   return import(pathToFileURL(path.join(root, rel)).href);

@@ -511,9 +511,10 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 | Q | **完成**；全量 `npm run quality` 绿（2026-08-09 于 tip `e626c37` 复验 exit 0；Q3 远端 CI 可选未做） |
 | T | **完成**（本批门禁 ≥12；实迁 **24** 文件） |
 | U | **完成**（U1 审计 + U2 焦点 10/10 + U3 三面 11 合同测 + U4 文档收口 2026-08-10） |
-| 盘点数字（约 2026-08-10） | `test/web` cjs **48** / vitest **40**；`@xiaohuang/ui` 业务 import **10**；`window.confirm` 族调用 **0** |
+| D（risk-d 续迁批，2026-08-10） | **完成**（门禁 ≥10；实迁 **24** 文件 / 136 用例；`codex/risk-d-batch`，未合 main）——D1 基线 cjs_base 48 / vitest_base 40；收口 `test/web` cjs **24** / vitest **64** |
+| 盘点数字（2026-08-10 收口） | `test/web` cjs **24** / vitest **64**；`@xiaohuang/ui` 业务 import **10**；`window.confirm` 族调用 **0** |
 | 禁止事项 | 合 main；D2 Win exe / pkg 退役验收（无环境，债务 **暂缓**） |
-| 已知非阻断尾巴 | UI 计划 P7.1：`MIN_BUSINESS_CONSUMERS` 仍为 3（指标已 ≥8，门禁未抬）；`settings-toast-consumption` cjs+vitest 职责拆分 |
+| 已知非阻断尾巴 | UI 计划 P7.1：`MIN_BUSINESS_CONSUMERS` 仍为 3（指标已 ≥8，门禁未抬）；`settings-toast-consumption` cjs+vitest 职责拆分（cjs 静态断言保留，见 §5.4） |
 | 下一刀 | **本计划已收官**。后续可选：继续迁剩余 web cjs；抬 P7.1 阈值；产品功能；**有 Win 环境后再开 D2** |
 
 ---
@@ -547,6 +548,13 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 - [x] U2 焦点/滚动至少 2 条（U2.1–U2.4 全部落地，`app-dialog.js` + 测试 10/10）
 - [x] U3 高流量面 ≥2 面体验补丁（设置 / 分子列表 / lesson-packs；合同测 11）
 - [x] U4 文档与债务回写（ui-library 专节 + 清 merge 残留；附录 B polish；D4/D7 + 路线图指针；§9/§12 收口）
+
+### Track D（risk-d 续迁批，2026-08-10，`codex/risk-d-batch`）
+
+- [x] D1 基线登记：`cjs_base = 48` / `vitest_base = 40`（执行日实测），回写路线图 §9.3
+- [x] D2–D3 迁移 ≥10 个 cjs → vitest：实迁 **24 文件 / 136 用例**（每文件一提交，旧 cjs 删除单权威；清单见路线图 §9.3 本批 D 行）；**暂缓**：hub/bookshelf 3D、完整 mount E2E、desktop/release 打包测、`settings-toast-consumption` cjs 静态断言部分（保留，职责拆分见 §5.4）
+- [x] D4 回写：§9 交接卡 + §12 日志 + 路线图 §9.3/附录 E + debt-registry D7（web cjs 48→24 / vitest 40→64）
+- [x] 验证：全量 `npm test`（turbo 12 任务 + test/shared 76）+ `quality:fast` 绿；web vitest 64 文件 / 353 用例
 
 ### 收官
 
@@ -590,6 +598,7 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 | 2026-08-08 | U3    | 高流量面三面：settings busy/focus/品牌重置确认；molecule 删除命名确认/空态；lesson-packs 危险语气与防双提交；合同测 11 + large-file budget | `codex/u3-batch` → tip `e626c37` | experience vitest 11/11 |
 | 2026-08-09 | Q 复验 | 独立 agent 于 tip `e626c37` 再跑全量 `npm run quality` **exit 0**；S1–S4 实质通过，指出 U4/日志尾巴 | 开发线 `e626c37` | quality 全绿 |
 | 2026-08-10 | U4+收官 | 勾齐 U4：清 `ui-library.md` merge 冲突残留；UI 计划附录 B polish 行；D4/D7 与路线图「剩余 cjs」指针；§9 交接卡与 §10/§5 勾选与代码对齐；**本计划收官**（仍不合 main / 不做 D2） | 本提交（docs） | 文档 diff + 关键测抽检 |
+| 2026-08-10 | D     | risk-d D 批：web `test/web` cjs→vitest **再迁 24 文件（136 用例）**；D1 基线 cjs_base 48 / vitest_base 40；收口 cjs **24** / vitest **64**（web vitest 353 用例）；旧 cjs 删除单权威；§9 交接卡 / §10 Track D 勾选 / 路线图 §9.3+附录 E / debt-registry D7 回写 | `codex/risk-d-batch`（本提交前 8 个迁移提交 + 本文档提交） | 全量 `npm test` + `quality:fast` 绿 |
 
 ---
 

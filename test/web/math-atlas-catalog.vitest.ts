@@ -2,12 +2,12 @@
  * 数学模型契约（图象 / 数列等）— 原 atlas catalog 测试已退役
  * 保留文件名以兼容本地习惯；断言迁到课标命名的多 Tab 结构。
  */
-const { test } = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 async function load(rel) {
   return import(pathToFileURL(path.join(root, rel)).href);

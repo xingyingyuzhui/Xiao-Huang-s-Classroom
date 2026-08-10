@@ -1,9 +1,9 @@
 /** 变换播放控制器：fake scheduler 下的提交/取消/生命周期契约。 */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 async function controllerModule() {
   return import(

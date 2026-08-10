@@ -1,9 +1,9 @@
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const root = require('../helpers/repo-root.js');
+import root from '../helpers/repo-root.js';
 const machineUrl = pathToFileURL(
   path.join(root, 'apps/web/src/subjects/bookshelf/transition-machine.js'),
 ).href;

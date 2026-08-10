@@ -1,9 +1,9 @@
 /** 历史控制器：快捷键、按钮、批注路由与 dispose 契约（fake target 测试）。 */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 async function controllerModule() {
   return import(

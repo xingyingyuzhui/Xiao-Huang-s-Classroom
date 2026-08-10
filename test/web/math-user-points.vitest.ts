@@ -1,9 +1,9 @@
 /** 用户点文档契约：constraint 映射、文档快照与从文档重建。 */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 async function pointModule() {
   return import(

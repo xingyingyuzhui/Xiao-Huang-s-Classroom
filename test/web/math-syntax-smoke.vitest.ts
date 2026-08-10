@@ -2,12 +2,12 @@
  * 数学教室相关源码语法烟测：避免 Vite 动态 import 才暴露的 parse 失败
  * （如 try/if 少写闭合 `}`，会在打开「课堂」Tab 时才炸）
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const { spawnSync } = require('node:child_process');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { spawnSync } from 'node:child_process';
+import root from '../helpers/repo-root.js';
 
 function walkJs(dir, acc = []) {
   if (!fs.existsSync(dir)) return acc;

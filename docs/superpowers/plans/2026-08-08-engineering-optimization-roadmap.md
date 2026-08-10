@@ -611,7 +611,9 @@ npm run verify:electron-package
 - [x] B7 评估（2026-08-08）：three 4 渲染器 + jsxgraph 单点边界守门
 - [x] T1 批次（2026-08-08，agent）：15 个 math 纯逻辑测试迁 vitest（79 用例，`codex/t1-batch` @ `a1e2d5c`）——明细见 handoff 计划 §12
 - [x] 本批 T2（2026-08-08，agent）：9 个化学/其它纯逻辑测试迁 vitest（62 用例，`codex/t2-batch`：lab-model / hybridization / mastery-map / molecule-list / subject-manifest / feature-loader / app-session / offline-quiz-layout / panel-loading）——T1+T2 合计 24 文件 ≥12 达标；明细见 handoff 计划 §12
-- [ ] 持续项：handoff Track T **本批已完成**（门禁 ≥12；实迁 24）。**剩余** `test/web` cjs≈48（hub/board/渲染等）+ desktop 继续分批迁 Vitest；与 B6/B5 产品切片可交错。进度以 `docs/superpowers/plans/2026-08-08-handoff-stabilize-d7-ui-polish.md` §9 交接卡为准。
+- [x] **D1 基线登记**（2026-08-10，risk-d 批）：`cjs_base = 48` / `vitest_base = 40`（`test/web`，执行日实测 `ls test/web/*.cjs | wc -l`）
+- [x] **本批 D**（2026-08-10，risk-d 批）：**24 个 web cjs → vitest（136 用例）**——math graph 纯逻辑（graph-document / dependency-plan / quadratic / numeric-features / function-analysis / function-management / persistence / render-plan / construction-dependencies / construction-point-dependencies / user-points / baseline / axis-legend）、shared 纯函数（point-label-fusion / follow-target / atlas-catalog / p1-bridge / syntax-smoke / lifecycle-unit）、controller fake-target（transform-controller / history-controller）、学科 transition 状态机与控制器（transition-machine / transition-controller）、math-ai-fn 接线；旧 cjs 删除（单权威）。`test/web`：cjs **48→24**、vitest **40→64**（web vitest 353 用例全绿）
+- [ ] 持续项：handoff Track T + risk-d D 批已完成（两次各 24 文件；本批门禁 ≥10）。**剩余** `test/web` cjs≈**24**（hub/bookshelf 3D、board/jsxgraph 渲染、完整 mount E2E、函数面板 UI 合同、静态结构/门禁类）+ desktop 继续分批迁 Vitest；`settings-toast-consumption` cjs 静态断言部分保留（cjs=源静态合同、vitest=运行时，职责拆分非双权威，见 handoff 计划 §5.4）。进度以 `docs/superpowers/plans/2026-08-08-handoff-stabilize-d7-ui-polish.md` §9 交接卡为准。
 
 ### 9.4 D-jessie — JSXGraph eval 警告（D8）
 
@@ -884,6 +886,7 @@ tooling/architecture/
 | 2026-08-08 | G3 大文件预算门禁（lint:large-files 入 quality）        | G3 提交；G2/G4/G5 勾选收官                        |
 | 2026-08-08 | C4 落地（Electron main TS 单产物）                      | C4 提交；asar 含 dist/main.js                     |
 | 2026-08-08 | C3 落地（frame-task TS 切片 + web vitest 样板）         | C3 提交；web 438 绿                               |
+| 2026-08-10 | D-test 续迁（risk-d D 批）：web cjs→vitest 再迁 24 文件（136 用例）；D1 基线 48/40，收口 cjs 24 / vitest 64 | `codex/risk-d-batch`；全量 `npm test` + `quality:fast` 绿 |
 
 ---
 
