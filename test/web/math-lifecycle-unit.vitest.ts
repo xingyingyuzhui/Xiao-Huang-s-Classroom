@@ -1,16 +1,9 @@
 /**
  * 数学画板：共享 expr + remint 行为单测
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
-
-const {
-  compileMathExpr,
-  validateMathExprSyntax,
-  formatExprLabel,
-} = require('@xiaohuang/math-expr');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import { compileMathExpr, validateMathExprSyntax, formatExprLabel } from '@xiaohuang/math-expr';
 
 test('shared math-expr: compile polynomials and sin', () => {
   const poly = compileMathExpr('0.5x^2-x-1.5');
