@@ -1,9 +1,9 @@
 /** 函数管理：显隐、锁定、重命名、复制、排序、独立定义域的 reducer 语义。 */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const path = require('node:path');
-const { pathToFileURL } = require('node:url');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import path from 'node:path';
+import { pathToFileURL } from 'node:url';
+import root from '../helpers/repo-root.js';
 
 async function storeModule() {
   return import(
