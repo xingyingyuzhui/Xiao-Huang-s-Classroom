@@ -33,7 +33,7 @@
 | AI 课壳       | `apps/web/src/chemistry/ai-classroom/balance-shell.js`（1388）/ `lab-shell.js`（968）/ `quiz-shell.js`（434）/ `lesson-packs.js`（411）                                                                          | 大文件/编排/确认（B3 下一刀）          | `npx vitest run test/web/balance-model.vitest.ts test/web/lab-model.vitest.ts test/web/lab-prestudy.vitest.ts test/web/lesson-packs-experience.vitest.ts test/web/offline-quiz-layout.vitest.ts`                                                        | 已 model/views 分层；**编排瘦身前先补行为测试**；新增逻辑进 model/views，不进 shell   |
 | 学科壳        | `apps/web/src/subjects/classrooms/`（`chemistry-classroom.ts` / `math-classroom.ts` / `physics-classroom.ts` / `biology-classroom.ts` / `tabbed-classroom.ts` / `home-shell.ts` / `shell-classroom-factory.js`） | 生命周期/挂载/manifest 单一入口（D13） | `node --test test/web/subject-manifest-mount.test.cjs test/web/subject-hub.test.cjs test/shared/module-boundaries.test.cjs` + `npx vitest run test/web/subject-manifest.vitest.ts`                                                                      | 已 TS（B5）+ manifest 单一权威（B4）；新壳走 subject-kit loader，禁止直连 registry    |
 | Hub/书架      | `apps/web/src/subjects/hub.js`（131）+ `bookshelf/`（`stage.js` 1312 / `enter-fx.js` 1202 / `covers.js` 1029 / `floaters.js` 514 / `build-book.js` 503）                                                         | 3D/动画/书籍编排                       | `node --test test/web/bookshelf-structure.test.cjs test/web/subject-hub.test.cjs test/web/subject-transition-controller.test.cjs test/web/subject-transition-machine.test.cjs`                                                                          | 本计划不深改 3D（产品视觉红线）；视觉改动按 `bookshelf/AGENTS.md` + product/hub 规格  |
-| Server 组合根 | `apps/server/src/index.js`（380）                                                                                                                                                                                | 双轨入口（D1）；组合注入               | `npm run test -w @xiaohuang/server`（vitest 107 + server cjs）再 `npx vitest run apps/server/test/server-ts-clean-build.test.ts`                                                                                                                        | 新路由只加 TS 权威源（B2 createXxxRouter 工厂 + 组合根注入）；禁改注入/限流双计数模式 |
+| Server 组合根 | `apps/server/src/index.js`（380）                                                                                                                                                                                | 双轨入口（D1）；组合注入               | `npm run test -w @xiaohuang/server`（vitest 全量 107，含 clean-build；turbo test 先构建上游 dist）                                                                                                                                                      | 新路由只加 TS 权威源（B2 createXxxRouter 工厂 + 组合根注入）；禁改注入/限流双计数模式 |
 
 ## 表二 · 扫描发现的新热点（>400 行预算登记，业务 JS）
 
@@ -66,8 +66,8 @@ cd apps/web && npx vitest run ../../test/web/<file>.vitest.ts
 # web 全量（node:test + vitest 双轨）
 npm run test -w @xiaohuang/web
 
-# server 全量 + clean-build
-npm run test -w @xiaohuang/server && npx vitest run apps/server/test/server-ts-clean-build.test.ts
+# server 全量（vitest 单一 runner；含 server-ts-clean-build；dist 由 turbo test 上游构建）
+npm run test -w @xiaohuang/server
 
 # 门禁
 npm run lint:large-files   # 改了大文件行数后必须跑

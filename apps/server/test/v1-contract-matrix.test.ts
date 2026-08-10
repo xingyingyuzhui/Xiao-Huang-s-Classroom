@@ -19,13 +19,12 @@ import type { Server } from 'node:http';
 
 const require = createRequire(import.meta.url);
 const dirname = path.dirname(fileURLToPath(import.meta.url));
-const root = require(path.join(dirname, '../../../test/helpers/repo-root.js'));
 
 const { app } = require(path.join(dirname, '../src'));
 const { initDatabase, closeDatabase } = require(path.join(dirname, '../src/db/sqlite'));
 
 const ENDPOINTS: Array<{ method: string; path: string }> = JSON.parse(
-  fs.readFileSync(path.join(root, 'test/server/v1-endpoints.generated.json'), 'utf8'),
+  fs.readFileSync(path.join(dirname, 'fixtures/v1-endpoints.generated.json'), 'utf8'),
 );
 
 /** :param 示例值（按常见路径参数名） */

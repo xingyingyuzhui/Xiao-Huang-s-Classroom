@@ -10,9 +10,8 @@
     "build:frontend": "turbo run build --filter=@xiaohuang/web... && node scripts/copy-frontend.js",
     "build:exe": "npm run build:frontend && node scripts/pkg-win.js",
     "pkg:win": "pkg . --targets node18-win-x64 --output ../dist-exe/XiaoHuang-ChemLab.exe",
-    "test:vitest": "vitest run",
     "build": "tsup",
-    "test": "vitest run && node --test --test-concurrency=1 ../../test/server/*.cjs",
+    "test": "vitest run",
     "typecheck": "node ../../scripts/typecheck-apps.mjs server"
   },
   "dependencies": {

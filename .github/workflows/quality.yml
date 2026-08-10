@@ -24,3 +24,22 @@ jobs:
 
       - name: Quality run 2（coverage/build 产物生成后可重复性）
         run: npm run quality
+
+  node-version-portability:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node: [20, 24]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Un-cached workspace tests（Node ${{ matrix.node }}，防 Turbo 假绿）
+        run: TURBO_FORCE=true npm test
