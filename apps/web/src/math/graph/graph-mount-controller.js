@@ -114,7 +114,6 @@ export function createGraphMountController(deps) {
   function isDisposed() {
     return disposeSession.isDisposed();
   }
-
 function syncSliders() {
   for (const [id, key, numId] of [
     ['mathGraphA', 'a', 'mathGraphANum'],
