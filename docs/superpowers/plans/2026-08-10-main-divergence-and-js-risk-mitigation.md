@@ -476,8 +476,8 @@ ls test/web/*.vitest.ts | wc -l
 | 远程备份 SHA | — |
 | quality 证据 | — |
 | cjs/vitest 基线 | cjs≈48 / vitest≈40 |
-| C 热点地图 | 未 / 已 |
-| C 硬化样板 | — |
+| C 热点地图 | **已**（`docs/engineering/js-hotspots.md`：表一 9 行计划热点 + 表二 22 行扫描新热点，实测行数 + 具体「改前必跑」，2026-08-10） |
+| C 硬化样板 | **rate-of-change.ts**（C2：`math/graph/rate-of-change.js` → TS 权威，纯数值、行为逐字、零 any；vitest 7/7 + 结构测 5/5 + web typecheck 19 TS 绿；allowlist 已记录） |
 | D 本批迁徙数 | 0 |
 | E2 选项 | 未选 |
 | 下一刀 | **A0 人类决策 + A1 审计** |
@@ -501,10 +501,10 @@ ls test/web/*.vitest.ts | wc -l
 
 ### Track C
 
-- [ ] C1 js-hotspots.md  
-- [ ] C2 ≥1 硬化样板  
-- [ ] C3 清单进 playbook  
-- [ ] C4 debt/allowlist 一致  
+- [x] C1 js-hotspots.md（`docs/engineering/js-hotspots.md`，2026-08-10；表一 9 行计划热点 + 表二 22 行扫描新热点，均带实测行数与具体「改前必跑」命令）
+- [x] C2 ≥1 硬化样板（`math/graph/rate-of-change.ts`：JS → TS 权威，行为逐字、零 any；vitest `math-rate-of-change.vitest.ts` 7 用例 + `math-graph-structure.test.cjs` PURE_LAYERS 白名单同步；allowlist 记录）
+- [x] C3 清单进 playbook（数据源 = js-hotspots.md「改前必跑」列 + 硬性红线节；`safe-change-playbook.md` 嵌入链接由 **risk-bf** 落地，本节状态以 playbook 合并为准）
+- [x] C4 debt/allowlist 一致（D3/D4/D5 无矛盾：结构测 / ui 合同测 / large-file 预算均绿）
 
 ### Track D
 
@@ -554,6 +554,8 @@ Day 7+    若 A0-2：再开 PR/决定是否升格 origin/main（A0-1/3）
 | ---- | ----- | ---- | ----------- | ---- |
 | 2026-08-10 | — | 计划 v1.0 创建 | 文档 | — |
 | 2026-08-10 | A0 | 策略选定：A0-1 推 origin/main（负责人） | 文档 | — |
+| 2026-08-10 | C1 | js-hotspots.md 落地（9 计划热点 + 22 扫描新热点，实测行数 + 改前必跑命令） | `codex/risk-c-batch` | wc -l 复核；lint:large-files 41 登记绿 |
+| 2026-08-10 | C2 | 硬化样板：`math/graph/rate-of-change.js` → `rate-of-change.ts`（纯数值，行为逐字，零 any） | `codex/risk-c-batch` | vitest 7/7 + 结构测 5/5 + web typecheck 19 TS + cjs 268/269（1 fail 为并行 T2 中间态，非本队列）；web vitest 216/216 |
 
 ---
 
