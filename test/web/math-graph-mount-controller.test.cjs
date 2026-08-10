@@ -759,3 +759,174 @@ test('dispose 抛错后再次 dispose：不重复释放、不重复副作用', a
   assert.equal(env.revokedUrls.length, revokedCount, '不重复 revoke');
   restore();
 });
+
+// ─────────────── Task 1：首次投影 + session 保留（lifecycle recovery） ───────────────
+
+function nonEmptyDocument() {
+  return {
+    functions: [{ id: 'f1', kind: 'preset', preset: 'quadratic', coeffs: { a: 2, b: 0, c: 0 }, colorSlot: 0, visible: true }],
+    points: [{ id: 'U1', x: 1, y: 2, label: 'A' }],
+    constructions: [{ id: 'C1', kind: 'segment', pointIds: ['U1'] }],
+    annotations: [],
+    view: { boundingBox: [-10, 10, 10, -10] },
+  };
+}
+
+test('首次 mount 将 store 中的非空 GraphDocument 全量投影一次', async () => {
+  const loadedDoc = nonEmptyDocument();
+  let fullRenderCount = 0;
+  let fullRenderArg = null;
+  const syncRangeCalls = [];
+  const { controller, state, restore } = await makeController({
+    createGraphPersistence: () => ({
+      dispose: () => {},
+      load: () => ({ document: loadedDoc }),
+      flush: () => {},
+      scheduleSave: () => {},
+    }),
+    createGraphStore: (initial) => ({
+      getDocument: () => initial,
+      subscribe: () => () => {},
+      dispose: () => {},
+      beginTransaction: () => {},
+      commitTransaction: () => {},
+      cancelTransaction: () => {},
+    }),
+    graphRenderer: {
+      fullRender: (doc) => {
+        fullRenderCount += 1;
+        fullRenderArg = doc;
+        return { ok: true };
+      },
+      beforeCommit: () => ({ ok: true }),
+      recover: () => ({ ok: true }),
+      dispose: () => {},
+    },
+    syncRangeNumber: () => {
+      syncRangeCalls.push('sync');
+    },
+  });
+  try {
+    controller.initGraphUI();
+    assert.equal(fullRenderCount, 1, 'fullRender 恰好一次');
+    assert.equal(fullRenderArg, state.graphStore.getDocument(), '参数严格等于 store 文档');
+    // UI bindings 首次同步 3 次 + 成功投影后 syncSliders 再次 3 次
+    assert.equal(syncRangeCalls.length, 6, `syncSliders 首轮 3 + 投影后 3（实际 ${syncRangeCalls.length}）`);
+    assert.deepEqual(state.startCoeffs, state.coeffs, 'startCoeffs 与投影后 coeffs 对齐');
+    // 重复 init（已有 board）不重复投影
+    controller.initGraphUI();
+    assert.equal(fullRenderCount, 1, '重复 init 不重复投影');
+    controller.disposeGraph();
+    controller.disposeGraph();
+  } finally {
+    restore();
+  }
+});
+
+test('首次渲染失败仍可完整销毁且不覆盖 store', async () => {
+  const loadedDoc = nonEmptyDocument();
+  let fullRenderCount = 0;
+  const syncRangeCalls = [];
+  const disposes = [];
+  const fakeDispose = (label) => () => disposes.push(label);
+  const { controller, state, restore } = await makeController({
+    createGraphPersistence: () => ({
+      dispose: fakeDispose('persistence'),
+      load: () => ({ document: loadedDoc }),
+      flush: () => {},
+      scheduleSave: () => {},
+    }),
+    createGraphStore: (initial) => ({
+      getDocument: () => initial,
+      subscribe: () => () => {},
+      dispose: fakeDispose('store'),
+      beginTransaction: () => {},
+      commitTransaction: () => {},
+      cancelTransaction: () => {},
+    }),
+    createGraphHistory: () => ({ dispose: fakeDispose('history'), clear: () => {}, subscribe: () => () => {} }),
+    graphRenderer: {
+      fullRender: () => {
+        fullRenderCount += 1;
+        return { ok: false, fatal: true };
+      },
+      beforeCommit: () => ({ ok: true }),
+      recover: () => ({ ok: false, fatal: true }),
+      dispose: () => {},
+    },
+    freeMathBoard: () => disposes.push('freeMathBoard'),
+    viewBridge: { dispose: fakeDispose('viewBridge'), onBoardBoundingBox: () => {}, applyViewFromDocument: () => {} },
+    readoutsDispose: fakeDispose('readouts'),
+    syncRangeNumber: () => {
+      syncRangeCalls.push('sync');
+    },
+  });
+  try {
+    controller.initGraphUI();
+    assert.equal(fullRenderCount, 1, 'fullRender 只调用一次');
+    assert.equal(state.graphStore.getDocument(), loadedDoc, '失败不覆盖 store 文档');
+    assert.deepEqual(state.startCoeffs, { a: 0, b: 0, c: 0 }, '失败后 startCoeffs 保持初始（未更新）');
+    assert.equal(syncRangeCalls.length, 3, '失败后无第二轮 slider 同步（仅首轮 3 次）');
+    controller.disposeGraph();
+    for (const label of ['persistence', 'viewBridge', 'history', 'store', 'freeMathBoard', 'readouts']) {
+      assert.equal(disposes.filter((d) => d === label).length, 1, `${label} 释放恰好一次`);
+    }
+    controller.disposeGraph(); // 幂等
+    for (const label of ['persistence', 'store', 'freeMathBoard', 'readouts']) {
+      assert.equal(disposes.filter((d) => d === label).length, 1, `重复 dispose 后 ${label} 仍一次`);
+    }
+  } finally {
+    restore();
+  }
+});
+
+test('重复 init 不覆盖活动 disposer session；DOM 缺失不建 session', async () => {
+  let boardCount = 0;
+  let resetCount = 0;
+  let fullRenderCount = 0;
+  const disposes = [];
+  const fakeDispose = (label) => () => disposes.push(label);
+  const { controller, elements, restore } = await makeController({
+    createMathBoard: () => {
+      boardCount += 1;
+      return { on: () => {}, off: () => {}, removeObject: () => {}, update: () => {}, getBoundingBox: () => [-8, 8, 8, -8], create: () => ({ setAttribute: () => {} }), remove: () => {} };
+    },
+    readoutsReset: () => {
+      resetCount += 1;
+    },
+    graphRenderer: {
+      fullRender: () => {
+        fullRenderCount += 1;
+        return { ok: true };
+      },
+      beforeCommit: () => ({ ok: true }),
+      recover: () => ({ ok: true }),
+      dispose: () => {},
+    },
+    createGraphPersistence: () => ({ dispose: fakeDispose('persistence'), load: () => ({ document: { functions: [] } }), flush: () => {}, scheduleSave: () => {} }),
+    createGraphStore: () => ({ getDocument: () => ({ functions: [] }), subscribe: () => () => {}, dispose: fakeDispose('store'), beginTransaction: () => {}, commitTransaction: () => {}, cancelTransaction: () => {} }),
+    createGraphHistory: () => ({ dispose: fakeDispose('history'), clear: () => {}, subscribe: () => () => {} }),
+    freeMathBoard: () => disposes.push('freeMathBoard'),
+    viewBridge: { dispose: fakeDispose('viewBridge'), onBoardBoundingBox: () => {}, applyViewFromDocument: () => {} },
+  });
+  try {
+    // 同一轮连续两次 init（不 dispose）
+    controller.initGraphUI();
+    controller.initGraphUI();
+    assert.equal(boardCount, 1, 'createMathBoard 只一次');
+    assert.equal(resetCount, 1, 'readoutsReset 只一次（第二次走已有 board 快速路径）');
+    assert.equal(fullRenderCount, 1, 'fullRender 只一次');
+    controller.disposeGraph();
+    for (const label of ['persistence', 'viewBridge', 'history', 'store', 'freeMathBoard']) {
+      assert.equal(disposes.filter((d) => d === label).length, 1, `${label} 释放恰好一次`);
+    }
+    // DOM 缺失：从 fake elements 移除 stage/board 后 init 不建新 session、不 reset
+    elements.delete('mathGraphStage');
+    elements.delete('mathGraphBoard');
+    controller.initGraphUI();
+    assert.equal(resetCount, 1, 'DOM 缺失时 readoutsReset 不执行');
+    assert.equal(boardCount, 1, 'DOM 缺失时 createMathBoard 不执行');
+  } finally {
+    restore();
+  }
+});

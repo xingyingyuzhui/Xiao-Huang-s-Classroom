@@ -103,7 +103,7 @@ export function createGraphMountController(deps) {
     readoutsReset,
   } = deps;
 
-  /** dispose 会话（Task 9 拆分）：每轮 mount 重建；转发函数保证当前轮生效。 */
+  /** dispose 会话：每轮 mount 重建；转发函数保证当前轮生效。 */
   let disposeSession = createDisposeSession();
   function register(disposer) {
     disposeSession.register(disposer);
@@ -291,13 +291,11 @@ function dismissGraphNotesMode() {
   state.notes?.setActive?.(false);
 }
 function initGraphUI() {
-  disposeSession = createDisposeSession();
-  // readouts 是模块级单例：重挂载时重新武装（取消的 pending 测量/过期回调失效）
-  readoutsReset?.();
   setStageEl(document.getElementById('mathGraphStage'));
   const stageEl = getStageEl();
   if (!stageEl || !document.getElementById('mathGraphBoard')) return;
 
+  // 已有 board：仅快速路径，不替换活动 session、不 reset readouts
   if (state.board) {
     resizeMathBoard(state.board, getStageEl());
     ensureMathFloatCardsBound();
@@ -308,8 +306,11 @@ function initGraphUI() {
     return;
   }
 
-  // Task 9：board/store/history/persistence 创建收敛到 board session
-  // （全部成功后才发布，失败不留下半初始化 state）
+  // 真正开始一轮新 mount 时才建立新 session；readouts 随 mount 周期重新武装
+  disposeSession = createDisposeSession();
+  readoutsReset?.();
+
+  // board/store/history/persistence 创建收敛到 board session（失败不发布半初始化）
   const session = createGraphBoardSession({
     state,
     getStageEl,
@@ -362,8 +363,6 @@ function initGraphUI() {
   const loadedDoc = session.loadedDoc;
 
   bindFnListUi();
-
-  // Task 9：sliders/object-style 绑定已收敛到 ui bindings session（bindSlidersAndStyle）
 
   setPointOptionHooks({
     // 仅用户自建点 + 非交点 + 存在可跟随目标时显示
@@ -612,7 +611,7 @@ function initGraphUI() {
     state.onPageHide = null;
   });
 
-  // Task 9：文件/按钮/observer 绑定收敛到 ui bindings session
+  // 文件/按钮/observer 绑定收敛到 ui bindings session
   const uiBindings = createGraphUiBindings({
     state,
     getStageEl,
@@ -653,19 +652,21 @@ function initGraphUI() {
     },
   });
 
-  // readouts 帧任务与过期回调失效（模块级单例，随 mount 周期 dispose/reset）
+  // readouts 帧任务与过期回调失效（随 mount 周期 dispose/reset）
   register(() => readoutsDispose?.());
-}
 
+  // 首次全量投影：所有资源可回收后执行一次；失败不覆盖文档，renderer 自行 fatal
+  const initialRender = graphRenderer.fullRender(state.graphStore.getDocument());
+  if (initialRender?.ok) {
+    state.startCoeffs = { ...state.coeffs };
+    syncSliders();
+  }
+}
 function resizeGraph() {
   if (state.board) resizeMathBoard(state.board, getStageEl());
   state.notes?.redraw?.();
 }
-
-/**
- * 统一生命周期清理：disposer 栈逆序执行；幂等；单个失败不阻断其余。
- * 前置状态/事务收尾逐项容错；disposeAll 与状态归零无论如何都执行（finally）。
- */
+/** 统一生命周期清理：disposer 栈逆序、幂等、单失败不阻断；状态归零在 finally。 */
 function disposeGraph() {
   if (isDisposed()) return;
   const errors = [];
