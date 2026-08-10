@@ -78,17 +78,23 @@ function recreateConstr(host, meta) {
     const a = host.findUserEl(meta.pointIds?.[0] || '');
     const b = host.findUserEl(meta.pointIds?.[1] || '');
     if (!a || !b) return null;
+    // 恢复路径统一静默：通知由 restoreConstructions 外层至多一次
     return createSegmentOrLine(host, meta.kind, a, b, meta.pointIds, meta.id, {
-      skipAutoIntersect: true,
+      ...skipAuto,
       extend: meta.extend,
+      notify: false,
     });
   }
   if (meta.kind === 'secant') {
-    return createSecantConstruction(host, {
-      ...meta,
-      id: meta.id,
-      showDelta: meta.showDelta !== false,
-    });
+    return createSecantConstruction(
+      host,
+      {
+        ...meta,
+        id: meta.id,
+        showDelta: meta.showDelta !== false,
+      },
+      { notify: false },
+    );
   }
   if (meta.kind === 'tangent') {
     const pt = host.findUserEl(meta.pointIds?.[0] || '');

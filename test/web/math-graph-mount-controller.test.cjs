@@ -374,6 +374,7 @@ async function makeController(overrides = {}) {
     hideAiFnModal: () => {},
     dismissBoardNotesMode: () => {},
     resetReferenceKey: () => {},
+    reregisterSelectable: () => calls.push('reregisterSelectable'),
     readoutsDispose: fakeDispose('readouts'),
     readoutsReset: () => calls.push('readoutsReset'),
     ...overrides,
@@ -482,6 +483,74 @@ test('dispose 幂等且不重复副作用', async () => {
   assert.equal(env.urls.length, urlCount, 'no new urls on repeated dispose');
   assert.equal(env.revokedUrls.length, revokedCount, 'no repeated revoke');
   assert.equal(calls.filter((c) => c === 'freeMathBoard').length, 1, 'board freed once');
+  restore();
+});
+
+// ───────────────────────── 函数依赖解绑/重绑：selection 注册接线 ─────────────────────────
+
+test('detachFunctionDependents/rebindFunctionDependents：不抛 reregisterSelectable 未定义，selection 只注册一次', async () => {
+  const order = [];
+  let stateRef = null;
+  const { controller, state, calls, restore } = await makeController({
+    detachConstr: (rec) => {
+      // 删除顺序合同：detach runtime 时，构造记录必须仍存在于 state 数组
+      order.push(`detach:${rec.id}`);
+      if (!stateRef.constructions.some((c) => c.id === rec.id)) {
+        order.push('STATE-MUTATED-BEFORE-DETACH');
+      }
+    },
+  });
+  stateRef = state;
+  state.board = { removeObject: () => {} };
+  state.userPoints = [
+    { id: 'U1', followTargetId: 'graph:fn:f1', intersectFnIds: null, el: { tag: 'u1' } },
+    { id: 'U2', followTargetId: null, intersectFnIds: ['f1', 'f3'], el: { tag: 'u2' } },
+    { id: 'U3', followTargetId: null, intersectFnIds: null, el: { tag: 'u3' } },
+  ];
+  state.constructions = [
+    { id: 'C1', kind: 'segment', fnId: 'f1', els: [{ tag: 'c1' }] },
+    { id: 'C2', kind: 'segment', fnId: 'f2', els: [{ tag: 'c2' }] },
+  ];
+
+  // detach：跟随 f1 的点（U1）+ 依赖 f1 的构造（C1）被拆除；无关对象保留
+  assert.doesNotThrow(
+    () => controller.detachFunctionDependents('f1'),
+    'detachFunctionDependents 不得抛 reregisterSelectable is not defined',
+  );
+  assert.deepEqual(order, ['detach:C1'], '只有依赖 f1 的构造被 detach（且先于 state 数组修改）');
+  assert.ok(
+    !state.constructions.some((c) => c.id === 'C1'),
+    'C1 已从 state.constructions 移除',
+  );
+  assert.ok(
+    state.constructions.some((c) => c.id === 'C2'),
+    '无关构造 C2 保留',
+  );
+  assert.ok(!state.userPoints.some((r) => r.id === 'U1'), '跟随点 U1 已移除');
+  assert.ok(!state.userPoints.some((r) => r.id === 'U2'), '交点 U2 已移除');
+  assert.ok(state.userPoints.some((r) => r.id === 'U3'), '无关点 U3 保留');
+  assert.equal(
+    calls.filter((c) => c === 'reregisterSelectable').length,
+    1,
+    'detach 完成后 selection 只重新注册一次',
+  );
+
+  // rebind：按文档重建依赖并再次注册 selection
+  assert.doesNotThrow(
+    () =>
+      controller.rebindFunctionDependents('f1', {
+        points: [
+          { id: 'U1', x: 0.5, y: 0.25, constraint: { kind: 'followFunction', functionId: 'f1' } },
+        ],
+        constructions: [{ id: 'C1', kind: 'segment', fnId: 'f1', pointIds: ['U1', 'U3'] }],
+      }),
+    'rebindFunctionDependents 不得抛 reregisterSelectable is not defined',
+  );
+  assert.equal(
+    calls.filter((c) => c === 'reregisterSelectable').length,
+    2,
+    'rebind 完成后 selection 再次注册恰好一次',
+  );
   restore();
 });
 
