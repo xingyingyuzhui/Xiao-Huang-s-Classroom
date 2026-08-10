@@ -81,7 +81,6 @@ function releaseDatabaseLock() {
  * 使用 sql-asm（纯 JS）而非 wasm，pkg 打包更稳
  */
 async function loadSqlJs() {
-  // eslint-disable-next-line import/no-unresolved
   const initSqlJs = require('sql.js/dist/sql-asm.js');
   return initSqlJs();
 }
