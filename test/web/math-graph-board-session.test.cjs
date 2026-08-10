@@ -211,3 +211,34 @@ test('rollback 中一个 disposer 抛错不阻断其余，原始创建错误仍 
   assert.equal(deps.calls.filter((c) => c === 'dispose:viewBridge').length, 1, 'viewBridge 仍清理');
   assert.equal(deps.calls.filter((c) => c === 'dispose:persistence').length, 1, 'persistence 仍清理');
 });
+
+test('rollback 中 history.dispose 抛错：其余清理继续，聚合错误日志恰好一次', async () => {
+  const { createGraphBoardSession } = await sessionModule();
+  const deps = makeDeps({ failAt: 'history.clear' });
+  // history 已创建并 own：其 dispose 抛错不阻断 store/board/persistence 清理
+  deps.history.dispose = () => {
+    deps.calls.push('dispose:history');
+    throw new Error('history dispose exploded');
+  };
+  const originalError = console.error;
+  const logCalls = [];
+  console.error = (...args) => logCalls.push(args);
+  try {
+    assert.throws(
+      () => createGraphBoardSession(deps),
+      /injected history\.clear/,
+      '原始创建错误优先，不被 cleanup error 覆盖',
+    );
+    assert.equal(deps.calls.filter((c) => c === 'dispose:store').length, 1, 'store 仍清理');
+    assert.equal(deps.calls.filter((c) => c === 'freeMathBoard').length, 1, 'board 仍清理');
+    assert.equal(deps.calls.filter((c) => c === 'dispose:viewBridge').length, 1, 'viewBridge 仍清理');
+    assert.equal(deps.calls.filter((c) => c === 'dispose:persistence').length, 1, 'persistence 仍清理');
+    // 聚合错误通过一次可见日志输出，携带抛错 disposer 的 error
+    assert.equal(logCalls.length, 1, '聚合日志恰好一次');
+    assert.match(String(logCalls[0][0]), /board session dispose errors/, '日志标记明确');
+    assert.equal(logCalls[0][1].length, 1, '日志携带一个 error');
+    assert.match(String(logCalls[0][1][0]?.message || ''), /history dispose exploded/, '日志含抛错详情');
+  } finally {
+    console.error = originalError;
+  }
+});

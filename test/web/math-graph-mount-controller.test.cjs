@@ -389,9 +389,23 @@ async function makeController(overrides = {}) {
 }
 
 test('20 次 mount → 点击 → dispose：handler 单次、资源全部归零', async () => {
-  const { controller, env, elements, calls, restore } = await makeController();
+  let fullRenderCount = 0;
+  const { controller, env, elements, calls, restore } = await makeController({
+    graphRenderer: {
+      fullRender: () => {
+        fullRenderCount += 1;
+        return undefined;
+      },
+      beforeCommit: () => ({ ok: true }),
+      recover: () => ({ ok: true }),
+      dispose: () => {},
+    },
+  });
   for (let round = 0; round < 20; round += 1) {
     controller.initGraphUI();
+    // 同一轮重复 init：已有 board 快速路径，不替换 session、不重复投影
+    controller.initGraphUI();
+    assert.equal(fullRenderCount, round + 1, `round ${round} 新 mount 恰好一次投影`);
     // 点击导入/导出/重置各一次（不触发文件选择完成）
     elements.get('btnMathGraphImport').click();
     elements.get('btnMathGraphExport').click();
@@ -424,9 +438,10 @@ test('20 次 mount → 点击 → dispose：handler 单次、资源全部归零'
     controller.disposeGraph();
     controller.disposeGraph();
   }
-  // 20 轮累计：每次导出一个 URL
+  // 20 轮累计：每次导出一个 URL；20 轮新 mount 投影恰好 20 次（非 0/21/40）
   assert.equal(env.urls.length, 20);
   assert.equal(env.revokedUrls.length, 20);
+  assert.equal(fullRenderCount, 20, '20 轮完整 mount 投影恰好 20 次');
   restore();
 });
 
