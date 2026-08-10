@@ -6,6 +6,7 @@
  * 物理/生物 placeholder 走 status: 'locked'（可见不可点，沿用现有行为）。
  */
 import { getDefaultTabId, getSubjectTabMeta } from '@xiaohuang/subject-settings';
+import { getClassroomFactory } from './classroom-loader.js';
 import { SUBJECTS } from './catalog.js';
 
 /** 已注册 classroom 工厂 id（纯数据；与 registry.CLASSROOM_FACTORY_IDS 一致，
@@ -55,10 +56,10 @@ export function subjectManifest(subjectId) {
       defaultPanel: getDefaultTabId(subjectId),
       panels,
       mount: async () => {
-        // 教室工厂由装配层注册（classroom-loader 环外注册表，registry 加载时
-        // 注册）。本模块不依赖 registry 工厂链（其依赖 DOM/HTML partial，
-        // Node 测试不可静态加载；且避免 home-shell → manifest 依赖环）。
-        const { getClassroomFactory } = await import('./classroom-loader.js');
+        // classroom-loader 零依赖（无 registry/HTML/DOM 依赖），由 registry.js
+        // 装配时静态注册工厂；本模块静态导入工厂查询函数，仍禁止静态导入
+        // classrooms/registry.js（其依赖 DOM/HTML partial，Node 测试不可静态
+        // 加载，且避免 home-shell → manifest → registry 依赖环）。
         const factory = getClassroomFactory(subjectId);
         if (!factory) throw new Error(`未注册 classroom 工厂: ${subjectId}`);
         return factory({ select: (sel) => document.querySelector(sel) });
