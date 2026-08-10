@@ -106,8 +106,8 @@
   },
   "web/src/math/graph/graph-mount-controller.js": {
     "category": "controller",
-    "plan": "挂载生命周期控制器（disposer 栈），职责内聚",
-    "lines": 950
+    "plan": "挂载生命周期控制器（Task 9 拆分后 750 行：board/ui/dispose 已收敛 session 文件）",
+    "lines": 750
   },
   "web/src/math/graph/graph-record-validation.js": {
     "category": "logic",

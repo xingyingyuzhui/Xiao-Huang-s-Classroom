@@ -28,11 +28,13 @@ export default defineConfig({
   },
   build: {
     outDir: 'dist',
+    manifest: true,
     rollupOptions: {
       output: {
         manualChunks: {
           three: ['three'],
-          mathviz: ['jsxgraph', 'katex'],
+          jsxgraph: ['jsxgraph'],
+          katex: ['katex'],
           animation: ['animejs', 'canvas-confetti'],
         },
       },

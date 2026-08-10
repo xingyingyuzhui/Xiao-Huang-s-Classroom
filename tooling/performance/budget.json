@@ -1,9 +1,62 @@
 {
   "baseline": "2026-08-07",
+  "entries": {
+    "initial": "index.html",
+    "mathGraph": "src/math/graph/index.js",
+    "mathClassroomKatexOnly": "src/math/classroom/entry.js"
+  },
+  "vendors": ["jsxgraph", "katex", "three"],
+  "splitTransforms": {
+    "mathGraph": { "mathviz": ["jsxgraph", "katex"] },
+    "mathClassroomKatexOnly": { "mathviz": ["katex"] }
+  },
   "chunks": [
-    { "name": "mathviz", "maxKb": 1350, "note": "JSXGraph+KaTeX；基线 1286kB，预留 5%" },
-    { "name": "three", "maxKb": 730, "note": "Three.js；基线 690kB，预留 6%" },
-    { "name": "index", "maxKb": 720, "note": "index-* 全部分包合计；基线 304+186+131=621kB" }
+    {
+      "name": "jsxgraph",
+      "rawMaxKb": 1035,
+      "gzipMaxKb": 268,
+      "note": "2026-08-08: 拆包后实测 raw 967kB / gzip 250kB，+7% 字节余量（拆分前并入 mathviz 1286kB）"
+    },
+    {
+      "name": "katex",
+      "rawMaxKb": 272,
+      "gzipMaxKb": 81,
+      "note": "2026-08-08: 拆包后实测 raw 254kB / gzip 75kB，+7% 字节余量（JS，不含字体/CSS）"
+    },
+    {
+      "name": "three",
+      "rawMaxKb": 721,
+      "gzipMaxKb": 184,
+      "note": "2026-08-08: 实测 raw 673kB / gzip 171kB，+7% 字节余量（沿用 2026-08-07 730kB 旧预算口径）"
+    },
+    {
+      "name": "index",
+      "rawMaxKb": 658,
+      "gzipMaxKb": 205,
+      "note": "2026-08-08: index-* JS 分包合计实测 raw 615kB / gzip 192kB，+7% 字节余量；旧预算 720kB（基线 621kB + 16%）"
+    }
   ],
-  "totalMaxKb": 4200
+  "routes": {
+    "initial": {
+      "rawMaxKb": 1334,
+      "gzipMaxKb": 328,
+      "maxAssetCount": 4,
+      "note": "2026-08-08: 实测 raw 1247kB / gzip 307kB / 3 请求，+7% 字节余量、请求数 +1"
+    },
+    "mathGraph": {
+      "incrementalRawMaxKb": 1244,
+      "incrementalGzipMaxKb": 333,
+      "maxAssetCount": 6,
+      "note": "2026-08-08: 拆分后实测 +1163kB raw / +312kB gzip / 5 请求，+7% 字节余量、请求数 +1（拆分前 1452kB raw）"
+    },
+    "mathClassroomKatexOnly": {
+      "incrementalRawMaxKb": 1443,
+      "incrementalGzipMaxKb": 1001,
+      "maxAssetCount": 64,
+      "forbiddenChunks": ["jsxgraph"],
+      "note": "2026-08-08: 拆分后实测 +1349kB raw / +935kB gzip / 63 请求，+7% 字节余量、请求数 +1；KaTeX-only 禁止 JSXGraph（拆分前 2350kB raw，含 mathviz 整包）"
+    }
+  },
+  "totalRawMaxKb": 3263,
+  "totalGzipMaxKb": 877
 }

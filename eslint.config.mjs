@@ -1,25 +1,6 @@
 import js from '@eslint/js';
+import globals from 'globals';
 import tseslint from 'typescript-eslint';
-
-/** Node CommonJS 全局（.cjs 测试与工具脚本） */
-const nodeGlobals = {
-  require: 'readonly',
-  module: 'readonly',
-  exports: 'readonly',
-  __dirname: 'readonly',
-  __filename: 'readonly',
-  process: 'readonly',
-  console: 'readonly',
-  Buffer: 'readonly',
-  setTimeout: 'readonly',
-  clearTimeout: 'readonly',
-  setInterval: 'readonly',
-  clearInterval: 'readonly',
-  fetch: 'readonly',
-  URL: 'readonly',
-  URLSearchParams: 'readonly',
-  structuredClone: 'readonly',
-};
 
 export default tseslint.config(
   {
@@ -48,7 +29,7 @@ export default tseslint.config(
   },
   {
     files: ['**/*.cjs'],
-    languageOptions: { globals: nodeGlobals },
+    languageOptions: { globals: globals.node },
     rules: {
       '@typescript-eslint/no-require-imports': 'off',
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
@@ -56,7 +37,7 @@ export default tseslint.config(
   },
   {
     files: ['**/*.js', '**/*.mjs'],
-    languageOptions: { globals: nodeGlobals },
+    languageOptions: { globals: globals.node },
     rules: {
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
       'no-empty': ['error', { allowEmptyCatch: true }],
@@ -70,47 +51,12 @@ export default tseslint.config(
     },
   },
   {
-    // Web 源码是浏览器环境：window/document/requestAnimationFrame 等全局合法
+    // Web 源码是浏览器环境：window/document/requestAnimationFrame 等全局合法。
+    // 全局数据源为标准 globals.browser 表（Node 20 起 fetch/AbortController/performance
+    // 均为标准成员）；globalThis 属于语言级全局，无需表项。
     files: ['apps/web/**/*.{js,ts}'],
     languageOptions: {
-      globals: {
-        window: 'readonly',
-        document: 'readonly',
-        navigator: 'readonly',
-        location: 'readonly',
-        history: 'readonly',
-        localStorage: 'readonly',
-        sessionStorage: 'readonly',
-        requestAnimationFrame: 'readonly',
-        cancelAnimationFrame: 'readonly',
-        ResizeObserver: 'readonly',
-        MutationObserver: 'readonly',
-        IntersectionObserver: 'readonly',
-        fetch: 'readonly',
-        URL: 'readonly',
-        URLSearchParams: 'readonly',
-        Blob: 'readonly',
-        FileReader: 'readonly',
-        AbortController: 'readonly',
-        CustomEvent: 'readonly',
-        Event: 'readonly',
-        KeyboardEvent: 'readonly',
-        MouseEvent: 'readonly',
-        HTMLElement: 'readonly',
-        HTMLInputElement: 'readonly',
-        HTMLButtonElement: 'readonly',
-        HTMLCanvasElement: 'readonly',
-        structuredClone: 'readonly',
-        console: 'readonly',
-        setTimeout: 'readonly',
-        clearTimeout: 'readonly',
-        setInterval: 'readonly',
-        clearInterval: 'readonly',
-        queueMicrotask: 'readonly',
-        globalThis: 'readonly',
-        getComputedStyle: 'readonly',
-        matchMedia: 'readonly',
-      },
+      globals: globals.browser,
     },
   },
 );

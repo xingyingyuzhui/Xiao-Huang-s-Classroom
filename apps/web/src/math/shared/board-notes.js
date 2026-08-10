@@ -8,6 +8,8 @@
  */
 
 import { createButton } from '@xiaohuang/ui';
+import { dismissBoardCompass } from './board-compass.js';
+import { dismissObjectStyleBubble } from './object-style-panel.js';
 import { ensureMathBoardFabDock, pruneMathBoardFabDock } from './board-fab-dock.js';
 
 /** 高对比预置色：色相拉开，避免蓝/青/紫发糊 */
@@ -580,16 +582,9 @@ function createNotesController(board, boardEl, host, storageKey) {
       activeNotes = api;
       active = true;
       applyBoardInteraction(false);
-      try {
-        import('./board-compass.js').then((m) => m.dismissBoardCompass?.());
-      } catch {
-        /* */
-      }
-      try {
-        import('./object-style-panel.js').then((m) => m.dismissObjectStyleBubble?.());
-      } catch {
-        /* */
-      }
+      // 罗盘 / 对象样式气泡与笔记互斥（同 chunk 已静态消费，无需假 lazy 分包）
+      dismissBoardCompass();
+      dismissObjectStyleBubble();
     } else {
       endStroke();
       active = false;

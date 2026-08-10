@@ -1,0 +1,736 @@
+{
+  "formatVersion": 1,
+  "entries": {
+    "initial": "index.html",
+    "mathGraph": "src/math/graph/index.js",
+    "mathClassroomKatexOnly": "src/math/classroom/entry.js"
+  },
+  "routes": {
+    "initial": {
+      "requests": [
+        {
+          "source": "index.html",
+          "role": "entry",
+          "family": "index",
+          "kind": "js",
+          "file": "assets/index-C6ZkTyFp.js",
+          "rawKb": 302.6240234375,
+          "gzipKb": 89.9970703125
+        },
+        {
+          "source": "index.html",
+          "role": "css",
+          "family": "index",
+          "kind": "css",
+          "file": "assets/index-Cd53ehgO.css",
+          "rawKb": 270.8203125,
+          "gzipKb": 45.484375
+        },
+        {
+          "source": "_three-1fxYpRxZ.js",
+          "role": "shared",
+          "family": "three",
+          "kind": "js",
+          "file": "assets/three-1fxYpRxZ.js",
+          "rawKb": 673.3623046875,
+          "gzipKb": 171.4287109375
+        }
+      ],
+      "rawKb": 1246.806640625,
+      "gzipKb": 306.91015625,
+      "assetCount": 3
+    },
+    "mathGraph": {
+      "requests": [
+        {
+          "source": "src/math/graph/index.js",
+          "role": "dynamic-entry",
+          "family": "index",
+          "kind": "js",
+          "file": "assets/index-Cn6kvnR3.js",
+          "rawKb": 184.18359375,
+          "gzipKb": 57.390625
+        },
+        {
+          "source": "_object-select-B4uUvnlj.js",
+          "role": "shared",
+          "family": "object-select",
+          "kind": "js",
+          "file": "assets/object-select-B4uUvnlj.js",
+          "rawKb": 8.318359375,
+          "gzipKb": 3.345703125
+        },
+        {
+          "source": "_object-select-B4uUvnlj.js",
+          "role": "css",
+          "family": "object-select",
+          "kind": "css",
+          "file": "assets/object-select--37aeTCY.css",
+          "rawKb": 1.8828125,
+          "gzipKb": 0.6123046875
+        },
+        {
+          "source": "_param-controls-qIteHKY2.js",
+          "role": "shared",
+          "family": "param-controls",
+          "kind": "js",
+          "file": "assets/param-controls-qIteHKY2.js",
+          "rawKb": 1.4267578125,
+          "gzipKb": 0.6279296875
+        },
+        {
+          "source": "_mathviz-BJBtfEwJ.js",
+          "role": "shared",
+          "family": "mathviz",
+          "kind": "js",
+          "file": "assets/mathviz-BJBtfEwJ.js",
+          "rawKb": 1256.0908203125,
+          "gzipKb": 326.9423828125
+        }
+      ],
+      "incrementalRawKb": 1451.90234375,
+      "incrementalGzipKb": 388.9189453125,
+      "incrementalAssetCount": 5
+    },
+    "mathClassroomKatexOnly": {
+      "requests": [
+        {
+          "source": "src/math/classroom/entry.js",
+          "role": "dynamic-entry",
+          "family": "entry",
+          "kind": "js",
+          "file": "assets/entry-CQwBgqp1.js",
+          "rawKb": 16.826171875,
+          "gzipKb": 6.203125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "shared",
+          "family": "tex",
+          "kind": "js",
+          "file": "assets/tex-kZsxQ3sP.js",
+          "rawKb": 0.287109375,
+          "gzipKb": 0.203125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "css",
+          "family": "tex",
+          "kind": "css",
+          "file": "assets/tex-DywYRkvg.css",
+          "rawKb": 29.48046875,
+          "gzipKb": 7.767578125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_AMS-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_AMS-Regular-BQhdFMY1.woff2",
+          "rawKb": 27.41796875,
+          "gzipKb": 27.4453125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_AMS-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_AMS-Regular-DMm9YOAa.woff",
+          "rawKb": 32.73046875,
+          "gzipKb": 32.740234375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_AMS-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_AMS-Regular-DRggAlZN.ttf",
+          "rawKb": 62.140625,
+          "gzipKb": 33.7333984375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Caligraphic-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Caligraphic-Bold-Dq_IR9rO.woff2",
+          "rawKb": 6.75,
+          "gzipKb": 6.7724609375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Caligraphic-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Caligraphic-Bold-BEiXGLvX.woff",
+          "rawKb": 7.53515625,
+          "gzipKb": 7.482421875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Caligraphic-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Caligraphic-Bold-ATXxdsX0.ttf",
+          "rawKb": 12.078125,
+          "gzipKb": 7.546875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Caligraphic-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Caligraphic-Regular-Di6jR-x-.woff2",
+          "rawKb": 6.74609375,
+          "gzipKb": 6.7685546875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Caligraphic-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Caligraphic-Regular-CTRA-rTL.woff",
+          "rawKb": 7.4765625,
+          "gzipKb": 7.4326171875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Caligraphic-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Caligraphic-Regular-wX97UBjC.ttf",
+          "rawKb": 12.0546875,
+          "gzipKb": 7.49609375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Fraktur-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Fraktur-Bold-CL6g_b3V.woff2",
+          "rawKb": 11.08203125,
+          "gzipKb": 11.1044921875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Fraktur-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Fraktur-Bold-BsDP51OF.woff",
+          "rawKb": 12.984375,
+          "gzipKb": 12.947265625
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Fraktur-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Fraktur-Bold-BdnERNNW.ttf",
+          "rawKb": 19.125,
+          "gzipKb": 13.0146484375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Fraktur-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Fraktur-Regular-CTYiF6lA.woff2",
+          "rawKb": 11.05078125,
+          "gzipKb": 11.0732421875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Fraktur-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Fraktur-Regular-Dxdc4cR9.woff",
+          "rawKb": 12.8984375,
+          "gzipKb": 12.8623046875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Fraktur-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Fraktur-Regular-CB_wures.ttf",
+          "rawKb": 19.11328125,
+          "gzipKb": 12.943359375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Bold-Cx986IdX.woff2",
+          "rawKb": 24.73046875,
+          "gzipKb": 24.7578125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Bold-Jm3AIy58.woff",
+          "rawKb": 29.2109375,
+          "gzipKb": 29.23046875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Bold-waoOVXN0.ttf",
+          "rawKb": 50.1328125,
+          "gzipKb": 29.8466796875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-BoldItalic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-BoldItalic-DxDJ3AOS.woff2",
+          "rawKb": 16.38671875,
+          "gzipKb": 16.4140625
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-BoldItalic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-BoldItalic-SpSLRI95.woff",
+          "rawKb": 18.95703125,
+          "gzipKb": 18.93359375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-BoldItalic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-BoldItalic-DzxPMmG6.ttf",
+          "rawKb": 32.1953125,
+          "gzipKb": 19.23828125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Italic-NWA7e6Wa.woff2",
+          "rawKb": 16.58984375,
+          "gzipKb": 16.6171875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Italic-BMLOBm91.woff",
+          "rawKb": 19.21484375,
+          "gzipKb": 19.193359375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Italic-3WenGoN9.ttf",
+          "rawKb": 32.79296875,
+          "gzipKb": 19.53515625
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Regular-B22Nviop.woff2",
+          "rawKb": 25.65625,
+          "gzipKb": 25.68359375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Regular-Dr94JaBh.woff",
+          "rawKb": 30.05078125,
+          "gzipKb": 30.0654296875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Main-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Main-Regular-ypZvNtVU.ttf",
+          "rawKb": 52.32421875,
+          "gzipKb": 30.7451171875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Math-BoldItalic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Math-BoldItalic-CZnvNsCZ.woff2",
+          "rawKb": 16.015625,
+          "gzipKb": 16.0380859375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Math-BoldItalic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Math-BoldItalic-iY-2wyZ7.woff",
+          "rawKb": 18.23046875,
+          "gzipKb": 18.1962890625
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Math-BoldItalic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Math-BoldItalic-B3XSjfu4.ttf",
+          "rawKb": 30.46484375,
+          "gzipKb": 18.546875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Math-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Math-Italic-t53AETM-.woff2",
+          "rawKb": 16.0546875,
+          "gzipKb": 16.080078125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Math-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Math-Italic-DA0__PXp.woff",
+          "rawKb": 18.30859375,
+          "gzipKb": 18.283203125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Math-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_Math-Italic-flOr_0UB.ttf",
+          "rawKb": 30.57421875,
+          "gzipKb": 18.6767578125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Bold-D1sUS0GD.woff2",
+          "rawKb": 11.9296875,
+          "gzipKb": 11.9521484375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Bold-DbIhKOiC.woff",
+          "rawKb": 14.0703125,
+          "gzipKb": 14.0439453125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Bold",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Bold-CFMepnvq.ttf",
+          "rawKb": 23.9296875,
+          "gzipKb": 14.248046875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Italic-C3H0VqGB.woff2",
+          "rawKb": 11.74609375,
+          "gzipKb": 11.7685546875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Italic-DN2j7dab.woff",
+          "rawKb": 13.78125,
+          "gzipKb": 13.7412109375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Italic",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Italic-YYjJ1zSn.ttf",
+          "rawKb": 21.83984375,
+          "gzipKb": 13.9345703125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Regular-DDBCnlJ7.woff2",
+          "rawKb": 10.1015625,
+          "gzipKb": 10.1240234375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Regular-CS6fqUqJ.woff",
+          "rawKb": 12.02734375,
+          "gzipKb": 11.9912109375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_SansSerif-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_SansSerif-Regular-BNo7hRIc.ttf",
+          "rawKb": 18.98046875,
+          "gzipKb": 12.0693359375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Script-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Script-Regular-D3wIWfF6.woff2",
+          "rawKb": 9.41796875,
+          "gzipKb": 9.4404296875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Script-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Script-Regular-D5yQViql.woff",
+          "rawKb": 10.33984375,
+          "gzipKb": 10.287109375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Script-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Script-Regular-C5JkGWo-.ttf",
+          "rawKb": 16.2578125,
+          "gzipKb": 10.435546875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size1-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size1-Regular-mCD8mA8B.woff2",
+          "rawKb": 5.33984375,
+          "gzipKb": 5.3623046875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size1-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size1-Regular-C195tn64.woff",
+          "rawKb": 6.34375,
+          "gzipKb": 6.298828125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size1-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size1-Regular-Dbsnue_I.ttf",
+          "rawKb": 11.94140625,
+          "gzipKb": 6.244140625
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size2-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size2-Regular-Dy4dx90m.woff2",
+          "rawKb": 5.0859375,
+          "gzipKb": 5.1083984375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size2-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size2-Regular-oD1tc_U0.woff",
+          "rawKb": 6.04296875,
+          "gzipKb": 5.9921875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size2-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size2-Regular-B7gKUWhC.ttf",
+          "rawKb": 11.23828125,
+          "gzipKb": 5.94921875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size3-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size3-Regular-CTq5MqoE.woff",
+          "rawKb": 4.31640625,
+          "gzipKb": 4.2578125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size3-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size3-Regular-DgpXs0kz.ttf",
+          "rawKb": 7.41015625,
+          "gzipKb": 4.173828125
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size4-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size4-Regular-Dl5lxZxV.woff2",
+          "rawKb": 4.8125,
+          "gzipKb": 4.8349609375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size4-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size4-Regular-BF-4gkZK.woff",
+          "rawKb": 5.83984375,
+          "gzipKb": 5.7880859375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Size4-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Size4-Regular-DWFBv043.ttf",
+          "rawKb": 10.12109375,
+          "gzipKb": 5.7919921875
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Typewriter-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Typewriter-Regular-CO6r4hn1.woff2",
+          "rawKb": 13.25,
+          "gzipKb": 13.2724609375
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Typewriter-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Typewriter-Regular-C0xS9mPB.woff",
+          "rawKb": 15.65234375,
+          "gzipKb": 15.6181640625
+        },
+        {
+          "source": "_tex-kZsxQ3sP.js",
+          "role": "asset",
+          "family": "KaTeX_Typewriter-Regular",
+          "kind": "asset",
+          "file": "assets/KaTeX_Typewriter-Regular-D3Ib7_Hf.ttf",
+          "rawKb": 26.91015625,
+          "gzipKb": 15.8974609375
+        },
+        {
+          "source": "_mathviz-BJBtfEwJ.js",
+          "role": "shared",
+          "family": "mathviz",
+          "kind": "js",
+          "file": "assets/mathviz-BJBtfEwJ.js",
+          "rawKb": 1256.0908203125,
+          "gzipKb": 326.9423828125
+        }
+      ],
+      "incrementalRawKb": 2350.4853515625,
+      "incrementalGzipKb": 1187.1875,
+      "incrementalAssetCount": 63
+    }
+  },
+  "chunks": {
+    "OrbitControls": {
+      "rawKb": 18.634765625,
+      "gzipKb": 4.1689453125,
+      "files": 1
+    },
+    "animation": {
+      "rawKb": 49.5791015625,
+      "gzipKb": 19.029296875,
+      "files": 1
+    },
+    "electron-configs": {
+      "rawKb": 2.6591796875,
+      "gzipKb": 0.669921875,
+      "files": 1
+    },
+    "entry": {
+      "rawKb": 144.9111328125,
+      "gzipKb": 45.2138671875,
+      "files": 2
+    },
+    "index": {
+      "rawKb": 615.142578125,
+      "gzipKb": 192.111328125,
+      "files": 8
+    },
+    "list": {
+      "rawKb": 4.154296875,
+      "gzipKb": 1.9404296875,
+      "files": 1
+    },
+    "mathviz": {
+      "rawKb": 1256.0908203125,
+      "gzipKb": 326.9423828125,
+      "files": 1
+    },
+    "object-select": {
+      "rawKb": 8.318359375,
+      "gzipKb": 3.345703125,
+      "files": 1
+    },
+    "param-controls": {
+      "rawKb": 1.4267578125,
+      "gzipKb": 0.6279296875,
+      "files": 1
+    },
+    "renderer": {
+      "rawKb": 6.505859375,
+      "gzipKb": 3.0830078125,
+      "files": 1
+    },
+    "tex": {
+      "rawKb": 0.287109375,
+      "gzipKb": 0.203125,
+      "files": 1
+    },
+    "three": {
+      "rawKb": 673.3623046875,
+      "gzipKb": 171.4287109375,
+      "files": 1
+    }
+  },
+  "total": {
+    "rawKb": 3083.255859375,
+    "gzipKb": 822.62890625
+  }
+}

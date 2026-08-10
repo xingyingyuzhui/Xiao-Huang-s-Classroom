@@ -2,6 +2,7 @@
 import {
   attachMidpointMeasureLabel,
   bindLiveLabel,
+  boardLabelAttrs,
   formatSmartNumber,
   measureLabelPlacementFor,
 } from '../../shared/board-label.js';
@@ -117,11 +118,15 @@ export function createTangent(host, pt, fn, pointId, id, opts = {}) {
  * 端点用函数上的 glider（拖动更新 x1/x2 语义，由调用方 commit）。
  * @param {any} host
  * @param {any} meta { id, kind:'secant', fnId, x1, x2, showDelta }
+ * @param {{ notify?: boolean }} [opts]
  */
-export function createSecantConstruction(host, meta) {
+export function createSecantConstruction(host, meta = {}, opts = {}) {
   const board = host.getBoard();
-  const fn = host.getFunctions().find((f) => f.id === meta.fnId);
+  const fn = host.getFunctions().find((item) => item.id === meta.fnId);
   if (!board || !fn?.curve) return null;
+  // 先校验 board/目标函数、再分配最终 ID：失败尝试不消耗 allocator，
+  // 也不得先用可能为空的 meta.id 标记 element
+  const id = meta.id || host.nextConstrId();
   const chrome = getMathBoardChrome();
 
   const x1 = Number.isFinite(Number(meta.x1)) ? Number(meta.x1) : 0;
@@ -179,15 +184,16 @@ export function createSecantConstruction(host, meta) {
     bindLiveLabel(measure, getText, [pA, pB]);
     els.push(measure);
   }
+  // 所有 JSXGraph element 创建完成后统一写最终 id
   for (const el of els) {
     el._mathConstr = true;
-    el._mathConstrId = meta.id;
+    el._mathConstrId = id;
     el._mathConstrKind = 'secant';
   }
   pA._mathSecantX = 'x1';
   pB._mathSecantX = 'x2';
   const rec = {
-    id: meta.id || host.nextConstrId(),
+    id,
     kind: 'secant',
     fnId: fn.id,
     x1: Number(pA.X()),
@@ -198,6 +204,6 @@ export function createSecantConstruction(host, meta) {
     extend: false,
   };
   host.getConstructions().push(rec);
-  host.onChanged?.();
+  if (opts.notify !== false) host.onChanged?.();
   return rec;
 }
