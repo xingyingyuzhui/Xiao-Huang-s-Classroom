@@ -131,7 +131,7 @@ function makeDeps({ failAt = null } = {}) {
     },
     syncRuntimeFromDocument: () => ({ ok: true }),
     graphRenderer: { recover: () => ({ ok: true }) },
-    createGraphStore: (initial) => {
+    createGraphStore: () => {
       maybeThrow('createGraphStore');
       return store;
     },
