@@ -413,7 +413,7 @@ ls test/web/*.vitest.ts | wc -l
 
 | 选项 | 做法 | 注意 |
 | ---- | ---- | ---- |
-| **E2-a** pre-push hook | 对 `main` 推送跑 `quality:fast` 或 `quality` | 勿提交密钥；可用 simple husky 或 `core.hooksPath` |
+| **E2-a** pre-push hook | 对 `main` 推送跑 `quality:fast` 或 `quality` — ✅ **已落地（2026-08-08）**：`.githooks/pre-push` + `git config core.hooksPath .githooks`；非 main 推送不拦截 | 勿提交密钥；可用 simple husky 或 `core.hooksPath` |
 | **E2-b** 仅 CI 权威 | push 后必须 quality.yml 绿才算同步成功 | 适合 A0-1/A0-3 |
 | **E2-c** CODEOWNERS / 分支保护 | GitHub 保护 main：禁 force、要 PR | 需仓库权限 |
 | **E2-d** 不装 hook | 仅手册 + 抽查 | 单人可暂用，**不能**当长期唯一手段 |
@@ -479,7 +479,9 @@ ls test/web/*.vitest.ts | wc -l
 | C 热点地图 | 未 / 已 |
 | C 硬化样板 | — |
 | D 本批迁徙数 | 0 |
-| E2 选项 | 未选 |
+| E2 选项 | **E2-a**（pre-push hook，2026-08-08 落地） |
+| B 纪律生效 | **2026-08-10**（branch-authority.md 落地，B1/B2 自本计划起生效） |
+| F 手册 | **已**（safe-change-playbook.md 落地并链接） |
 | 下一刀 | **A0 人类决策 + A1 审计** |
 
 ---
@@ -496,8 +498,8 @@ ls test/web/*.vitest.ts | wc -l
 
 ### Track B
 
-- [ ] B1–B2 纪律写入 branch-authority  
-- [ ] B3 链接 AGENTS / engineering  
+- [x] B1–B2 纪律写入 branch-authority  
+- [x] B3 链接 AGENTS / engineering  
 
 ### Track C
 
@@ -514,15 +516,15 @@ ls test/web/*.vitest.ts | wc -l
 
 ### Track E
 
-- [ ] E1 命令矩阵  
-- [ ] E2 选项落地  
-- [ ] E3 agent 禁推句  
+- [x] E1 命令矩阵（quality-commands.md 第 6 节）
+- [x] E2 选项落地（E2-a pre-push hook，`.githooks/pre-push`）
+- [x] E3 agent 禁推句（AGENTS.md「Git 纪律」）
 
 ### Track F
 
-- [ ] F1 playbook  
-- [ ] F2 否决项  
-- [ ] F3 链接  
+- [x] F1 playbook  
+- [x] F2 否决项  
+- [x] F3 链接  
 
 ### 收官
 
@@ -554,6 +556,9 @@ Day 7+    若 A0-2：再开 PR/决定是否升格 origin/main（A0-1/3）
 | ---- | ----- | ---- | ----------- | ---- |
 | 2026-08-10 | — | 计划 v1.0 创建 | 文档 | — |
 | 2026-08-10 | A0 | 策略选定：A0-1 推 origin/main（负责人） | 文档 | — |
+| 2026-08-10 | B | branch-authority.md 落地（B1/B2、A3 填空句、A4 灾难卡）；AGENTS.md 加一行链接 | codex/risk-bf-docs @ 7371c7f | format:check / diff --check 绿 |
+| 2026-08-10 | F | safe-change-playbook.md 落地（标准流程、热点链接、F2 否决项、红线交叉链接） | codex/risk-bf-docs @ 7371c7f | format:check / diff --check 绿 |
+| 2026-08-10 | E | E1 命令矩阵（quality-commands.md 第 6 节）+ E2-a pre-push hook（`.githooks/pre-push`，core.hooksPath 启用）+ E3 AGENTS.md「Git 纪律」 | codex/risk-e-batch @ 84ccb95 | 沙盒模拟：main+门禁过放行 / main+门禁失败阻止（exit 1）/ feature 分支不拦截；format:check / diff --check 绿 |
 
 ---
 
