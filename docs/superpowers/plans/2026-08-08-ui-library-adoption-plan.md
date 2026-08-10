@@ -658,6 +658,10 @@ test/shared/ui-adoption-contract.test.cjs  # P0 新建
 | 2026-08-08 | 合并收口：13 分支并入开发分支；业务 import 9 文件（阈值 8 达成）；quality ×2 绿 | 合并提交 |
 | 2026-08-08 | H1 复核（handoff 计划 Track H）：§13 P0–P3 / P6 / P7.2–P7.3 依代码核对后勾选；P4/P5/P7.1-P7.5 原有勾选核对一致（P7.1 除外，见下） | `codex/handoff-docs` |
 | 2026-08-08 | **未闭合原因（P7.1）**：§13 原勾「终态 ≥8 ✓」依据为业务 import 9 文件（指标达成），但合同门禁 `test/shared/ui-adoption-contract.test.cjs` 的 `MIN_BUSINESS_CONSUMERS` 仍为 3（P3 阈值），未按 P7.1 抬到 8；待后续任务将常量抬至 8 并重跑合同测试后勾选 | `codex/handoff-docs` |
+| 2026-08-08 | **handoff U1 polish**：确认路径审计 `docs/engineering/ui-dialog-audit.md`；`window.confirm/alert/prompt` 产品面调用 0 | `codex/u12-batch` |
+| 2026-08-08 | **handoff U2 polish**：app-dialog 打开焦点 / 关闭归还 opener / 滚动锁引用计数 / 连续 confirm 链首 opener；`app-dialog-scroll-lock` 10 测 | `codex/u12-batch` |
+| 2026-08-08 | **handoff U3 polish（三面）**：settings busy+focus+品牌重置确认；molecule 列表删除确认/空态/busy；lesson-packs 危险确认语气与防双提交；合同测 `settings-focus-busy` / `molecule-list-experience` / `lesson-packs-experience` | `codex/u3-batch` @ 至 `e626c37` |
+| 2026-08-10 | **handoff U4 收口**：`ui-library.md`「产品确认框必须走 app-dialog」定稿并清除 merge 冲突残留；debt D4/D7 + 工程路线图持续项指针；handoff 计划 §9/§10/§12 与代码对齐并标记计划收官 | 文档收口提交 |
 
 ---
 ## 20. 附录 C · 给执行 Agent 的验收口令

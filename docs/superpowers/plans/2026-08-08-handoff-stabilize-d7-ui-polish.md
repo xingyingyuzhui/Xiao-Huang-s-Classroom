@@ -163,8 +163,8 @@ npm run test -w @xiaohuang/web
 
 **完成定义：**
 
-- [ ] §13 与附录 B、代码三方一致
-- [ ] 无「代码已做但勾选空白」的大块漂移
+- [x] §13 与附录 B、代码三方一致（P7.1 门禁阈值仍为 3，有意未勾，见 UI 计划附录 B）
+- [x] 无「代码已做但勾选空白」的大块漂移
 
 ### H2 · 回写工程优化路线图
 
@@ -176,16 +176,14 @@ npm run test -w @xiaohuang/web
 
    > **状态（2026-08-08）：暂缓。** 无 Windows / 可验收便携环境；不删除 pkg 入口；恢复条件：具备 Win 或等价 CI runner 并完成 `pkg-retirement-gate.md` 清单。
 
-2. 确认 §9.3 D-test 已勾批次与「持续项」表述仍准确；在持续项下增加指针：
-
-   > 下一批执行见 `docs/superpowers/plans/2026-08-08-handoff-stabilize-d7-ui-polish.md` Track T。
+2. 确认 §9.3 D-test 已勾批次与「持续项」表述仍准确（**T 本批完成后**持续项应写「剩余 web cjs / desktop 分批」，勿再写「下一批做 Track T」）。
 
 3. 若 G1「连续 10 次 CI」未达：保持 `[ ]`，在 Track Q 日志中记「本轮 quality 证据」，不强行勾 G1。
 
 **完成定义：**
 
-- [ ] D2 暂缓对任何后续 agent 可读、不可误解为「下一步就做 exe」
-- [ ] D7 持续项指向本文 Track T
+- [x] D2 暂缓对任何后续 agent 可读、不可误解为「下一步就做 exe」
+- [x] D7 持续项已反映 T 本批完成 + 剩余 cjs 约数（见路线图 §9.3 / debt D7）
 
 ### H3 · debt-registry 轻量对齐
 
@@ -195,11 +193,11 @@ npm run test -w @xiaohuang/web
 
 - D2（若表中有 pkg 相关）：状态含「暂缓 / 无 Win 环境」。
 - D4：与 UI 危险模式门禁 / 豁免清单一致（已有则只补日期/指针）。
-- D7：注明 server 完成；web 下一批见本文 Track T。
+- D7：注明 server 完成；web handoff T 批完成 + 剩余 cjs 约数（勿再写「下一批见 Track T」）。
 
 **完成定义：**
 
-- [ ] 三处债务表述无互相矛盾
+- [x] 三处债务表述无互相矛盾
 
 ### H4 · 交接一页纸（写在本文 §9 或独立小节即可）
 
@@ -215,7 +213,7 @@ quality：<通过/失败 + 日期>
 
 **完成定义：**
 
-- [ ] §9「交接卡」已填最新值
+- [x] §9「交接卡」已填最新值（2026-08-10 收口）
 
 ### Track H 验证
 
@@ -241,8 +239,8 @@ npm run quality
 
 **完成定义：**
 
-- [ ] `npm run quality` 退出码 0
-- [ ] 本文状态日志记录：日期、分支、短 hash、命令、结果
+- [x] `npm run quality` 退出码 0（含 2026-08-09 于 `e626c37` 复验）
+- [x] 本文状态日志记录：日期、分支、短 hash、命令、结果
 
 ### Q2 · 失败时的处置顺序（禁止乱改）
 
@@ -352,18 +350,18 @@ rg -n "window\\.confirm" apps/web/src --glob '*.{js,ts}' || true
 
 ### 5.4 配置与脚本检查清单
 
-- [ ] `apps/web/vitest.config.ts` include 覆盖新文件
-- [ ] 无 `*.test.cjs` 与 `*.vitest.ts` 测同一行为
-- [ ] 根或 web `package.json` 的 `node --test …` 未写死已删文件名（若有显式列表）
-- [ ] 不引入 packages 并行 coverage 竞态回归（勿无故打开 packages 共享 real coverage 并行）
+- [x] `apps/web/vitest.config.ts` include 覆盖新文件（glob `*.vitest.ts`）
+- [x] 无 `*.test.cjs` 与 `*.vitest.ts` 测同一行为（同名仅 `settings-toast-consumption`：cjs=源静态合同、vitest=运行时，职责拆分非双权威）
+- [x] 根或 web `package.json` 的 `node --test …` 未写死已删文件名（glob 式）
+- [x] 不引入 packages 并行 coverage 竞态回归
 
 ### 5.5 Track T 完成定义
 
-- [ ] ≥12 个 web 用例文件完成迁徙且旧 cjs 移除
-- [ ] `npm run test -w @xiaohuang/web` 通过
-- [ ] `npm run quality:fast` 通过（或全量 quality，若触及根配置）
-- [ ] 工程路线图 §9.3 增加「本批」勾选行 + 日期
-- [ ] debt-registry D7 备注更新剩余 cjs 约数
+- [x] ≥12 个 web 用例文件完成迁徙且旧 cjs 移除（实迁 24）
+- [x] `npm run test -w @xiaohuang/web` 通过
+- [x] `npm run quality:fast` / 全量 `quality` 通过（见 §12）
+- [x] 工程路线图 §9.3 增加「本批」勾选行 + 日期
+- [x] debt-registry D7 备注更新剩余 cjs 约数（2026-08-10 收口：≈48）
 
 ### 5.6 Track T 验证命令
 
@@ -412,8 +410,8 @@ rg -n "appConfirm|appAlert|appPrompt" apps/web/src --glob '*.{js,ts}'
 
 **完成定义：**
 
-- [ ] 审计表提交
-- [ ] `window.confirm/alert/prompt` 在 `apps/web/src` 为 **0**，或仅有**登记豁免**（测试/dev 工具）
+- [x] 审计表提交（`docs/engineering/ui-dialog-audit.md`）
+- [x] `window.confirm/alert/prompt` 在 `apps/web/src` 为 **0**（仅注释 + dev catalog 豁免）
 
 ### 6.3 U2 · 焦点与滚动合同加固
 
@@ -431,8 +429,8 @@ rg -n "appConfirm|appAlert|appPrompt" apps/web/src --glob '*.{js,ts}'
 
 **完成定义：**
 
-- [ ] U2 至少 2 条落地 + 测试绿
-- [ ] catalog 中 Dialog 演示仍可用（若有）
+- [x] U2 至少 2 条落地 + 测试绿（U2.1–U2.4 全落地，`app-dialog-scroll-lock` 10/10）
+- [x] catalog 中 Dialog 演示仍可用（dev 路径）
 
 ### 6.4 U3 · 高流量面体验补丁（至少 2 面）
 
@@ -446,18 +444,18 @@ rg -n "appConfirm|appAlert|appPrompt" apps/web/src --glob '*.{js,ts}'
 | AI 课壳     | `lesson-packs` / `lab-shell` / `quiz-shell`                 | 连续危险确认的按钮标签（删除/放弃/恢复）语气统一             |
 | 板工具/笔记 | `board-tools.js` / `board-notes.js`                         | 折叠/选中态与 ui-btn 焦点环；避免 `display` 覆盖隐藏         |
 
-**每面完成定义：**
+**每面完成定义：**（U3 已选设置 / 分子列表 / lesson-packs 三面）
 
-- [ ] 该面危险操作均走 app-dialog 家族
-- [ ] 可见焦点环（键盘 Tab）不丢
-- [ ] 相关既有测试 + 必要的新增合同测通过
-- [ ] 无新增主题硬编码色（`lint:theme-tokens` 若触及主题文件）
+- [x] 该面危险操作均走 app-dialog 家族
+- [x] 可见焦点环（键盘 Tab）不丢（合同测覆盖 busy/focus/confirm）
+- [x] 相关既有测试 + 必要的新增合同测通过（`settings-focus-busy` / `molecule-list-experience` / `lesson-packs-experience`）
+- [x] 无新增主题硬编码色
 
 ### 6.5 U4 · 文档与债务回写
 
-- [ ] `docs/engineering/ui-library.md` 增补「产品确认框必须走 app-dialog」一小节（若尚未写清）
-- [ ] UI 采用计划附录 B 追加 polish 日志
-- [ ] D4：若本批消灭了某类 raw 按钮/innerHTML 危险路径，更新 debt-registry
+- [x] `docs/engineering/ui-library.md` 增补「产品确认框必须走 app-dialog」一小节（并清除残留 merge 冲突标记，2026-08-10）
+- [x] UI 采用计划附录 B 追加 polish 日志
+- [x] D4 / D7 debt-registry 与路线图 §9.3 持续项指针回写
 
 ### 6.6 Track U 验证命令
 
@@ -505,10 +503,18 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 ## 9. 交接卡（执行中更新）
 
-| 字段         | 值                                                                                                                                                                                                    |
-| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 开发线       | `codex/c3-frame-task-ts`（6 个 Track 分支已合回；未合 main）
-| 下一刀       | 收官：统一 quality×2 + S1-S5 核对（本文档）
+| 字段 | 值 |
+| ---- | -- |
+| 开发线 | `codex/c3-frame-task-ts`（H/Q/T/U 分支已合回；**未合 main**） |
+| tip（文档收口时） | `e626c37`（U3 large-file budget 后）；文档收口提交见 §12 |
+| H | **完成** |
+| Q | **完成**；全量 `npm run quality` 绿（2026-08-09 于 tip `e626c37` 复验 exit 0；Q3 远端 CI 可选未做） |
+| T | **完成**（本批门禁 ≥12；实迁 **24** 文件） |
+| U | **完成**（U1 审计 + U2 焦点 10/10 + U3 三面 11 合同测 + U4 文档收口 2026-08-10） |
+| 盘点数字（约 2026-08-10） | `test/web` cjs **48** / vitest **40**；`@xiaohuang/ui` 业务 import **10**；`window.confirm` 族调用 **0** |
+| 禁止事项 | 合 main；D2 Win exe / pkg 退役验收（无环境，债务 **暂缓**） |
+| 已知非阻断尾巴 | UI 计划 P7.1：`MIN_BUSINESS_CONSUMERS` 仍为 3（指标已 ≥8，门禁未抬）；`settings-toast-consumption` cjs+vitest 职责拆分 |
+| 下一刀 | **本计划已收官**。后续可选：继续迁剩余 web cjs；抬 P7.1 阈值；产品功能；**有 Win 环境后再开 D2** |
 
 ---
 
@@ -539,12 +545,12 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 
 - [x] U1 确认路径审计表 + 清 `window.confirm` 族（审计 0 残留，见 `docs/engineering/ui-dialog-audit.md`）
 - [x] U2 焦点/滚动至少 2 条（U2.1–U2.4 全部落地，`app-dialog.js` + 测试 10/10）
-- [x] U3 高流量面 ≥2 面体验补丁（3 面 + 11 合同测）（并行分支推进中）
-- [ ] U4 文档与债务回写（**部分完成**：ui-library.md「产品确认框必须走 app-dialog」小节已由 U1/U2 批追加；UI 计划附录 B polish 日志、D4 debt-registry 更新待收官）
+- [x] U3 高流量面 ≥2 面体验补丁（设置 / 分子列表 / lesson-packs；合同测 11）
+- [x] U4 文档与债务回写（ui-library 专节 + 清 merge 残留；附录 B polish；D4/D7 + 路线图指针；§9/§12 收口）
 
 ### 收官
 
-- [x] S1–S5 成功标准全满足（收官核对中）
+- [x] S1–S5 成功标准全满足（2026-08-10 文档收口后与代码一致）
 - [x] 本文状态日志完整
 - [x] **未**合 main / **未**做 D2
 
@@ -576,8 +582,14 @@ Day 5        全量 quality + 填交接卡 + 回写两份老计划附录
 | 日期       | Track | 变更                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | 分支 / Commit                    | 验证                                                                                                                                                                              |
 | ---------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 2026-08-08 | —     | 计划 v1.0 创建                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | 文档                             | —                                                                                                                                                                                 |
-| 2026-08-08 | H     | Track H 完成：UI 计划 §13 勾选对齐（P0–P3/P6/P7.2–P7.3 依代码补勾，P7.1 未闭合见 UI 计划附录 B）+ 路线图 §9.1 D2 暂缓说明/§9.3 D7 指针 + debt-registry D2/D4/D7 对齐 + §9 交接卡 + `ui-library.md` 遗留冲突标记清理                                                                                                                                                                                                                                                                                                                                                                           | `codex/handoff-docs` @ `ed5c418` | `git diff --stat docs/`、`npm run format:check`、`git diff --check`                                                                                                               |
-| 2026-08-08 | U     | U1 完成：确认路径审计（`window.confirm/alert/prompt` 残留 **0**，唯一命中为 app-dialog.js 注释；裸 `confirm/alert` 仅 graph-persistence 的注入形参，装配点接 `appConfirm/appAlert`）→ 新建 `docs/engineering/ui-dialog-audit.md`（17 个已统一使用面 + dev catalog 豁免 + 热点复核）。U2 完成 4/4：U2.1 打开焦点落主按钮/prompt 输入框；U2.2 关闭焦点归还 opener（确定/取消/Esc）；U2.3 引用计数不泄漏 + Enter 不误触取消（修 `onKey` 焦点按钮分支 + 连续开关测试）；U2.4 队列链式复用首 opener（修 showDialog 链捕获，连续 confirm 焦点回到最初触发元素）。`app-dialog.js` 行为保持、签名不变 | `codex/u12-batch` @ 见提交       | `node --test test/web/app-dialog-scroll-lock.test.cjs`（10/10）、`npm run test -w @xiaohuang/ui`（51/51）、`typecheck`/`build`/`lint:css`/`lint:theme-tokens`/`format:check` 全绿 |
+| 2026-08-08 | H     | Track H 完成：UI 计划 §13 勾选对齐（P0–P3/P6/P7.2–P7.3 依代码补勾，P7.1 未闭合见 UI 计划附录 B）+ 路线图 §9.1 D2 暂缓说明/§9.3 D7 指针 + debt-registry D2/D4/D7 对齐 + §9 交接卡 | `codex/handoff-docs` @ `ed5c418` | `git diff --stat docs/`、`npm run format:check`、`git diff --check` |
+| 2026-08-08 | Q     | Track Q：全量 quality 绿；Q2 修 desktop 单产物 settings 断言指向 TS 权威；Q4 基线 cjs 72 / vitest 13 / ui import 10 / confirm 0；turbo test inputs 覆盖 root `test/` | `codex/quality-reaffirm` → merge `f5a1756` 等 | `npm run quality` exit 0 |
+| 2026-08-08 | T1    | 15 个 math 纯逻辑 `.cjs` → `*.vitest.ts`（79 用例），旧 cjs 删除 | `codex/t1-batch` @ `a1e2d5c` 等 | web vitest 绿 |
+| 2026-08-08 | T2    | 9 个化学/其它纯逻辑迁 vitest（62 用例）；T1+T2=**24** 文件 ≥12 门禁 | `codex/t2-batch` merge `462eca7` | web vitest 绿 |
+| 2026-08-08 | U1–U2 | 审计表 `ui-dialog-audit.md`；`window.*` 调用 0；app-dialog 焦点/滚动 U2.1–U2.4 + 测 10/10 | `codex/u12-batch` | `app-dialog-scroll-lock` 10/10；ui 包测绿 |
+| 2026-08-08 | U3    | 高流量面三面：settings busy/focus/品牌重置确认；molecule 删除命名确认/空态；lesson-packs 危险语气与防双提交；合同测 11 + large-file budget | `codex/u3-batch` → tip `e626c37` | experience vitest 11/11 |
+| 2026-08-09 | Q 复验 | 独立 agent 于 tip `e626c37` 再跑全量 `npm run quality` **exit 0**；S1–S4 实质通过，指出 U4/日志尾巴 | 开发线 `e626c37` | quality 全绿 |
+| 2026-08-10 | U4+收官 | 勾齐 U4：清 `ui-library.md` merge 冲突残留；UI 计划附录 B polish 行；D4/D7 与路线图「剩余 cjs」指针；§9 交接卡与 §10/§5 勾选与代码对齐；**本计划收官**（仍不合 main / 不做 D2） | 本提交（docs） | 文档 diff + 关键测抽检 |
 
 ---
 
@@ -622,4 +634,4 @@ test/web/*.cjs | *.vitest.ts
 ---
 
 **文档结束。**  
-执行从 **Track H** 开始；**不要在本计划流程中合 main；不要做 Win `.exe`/pkg 退役验收。**
+**本计划 H/Q/T/U 已收官（2026-08-10）。** 新工作勿再从 Track H 重开；**不要合 main；不要做 Win `.exe`/pkg 退役验收（D2 暂缓）。**
