@@ -110,3 +110,13 @@ hook 文件本体已入库（`.githooks/pre-push`，可执行）。验证生效�
 
 - 临时豁免（负责人确认并记录原因后）：`git push --no-verify`
 - 停用 hook：`git config --unset core.hooksPath`（或删掉 `.git/config` 中该行）
+
+## 6. 质量命令真值（2026-08-10 明确区分）
+
+| 命令 | 范围 | 角色 |
+| ---- | ---- | ---- |
+| `lint` | scripts/packages/test-shared/tooling | 新代码范围 |
+| `lint:critical` | 全部生产 JS/MJS/CJS（eslint.critical.config.mjs） | **零容忍运行时规则**（no-undef 等 11 条）；进 quality 与 quality:fast |
+| `lint:baseline` | 全仓（v2 文件级指纹） | 旧债不新增（新文件/新 rule/message/上下文/count 增加即失败） |
+| `lint:all` | 全仓 | 诊断命令；存量清零前预期非零 |
+| `typecheck` | TS 范围 | 不代表旧 JS 已检查 |

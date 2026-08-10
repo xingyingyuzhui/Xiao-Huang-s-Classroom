@@ -138,7 +138,7 @@ npm run coverage
 - Modify: `test/web/math-graph-mount-controller.test.cjs`
 - Reference: `test/web/math-graph-performance.vitest.ts`
 
-- [ ] **Step 1: 为 function runtime 建立真实 factory harness**
+- [x] **Step 1: 为 function runtime 建立真实 factory harness**
 
 测试必须导入 `createGraphFunctionRuntime`，注入 fake board、state、frame task 和所有 context 函数，然后直接调用 `rebuildCurve()`；禁止只读取源码正则。
 
@@ -155,7 +155,7 @@ test('rebuildCurve 只消费注入依赖并保留 viewport', async () => {
 });
 ```
 
-- [ ] **Step 2: 验证测试在当前代码上失败**
+- [x] **Step 2: 验证测试在当前代码上失败**
 
 Run:
 
@@ -166,7 +166,7 @@ npx vitest run ../../test/web/math-graph-runtime-wiring.vitest.ts
 
 Expected: FAIL，错误至少包含 `curveRebuildTask is not defined` 或 `state is not defined`。
 
-- [ ] **Step 3: 为 follow targets 建真实目标列表测试**
+- [x] **Step 3: 为 follow targets 建真实目标列表测试**
 
 至少覆盖：
 
@@ -175,7 +175,7 @@ Expected: FAIL，错误至少包含 `curveRebuildTask is not defined` 或 `state
 - `makeDrawHost().onChanged()` 只调用注入的 selection 注册、label fusion 和一次 board update；
 - 隐藏函数不产生 target。
 
-- [ ] **Step 4: 为 mount controller 的依赖解绑/重绑路径补测试**
+- [x] **Step 4: 为 mount controller 的依赖解绑/重绑路径补测试**
 
 扩展现有 harness，触发 `detachFunctionDependents()` 与 `rebindFunctionDependents()`，断言：
 
@@ -183,7 +183,7 @@ Expected: FAIL，错误至少包含 `curveRebuildTask is not defined` 或 `state
 - 每个操作完成后 selection 只重新注册一次；
 - 删除顺序继续保持先 detach runtime，再修改 state 数组。
 
-- [ ] **Step 5: 与 Task 2 形成同一个绿色提交**
+- [x] **Step 5: 与 Task 2 形成同一个绿色提交**
 
 本 Task 只建立 Graph runtime/follow/mount 的红测试，并立即进入 Task 2 修复；Task 2 结束前不得开始割线或 Hub 测试，避免工作区被后续任务的预期失败污染。测试与对应生产修复同提交落地，不提交纯红状态。
 
@@ -1234,14 +1234,14 @@ git log --oneline --decorate -12
 
 ### 最终状态
 
-- [ ] P0 runtime ReferenceError 全部关闭
-- [ ] Quality CI 恢复
-- [ ] Electron CI 保持绿色
-- [ ] Node 20/24 一致
-- [ ] clean start/dev 通过
-- [ ] critical lint 零容忍接线
-- [ ] lint baseline v2 接线
-- [ ] 动态导入 warning 归零
-- [ ] raw/gzip/initial/lazy 请求数预算通过
-- [ ] 文档与代码一致
-- [ ] 工作树干净
+- [x] P0 runtime ReferenceError 全部关闭（T1-T3：583e362/75069dc）
+- [x] Quality CI 恢复（远端 quality success + Node 20/24 matrix）
+- [x] Electron CI 保持绿色（electron-package success）
+- [x] Node 20/24 一致（portability job + 本地验证）
+- [x] clean start/dev 通过（verify-server-start start/dev 双 smoke）
+- [x] critical lint 零容忍接线（lint:critical 0 errors，进 quality/quality:fast）
+- [x] lint baseline v2 接线（指纹快照 231，no-undef 91→0）
+- [x] 动态导入 warning 归零（T8：3 条归零）
+- [x] raw/gzip/initial/lazy 请求数预算通过（T8：katex-only 去 JSXGraph）
+- [x] 文档与代码一致（T10）
+- [x] 工作树干净

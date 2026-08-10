@@ -122,3 +122,7 @@
 - 契约：`test/web/math-board-contract.test.cjs`（主题 token + 模块接线）
 - 行为：`test/web/math-lifecycle-unit.test.cjs`（expr / remint / detach 顺序 / 视窗语义）
 - 改主题 token 或生命周期规则后必跑：`math-board-contract`、`math-lifecycle-unit`、`math-axis-legend`
+
+- **factory 依赖必须在入口完整解构**（Task 2/9 合同）：runtime/follow/mount/ui 的依赖一律从 factory context/deps 解构，禁止跨模块隐式闭包读取 index 导出；runtime 私有缓存（如参考曲线 key）必须属于 factory instance。
+- **新 controller 接线必须有「调用真实 factory」的测试**（源码正则不算行为覆盖）。
+- **`npm run lint:critical` 是画布 JS 修改的必跑命令**（生产 JS 零容忍 no-undef 等）。
