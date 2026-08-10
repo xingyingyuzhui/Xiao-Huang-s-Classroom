@@ -10,6 +10,10 @@
  */
 import { GRAPH_BOARD_TOOLS } from './tool-definitions.js';
 
+import { createDisposeSession } from './graph-dispose-session.js';
+import { createGraphBoardSession } from './graph-board-session.js';
+import { createGraphUiBindings } from './graph-ui-bindings.js';
+
 export function createGraphMountController(deps) {
   const {
     state,
@@ -99,25 +103,16 @@ export function createGraphMountController(deps) {
     readoutsReset,
   } = deps;
 
-  /** 资源注册表：dispose 逆序执行；单个失败不阻断其余；幂等。 */
-  const disposers = [];
-  let disposed = false;
+  /** dispose 会话（Task 9 拆分）：每轮 mount 重建；转发函数保证当前轮生效。 */
+  let disposeSession = createDisposeSession();
   function register(disposer) {
-    if (typeof disposer === 'function') disposers.push(disposer);
+    disposeSession.register(disposer);
   }
   function disposeAll() {
-    if (disposed) return;
-    disposed = true;
-    const errors = [];
-    for (let i = disposers.length - 1; i >= 0; i -= 1) {
-      try {
-        disposers[i]();
-      } catch (err) {
-        errors.push(err);
-      }
-    }
-    disposers.length = 0;
-    if (errors.length) console.error('[graph] dispose errors:', errors);
+    disposeSession.disposeAll();
+  }
+  function isDisposed() {
+    return disposeSession.isDisposed();
   }
 
 function syncSliders() {
@@ -296,7 +291,7 @@ function dismissGraphNotesMode() {
   state.notes?.setActive?.(false);
 }
 function initGraphUI() {
-  disposed = false;
+  disposeSession = createDisposeSession();
   // readouts 是模块级单例：重挂载时重新武装（取消的 pending 测量/过期回调失效）
   readoutsReset?.();
   setStageEl(document.getElementById('mathGraphStage'));
@@ -313,38 +308,16 @@ function initGraphUI() {
     return;
   }
 
-  // 持久化：先加载（含迁移/限额校验），再建 board/store，避免先默认后覆盖
-  state.graphPersistence?.dispose?.();
-  state.graphPersistence = createGraphPersistence({
-    storage: window.localStorage,
-    now: () => new Date().toISOString(),
-  });
-  register(() => {
-    state.graphPersistence?.dispose?.();
-    state.graphPersistence = null;
-  });
-  const loadedDoc = state.graphPersistence.load().document;
-
-  state.board = createMathBoard('mathGraphBoard', {
-    boundingbox: [-8, 8, 8, -8],
-    axisSettingsHost: getStageEl(),
-    hasFuncDomain: true,
-    axisSettingsInitial: {
-      fXMin: state.fXMin,
-      fXMax: state.fXMax,
-      xMin: -8,
-      xMax: 8,
-      yMin: -8,
-      yMax: 8,
-    },
-    getLegendItems: () =>
-      state.functions
-        .filter((f) => f.visible)
-        .map((f) => ({
-          id: followIdForFn(f.id),
-          label: fnDisplayLabel(f),
-          color: resolveFunctionColor(f),
-        })),
+  // Task 9：board/store/history/persistence 创建收敛到 board session
+  // （全部成功后才发布，失败不留下半初始化 state）
+  const session = createGraphBoardSession({
+    state,
+    getStageEl,
+    createGraphPersistence,
+    createMathBoard,
+    followIdForFn,
+    fnDisplayLabel,
+    resolveFunctionColor,
     onAxisSettingsChange: (st) => {
       if (state.axisSettingsApplying) return;
       const nextMin = Number(st.fXMin);
@@ -365,77 +338,32 @@ function initGraphUI() {
       }
       schedulePointLabelFusion();
     },
+    bindPointLabelFusion,
+    viewBridge,
+    register,
+    clearAllConstructions,
+    makeDrawHost,
+    removeUserPointEls,
+    removeAllFnCurves,
+    freeMathBoard,
+    unbindPointLabelFusion,
+    createGraphIdAllocator,
+    syncRuntimeFromDocument,
+    graphRenderer,
+    createGraphStore,
+    createGraphHistory,
   });
-  bindPointLabelFusion(state.board);
-  // 视口平移/缩放 → 文档 view/update（250ms 静默合并；applyView 有防回环 guard）
-  try {
-    state.board.on?.('boundingbox', () => viewBridge.onBoardBoundingBox());
-  } catch {
-    /* */
-  }
-  register(() => viewBridge.dispose());
-  register(() => {
-    try {
-      state.board?.off?.('boundingbox');
-    } catch {
-      /* */
-    }
-    unbindPointLabelFusion(state.board);
-    clearAllConstructions(makeDrawHost());
-    removeUserPointEls();
-    if (state.board) removeAllFnCurves(state.board);
-    freeMathBoard(state.board);
-    state.board = null;
-  });
-
-  // 文档底座：函数集合作为首个接入 store 的行为（历史/事务链路）；
-  // 函数/活动 id/镜像由首次 fullRender 从 store 文档建立
-  state.idAllocator = createGraphIdAllocator(loadedDoc);
-  state.graphStore?.dispose?.();
-  state.graphStore = createGraphStore(loadedDoc, {
-    beforeCommit: syncRuntimeFromDocument,
-    recoverRuntime: (doc) => graphRenderer.recover(doc),
-  });
-  state.graphHistory?.dispose?.();
-  state.graphHistory = createGraphHistory(state.graphStore);
-  register(() => state.graphHistory?.dispose?.());
-  // 初始 storage load：建立起点，清空历史（不能 undo 回「导入前」）
-  state.graphHistory.clear();
-  // 文档变更 → 自动保存（300ms debounce；annotations/replace 带 persist:true）
-  state.storeUnsub?.();
-  state.storeUnsub = state.graphStore.subscribe((event) => {
-    if (event.action?.type === 'transaction/cancel') return;
-    if (event.action?.meta?.persist === false) return;
-    state.graphPersistence?.scheduleSave(event.current);
-  });
-  register(() => state.storeUnsub?.());
-  register(() => state.graphStore?.dispose?.());
+  state.graphPersistence = session.persistence;
+  state.board = session.board;
+  state.idAllocator = session.idAllocator;
+  state.graphStore = session.store;
+  state.graphHistory = session.history;
+  state.storeUnsub = session.storeUnsub;
+  const loadedDoc = session.loadedDoc;
 
   bindFnListUi();
 
-  const graphPanel = document.getElementById('panel-math-graph');
-  if (graphPanel && !graphPanel.dataset.mathSlidersBound) {
-    graphPanel.dataset.mathSlidersBound = '1';
-    for (const [id, key, numId] of [
-      ['mathGraphA', 'a', 'mathGraphANum'],
-      ['mathGraphB', 'b', 'mathGraphBNum'],
-      ['mathGraphC', 'c', 'mathGraphCNum'],
-    ]) {
-      bindRangeNumber({
-        range: /** @type {HTMLInputElement | null} */ (document.getElementById(id)),
-        number: /** @type {HTMLInputElement | null} */ (document.getElementById(numId)),
-        onChange: (v) => {
-          setCoeffs({ [key]: v });
-        },
-      });
-    }
-    mountMathNumKeypads(graphPanel);
-  }
-
-  const graphPanelRoot = document.getElementById('panel-math-graph');
-  state.styleBind = bindObjectStyleForPanel(graphPanelRoot, createBoardSelectionController);
-  state.styleBind?.selection?.attachBoard?.(state.board);
-  register(() => state.styleBind?.dispose?.());
+  // Task 9：sliders/object-style 绑定已收敛到 ui bindings session（bindSlidersAndStyle）
 
   setPointOptionHooks({
     // 仅用户自建点 + 非交点 + 存在可跟随目标时显示
@@ -684,160 +612,31 @@ function initGraphUI() {
     state.onPageHide = null;
   });
 
-  // 项目：导入 / 导出 / 重置（具名 handler + 资源管理；dispose 精确移除）
-  /** @type {Array<{ url: string, timer: any }>} */
-  const downloadUrls = [];
-  let fileChangeHandler = null;
-  let fileReader = null;
-  let filePickAborted = false;
-  /** 文件选择任务的唯一 resolve：保证 dispose/取消时 Promise 一定 settle */
-  let settleFilePick = null;
-  /** 统一 settle：同一任务只执行一次；清理 change listener/FileReader 后 resolve。 */
-  const settleFilePickOnce = (value) => {
-    if (!settleFilePick) return;
-    const resolve = settleFilePick;
-    settleFilePick = null;
-    const input = document.getElementById('mathGraphFileInput');
-    if (input && fileChangeHandler) input.removeEventListener('change', fileChangeHandler);
-    fileChangeHandler = null;
-    if (fileReader) {
-      try {
-        fileReader.abort?.();
-      } catch {
-        /* best-effort abort */
-      }
-      fileReader = null;
-    }
-    resolve(value);
-  };
-  state.persistenceController = createGraphPersistenceController({
-    persistence: state.graphPersistence,
-    store: () => ({
-      ...state.graphStore,
-      reseedAllocator: (doc) => state.idAllocator?.reseed(doc),
-    }),
-    history: () => state.graphHistory,
-    defaultDocument: () =>
-      createDefaultGraphDocument({
-        now: () => new Date().toISOString(),
-        functionId: 'f1',
-      }),
-    confirm: appConfirm,
-    alert: (message, opts) => appAlert(message, opts),
-    pickJsonFile: () => {
-      const input = document.getElementById('mathGraphFileInput');
-      if (!input || filePickAborted) return Promise.resolve(null);
-      // 只允许一个文件选择任务：取消前一个（resolve null + 清理 listener），
-      // 避免遗留多个 change listener 或永久 pending 的旧 Promise
-      if (settleFilePick) settleFilePickOnce(null);
-      return new Promise((resolve) => {
-        settleFilePick = resolve;
-        const onChange = () => {
-          if (fileChangeHandler) input.removeEventListener('change', fileChangeHandler);
-          fileChangeHandler = null;
-          const file = input.files?.[0];
-          input.value = '';
-          if (!file || filePickAborted) {
-            settleFilePickOnce(null);
-            return;
-          }
-          const reader = new FileReader();
-          fileReader = reader;
-          reader.onload = () => {
-            // 已被 dispose/新任务接管：旧回调不 settle、不修改状态
-            if (fileReader !== reader) return;
-            fileReader = null;
-            settleFilePickOnce(String(reader.result || ''));
-          };
-          reader.onerror = () => {
-            if (fileReader !== reader) return;
-            fileReader = null;
-            settleFilePickOnce(null);
-          };
-          reader.onabort = () => {
-            if (fileReader !== reader) return;
-            fileReader = null;
-            settleFilePickOnce(null);
-          };
-          reader.readAsText(file, 'utf-8');
-        };
-        fileChangeHandler = onChange;
-        input.addEventListener('change', onChange);
-        input.click();
-      });
-    },
-    downloadText: (filename, text) => {
-      try {
-        const blob = new Blob([text], { type: 'application/json;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = filename;
-        link.click();
-        const timer = window.setTimeout(() => {
-          URL.revokeObjectURL(url);
-          const idx = downloadUrls.findIndex((u) => u.url === url);
-          if (idx >= 0) downloadUrls.splice(idx, 1);
-        }, 2000);
-        downloadUrls.push({ url, timer });
-      } catch {
-        /* download blocked */
-      }
-    },
+  // Task 9：文件/按钮/observer 绑定收敛到 ui bindings session
+  const uiBindings = createGraphUiBindings({
+    state,
+    getStageEl,
+    createGraphPersistenceController,
+    createDefaultGraphDocument,
+    appConfirm,
+    appAlert,
+    resizeMathBoard,
+    schedulePointLabelFusion,
+    ensureMathFloatCardsBound,
+    renderFnList,
+    syncParamPanel,
+    syncSliders,
+    bindRangeNumber,
+    mountMathNumKeypads,
+    setCoeffs,
+    bindObjectStyleForPanel,
+    createBoardSelectionController,
+    register,
   });
-  const onImportClick = () => void state.persistenceController?.importJson();
-  const onExportClick = () => state.persistenceController?.exportJson();
-  const onResetClick = () => void state.persistenceController?.reset();
-  const importBtn = document.getElementById('btnMathGraphImport');
-  const exportBtn = document.getElementById('btnMathGraphExport');
-  const resetBtn = document.getElementById('btnMathGraphReset');
-  importBtn?.addEventListener('click', onImportClick);
-  exportBtn?.addEventListener('click', onExportClick);
-  resetBtn?.addEventListener('click', onResetClick);
+  state.persistenceController = uiBindings.controller;
   register(() => {
-    importBtn?.removeEventListener('click', onImportClick);
-    exportBtn?.removeEventListener('click', onExportClick);
-    resetBtn?.removeEventListener('click', onResetClick);
-    filePickAborted = true;
-    // 等待中的文件选择任务必须 settle（resolve null + 清理 listener/reader），
-    // importJson() 才不会永久 pending
-    settleFilePickOnce(null);
-    for (const item of downloadUrls.splice(0)) {
-      window.clearTimeout(item.timer);
-      try {
-        URL.revokeObjectURL(item.url);
-      } catch {
-        /* already revoked */
-      }
-    }
+    uiBindings.dispose();
     state.persistenceController = null;
-  });
-
-  syncSliders();
-  // 首次投影：production renderer 从 store 文档全量渲染
-  graphRenderer.fullRender(state.graphStore.getDocument());
-  state.startCoeffs = { ...state.coeffs };
-  ensureMathFloatCardsBound();
-  renderFnList();
-  syncParamPanel();
-
-  state.ro = new ResizeObserver(() => {
-    resizeMathBoard(state.board, getStageEl());
-    state.notes?.redraw?.();
-    schedulePointLabelFusion();
-  });
-  state.ro.observe(getStageEl());
-  register(() => state.ro?.disconnect?.());
-  const firstFrame = requestAnimationFrame(() => {
-    state.firstFrameRaf = null;
-    resizeMathBoard(state.board, getStageEl());
-    state.notes?.redraw?.();
-    schedulePointLabelFusion();
-  });
-  state.firstFrameRaf = firstFrame;
-  register(() => {
-    if (state.firstFrameRaf != null) cancelAnimationFrame(state.firstFrameRaf);
-    state.firstFrameRaf = null;
   });
 
   // 换肤契约：bindMathThemeRestyle → restyle + rebuild（含 remint）
@@ -868,7 +667,7 @@ function resizeGraph() {
  * 前置状态/事务收尾逐项容错；disposeAll 与状态归零无论如何都执行（finally）。
  */
 function disposeGraph() {
-  if (disposed) return;
+  if (isDisposed()) return;
   const errors = [];
   const guard = (label, fn) => {
     try {
