@@ -45,11 +45,20 @@ test('axis-legend-settings module exports attach and dismiss', () => {
 });
 
 test('graph rebuilds curve from function domain settings', () => {
-  const src = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/graph-mount-controller.js'), 'utf8');
-  assert.match(src, /onAxisSettingsChange/);
-  assert.match(src, /fXMin/);
-  assert.match(src, /fXMax/);
-  assert.match(src, /hasFuncDomain:\s*true/);
+  // Task 9：board 会话（含 hasFuncDomain / fXMin/Max）在 graph-board-session；
+  // onAxisSettingsChange 由 mount 注入 session。
+  const sessionSrc = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-board-session.js'),
+    'utf8',
+  );
+  const mountSrc = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-mount-controller.js'),
+    'utf8',
+  );
+  assert.match(mountSrc, /onAxisSettingsChange/);
+  assert.match(sessionSrc, /fXMin/);
+  assert.match(sessionSrc, /fXMax/);
+  assert.match(sessionSrc, /hasFuncDomain:\s*true/);
 });
 
 test('jsx-board wires axis settings by default', () => {
@@ -60,12 +69,23 @@ test('jsx-board wires axis settings by default', () => {
 });
 
 test('graph provides legend items for main curve', () => {
-  const mountSrc = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/graph-mount-controller.js'), 'utf8');
-  const fnRuntimeSrc = fs.readFileSync(path.join(root, 'apps/web/src/math/graph/graph-function-runtime.js'), 'utf8');
-  assert.match(mountSrc, /getLegendItems/);
-  assert.match(mountSrc, /axisSettingsHost/);
+  // getLegendItems / axisSettingsHost 已下沉到 board-session；换肤仍在 mount
+  const sessionSrc = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-board-session.js'),
+    'utf8',
+  );
+  const mountSrc = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-mount-controller.js'),
+    'utf8',
+  );
+  const fnRuntimeSrc = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/graph/graph-function-runtime.js'),
+    'utf8',
+  );
+  assert.match(sessionSrc, /getLegendItems/);
+  assert.match(sessionSrc, /axisSettingsHost/);
   assert.match(mountSrc, /bindMathThemeRestyle/);
-  assert.match(mountSrc, /resolveFunctionColor/);
+  assert.match(sessionSrc, /resolveFunctionColor/);
   // 重建曲线保留视窗 + 图例 refresh 契约（rebuildCurve 在 function-runtime 模块）
   assert.match(fnRuntimeSrc, /withPreservedViewport/);
   assert.match(fnRuntimeSrc, /_mathAxisLegend\?\.refresh/);
