@@ -4,13 +4,13 @@
 
 ## 分层
 
-| 路径 | 职责 |
-|------|------|
-| `math/shared/` | 画板工厂、主题契约、生命周期、罗盘/笔记/样式气泡、安全表达式 |
-| `math/graph/` 等 lab | 单 Tab 业务状态与 UI 接线 |
-| `math/classroom/` | 课堂讲解/出题/点名 |
-| `subjects/classrooms/math-classroom.js` | Tab 壳、feature 加载、overlay 收起 |
-| `apps/server/.../ai/math*` | 数学 AI（函数生成等），校验与前端 expr 白名单对齐 |
+| 路径                                    | 职责                                                         |
+| --------------------------------------- | ------------------------------------------------------------ |
+| `math/shared/`                          | 画板工厂、主题契约、生命周期、罗盘/笔记/样式气泡、安全表达式 |
+| `math/graph/` 等 lab                    | 单 Tab 业务状态与 UI 接线                                    |
+| `math/classroom/`                       | 课堂讲解/出题/点名                                           |
+| `subjects/classrooms/math-classroom.js` | Tab 壳、feature 加载、overlay 收起                           |
+| `apps/server/.../ai/math*`              | 数学 AI（函数生成等），校验与前端 expr 白名单对齐            |
 
 ### 函数画布作图模块
 
@@ -18,16 +18,16 @@
 
 兼容入口必须使用显式具名导出，禁止 `export *`；内部 primitive 和数值辅助函数由所属模块直接导入，不得经兼容入口泄漏。
 
-| 模块 | 职责 |
-|------|------|
+| 模块                                                            | 职责                                       |
+| --------------------------------------------------------------- | ------------------------------------------ |
 | `geometry.js` / `function-roots.js` / `intersection-numeric.js` | 可直接测试的纯几何、连续函数求根与数值求交 |
-| `records.js` / `dependencies.js` | 作图记录、派生更新绑定与监听销毁 |
-| `dependency-closure.js` / `point-dependencies.js` | 构造引用闭包、用户点依赖与下游优先级联删除 |
-| `render-lines.js` / `render-perpendiculars.js` | 线、切线、垂线与法线的 JSXGraph 工厂 |
-| `intersections.js` | 自动求交和延长线联动的薄调度层 |
-| `intersection-renderers.js` | 线线、线函数交点的 JSXGraph 工厂 |
-| `intersection-lifecycle.js` / `intersection-visibility.js` | 交点回调解绑、裁剪与显隐 |
-| `restore.js` / `operations.js` | 重建、删除和工具锚点解析 |
+| `records.js` / `dependencies.js`                                | 作图记录、派生更新绑定与监听销毁           |
+| `dependency-closure.js` / `point-dependencies.js`               | 构造引用闭包、用户点依赖与下游优先级联删除 |
+| `render-lines.js` / `render-perpendiculars.js`                  | 线、切线、垂线与法线的 JSXGraph 工厂       |
+| `intersections.js`                                              | 自动求交和延长线联动的薄调度层             |
+| `intersection-renderers.js`                                     | 线线、线函数交点的 JSXGraph 工厂           |
+| `intersection-lifecycle.js` / `intersection-visibility.js`      | 交点回调解绑、裁剪与显隐                   |
+| `restore.js` / `operations.js`                                  | 重建、删除和工具锚点解析                   |
 
 禁止重新引入聚合实现文件；新增作图算法优先落在纯模块，再由渲染工厂接线。
 批量创建/恢复构造时传 `{ notify: false }`，由最外层操作统一触发一次 `host.onChanged()`。
@@ -37,12 +37,12 @@
 
 `graph/index.js` 只负责画板挂载、工具事件状态机、曲线重建与销毁；其它职责固定如下：
 
-| 模块 | 职责 |
-|------|------|
-| `graph/user-points.js` | 用户点创建、快照、恢复、跟随切换与级联删除 |
-| `graph/function-analysis.js` | 函数求值、显示公式、值表和函数交点纯计算 |
-| `graph/function-records.js` | 预设、自定义表达式及 AI 规格的函数记录工厂 |
-| `graph/function-panel.js` | 函数侧栏、添加弹窗、AI 弹窗与集合增删 UI |
+| 模块                         | 职责                                       |
+| ---------------------------- | ------------------------------------------ |
+| `graph/user-points.js`       | 用户点创建、快照、恢复、跟随切换与级联删除 |
+| `graph/function-analysis.js` | 函数求值、显示公式、值表和函数交点纯计算   |
+| `graph/function-records.js`  | 预设、自定义表达式及 AI 规格的函数记录工厂 |
+| `graph/function-panel.js`    | 函数侧栏、添加弹窗、AI 弹窗与集合增删 UI   |
 
 禁止把上述逻辑重新堆回 `graph/index.js`；结构契约见 `test/web/math-graph-structure.test.cjs`。
 
@@ -79,10 +79,10 @@
    仅用户改视窗数值时才 `setBoundingBox`。
 
 4. **换肤**  
-   监听 `chem-theme-change`（`bindMathThemeRestyle`）：  
-   - `restyleMathBoard(board)`  
+   监听 `chem-theme-change`（`bindMathThemeRestyle`）：
+   - `restyleMathBoard(board)`
    - 多曲线 lab：曲线颜色经 `resolveFunctionColor(record)` 动态解析（V2 `colorSlot`/`explicitColor`），换肤只触发 rebuild，**不修改 GraphDocument/不进入历史/不落盘**。  
-   禁止：各 lab 私自读一堆 CSS 变量拼色；禁止把 literal 主题色写回文档。
+     禁止：各 lab 私自读一堆 CSS 变量拼色；禁止把 literal 主题色写回文档。
 
 5. **网格色**  
    只通过 `getMathGridColor()` / `restyleMathBoard` 写入；网格元素是 curve，设 `strokeColor`。
@@ -112,9 +112,9 @@
 
 - 请求带 `subjectId`（`withAiSubject` / 当前学科 session）
 - 服务端 Key 按学科设置
-- **表达式唯一实现：** 包 `@xiaohuang/math-expr`  
-  - 前端：`math/shared/expr-safe.js` 再导出  
-  - 后端：`math-fn-service` `require('@xiaohuang/math-expr')`  
+- **表达式唯一实现：** 包 `@xiaohuang/math-expr`
+  - 前端：`math/shared/expr-safe.js` 再导出
+  - 后端：`math-fn-service` `require('@xiaohuang/math-expr')`
   - 禁止再复制一份白名单
 
 ## 测试
