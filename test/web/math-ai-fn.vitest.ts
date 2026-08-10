@@ -1,11 +1,14 @@
 /**
  * 数学 AI：小知识学科分支 + 函数生成接线
  */
-const test = require('node:test');
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-const root = require('../helpers/repo-root.js');
+import { test } from 'vitest';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { createRequire } from 'node:module';
+import root from '../helpers/repo-root.js';
+
+const require = createRequire(import.meta.url);
 
 test('math AI function route and service exist', () => {
   const route = fs.readFileSync(
