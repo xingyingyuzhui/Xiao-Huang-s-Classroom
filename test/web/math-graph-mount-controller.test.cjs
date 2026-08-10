@@ -930,3 +930,42 @@ test('重复 init 不覆盖活动 disposer session；DOM 缺失不建 session', 
     restore();
   }
 });
+
+// ─────────────── Task 2：board session 失败集成（mount 层） ───────────────
+
+test('board session 创建失败：initGraphUI 抛原始错误、资源已回滚、state 未发布', async () => {
+  const disposes = [];
+  const fakeDispose = (label) => () => disposes.push(label);
+  const { controller, state, restore } = await makeController({
+    createGraphPersistence: () => ({
+      dispose: fakeDispose('persistence'),
+      load: () => ({ document: { functions: [] } }),
+      flush: () => {},
+      scheduleSave: () => {},
+    }),
+    createGraphStore: () => {
+      throw new Error('injected store failure');
+    },
+    createGraphHistory: () => ({ dispose: fakeDispose('history'), clear: () => {}, subscribe: () => () => {} }),
+    freeMathBoard: () => disposes.push('freeMathBoard'),
+    viewBridge: { dispose: fakeDispose('viewBridge'), onBoardBoundingBox: () => {}, applyViewFromDocument: () => {} },
+  });
+  try {
+    assert.throws(() => controller.initGraphUI(), /injected store failure/, 'initGraphUI 抛原始错误，不改写类型');
+    // persistence/board/viewBridge 已立即释放一次（store 创建失败后的回滚）
+    assert.equal(disposes.filter((d) => d === 'persistence').length, 1, 'persistence 回滚一次');
+    assert.equal(disposes.filter((d) => d === 'freeMathBoard').length, 1, 'board 回滚一次');
+    assert.equal(disposes.filter((d) => d === 'viewBridge').length, 1, 'viewBridge 回滚一次');
+    // state 未发布
+    assert.equal(state.board, null, 'state.board 未发布');
+    assert.equal(state.graphStore, null, 'state.graphStore 未发布');
+    assert.equal(state.graphHistory, null, 'state.graphHistory 未发布');
+    // 随后 disposeGraph 两次安全（不重复释放）
+    controller.disposeGraph();
+    controller.disposeGraph();
+    assert.equal(disposes.filter((d) => d === 'persistence').length, 1, 'disposeGraph 后 persistence 仍一次');
+    assert.equal(disposes.filter((d) => d === 'freeMathBoard').length, 1, 'disposeGraph 后 board 仍一次');
+  } finally {
+    restore();
+  }
+});
