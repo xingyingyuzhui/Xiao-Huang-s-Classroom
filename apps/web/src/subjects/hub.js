@@ -10,8 +10,9 @@ import { createBookshelfStage } from './bookshelf/stage.js';
  * @param {(sel: string) => Element | null} opts.select
  * @param {(id: string) => void} opts.onEnterSubject
  * @param {() => void} [opts.onRevealHub]
+ * @param {typeof createBookshelfStage} [opts.createStage]
  */
-export function createSubjectHub({ select, onEnterSubject, onRevealHub }) {
+export function createSubjectHub({ select, onEnterSubject, onRevealHub, createStage = createBookshelfStage }) {
   const $ = select;
   const root = $('#subjectHub');
   /** @type {ReturnType<typeof createBookshelfStage> | null} */
@@ -34,7 +35,7 @@ export function createSubjectHub({ select, onEnterSubject, onRevealHub }) {
     }
 
     try {
-      stage = createBookshelfStage({
+      stage = createStage({
         canvas,
         closeBtn: /** @type {HTMLElement} */ (closeBtn),
         detail: /** @type {HTMLElement} */ (detail),
@@ -99,7 +100,7 @@ export function createSubjectHub({ select, onEnterSubject, onRevealHub }) {
    */
   function playReturnFromLab(opts = {}) {
     mountStage();
-    const meta = getSubject(opts.subjectId || 'chemistry');
+    const meta = getSubjectMeta(opts.subjectId || 'chemistry') || getSubjectMeta('chemistry');
     /* 帷幕 onOpaque 后再 onRevealHub；大厅画布在幕下预热 */
     if (root) {
       root.hidden = false;
