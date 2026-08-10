@@ -57,3 +57,36 @@ npm run quality:fast          # 本地日常快路径（format → lint → css 
 
 - 覆盖率阈值与文档一致性：`node --test --test-concurrency=1 test/shared/coverage-config-contract.test.cjs test/shared/coverage-doc-contract.test.cjs`
 - 构建可复现（模拟干净产物）：见 `docs/superpowers/plans/2026-08-08-engineering-optimization-roadmap.md` §11.2
+
+## 6. 改动 → 最低命令矩阵
+
+按本次改动范围选最低门禁；范围拿不准就上完整 `npm run quality`。推 `origin/main` 还会被 `.githooks/pre-push` 自动拦一道（见第 7 节）。
+
+| 动作                      | 最低命令                                                                                                                                                               |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 日常切片合本地 main       | `npm run quality:fast`（format + lint + lint:css + typecheck + test + build）                                                                                          |
+| 推 origin / 发版 / 大合并 | `npm run quality`（quality:fast + lint:baseline/arch/theme-tokens/assets + budget + coverage）                                                                         |
+| 只改 `packages/ui`        | `npm run test -w @xiaohuang/ui` + `npm run lint:theme-tokens` + `node --test test/shared/ui-no-raw-button-contract.test.cjs test/shared/ui-adoption-contract.test.cjs` |
+| 只改 server               | `npm run test -w @xiaohuang/server` + `npm run typecheck`                                                                                                              |
+
+## 7. pre-push 门禁（`.githooks/pre-push`）
+
+**目的：** 阻止「绕过 quality 直接把 main 推上 origin」（风险计划 Track E，R2c）。
+
+**行为：**
+
+- 本次 push 只涉及非 `main` 分支：直接放行，不跑门禁（日常 feature 分支推送不减速）。
+- 本次 push 会更新远端 `refs/heads/main`：先跑 `npm run quality:fast`，失败则**阻止推送**（exit 1 并输出原因）。
+
+**启用（每个 clone / worktree 执行一次，配置在 `.git/config`，不入库）：**
+
+```bash
+git config core.hooksPath .githooks
+```
+
+hook 文件本体已入库（`.githooks/pre-push`，可执行）。验证生效：`git config core.hooksPath` 应输出 `.githooks`。
+
+**豁免 / 停用：**
+
+- 临时豁免（负责人确认并记录原因后）：`git push --no-verify`
+- 停用 hook：`git config --unset core.hooksPath`（或删掉 `.git/config` 中该行）

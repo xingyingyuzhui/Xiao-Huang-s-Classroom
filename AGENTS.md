@@ -66,3 +66,9 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 **DB/发布：** migration 框架（`apps/server/src/db/migrator.js`，PRAGMA user_version + backup/restore 原子流程）；seed versioning（`seed-versioning.js` 幂等 upsert）；pkg 便携版为过渡产物（退役门 `docs/engineering/pkg-retirement-gate.md`，Electron portable 等价验收后删除）。API v2 规范响应 `{success,data|error,requestId}`（`/api/v2/...`），与 v1 复用同一 service。
 
 **生命周期：** 可挂载模块实现对称合同（mount/show/hide/relayout/syncTheme/dispose）；disposer 逆序容错幂等；高频输入 frame 合并（`shared/frame-task.js`）。
+
+**Git 纪律（合 main / 推远端；`git config core.hooksPath .githooks` 启用后，推 main 由 `.githooks/pre-push` 自动跑 `quality:fast` 兜底，见 `docs/engineering/quality-commands.md` 第 7 节）：**
+
+- 禁止 push origin main，除非用户本轮明确说「推 main/推远端」
+- 禁止 --force 推共享分支
+- 合本地 main 前跑 quality:fast（用户要求跳过须记录）
