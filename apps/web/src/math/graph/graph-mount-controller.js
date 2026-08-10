@@ -1,15 +1,9 @@
 /**
  * GraphMountController：函数画布 board/store/history/persistence/controller 的装配与销毁。
- *
- * 所有业务闭包经 deps 注入（index.js 持有真值）；本模块不创建第二套 document state。
- * dispose 收进同一流程顺序执行，单个失败不阻断其余清理。
- */
-
-/**
+ * 业务闭包经 deps 注入；本模块不创建第二套 document state。dispose 单失败不阻断其余清理。
  * @param {any} deps
  */
 import { GRAPH_BOARD_TOOLS } from './tool-definitions.js';
-
 import { createDisposeSession } from './graph-dispose-session.js';
 import { createGraphBoardSession } from './graph-board-session.js';
 import { createGraphUiBindings } from './graph-ui-bindings.js';
@@ -654,12 +648,11 @@ function initGraphUI() {
   // readouts 帧任务与过期回调失效（随 mount 周期 dispose/reset）
   register(() => readoutsDispose?.());
 
-  // 首次全量投影：所有资源可回收后执行一次；失败不覆盖文档，renderer 自行 fatal
+  // 首次投影：失败不覆盖文档；成功后登记 selection（首进双击样式依赖）
   const initialRender = graphRenderer.fullRender(state.graphStore.getDocument());
   if (initialRender?.ok) {
     state.startCoeffs = { ...state.coeffs };
     syncSliders();
-    // 投影后才有曲线/特征点；必须登记到 selection，否则首进双击样式无目标
     reregisterSelectable();
   }
 }
@@ -745,8 +738,6 @@ function resetState() {
   state.historyController = null;
   state.themeHandle = null;
 }
-
-/** 关闭添加函数弹窗（Tab 切换 / 离开教室时调用） */
 
   return { initGraphUI, resizeGraph, disposeGraph, syncSliders, ensurePreset, getLabSnapshot, applyLabAction, openCoeffTransaction, flushCoeffFrame, setCoeffs, detachFunctionDependents, rebindFunctionDependents, dismissFnAddModal, dismissGraphNotesMode };
 }

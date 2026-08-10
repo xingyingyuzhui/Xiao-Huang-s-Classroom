@@ -5,6 +5,7 @@
  * - 扫描 apps/{web,server,desktop}/src 的 .js/.ts，行数 >400 的文件必须在
  *   large-file-budget.json 登记（类别 + 拆分计划），否则失败。
  * - 已登记文件行数超登记值 +15% 视为预算膨胀，失败（提示更新登记）。
+ * - 若登记含 hardMax（有限正数），则实际行数不得超过 hardMax（硬顶，不受 +15% 容差）。
  * - 登记表残留（文件已不存在或已 ≤400 行）失败（提示清理登记）。
  * - 类别白名单：entry / data / seed / shell / controller / logic / view /
  *   adapter / service——新增登记只能使用这些类别并写明拆分计划。
@@ -89,6 +90,10 @@ for (const file of collectSources()) {
   const registeredLines = Number(entry.lines);
   if (Number.isFinite(registeredLines) && lines > Math.round(registeredLines * GROWTH_TOLERANCE)) {
     problems.push(`预算膨胀: ${rel} ${registeredLines} → ${lines} 行（超 +15%），请拆分或更新登记`);
+  }
+  const hardMax = Number(entry.hardMax);
+  if (Number.isFinite(hardMax) && hardMax > 0 && lines > hardMax) {
+    problems.push(`硬顶突破: ${rel} ${lines} 行 > hardMax ${hardMax}——请拆分，禁止抬高 hardMax 掩盖新增`);
   }
 }
 

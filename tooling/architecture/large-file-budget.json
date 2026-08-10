@@ -106,8 +106,9 @@
   },
   "web/src/math/graph/graph-mount-controller.js": {
     "category": "controller",
-    "plan": "挂载生命周期控制器（Task 9 拆分后 750 行：board/ui/dispose 已收敛 session 文件）",
-    "lines": 750
+    "plan": "挂载生命周期控制器（Task 9 拆分后收敛；hardMax 750 禁止 +15% 容差掩盖膨胀）",
+    "lines": 743,
+    "hardMax": 750
   },
   "web/src/math/graph/graph-record-validation.js": {
     "category": "logic",
