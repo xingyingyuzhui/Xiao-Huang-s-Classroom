@@ -14,6 +14,7 @@
 import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { killProcessTree as defaultKillProcessTree } from './lib/kill-process-tree.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -39,8 +40,14 @@ function spawnTree(file, args, cwd) {
  * @param {(name: 'dev' | 'dev:server') => import('node:child_process').ChildProcess} options.spawn
  * @param {import('node:events').EventEmitter} [options.signals] CLI 传 process，测试传 fake
  * @param {Console} [options.logger]
+ * @param {(child: any) => void} [options.killProcessTree] 默认真实杀树；测试必须注入内存实现
  */
-export function createDevAll({ spawn: spawnChild, signals = null, logger = console }) {
+export function createDevAll({
+  spawn: spawnChild,
+  signals = null,
+  logger = console,
+  killProcessTree = defaultKillProcessTree,
+}) {
   const children = new Map();
   let shuttingDown = false;
   let firstExitCode = null;
@@ -52,22 +59,7 @@ export function createDevAll({ spawn: spawnChild, signals = null, logger = conso
   function killTree(child) {
     if (child.__killed) return;
     child.__killed = true;
-    try {
-      if (process.platform === 'win32') {
-        spawn('taskkill', ['/PID', String(child.pid), '/T', '/F'], {
-          stdio: 'ignore',
-          detached: true,
-        });
-      } else {
-        process.kill(-child.pid, 'SIGTERM');
-      }
-    } catch {
-      try {
-        child.kill('SIGTERM');
-      } catch {
-        /* 已退出 */
-      }
-    }
+    killProcessTree(child);
   }
 
   function maybeDone() {
