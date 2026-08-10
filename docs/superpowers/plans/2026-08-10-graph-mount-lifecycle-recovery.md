@@ -596,7 +596,7 @@ node --test \
 
 skill 的同步由另一条任务线处理。
 
-- [ ] **Step 5: 运行文档与结构检查**
+- [x] **Step 5: 运行文档与结构检查**
 
 Run:
 
@@ -613,7 +613,7 @@ git diff --check
 
 Expected: 全部 PASS，文档数字与当前文件行数一致。
 
-- [ ] **Step 6: 提交文档纠偏**
+- [x] **Step 6: 提交文档纠偏**
 
 Run:
 
@@ -668,7 +668,7 @@ Expected:
 - format、lint、`lint:critical`、baseline、typecheck、architecture、large files、theme、assets、tests、build、budget、coverage、diff 全部 PASS。
 - 不得只引用历史 CI 或 Turbo cache 命中作为证据。
 
-- [ ] **Step 3: 检查结构预算与禁止路径**
+- [x] **Step 3: 检查结构预算与禁止路径**
 
 Run:
 
@@ -686,7 +686,7 @@ Expected:
 - `graph-mount-controller.js <= 750`。
 - diff 不含用户数据、`dist/`、coverage、stage、Electron 产物、嵌套 lockfile、本地 skill。
 
-- [ ] **Step 4: 检查提交与工作树**
+- [x] **Step 4: 检查提交与工作树**
 
 Run:
 
@@ -725,12 +725,12 @@ Expected:
 
 > 每完成一个 Task 追加一行，不覆盖历史。全局门禁结果以 Task 5 实际执行为准，不预填 PASS。
 
-| Task               | Commit               | 最小测试                                                                                                                                                                                                                                                                                                                    | 备注                                                                     |
-| ------------------ | -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| Task 1（首次投影） | `3058a71`            | `node --test test/web/math-graph-mount-controller.test.cjs` → 18 PASS                                                                                                                                                                                                                                                       | 非空文档首次投影一次 / 渲染失败仍可完整销毁 / 重复 init 不覆盖 session   |
-| Task 2（原子回滚） | `c90cec7`            | `node --test test/web/math-graph-board-session.test.cjs test/web/math-graph-mount-controller.test.cjs` → 22 PASS                                                                                                                                                                                                            | 9 个 FAIL_STAGES 全部回滚；组合 disposer 逆序一次；mount 集成故障注入    |
-| Task 3（压力补强） | `d14cf07`            | `node --test test/web/math-graph-board-session.test.cjs test/web/math-graph-mount-controller.test.cjs test/web/math-graph-document-renderer.test.cjs test/web/math-graph-structure.test.cjs test/web/math-board-contract.test.cjs` → 45 PASS + `vitest run`（store/performance/lifecycle）→ 40 PASS + `lint:large-files` OK | 20 轮 mount 投影恰好 20 次；history.dispose 抛错不阻断其余、聚合日志一次 |
-| Task 4（文档纠偏） | `<待 Task 5 后回填>` | prettier/lint:large-files/structure/lint-baseline 合同                                                                                                                                                                                                                                                                      | Task 9 状态、D5/D6、js-hotspots 已对齐当前事实                           |
+| Task               | Commit    | 最小测试                                                                                                                                                                                                                                                                                                                    | 备注                                                                     |
+| ------------------ | --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Task 1（首次投影） | `3058a71` | `node --test test/web/math-graph-mount-controller.test.cjs` → 18 PASS                                                                                                                                                                                                                                                       | 非空文档首次投影一次 / 渲染失败仍可完整销毁 / 重复 init 不覆盖 session   |
+| Task 2（原子回滚） | `c90cec7` | `node --test test/web/math-graph-board-session.test.cjs test/web/math-graph-mount-controller.test.cjs` → 22 PASS                                                                                                                                                                                                            | 9 个 FAIL_STAGES 全部回滚；组合 disposer 逆序一次；mount 集成故障注入    |
+| Task 3（压力补强） | `d14cf07` | `node --test test/web/math-graph-board-session.test.cjs test/web/math-graph-mount-controller.test.cjs test/web/math-graph-document-renderer.test.cjs test/web/math-graph-structure.test.cjs test/web/math-board-contract.test.cjs` → 45 PASS + `vitest run`（store/performance/lifecycle）→ 40 PASS + `lint:large-files` OK | 20 轮 mount 投影恰好 20 次；history.dispose 抛错不阻断其余、聚合日志一次 |
+| Task 4（文档纠偏） | `03a8858` | `npx prettier --check` + `npm run lint:large-files` + `node --test test/web/math-graph-structure.test.cjs test/shared/lint-baseline-regression.test.cjs` → 15 PASS + `git diff --check` 无输出                                                                                                                              | Task 9 状态、D5/D6、js-hotspots 已对齐当前事实                           |
 
 未做：浏览器交互验证、本地 skill 修改、push/merge。
 
