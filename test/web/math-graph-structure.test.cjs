@@ -92,7 +92,7 @@ const PURE_LAYERS = [
   'numeric-analysis-runner.js',
   'transform-model.js',
   'probe-model.js',
-  'rate-of-change.js',
+  'rate-of-change.ts',
   'tool-definitions.js',
   'model.js',
   'construction/function-roots.js',

@@ -5,34 +5,45 @@
  * - p1/p2 为曲线上两点；dx/dy/slope 为差与平均变化率；
  * - x1===x2 或差值过小（epsilon）拒绝；
  * - 定义域外 / Infinity / NaN → valid:false，不抛错。
+ *
+ * C2 硬化样板（2026-08-10）：JS → TS 权威（行为逐字；无 any）。
+ * 无生产消费方（割线交互在 graph-tool-controller，本模块为纯数值库，
+ * 测试已迁 vitest）；结构测 PURE_LAYERS 白名单同步。
  */
 
 export const SECANT_EPSILON = 1e-9;
 
-/** @param {number} value @param {number} [maxDecimals] */
-export function formatSecantNumber(value, maxDecimals = 2) {
+export function formatSecantNumber(value: number, maxDecimals = 2): string {
   if (!Number.isFinite(value)) return '—';
   const f = Number(value.toFixed(maxDecimals));
   return Object.is(f, -0) ? '0' : String(f);
 }
 
-/**
- * @param {(x: number) => number | null} evaluate
- * @param {number} x1
- * @param {number} x2
- * @param {{ epsilon?: number }} [options]
- * @returns {{
- *   p1: { x: number, y: number } | null,
- *   p2: { x: number, y: number } | null,
- *   dx: number | null,
- *   dy: number | null,
- *   slope: number | null,
- *   midpoint: { x: number, y: number } | null,
- *   valid: boolean,
- * }}
- */
-export function secantMetrics(evaluate, x1, x2, options = {}) {
-  const epsilon = Number.isFinite(options.epsilon) ? options.epsilon : SECANT_EPSILON;
+export interface SecantPoint {
+  x: number;
+  y: number;
+}
+
+export interface SecantMetrics {
+  p1: SecantPoint | null;
+  p2: SecantPoint | null;
+  dx: number | null;
+  dy: number | null;
+  slope: number | null;
+  midpoint: SecantPoint | null;
+  valid: boolean;
+}
+
+export function secantMetrics(
+  evaluate: (x: number) => number | null,
+  x1: number,
+  x2: number,
+  options: { epsilon?: number } = {},
+): SecantMetrics {
+  const epsilon =
+    options.epsilon !== undefined && Number.isFinite(options.epsilon)
+      ? options.epsilon
+      : SECANT_EPSILON;
   if (typeof evaluate !== 'function' || !Number.isFinite(x1) || !Number.isFinite(x2)) {
     return emptyResult();
   }
@@ -40,17 +51,15 @@ export function secantMetrics(evaluate, x1, x2, options = {}) {
   if (Math.abs(dx) <= epsilon) {
     return { ...emptyResult(), dx, dy: null, slope: null, valid: false };
   }
-  let y1 = null;
-  let y2 = null;
+  let y1: number | null;
+  let y2: number | null;
   try {
     y1 = evaluate(x1);
     y2 = evaluate(x2);
   } catch {
     return emptyResult();
   }
-  const finite1 = y1 != null && Number.isFinite(y1);
-  const finite2 = y2 != null && Number.isFinite(y2);
-  if (!finite1 || !finite2) {
+  if (y1 == null || !Number.isFinite(y1) || y2 == null || !Number.isFinite(y2)) {
     return { ...emptyResult(), dx, valid: false };
   }
   const dy = y2 - y1;
@@ -68,19 +77,15 @@ export function secantMetrics(evaluate, x1, x2, options = {}) {
   };
 }
 
-/** @returns {{ p1: null, p2: null, dx: null, dy: null, slope: null, midpoint: null, valid: false }} */
-function emptyResult() {
+function emptyResult(): SecantMetrics {
   return { p1: null, p2: null, dx: null, dy: null, slope: null, midpoint: null, valid: false };
 }
 
 /**
  * 「趋近切线」播放参数：在 [x1, x2] 区间内按 t ∈ [0,1] 插值 x2 位置。
  * 纯函数，动画帧只喂 t。
- * @param {number} x1
- * @param {number} x2
- * @param {number} t
  */
-export function interpolateSecantX2(x1, x2, t) {
+export function interpolateSecantX2(x1: number, x2: number, t: number): number {
   const clamped = Math.min(1, Math.max(0, t));
   return x1 + (x2 - x1) * clamped;
 }

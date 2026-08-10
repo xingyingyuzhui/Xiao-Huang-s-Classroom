@@ -48,6 +48,8 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 
 **UI 库采用（`@xiaohuang/ui`）：** 采用指南、dispose 与危险模式门禁见 `docs/engineering/ui-library.md`；豁免登记表 `docs/engineering/ui-legacy-allowlist.md`（`test/shared/ui-no-raw-button-contract.test.cjs` 锁定）。
 
+**业务 JS 热点与安全改法：** 改业务 JS 前先查 `docs/engineering/js-hotspots.md`（热点地图 + 每热点「改前必跑」命令，风险化解计划 Track C 产出）；危险确认只走 `appConfirm` 家族、禁不可信 innerHTML、禁裸危险按钮。分支纪律 / 推送决策 / 灾难卡见 `docs/superpowers/plans/2026-08-10-main-divergence-and-js-risk-mitigation.md`（`docs/engineering/branch-authority.md` 与 `safe-change-playbook.md` 由并行批次落地）。
+
 **TypeScript 包矩阵（`packages/*`，tsup 双产物 + d.ts + strict）：**
 
 | 包                               | 职责                                                                                                                            |

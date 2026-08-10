@@ -7,7 +7,7 @@ import root from '../helpers/repo-root.js';
 
 async function rateModule() {
   return import(
-    pathToFileURL(path.join(root, 'apps/web/src/math/graph/rate-of-change.js')).href,
+    pathToFileURL(path.join(root, 'apps/web/src/math/graph/rate-of-change.ts')).href,
   );
 }
 
