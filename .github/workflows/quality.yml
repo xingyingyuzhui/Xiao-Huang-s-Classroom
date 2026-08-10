@@ -25,6 +25,12 @@ jobs:
       - name: Quality run 2（coverage/build 产物生成后可重复性）
         run: npm run quality
 
+      - name: Server start health smoke（干净 start 合同）
+        run: node scripts/verify-server-start.mjs --mode=start
+
+      - name: Server dev health smoke（watcher 首轮构建 + 监听 + 整树回收）
+        run: node scripts/verify-server-start.mjs --mode=dev
+
   node-version-portability:
     runs-on: ubuntu-latest
     strategy:

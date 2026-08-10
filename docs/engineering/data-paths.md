@@ -20,3 +20,9 @@
 - **代码不写入 `src/data/`**：`paths.js` 的数据解析只走 §1 三类位置；`src/seed/*` 与 `scripts/sync-*` 的数据源为 `apps/web/src/chemistry/data/`（web 模块数据），不依赖 `src/data/`。
 - 遇到引用 `src/data/` 的代码一律视为历史路径：仅识别/读取已有用户数据，禁止新增写入或把新资源放该目录。
 - 合同测试：`test/shared/data-paths-contract.test.cjs` 锁定 `paths.js` 无 `src/data` 写入路径。
+
+## 3. start/dev 干净合同（2026-08-10 主计划 Task 7）
+
+- `npm run start -w @xiaohuang/server`：`prestart` 经 Turbo 构建（`--filter=@xiaohuang/server...`）后 `node src/index.js`；数据仍写 §1 位置。
+- `npm run dev:server`：`predev` 构建 + `scripts/dev-server.mjs` supervisor（tsup --watch + chokidar 监听 `apps/server/src/**/*.js`；重启状态机先停旧 Server 再启新，禁止双 Server 同时监听）。
+- `node scripts/verify-server-start.mjs --mode=start|dev`：强制 `CHEM_LAB_DATA_DIR=<系统临时目录>`、`CHEM_LAB_BIND=127.0.0.1`、`OPEN_BROWSER=0`；smoke 前后对比 `apps/server/data` 与 `apps/server/src/data` 状态，任何变化都判失败——保证集成 smoke 不写生产数据。

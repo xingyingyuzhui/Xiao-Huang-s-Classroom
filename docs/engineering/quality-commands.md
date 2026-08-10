@@ -58,6 +58,26 @@ npm run quality:fast          # 本地日常快路径（format → lint → css 
 - 覆盖率阈值与文档一致性：`node --test --test-concurrency=1 test/shared/coverage-config-contract.test.cjs test/shared/coverage-doc-contract.test.cjs`
 - 构建可复现（模拟干净产物）：见 `docs/superpowers/plans/2026-08-08-engineering-optimization-roadmap.md` §11.2
 
+## 5.1 Server 干净 start/dev 合同（2026-08-10 主计划 Task 7）
+
+| 命令                                 | 语义                                                                                                                                                                 |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `npm run start -w @xiaohuang/server` | prestart 经 Turbo 构建（`--filter=@xiaohuang/server...`，含 domain-core/math-expr/subject-settings），`node src/index.js` 单一入口，不依赖调用者提前生成 dist        |
+| `npm run dev:server`                 | predev 构建 + `scripts/dev-server.mjs` supervisor（tsup --watch + chokidar 监听 `apps/server/src/**/*.js` + 重启状态机：首轮构建成功才启 Server；失败保留旧 Server） |
+| `npm run dev:all`                    | `scripts/dev-all.mjs` 跨平台 supervisor 持有 Web/Server 两棵进程树（POSIX 进程组 / Windows taskkill /T，无 shell `&`）                                               |
+
+验证（本地与 CI 同路径）：
+
+```bash
+node scripts/verify-server-start.mjs --mode=start   # 真实 start lifecycle + /api/health 30s
+node scripts/verify-server-start.mjs --mode=dev     # 真实 dev lifecycle + watcher 首轮成功 + health
+node --test --test-concurrency=1 test/shared/server-entrypoint-contract.test.cjs test/shared/server-dev-supervisor.test.cjs test/shared/dev-all-supervisor.test.cjs
+```
+
+smoke 用系统临时数据目录（`CHEM_LAB_DATA_DIR`）、从 `监听: host:port` 日志解析真实端口、整树回收后确认端口关闭；前后对比 `apps/server/data` 与 `apps/server/src/data` 状态，证明无生产数据写入。
+
+Node 版本差异由 quality workflow 的 `node-version-portability` job 覆盖：`TURBO_FORCE=true npm test` 在 Node 20/24 双版本各跑一遍（防 Turbo 缓存假绿）。
+
 ## 6. 改动 → 最低命令矩阵
 
 按本次改动范围选最低门禁；范围拿不准就上完整 `npm run quality`。推 `origin/main` 还会被 `.githooks/pre-push` 自动拦一道（见第 7 节）。
@@ -67,7 +87,7 @@ npm run quality:fast          # 本地日常快路径（format → lint → css 
 | 日常切片合本地 main       | `npm run quality:fast`（format + lint + lint:css + typecheck + test + build）                                                                                          |
 | 推 origin / 发版 / 大合并 | `npm run quality`（quality:fast + lint:baseline/arch/theme-tokens/assets + budget + coverage）                                                                         |
 | 只改 `packages/ui`        | `npm run test -w @xiaohuang/ui` + `npm run lint:theme-tokens` + `node --test test/shared/ui-no-raw-button-contract.test.cjs test/shared/ui-adoption-contract.test.cjs` |
-| 只改 server               | `npm run test -w @xiaohuang/server` + `npm run typecheck`                                                                                                              |
+| 只改 server               | `npm run test -w @xiaohuang/server` + `npm run typecheck` + `node scripts/verify-server-start.mjs --mode=start`（start/dev 合同改动时再跑 `--mode=dev`）               |
 
 ## 7. pre-push 门禁（`.githooks/pre-push`）
 

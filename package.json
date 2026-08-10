@@ -16,7 +16,7 @@
     "test": "turbo run test && node --test --test-concurrency=1 test/shared/*.cjs",
     "dev": "npm run dev -w @xiaohuang/web",
     "dev:server": "npm run dev -w @xiaohuang/server",
-    "dev:all": "npm run dev:server & npm run dev",
+    "dev:all": "node scripts/dev-all.mjs",
     "build": "turbo run build",
     "preview": "npm run preview -w @xiaohuang/web",
     "build:frontend": "npm run build:frontend -w @xiaohuang/server",
@@ -54,6 +54,7 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@vitest/coverage-v8": "^4.1.10",
+    "chokidar": "^5.0.0",
     "electron": "^33.2.1",
     "electron-builder": "^25.1.8",
     "eslint": "^10.8.0",
