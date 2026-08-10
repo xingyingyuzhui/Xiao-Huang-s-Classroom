@@ -10,7 +10,9 @@ import {
   createDefaultSubjectSettings,
   normalizeSubjectSettings,
 } from '@xiaohuang/subject-settings';
-import type { SubjectSettingsMap } from '@xiaohuang/subject-settings';
+
+/** 与 createDefaultSubjectSettings 返回值同构；避免 tsup 生成 d.ts 的 type-only 命名导出在消费端丢失。 */
+type SubjectSettingsMap = ReturnType<typeof createDefaultSubjectSettings>;
 
 /** DB 查询形状（repository 接口的前置形态；Task 5.2 下沉）。 */
 export interface SettingsDb {

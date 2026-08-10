@@ -15,8 +15,13 @@
    （policy/service 经 require 运行时解析 serverRoot/dist；utils 经 tsup bundle），
    用 import 会被 esbuild 静态解析破坏产物路径合同。 */
 import { Router, type Request, type Response } from 'express';
-import { normalizeSubjectSettings } from '@xiaohuang/subject-settings';
-import type { SubjectSettingsMap } from '@xiaohuang/subject-settings';
+import {
+  createDefaultSubjectSettings,
+  normalizeSubjectSettings,
+} from '@xiaohuang/subject-settings';
+
+/** 与 createDefaultSubjectSettings 返回值同构；避免 type-only 命名导出在 tsup d.ts 消费端丢失。 */
+type SubjectSettingsMap = ReturnType<typeof createDefaultSubjectSettings>;
 
 // CJS 产物同构：policy/service 权威源为 dist 产物（tsup；3 级解析）。
 // 类型来自 TS 源文件（编译期），运行时经 require 加载产物。

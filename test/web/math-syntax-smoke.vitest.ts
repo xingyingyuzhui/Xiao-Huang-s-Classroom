@@ -14,7 +14,9 @@ function walkJs(dir, acc = []) {
   for (const ent of fs.readdirSync(dir, { withFileTypes: true })) {
     const p = path.join(dir, ent.name);
     if (ent.isDirectory()) walkJs(p, acc);
-    else if (ent.name.endsWith('.js') || ent.name.endsWith('.ts')) acc.push(p);
+    // 仅 .js：Node 20 的 `node --check` 不能解析 .ts（ERR_UNKNOWN_FILE_EXTENSION）。
+    // TS 语法/类型由 typecheck + vitest 覆盖，本测专防 JS 动态 import 才暴露的括号缺失。
+    else if (ent.name.endsWith('.js')) acc.push(p);
   }
   return acc;
 }
@@ -29,7 +31,7 @@ test('math classroom modules parse with node --check', () => {
     // classroom 相关 + 各 lab 入口
     return (
       f.includes(`${path.sep}math${path.sep}`) ||
-      base === 'math-classroom.ts' ||
+      base === 'math-classroom.js' ||
       base.startsWith('math-')
     );
   });
