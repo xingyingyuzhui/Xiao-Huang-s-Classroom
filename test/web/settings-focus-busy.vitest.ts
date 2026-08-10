@@ -335,3 +335,18 @@ test('恢复默认：危险操作走 appConfirm（源合同），确认框选项
   assert.match(src, /okText: '恢复'/, '确认按钮文案「恢复」');
   assert.match(src, /danger: true/, '危险操作标记');
 });
+
+test('Esc：设置抽屉在 app-dialog 打开时不连带关闭（源合同）', () => {
+  const src = fs.readFileSync(path.join(root, 'apps/web/src/shared/ui/settings.js'), 'utf8');
+  assert.match(
+    src,
+    /querySelector\('\.app-dialog-root\.is-open, \.ui-dialog:not\(\[hidden\]\)'\)/,
+    'Esc 处理须检测顶层 dialog，避免确认框与抽屉同时关闭',
+  );
+  // 同一监听内：检测到 dialog 则 return，其后才是 closeDrawer
+  assert.match(
+    src,
+    /app-dialog-root[\s\S]{0,80}?return;\s*\n\s*closeDrawer\(\);/,
+    '检测到 dialog 时 return，不调用 closeDrawer',
+  );
+});

@@ -12,6 +12,7 @@
  * U2（2026-08-08）：焦点合同加固——打开聚焦主按钮/prompt 输入框；关闭焦点归还
  * 触发元素；队列链复用首个 opener（连续 confirm 不把焦点丢给已销毁按钮）；
  * Enter 只拦截非按钮区域（焦点在取消/关闭按钮上时回车 = 原生 click，不再误确定）。
+ * 2026-08-10：finish 先 focus opener 再 resolve（串行 await 焦点链）；队列空清 chainOpener。
  */
 import { createDialog } from '@xiaohuang/ui';
 
@@ -79,7 +80,11 @@ function showDialog(opts) {
 function drain() {
   if (busy) return;
   const next = queue.shift();
-  if (!next) return;
+  if (!next) {
+    // 队列清空后丢掉链首引用，避免长期持有已卸载的触发元素
+    chainOpener = null;
+    return;
+  }
   busy = true;
   next();
 }
@@ -204,6 +209,9 @@ function runDialog(opts, resolve, opener) {
     backdrop.classList.remove('is-open');
     panel.classList.remove('is-open');
     root.setAttribute('aria-hidden', 'true');
+    // 焦点归还须在 resolve 之前：串行 await appConfirm() 的调用方会立刻开下一个弹窗，
+    // 若此时 activeElement 仍是即将 dispose 的确定按钮，下一窗会把错误 opener 记成链首。
+    if (opener && document.body.contains(opener)) opener.focus();
     busy = false;
     resolve(value);
     // 等 0.2s 过渡结束后销毁（dispose 幂等）并释放滚动锁定
@@ -211,8 +219,6 @@ function runDialog(opts, resolve, opener) {
       dialog.dispose();
       unlockBodyScroll();
     }, 220);
-    // 焦点归还 opener（a11y）
-    if (opener && document.body.contains(opener)) opener.focus();
     // 下一帧再开下一个，避免同一 click 穿透
     requestAnimationFrame(() => drain());
   };

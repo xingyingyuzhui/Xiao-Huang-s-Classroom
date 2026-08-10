@@ -377,7 +377,10 @@ export async function initSettingsUI({
   btnClose?.addEventListener('click', closeDrawer);
   backdrop?.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && drawer?.classList.contains('is-open')) closeDrawer();
+    if (e.key !== 'Escape' || !drawer?.classList.contains('is-open')) return;
+    // 顶层 app-dialog / ui-dialog 打开时 Esc 只关确认框，不连带关设置抽屉
+    if (document.querySelector('.app-dialog-root.is-open, .ui-dialog:not([hidden])')) return;
+    closeDrawer();
   });
 
   brandIconInput?.addEventListener('change', async () => {

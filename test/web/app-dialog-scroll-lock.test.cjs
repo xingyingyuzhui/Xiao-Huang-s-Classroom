@@ -425,3 +425,27 @@ test('U2.4 队列连续两次 confirm：链式复用首 opener，焦点回到最
   await sleep(320);
   assert.ok(!doc.body.classList.contains('ui-scroll-lock'), '最后一个关闭后解锁');
 }));
+
+test('串行 await 两次 confirm：resolve 前归还焦点，第二窗 opener 不是第一窗确定按钮', withFakeDom(async (doc) => {
+  const { appConfirm } = await dialogModule();
+  const opener = makeOpener(doc);
+
+  const p1 = appConfirm('串行第一');
+  const ok1 = findLastByData(doc, 'data-app-dialog-ok');
+  assert.ok(ok1, '第一窗确定按钮存在');
+  ok1.click();
+  assert.equal(await p1, true, '第一窗确定');
+  // finish 须在 resolve 前 focus opener，否则串行第二窗会把 ok1 当链首
+  assert.equal(doc.activeElement, opener, '第一窗关闭后焦点已归还 opener（在 await 继续前）');
+
+  const p2 = appConfirm('串行第二');
+  const ok2 = findLastByData(doc, 'data-app-dialog-ok');
+  assert.ok(ok2, '第二窗确定按钮存在');
+  assert.notEqual(ok2, ok1, '第二窗有新确定按钮');
+  ok2.click();
+  assert.equal(await p2, true, '第二窗确定');
+  assert.equal(doc.activeElement, opener, '串行第二窗关闭后焦点仍归还最初 opener');
+
+  await sleep(320);
+  assert.ok(!doc.body.classList.contains('ui-scroll-lock'), '串行关闭后解锁');
+}));

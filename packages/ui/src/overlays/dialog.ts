@@ -41,6 +41,9 @@ export function createDialog(initial: DialogProps = {}): UiController<DialogProp
   };
   const requestClose = () => {
     if (!props.open) return;
+    // 先收起 open，避免 Esc 连按重复 onClose；与 DOM hidden 状态对齐
+    props = { ...props, open: false };
+    render();
     props.onClose?.();
     closeHandler?.(undefined);
     props.opener?.focus?.();
@@ -48,9 +51,12 @@ export function createDialog(initial: DialogProps = {}): UiController<DialogProp
   onKeyDown = (ev: KeyboardEvent) => {
     if (ev.key !== 'Escape' || !props.open) return;
     ev.preventDefault();
+    // 捕获阶段 + stopPropagation：先于设置抽屉等 bubble 监听，避免 Esc 连带关壳
+    ev.stopPropagation?.();
     requestClose();
   };
-  document.addEventListener('keydown', onKeyDown);
+  // 捕获阶段注册，保证在业务 document bubble 监听之前吃掉 Esc
+  document.addEventListener('keydown', onKeyDown, true);
   render();
 
   return {
@@ -66,7 +72,7 @@ export function createDialog(initial: DialogProps = {}): UiController<DialogProp
       };
     },
     dispose() {
-      if (onKeyDown) document.removeEventListener('keydown', onKeyDown);
+      if (onKeyDown) document.removeEventListener('keydown', onKeyDown, true);
       element.remove();
     },
   };
