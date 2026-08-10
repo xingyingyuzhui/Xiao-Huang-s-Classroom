@@ -402,7 +402,7 @@ cd ../..
 node --test test/web/subject-hub.test.cjs test/shared/module-boundaries.test.cjs
 ```
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add apps/web/src/math/graph/construction/render-lines.js apps/web/src/math/graph/construction/restore.js apps/web/src/subjects/hub.js test/web
@@ -932,7 +932,7 @@ git commit -m "perf(web): remove ineffective imports and strengthen bundle budge
 - Modify: `test/web/math-graph-structure.test.cjs`
 - Test: `test/web/math-graph-mount-controller.test.cjs`
 
-- [ ] **Step 1: 先按职责统计 mount controller**
+- [x] **Step 1: 先按职责统计 mount controller**
 
 只允许拆出以下三类已存在职责：
 
@@ -942,7 +942,7 @@ git commit -m "perf(web): remove ineffective imports and strengthen bundle budge
 
 不要新增抽象基类，不做通用框架。
 
-- [ ] **Step 2: 提取 graph-board-session**
+- [x] **Step 2: 提取 graph-board-session**
 
 返回显式资源，示例必须处于函数返回语境，不能写成独立 block/comma expression：
 
@@ -958,11 +958,11 @@ return {
 
 创建失败不得发布半初始化 session；沿用 renderer fatal/read-only 语义。
 
-- [ ] **Step 3: 提取 graph-ui-bindings**
+- [x] **Step 3: 提取 graph-ui-bindings**
 
 只负责绑定并返回 disposer；不得持有 GraphDocument 真值。文件 picker、FileReader、download URL 必须仍能取消并 settle。
 
-- [ ] **Step 4: 提取 graph-dispose-session**
+- [x] **Step 4: 提取 graph-dispose-session**
 
 保留现有逆序、容错、幂等合同；错误聚合后可见记录，不能 silent catch。
 
@@ -978,7 +978,7 @@ return {
 
 预算只有在行为测试全绿后更新；不得通过压缩格式或把多个职责塞入一行达标。
 
-- [ ] **Step 6: 运行生命周期压力测试**
+- [x] **Step 6: 运行生命周期压力测试**
 
 ```bash
 node --test test/web/math-graph-mount-controller.test.cjs
@@ -997,6 +997,17 @@ npx vitest run \
 git add apps/web/src/math/graph tooling/architecture/large-file-budget.json test/web/math-graph-structure.test.cjs test/web/math-graph-mount-controller.test.cjs
 git commit -m "refactor(graph): split board session and lifecycle bindings"
 ```
+
+### Task 9 实际状态（2026-08-10 纠偏，勿改写成“达标”）
+
+- T1–T8 已完成并由现有门禁/CI 验证。
+- T9 是**部分完成后补齐生命周期正确性**，不是达到原结构目标：
+  - `graph-board-session.js`、`graph-ui-bindings.js`、`graph-dispose-session.js` 已提取（拆分 commit `3fa336f`）。
+  - 原目标 `index.js <= 560`、`graph-mount-controller.js <= 600` **未达到**；实际约为 **690 / 750**。
+  - 690/750 是当前**有界债务和门禁**，不是原目标完成；禁止把原目标改写成 690/750 制造“达标”。
+  - 行为/生命周期步骤（Step 1–4、6、7）已完成：首次全量投影恢复与 board session 原子回滚
+    （`3058a71`、`c90cec7`、`d14cf07`，见 `2026-08-10-graph-mount-lifecycle-recovery.md`）。
+  - 结构预算 Step 5 **保持未完成**：继续按职责下降到 560/600 的目标另开结构债计划，本轮不再拆。
 
 ---
 
