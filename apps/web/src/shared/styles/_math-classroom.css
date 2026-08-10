@@ -1169,7 +1169,7 @@
   max-width: calc(100% - 1.25rem);
 }
 
-/* 作图迷你工具条：竖排贴右缘，叠在 FAB 槽正上方；顶部 ▲/▼ 收起为当前工具 */
+/* 作图迷你工具条：竖排贴右缘，叠在 FAB 槽正上方；顶部 ▼/▲ 收起为当前工具 */
 .math-board-tool-strip {
   position: absolute;
   right: 10px;
