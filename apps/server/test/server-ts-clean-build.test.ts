@@ -3,12 +3,16 @@
  * （D-test 批次：node:test → vitest 迁移，行为逐字保持；execFileSync 构建
  * 需要 >5s，显式设置 test timeout）
  *
- * 用临时副本模拟干净环境（不触碰生产 apps/server/dist，保证与并行
- * server 测试隔离）：
- * 1. 无 dist 的副本中，构建命令生成 settings-policy 产物。
- * 2. 无产物时加载失败（运行时真实依赖产物）。
- * 3. 构建后产物可加载（单一产物合同）。
- * 4. stage 脚本含"产物缺失时主动构建"逻辑。
+ * 干净启动验证分三层（2026-08-10 主计划 Task 7）：
+ * - unit：本文件——临时副本模拟干净环境（不触碰生产 apps/server/dist）：
+ *   1. 无 dist 的副本中，构建命令生成 settings-policy 产物；
+ *   2. 无产物时加载失败（运行时真实依赖产物）；
+ *   3. 构建后产物可加载（单一产物合同）；
+ *   4. stage 脚本含「产物缺失时主动构建」逻辑。
+ * - integration：scripts/verify-server-start.mjs 的 --mode=start / --mode=dev
+ *   health smoke（真实 npm lifecycle + 临时数据目录 + 真实端口 /api/health）。
+ * - CI clean：quality.yml 在 test/build 之后串行执行两种 mode 的 smoke
+ *   （npm ci 后无生成目录直接跑集成）。
  */
 import { test } from 'vitest';
 import assert from 'node:assert/strict';
@@ -189,4 +193,19 @@ test('server package.json 提供标准 build/test/typecheck 任务', () => {
   for (const task of ['build', 'test', 'typecheck']) {
     assert.equal(typeof pkg.scripts?.[task], 'string', `apps/server 必须有 ${task} 脚本`);
   }
+});
+
+test('集成层：verify-server-start.mjs 提供 start/dev 两种真实 health smoke', () => {
+  const script = fs.readFileSync(path.join(root, 'scripts/verify-server-start.mjs'), 'utf8');
+  assert.match(script, /--mode=start/, '支持 start 模式');
+  assert.match(script, /--mode=dev/, '支持 dev 模式');
+  assert.match(script, /CHEM_LAB_DATA_DIR/, '使用临时数据目录');
+  assert.match(script, /监听:/, '从日志解析真实端口');
+  assert.match(script, /api\/health/, '轮询 health');
+});
+
+test('CI clean 层：quality.yml 在 test/build 后串行执行 start/dev smoke', () => {
+  const workflow = fs.readFileSync(path.join(root, '.github/workflows/quality.yml'), 'utf8');
+  assert.match(workflow, /verify-server-start\.mjs --mode=start/, 'CI 执行 start smoke');
+  assert.match(workflow, /verify-server-start\.mjs --mode=dev/, 'CI 执行 dev smoke');
 });
