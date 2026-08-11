@@ -1,7 +1,10 @@
 /** 交点与其支撑对象之间的更新绑定和回收规则。 */
 
 import { ensurePointGeomHook } from '../../shared/board-label.js';
-import { bindConstructionDependency } from './dependencies.js';
+import {
+  bindConstructionDependency,
+  clearConstructionDependencies,
+} from './dependencies.js';
 import { scheduleIntersectUpdate } from './intersect-update.js';
 import { syncIntersectVisibility } from './intersection-visibility.js';
 import { deleteConstruction } from './operations.js';
@@ -35,21 +38,29 @@ export function bindIntersectVisibility(host, construction, point, lineIds) {
     };
   }
 
+  // 唯一 owner：先清空再按唯一端点登记，避免与 renderers 双绑或共享端点重复
+  clearConstructionDependencies(construction);
+  /** @type {Set<any>} */
+  const endpoints = new Set();
   for (const id of lineIds) {
     const line = lineLikeElOf(host.findConstr(id));
     for (const endpoint of [line?.point1, line?.point2].filter(Boolean)) {
-      if (typeof endpoint.on !== 'function') continue;
-      bindConstructionDependency(construction, endpoint, () => scheduleIntersectUpdate(point));
-      ensurePointGeomHook(endpoint);
+      endpoints.add(endpoint);
     }
   }
+  for (const endpoint of endpoints) {
+    if (typeof endpoint.on !== 'function') continue;
+    bindConstructionDependency(construction, endpoint, () => scheduleIntersectUpdate(point));
+    ensurePointGeomHook(endpoint);
+  }
+
   try {
     if (typeof point.on === 'function' && !point._mathIntersectUpdateBound) {
       point._mathIntersectUpdateBound = true;
       point.on('update', () => {
-    if (point._mathIntersectUpdating) return;
-    scheduleIntersectUpdate(point);
-  });
+        if (point._mathIntersectUpdating) return;
+        scheduleIntersectUpdate(point);
+      });
     }
   } catch {
     /* partially disposed points cannot bind updates */

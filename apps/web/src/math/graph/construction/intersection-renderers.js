@@ -4,15 +4,12 @@ import {
   applyBoardLabel,
   bindLiveLabel,
   boardLabelAttrs,
-  ensurePointGeomHook,
   formatElementCoordsLabel,
 } from '../../shared/board-label.js';
 import { getMathBoardChrome } from '../../shared/math-theme.js';
 import { lineLineIntersectionCoords } from './geometry.js';
-import { bindConstructionDependency } from './dependencies.js';
 import { bindIntersectVisibility } from './intersection-lifecycle.js';
 import { findLineFnHitNumeric } from './intersection-numeric.js';
-import { scheduleIntersectUpdate } from './intersect-update.js';
 import {
   constrIsInfinite,
   pointLiesOnConstr,
@@ -336,14 +333,6 @@ export function createLineIntersection(host, lineA, lineB, lineIds, id, options 
 
   host.getConstructions().push(rec);
   bindIntersectVisibility(host, rec, pt, /** @type {string[]} */ ([...ids]));
-  for (const lineEl of [lineA, lineB]) {
-    for (const p of [lineEl?.point1, lineEl?.point2]) {
-      if (!p) continue;
-      const tick = () => scheduleIntersectUpdate(pt);
-      bindConstructionDependency(rec, p, tick);
-      ensurePointGeomHook(p);
-    }
-  }
   if (options.notify !== false) host.onChanged?.();
   return rec;
 }
