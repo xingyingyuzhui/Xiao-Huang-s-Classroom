@@ -12,6 +12,8 @@ const STATUS_BY_CODE: Partial<Record<ErrorCode, number>> = {
   FORBIDDEN_WORKSPACE: 403,
   ACCOUNT_NOT_FOUND: 404,
   ACCOUNT_PENDING_DELETION: 403,
+  CLASS_NOT_FOUND: 404,
+  CLASS_TRASHED: 409,
 };
 
 export function httpStatusForError(code: ErrorCode): number {
