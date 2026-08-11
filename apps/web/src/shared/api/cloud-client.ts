@@ -23,6 +23,22 @@ export class CloudClient {
     );
   }
 
+  async login(
+    username: string,
+    password: string,
+  ): Promise<{ accountId: string; displayName: string; accessToken: string; expiresAt: number }> {
+    const res = await fetch(`${this.config.baseUrl}/api/v2/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Request-Id': crypto.randomUUID() },
+      body: JSON.stringify({ username, password }),
+    });
+    const json = (await res.json()) as { success: boolean; data?: { accountId: string; displayName: string; accessToken: string; expiresAt: number }; error?: { code: string; message: string } };
+    if (!json.success || !json.data) {
+      throw new AppError((json.error?.code ?? 'AUTH_FAILED') as never, json.error?.message ?? 'Login failed');
+    }
+    return json.data;
+  }
+
   async syncPull(
     workspaceId: string,
     cursor: string | null,
