@@ -11,3 +11,5 @@ export { makeFakeElement, createFakeDocument } from './fake-dom.js';
 export type { FakeElement, FakeDocument } from './fake-dom.js';
 export { createFakeFetch } from './fake-fetch.js';
 export type { FetchRequest, FakeFetch } from './fake-fetch.js';
+export { createFakeIndexedDb, installFakeIndexedDb } from './fake-indexeddb.js';
+export type { FakeIndexedDbHandle } from './fake-indexeddb.js';
