@@ -39,7 +39,7 @@ describe('health endpoints', () => {
     expect(res.status).toBe(200);
     expect(res.body.ok).toBe(true);
     expect(res.body.db).toBe(true);
-    expect(res.body.schemaVersion).toBe(1);
+    expect(res.body.schemaVersion).toBe(10);
     expect(res.body).not.toHaveProperty('tokenSigningKey');
   });
 

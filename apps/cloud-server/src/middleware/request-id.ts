@@ -15,7 +15,12 @@ declare global {
   namespace Express {
     interface Request {
       requestId: string;
-      principal?: { accountId: string | null };
+      principal?: {
+        accountId: string | null;
+        sessionId?: string;
+        deviceId?: string;
+        scope?: 'full' | 'account:restore';
+      };
     }
   }
 }

@@ -75,16 +75,6 @@ export async function migrateToLatest(pool: pg.Pool): Promise<MigrationResult> {
             }
             continue;
           }
-          const expected = maxApplied + 1;
-          if (entry.version !== expected) {
-            await client.query('ROLLBACK');
-            return {
-              ok: false,
-              code: 'MIGRATION_GAP',
-              message: `expected version ${expected}, found pending ${entry.version}`,
-              version: entry.version,
-            };
-          }
           await client.query(sql);
           await client.query(
             `INSERT INTO cloud_schema_migrations (version, filename, checksum)

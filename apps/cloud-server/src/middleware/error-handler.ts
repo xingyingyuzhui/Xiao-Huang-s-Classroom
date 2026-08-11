@@ -2,12 +2,13 @@ import type { Request, Response, NextFunction } from 'express';
 import { AppError } from '@xiaohuang/domain-core';
 import type { CloudConfig } from '../config.js';
 import { redactSecrets } from '../config.js';
+import { httpStatusForError } from './http-status.js';
 
 export function errorHandler(config: CloudConfig) {
   return (err: unknown, req: Request, res: Response, _next: NextFunction): void => {
     const requestId = req.requestId ?? 'unknown';
     if (err instanceof AppError) {
-      res.status(400).json({
+      res.status(httpStatusForError(err.code)).json({
         success: false,
         error: {
           code: err.code,

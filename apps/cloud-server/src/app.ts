@@ -5,8 +5,12 @@ import { pingDb } from './db/pool.js';
 import { getSchemaVersion, MAX_MIGRATION_VERSION } from './db/migrate.js';
 import { requestIdMiddleware } from './middleware/request-id.js';
 import { bodyLimitMiddleware } from './middleware/body-limit.js';
-import { authPrincipalMiddleware } from './middleware/auth-principal.js';
+import { createAuthPrincipalMiddleware } from './middleware/auth-principal.js';
+import { cookieParser } from './middleware/cookies.js';
 import { errorHandler } from './middleware/error-handler.js';
+import { createAuthRouter } from './auth/routes.js';
+import { createAccountsRouter } from './accounts/routes.js';
+import { createDevicesRouter } from './devices/routes.js';
 
 export type CloudAppDeps = {
   config: CloudConfig;
@@ -24,8 +28,9 @@ export function createCloudApp(deps: CloudAppDeps): express.Application {
 
   app.use(requestIdMiddleware);
   app.use(bodyLimitMiddleware(config));
+  app.use(cookieParser());
   app.use(express.json({ limit: config.bodyLimitBytes }));
-  app.use(authPrincipalMiddleware);
+  app.use(createAuthPrincipalMiddleware(config, pool));
 
   app.get('/livez', (_req, res) => {
     res.status(200).json({ ok: true, service: 'cloud-server' });
@@ -66,18 +71,31 @@ export function createCloudApp(deps: CloudAppDeps): express.Application {
     });
   });
 
-  // Tenant isolation stub — returns 501 until sync/auth tables exist
-  app.get('/api/cloud/v1/_internal/tenant-check', async (req, res) => {
-    res.status(501).json({
-      success: false,
-      error: {
-        code: 'NOT_IMPLEMENTED',
-        message: 'Tenant isolation routes ship with cloud-auth (Task 4)',
-      },
-      requestId: req.requestId,
-    });
-  });
+  const v1 = express.Router();
+  v1.use('/auth', createAuthRouter(config, pool));
+  v1.use('/account', createAccountsRouter(pool));
+  v1.use('/devices', createDevicesRouter(pool));
+  app.use('/api/cloud/v1', v1);
+
+  app.get('/api/cloud/v1/_internal/tenant-check', requireAuthTenantCheck);
 
   app.use(errorHandler(config));
   return app;
+}
+
+function requireAuthTenantCheck(req: express.Request, res: express.Response): void {
+  const accountId = req.principal?.accountId;
+  if (!accountId) {
+    res.status(401).json({
+      success: false,
+      error: { code: 'AUTH_SESSION_EXPIRED', message: '请先登录' },
+      requestId: req.requestId,
+    });
+    return;
+  }
+  res.json({
+    success: true,
+    data: { accountId, trusted: true },
+    requestId: req.requestId,
+  });
 }

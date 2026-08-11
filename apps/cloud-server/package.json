@@ -14,9 +14,11 @@
     "typecheck": "node ../../scripts/typecheck-apps.mjs cloud-server"
   },
   "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
     "@xiaohuang/contracts": "*",
     "@xiaohuang/domain-core": "*",
     "express": "^4.18.2",
+    "jose": "^6.0.11",
     "pg": "^8.16.3",
     "zod": "^4.4.3"
   },

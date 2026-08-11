@@ -1,0 +1,19 @@
+import type { ErrorCode } from '@xiaohuang/domain-core';
+
+const STATUS_BY_CODE: Partial<Record<ErrorCode, number>> = {
+  VALIDATION_SCHEMA: 400,
+  AUTH_INVALID_CREDENTIALS: 401,
+  AUTH_SESSION_EXPIRED: 401,
+  AUTH_REFRESH_REUSE: 401,
+  AUTH_RATE_LIMITED: 429,
+  AUTH_REGISTRATION_CLOSED: 403,
+  AUTH_FEATURE_DISABLED: 403,
+  FORBIDDEN_TENANT: 403,
+  FORBIDDEN_WORKSPACE: 403,
+  ACCOUNT_NOT_FOUND: 404,
+  ACCOUNT_PENDING_DELETION: 403,
+};
+
+export function httpStatusForError(code: ErrorCode): number {
+  return STATUS_BY_CODE[code] ?? 400;
+}

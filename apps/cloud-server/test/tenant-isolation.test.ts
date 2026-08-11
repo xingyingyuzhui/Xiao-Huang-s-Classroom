@@ -9,6 +9,7 @@ import {
   testCloudEnv,
   type PgTestEnv,
 } from './helpers/pg-test-container.js';
+import { seedTestAccount } from './helpers/auth-fixtures.js';
 
 describe('tenant isolation foundation', () => {
   let pgEnv: PgTestEnv;
@@ -31,14 +32,28 @@ describe('tenant isolation foundation', () => {
     expect(role.rows[0]?.rolbypassrls).toBe(false);
   });
 
-  it('does not trust client-supplied tenant headers (stub route)', async () => {
+  it('tenant-check uses authenticated principal, not client headers', async () => {
+    await seedTestAccount(pgEnv.pool, {
+      username: 'tenant_user',
+      password: 'password123',
+      displayName: 'Tenant User',
+    });
     const config = loadCloudConfig(testCloudEnv(pgEnv.databaseUrl));
     const app = createCloudApp({ config, pool: pgEnv.pool });
-    const res = await request(app)
+    const agent = request.agent(app);
+    const login = await agent.post('/api/cloud/v1/auth/login').send({
+      username: 'tenant_user',
+      password: 'password123',
+      deviceLabel: 'Test',
+    });
+    const token = login.body.data.accessToken;
+    const res = await agent
       .get('/api/cloud/v1/_internal/tenant-check')
+      .set('Authorization', `Bearer ${token}`)
       .set('x-account-id', 'attacker-account');
-    expect(res.status).toBe(501);
-    expect(res.body.error.code).toBe('NOT_IMPLEMENTED');
+    expect(res.status).toBe(200);
+    expect(res.body.data.accountId).not.toBe('attacker-account');
+    expect(res.body.data.trusted).toBe(true);
   });
 
   it('rejects oversized bodies before handler', async () => {
