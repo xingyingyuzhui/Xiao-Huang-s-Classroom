@@ -296,13 +296,13 @@ Commit: `feat(contracts): add account workspace and sync contracts`。
 
 ### 5.1 运行时边界
 
-- [ ] `apps/cloud-server` 不导入 `apps/server` 或 `apps/web`；共享只经 packages。
-- [ ] 数据访问固定使用 `pg` 与显式 repository；不引入可切换 SQLite/PG 的泛型 SQL 层，也不把 SQLite SQL 复制后做字符串替换。
-- [ ] 固定监听 `0.0.0.0:3000`（容器内），端口占用必须失败，禁止自动 `+1`。
-- [ ] `/livez` 只证明进程存活；`/readyz` 检查 DB、migration version 和必需密钥，不泄漏配置。
-- [ ] 配置用 Zod 启动校验：`DATABASE_URL`、token signing key、AI KEK、public origin、registration mode、body limit。
-- [ ] 统一生成 requestId；日志为 JSON，token/password/key/cookie/authorization 必须脱敏。
-- [ ] Cloud API 前缀固定 `/api/cloud/v1`，不混入现有本地 `/api` 或不完整 `/api/v2/settings`。
+- [x] `apps/cloud-server` 不导入 `apps/server` 或 `apps/web`；共享只经 packages。
+- [x] 数据访问固定使用 `pg` 与显式 repository；不引入可切换 SQLite/PG 的泛型 SQL 层，也不把 SQLite SQL 复制后做字符串替换。
+- [x] 固定监听 `0.0.0.0:3000`（容器内），端口占用必须失败，禁止自动 `+1`。
+- [x] `/livez` 只证明进程存活；`/readyz` 检查 DB、migration version 和必需密钥，不泄漏配置。
+- [x] 配置用 Zod 启动校验：`DATABASE_URL`、token signing key、AI KEK、public origin、registration mode、body limit。
+- [x] 统一生成 requestId；日志为 JSON，token/password/key/cookie/authorization 必须脱敏。
+- [x] Cloud API 前缀固定 `/api/cloud/v1`，不混入现有本地 `/api` 或不完整 `/api/v2/settings`。
 
 ### 5.2 PostgreSQL schema
 
@@ -314,22 +314,24 @@ Commit: `feat(contracts): add account workspace and sync contracts`。
 0030–0039  ai/audit（Agent F）
 ```
 
-- [ ] 所有后续业务表都必须有明确 owner FK；跨租户查询必须包含 `account_id`。
-- [ ] `account_identities` 对规范化 username/email/provider subject 建唯一约束。
-- [ ] migration manifest 与 runner 由 Task 3/Supervisor 独占；B/C/F 只能在预留号段新增文件，不得并行改 runner 或重排已合并编号。
-- [ ] migrations 使用事务、checksum 和 advisory lock；空库、重复运行、前一版升级、高版本拒绝都要测。
-- [ ] 不提供“自动 down migration”；回滚依赖发布前 `pg_dump` 和向后兼容的 expand/contract 策略。
-- [ ] PG 集成测试使用 Testcontainers 或 `deploy/compose.test.yml` 启动真实 PostgreSQL；不得用 SQLite fake 证明 PG 语义。测试必须自建随机 database/schema 并在结束时回收。
+- [ ] 所有后续业务表都必须有明确 owner FK；跨租户查询必须包含 `account_id`。（Task 4–6 落地）
+- [ ] `account_identities` 对规范化 username/email/provider subject 建唯一约束。（Task 4 落地）
+- [x] migration manifest 与 runner 由 Task 3/Supervisor 独占；B/C/F 只能在预留号段新增文件，不得并行改 runner 或重排已合并编号。
+- [x] migrations 使用事务、checksum 和 advisory lock；空库、重复运行、前一版升级、高版本拒绝都要测。
+- [x] 不提供“自动 down migration”；回滚依赖发布前 `pg_dump` 和向后兼容的 expand/contract 策略。
+- [x] PG 集成测试使用 Testcontainers 或 `deploy/compose.test.yml` 启动真实 PostgreSQL；不得用 SQLite fake 证明 PG 语义。测试必须自建随机 database/schema 并在结束时回收。
 
 ### 5.3 验证
 
 ```bash
-npm run test -w @xiaohuang/cloud-server
-npm run typecheck -w @xiaohuang/cloud-server
-docker compose -f deploy/compose.yml config   # deploy 骨架合并后
+npm run test -w @xiaohuang/cloud-server      # 13/13 pass
+npm run typecheck -w @xiaohuang/cloud-server # 16 TS files pass
+npm run lint:arch                            # OK
+POSTGRES_PASSWORD=… CLOUD_*=… docker compose -f deploy/compose.yml config
 ```
 
-Expected: 空库迁移成功、第二次幂等、错误 migration 原子回滚、受限 app role 不能绕过未来 tenant policy。
+Expected: 空库迁移成功、第二次幂等、错误 migration 原子回滚、受限 app role 不能绕过未来 tenant policy。  
+**证据：** 2026-08-11 Testcontainers 13/13 pass；`cloud_app` 无 BYPASSRLS；compose config OK（需 env 占位）
 
 Commit: `feat(cloud): add postgres application foundation`。
 
