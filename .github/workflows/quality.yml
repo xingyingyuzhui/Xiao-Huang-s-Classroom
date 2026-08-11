@@ -5,9 +5,17 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -31,8 +39,38 @@ jobs:
       - name: Server dev health smoke（watcher 首轮构建 + 监听 + 整树回收）
         run: node scripts/verify-server-start.mjs --mode=dev
 
+  cloud-server:
+    needs: quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: xiaohuang
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: xiaohuang_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U xiaohuang"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://xiaohuang:test@localhost:5432/xiaohuang_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run test -w @xiaohuang/cloud-server
+
   node-version-portability:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       matrix:
         node: [20, 24]
