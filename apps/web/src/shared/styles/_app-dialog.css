@@ -18,6 +18,40 @@
   pointer-events: auto;
 }
 
+/*
+ * createDialog 根节点同时带 .ui-dialog（目录页卡片皮肤）。
+ * app-dialog 自管全屏 backdrop + 居中 modal-panel；必须剥掉 .ui-dialog 的
+ * 居中卡片/transform/::before，否则：
+ * 1) 根节点变成大灰块；
+ * 2) 祖先 transform 把内部 position:fixed 面板裁到视口角落。
+ * 主复位在 _ui-kit.css 的 .ui-dialog--shell；此处双保险（app-dialog-root 同权重）。
+ */
+.app-dialog-root.ui-dialog,
+.app-dialog-root.ui-dialog--shell {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: none;
+  min-width: 0;
+  max-width: none;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  color: inherit;
+}
+
+.app-dialog-root.ui-dialog::before,
+.app-dialog-root.ui-dialog--shell::before {
+  content: none;
+  display: none;
+}
+
 .app-dialog-backdrop {
   position: fixed;
   inset: 0;

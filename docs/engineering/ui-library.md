@@ -120,10 +120,23 @@ apps/web 全局样式
 （220ms 内）重复 Esc/点击由 `settled` 守卫吸收；库的 Esc 为 bubble 阶段、Enter 为
 capture 阶段（原实现两者均 capture）——行为等价，边界场景可接受。
 
+**皮肤冲突（2026-08-10 硬化）：** `createDialog` 默认带 `.ui-dialog` 居中卡片 +
+`transform` + `::before` 遮罩。若再往根节点挂全屏 `.app-dialog-root` 与内部
+`position:fixed` 的 `.modal-panel`，会出现「大灰块 + 面板裁到视口角落」。
+
+规则：
+
+1. 产品面确认/提示**只**走 `appConfirm` / `appAlert` / `appPrompt`，禁止业务直调
+   `createDialog`（`test/web/app-dialog-layout-contract.test.cjs` 锁定）。
+2. Adapter 根节点必须加 `ui-dialog--shell`（`_ui-kit.css` 剥卡片皮肤）；
+   `_app-dialog.css` 对 `.app-dialog-root.ui-dialog` 再双保险复位。
+3. 目录页 / 演示可继续用默认 `.ui-dialog` 卡片形态。
+
 相关文档：
 
 - 计划：`docs/superpowers/plans/2026-08-08-ui-library-adoption-plan.md`
 - 采用计数合同：`test/shared/ui-adoption-contract.test.cjs`
+- 布局合同：`test/web/app-dialog-layout-contract.test.cjs`
 - 债务：D4（innerHTML）见 `docs/engineering/debt-registry.md`
 
 ## 采用指南（@xiaohuang/ui 消费者）

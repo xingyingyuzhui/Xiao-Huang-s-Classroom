@@ -105,7 +105,8 @@ function runDialog(opts, resolve, opener) {
   // 壳层：createDialog（Esc → onClose → onCancel；role/aria/dispose 由库管理）
   const dialog = createDialog({ title: '', open: false, onClose: () => onCancel() });
   const root = dialog.element;
-  root.classList.add('app-dialog-root');
+  // shell：剥掉 .ui-dialog 卡片皮肤（transform/::before），仅保留 a11y/Esc/dispose
+  root.classList.add('app-dialog-root', 'ui-dialog--shell');
   root.id = `appDialogRoot-${seq}`;
 
   const titleId = `appDialogTitle-${seq}`;

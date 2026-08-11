@@ -224,11 +224,13 @@ export function createNormalAtFn(host, pt, fn, pointId, id, opts = {}) {
 
   const getText = () => {
     const tangentSlope = slopeAt(Number(pt.X()));
-    let measure = '';
-    if (!Number.isFinite(tangentSlope)) measure = '';
-    else if (Math.abs(tangentSlope) < 1e-9) measure = '竖直线';
-    else if (Math.abs(tangentSlope) > 1e6) measure = '水平线';
-    else measure = `k=${formatSmartNumber(-1 / tangentSlope)}`;
+    const measure = !Number.isFinite(tangentSlope)
+      ? ''
+      : Math.abs(tangentSlope) < 1e-9
+        ? '竖直线'
+        : Math.abs(tangentSlope) > 1e6
+          ? '水平线'
+          : `k=${formatSmartNumber(-1 / tangentSlope)}`;
     return formatLineMeasureLabel(line, measure);
   };
   const measure = attachMidpointMeasureLabel(

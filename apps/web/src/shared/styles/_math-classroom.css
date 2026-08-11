@@ -1810,10 +1810,81 @@
 .math-object-style-name {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 0.35rem 0.55rem;
   margin: 0 0 0.65rem;
   font-size: 0.88rem;
+}
+
+.math-name-segments {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.28rem;
+}
+
+.math-name-seg {
+  min-width: 2.1rem;
+  padding: 0.18rem 0.45rem;
+  border-radius: 8px;
+  border: 1px dashed color-mix(in srgb, var(--stamp, #b45309) 55%, var(--border-ink));
+  background: color-mix(in srgb, var(--card-elevated, #fff) 92%, var(--stamp-soft, #fde68a));
+  color: var(--ink);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  line-height: 1.25;
+}
+
+.math-name-seg.is-placeholder {
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+  font-weight: 550;
+}
+
+.math-name-seg--optional.is-placeholder {
+  min-width: 1.6rem;
+  font-weight: 500;
+}
+
+.math-name-seg:hover,
+.math-name-seg:focus-visible {
+  outline: 2px solid var(--stamp, #b45309);
+  outline-offset: 1px;
+}
+
+.math-name-keypad-bubble {
+  z-index: 270;
+}
+
+.math-name-keypad-bubble.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.math-name-keypad-body {
+  padding-top: 0.15rem;
+}
+
+.math-name-style-grid {
+  gap: 0.32rem;
+}
+
+.math-name-keypad-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.math-name-keypad-grid--letters {
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+
+.math-name-keypad-grid--digits {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.math-name-keypad-grid .math-num-key.is-wide {
+  grid-column: span 2;
 }
 
 .math-object-style-name strong {

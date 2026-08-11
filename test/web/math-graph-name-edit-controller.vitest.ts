@@ -14,40 +14,50 @@ function makeEl(patch: Record<string, unknown> = {}) {
   };
 }
 
+type NameHooks = {
+  canEditName?: (el: Record<string, unknown>) => boolean;
+  getNameKind?: (el: Record<string, unknown>) => 'point' | 'line';
+  getName?: (el: Record<string, unknown>) => string;
+  setName?: (el: Record<string, unknown>, name: string) => void;
+} | null;
+
 describe('createGraphNameEditController', () => {
   test('mount installs hooks; dispose clears setNameEditHooks(null)', () => {
-    let hooks: any = { sentinel: true };
-    const setNameEditHooks = (h: any) => {
+    let hooks: NameHooks | { sentinel: boolean } = { sentinel: true };
+    const setNameEditHooks = (h: NameHooks) => {
       hooks = h;
     };
-    const state: any = {
-      functions: [],
-      constructions: [],
-      graphStore: null,
+    const state = {
+      functions: [] as Array<{ curve: unknown }>,
+      constructions: [] as Array<Record<string, unknown>>,
+      graphStore: null as null | {
+        getDocument: () => { points: Array<{ id: string; locked?: boolean }>; constructions: unknown[] };
+        dispatch: (action: unknown) => void;
+      },
     };
     const ctrl = createGraphNameEditController({
       state,
       setNameEditHooks,
-      applyDisplayName: (el: any, name: string) => {
+      applyDisplayName: (el: Record<string, unknown>, name: string) => {
         el._mathBaseName = name;
       },
-      detectObjectKind: (el: any) => (el._mathConstrId ? 'line' : 'point'),
+      detectObjectKind: (el: Record<string, unknown>) => (el._mathConstrId ? 'line' : 'point'),
       findUserRec: () => null,
       userPointIdOf: () => null,
     });
 
     ctrl.mount();
-    assert.equal(typeof hooks?.canEditName, 'function');
-    assert.equal(typeof hooks?.setName, 'function');
-    assert.equal(hooks.getName(makeEl()), '点A');
-    assert.equal(hooks.getNameKind(makeEl({ _mathConstrId: 'c1' })), 'line');
+    assert.equal(typeof (hooks as NameHooks)?.canEditName, 'function');
+    assert.equal(typeof (hooks as NameHooks)?.setName, 'function');
+    assert.equal((hooks as NameHooks)?.getName?.(makeEl()), '点A');
+    assert.equal((hooks as NameHooks)?.getNameKind?.(makeEl({ _mathConstrId: 'c1' })), 'line');
 
     ctrl.dispose();
     assert.equal(hooks, null);
   });
 
   test('locked user point cannot edit; dispose drops store refs', () => {
-    let hooks: any = null;
+    let hooks: NameHooks = null;
     const pointEl = makeEl({ _mathPointId: 'p1' });
     const store = {
       getDocument: () => ({
@@ -58,34 +68,38 @@ describe('createGraphNameEditController', () => {
         throw new Error('locked point must not dispatch');
       },
     };
-    const state: any = {
-      functions: [],
-      constructions: [],
+    const state = {
+      functions: [] as Array<{ curve: unknown }>,
+      constructions: [] as Array<Record<string, unknown>>,
       graphStore: store,
     };
     const ctrl = createGraphNameEditController({
       state,
-      setNameEditHooks: (h) => {
+      setNameEditHooks: (h: NameHooks) => {
         hooks = h;
       },
       applyDisplayName: () => {},
       detectObjectKind: () => 'point',
-      findUserRec: (el: any) => (el === pointEl ? { locked: true } : null),
-      userPointIdOf: (el: any) => (el === pointEl ? 'p1' : null),
+      findUserRec: (el: Record<string, unknown>) => (el === pointEl ? { locked: true } : null),
+      userPointIdOf: (el: Record<string, unknown>) => (el === pointEl ? 'p1' : null),
     });
     ctrl.mount();
-    assert.equal(hooks.canEditName(pointEl), false);
-    hooks.setName(pointEl, '点B');
+    assert.equal(hooks?.canEditName?.(pointEl), false);
+    hooks?.setName?.(pointEl, '点B');
     ctrl.dispose();
     assert.equal(hooks, null);
   });
 
   test('20× mount/dispose leaves hooks null', () => {
-    let hooks: any = { keep: 1 };
-    const setNameEditHooks = (h: any) => {
+    let hooks: NameHooks | { keep: number } = { keep: 1 };
+    const setNameEditHooks = (h: NameHooks) => {
       hooks = h;
     };
-    const state: any = { functions: [], constructions: [], graphStore: null };
+    const state = {
+      functions: [] as Array<{ curve: unknown }>,
+      constructions: [] as Array<Record<string, unknown>>,
+      graphStore: null,
+    };
     for (let i = 0; i < 20; i += 1) {
       const ctrl = createGraphNameEditController({
         state,

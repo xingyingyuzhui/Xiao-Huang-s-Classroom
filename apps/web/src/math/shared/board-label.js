@@ -202,14 +202,12 @@ export function lineLabelAnchorOnViewportRim(board, p1, p2, insetFrac = 0.07) {
     bb = null;
   }
   if (!bb || bb.length < 4) return null;
-
   // JSXGraph: [xMin, yMax, xMax, yMin]
   const xMin = Number(bb[0]);
   const yMax = Number(bb[1]);
   const xMax = Number(bb[2]);
   const yMin = Number(bb[3]);
   if (![xMin, yMax, xMax, yMin].every(Number.isFinite)) return null;
-
   const w = xMax - xMin;
   const h = yMax - yMin;
   const ix = Math.max(Math.abs(w) * insetFrac, 1e-6);
@@ -218,7 +216,6 @@ export function lineLabelAnchorOnViewportRim(board, p1, p2, insetFrac = 0.07) {
   const right = Math.max(xMin, xMax) - ix;
   const bottom = Math.min(yMin, yMax) + iy;
   const top = Math.max(yMin, yMax) - iy;
-
   let x1;
   let y1;
   let x2;
@@ -240,7 +237,6 @@ export function lineLabelAnchorOnViewportRim(board, p1, p2, insetFrac = 0.07) {
   const eps = 1e-9;
   const inY = (y) => y >= bottom - eps && y <= top + eps;
   const inX = (x) => x >= left - eps && x <= right + eps;
-
   if (Math.abs(dx) > 1e-12) {
     let t = (left - x1) / dx;
     let y = y1 + t * dy;
@@ -275,7 +271,6 @@ export function lineLabelAnchorOnViewportRim(board, p1, p2, insetFrac = 0.07) {
     uniq.sort((a, b) => b.x - a.x || b.y - a.y);
     rim = uniq[0];
   }
-
   return offsetPointOffLine(rim.x, rim.y, dx, dy, {
     towardX: (left + right) / 2,
     towardY: (bottom + top) / 2,
@@ -389,7 +384,6 @@ export function attachMidpointMeasureLabel(board, hostEl, p1, p2, text, opts = {
     attr.strokeColor = opts.color;
     attr.color = opts.color;
   }
-
   const midAnchor = () => {
     const x1 = Number(p1.X());
     const y1 = Number(p1.Y());
@@ -412,7 +406,6 @@ export function attachMidpointMeasureLabel(board, hostEl, p1, p2, text, opts = {
     const a = lineLabelAnchorOnViewportRim(board, p1, p2);
     return a ? a.y : midY();
   };
-
   let txt = null;
   try {
     txt = board.create(
@@ -449,7 +442,6 @@ export function applyBoardLabel(el, opts) {
   if (!el) return;
   const getText = typeof opts.text === 'function' ? opts.text : () => String(opts.text ?? '');
   if (opts.baseName != null) el._mathBaseName = opts.baseName;
-
   const kind = resolveLabelKind(el, opts);
   /** @type {Record<string, unknown>} */
   const label = boardLabelAttrs(
@@ -463,7 +455,6 @@ export function applyBoardLabel(el, opts) {
     label.strokeColor = opts.color;
     label.color = opts.color;
   }
-
   // name 只保留短名（点身份）；完整量测文案走 label 函数
   const shortName =
     opts.baseName != null
@@ -471,7 +462,6 @@ export function applyBoardLabel(el, opts) {
       : typeof opts.text === 'string'
         ? opts.text
         : el._mathBaseName || '·';
-
   try {
     el.setAttribute({
       withLabel: true,
@@ -481,7 +471,6 @@ export function applyBoardLabel(el, opts) {
   } catch {
     /* */
   }
-
   // setAttribute(name) 可能把 label 写成静态短名，这里立刻换成函数
   setLabelContent(el, getText);
   el._mathLiveLabelTick = () => setLabelContent(el, getText);
@@ -505,12 +494,10 @@ export function bindLiveLabel(el, getText, watchEls = []) {
     }
     el._mathDepWatchCleanup = null;
   }
-
   setLabelContent(el, getText);
   const tick = () => setLabelContent(el, getText);
   el._mathLiveLabelTick = tick;
   el._mathLiveLabelBound = true;
-
   // 路径量测保持中段定位；点标签固定偏移，不做持续 autoPosition
   try {
     if (el.elType === 'text') {
@@ -565,7 +552,6 @@ export function bindLiveLabel(el, getText, watchEls = []) {
 export function ensurePointGeomHook(el) {
   if (!el || el._mathGeomHookBound || typeof el.on !== 'function') return;
   el._mathGeomHookBound = true;
-
   const hideLabel = () => {
     try {
       el._mathLabelHiddenForDrag = true;
@@ -574,7 +560,6 @@ export function ensurePointGeomHook(el) {
       /* */
     }
   };
-
   const showLabel = () => {
     try {
       el._mathLabelHiddenForDrag = false;
@@ -585,7 +570,6 @@ export function ensurePointGeomHook(el) {
       /* */
     }
   };
-
   const runDrag = () => {
     hideLabel();
     try {
@@ -614,7 +598,6 @@ export function ensurePointGeomHook(el) {
       }
     }
   };
-
   const runUp = () => {
     try {
       el._mathSnapTick?.();
@@ -664,7 +647,6 @@ export function ensurePointGeomHook(el) {
       /* */
     }
   };
-
   el.on('down', hideLabel);
   el.on('drag', runDrag);
   el.on('up', runUp);

@@ -76,7 +76,7 @@ function makeHarness(overrides = {}) {
     findUserRec: (el) => state.userPoints.find((r) => r.el === el) || null,
     ensureUserPointFromHit:
       overrides.ensureUserPointFromHit ||
-      ((el, usrX, usrY) => {
+      ((el) => {
         if (!el) return null;
         const existing = state.userPoints.find((r) => r.el === el);
         if (existing) return existing;

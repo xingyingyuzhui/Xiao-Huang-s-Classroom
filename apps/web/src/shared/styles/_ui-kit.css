@@ -281,6 +281,35 @@
   backdrop-filter: blur(2px);
 }
 
+/*
+ * Host / shell：createDialog 只提供 role/Esc/dispose，视觉由消费方自管
+ *（如 app-dialog 的 backdrop + modal-panel）。禁止保留卡片 transform，
+ * 否则内部 position:fixed 子节点会相对祖先错位。
+ */
+.ui-dialog.ui-dialog--shell {
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  transform: none;
+  min-width: 0;
+  max-width: none;
+  width: auto;
+  height: auto;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  color: inherit;
+}
+
+.ui-dialog.ui-dialog--shell::before {
+  content: none;
+  display: none;
+}
+
 /* ===== Toast ===== */
 .ui-toast {
   position: fixed;

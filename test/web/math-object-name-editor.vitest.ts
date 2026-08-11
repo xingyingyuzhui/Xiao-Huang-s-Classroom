@@ -10,7 +10,7 @@ import { createObjectNameEditor } from '../../apps/web/src/math/shared/object-na
 import { hideNameKeypad } from '../../apps/web/src/math/shared/name-keypad.js';
 
 function makeSegButton(seg: string, text: string) {
-  const listeners: Record<string, Array<(ev?: any) => void>> = {};
+  const listeners: Record<string, Array<(ev?: unknown) => void>> = {};
   return {
     textContent: text,
     classList: {
@@ -27,10 +27,10 @@ function makeSegButton(seg: string, text: string) {
     closest(sel: string) {
       return sel.includes('data-seg') ? this : null;
     },
-    addEventListener(type: string, fn: (ev?: any) => void) {
+    addEventListener(type: string, fn: (ev?: unknown) => void) {
       (listeners[type] = listeners[type] || []).push(fn);
     },
-    removeEventListener(type: string, fn: (ev?: any) => void) {
+    removeEventListener(type: string, fn: (ev?: unknown) => void) {
       listeners[type] = (listeners[type] || []).filter((f) => f !== fn);
     },
     listeners,
@@ -42,12 +42,12 @@ function makeRoot() {
   const styleBtn = makeSegButton('style', '样式');
   const letterBtn = makeSegButton('letter', 'A');
   const numberBtn = makeSegButton('number', '—');
-  const hostListeners: Record<string, Array<(ev?: any) => void>> = {};
+  const hostListeners: Record<string, Array<(ev?: unknown) => void>> = {};
   const nameSegmentsHost = {
-    addEventListener(type: string, fn: (ev?: any) => void) {
+    addEventListener(type: string, fn: (ev?: unknown) => void) {
       (hostListeners[type] = hostListeners[type] || []).push(fn);
     },
-    removeEventListener(type: string, fn: (ev?: any) => void) {
+    removeEventListener(type: string, fn: (ev?: unknown) => void) {
       hostListeners[type] = (hostListeners[type] || []).filter((f) => f !== fn);
     },
     hostListeners,
@@ -91,7 +91,7 @@ describe('createObjectNameEditor', () => {
         canEditName: () => true,
         getNameKind: () => 'point',
         getName: () => '点A1',
-        setName: (_el: any, formatted: string) => {
+        setName: (_el: Record<string, unknown>, formatted: string) => {
           saved = formatted;
         },
       }),

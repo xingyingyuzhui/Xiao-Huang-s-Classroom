@@ -160,6 +160,11 @@
     "plan": "board 工具/面板控制器（名称编辑拆至 object-name-editor）",
     "lines": 738
   },
+  "web/src/math/shared/point-label-fusion.js": {
+    "category": "logic",
+    "plan": "点标签融合（桶+邻接滑动窗口，操作数合同由 vitest 锁定）",
+    "lines": 403
+  },
   "web/src/shared/api/client.js": {
     "category": "adapter",
     "plan": "API 客户端（HTTP 边界适配）",
