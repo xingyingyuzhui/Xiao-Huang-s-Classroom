@@ -241,39 +241,43 @@ A/D auth IPC ────────────> I Electron vault/updater
 
 ### 4.1 合同要求
 
-- [ ] 建立 branded `AccountId/ClassId/WorkspaceId/DeviceId/SessionId/ResourceId/OperationId/Cursor`。
-- [ ] Auth schema 覆盖 register/login/refresh/logout/current-account/device revoke，所有字符串长度和危险字符有上限。
-- [ ] `WorkspaceScope` 必须显式携带 `accountId`、`classId|null`、`subjectId` 和 `kind`；禁止隐式“当前班级”。
-- [ ] `SyncEntityEnvelope` 包含 `resourceType/resourceId/schemaVersion/revision/baseRevision/payload/contentHash/deletedAt`。
-- [ ] `SyncOperation` 包含客户端生成的 `operationId`，服务端按 `(accountId, operationId)` 幂等。
-- [ ] `SyncPushResponse` 分成 `applied/rejected/conflicts`；冲突返回 local/server/base 的可展示摘要，不返回其他租户数据。
-- [ ] `SyncPullResponse` 使用服务端 change sequence/cursor，不用客户端时间戳。
-- [ ] `AiCredentialMetadata` 只能含 provider/model/configured/last4/updatedAt；合同层根本不提供“读取 key 原文”响应。
-- [ ] 将 `subjectSettingsSchema` 从任意 `record<unknown>` 收紧；普通设置与 AI credential 完全拆开。
-- [ ] 新增稳定错误码：`AUTH_*`、`FORBIDDEN_*`、`ACCOUNT_*`、`CLASS_*`、`SYNC_*`、`CONFLICT_*`、`QUOTA_*`、`CREDENTIAL_*`。
+- [x] 建立 branded `AccountId/ClassId/WorkspaceId/DeviceId/SessionId/ResourceId/OperationId/Cursor`。
+- [x] Auth schema 覆盖 register/login/refresh/logout/current-account/device revoke，所有字符串长度和危险字符有上限。
+- [x] `WorkspaceScope` 必须显式携带 `accountId`、`classId|null`、`subjectId` 和 `kind`；禁止隐式“当前班级”。
+- [x] `SyncEntityEnvelope` 包含 `resourceType/resourceId/schemaVersion/revision/baseRevision/payload/contentHash/deletedAt`。
+- [x] `SyncOperation` 包含客户端生成的 `operationId`，服务端按 `(accountId, operationId)` 幂等。
+- [x] `SyncPushResponse` 分成 `applied/rejected/conflicts`；冲突返回 local/server/base 的可展示摘要，不返回其他租户数据。
+- [x] `SyncPullResponse` 使用服务端 change sequence/cursor，不用客户端时间戳。
+- [x] `AiCredentialMetadata` 只能含 provider/model/configured/last4/updatedAt；合同层根本不提供“读取 key 原文”响应。
+- [x] 将 `subjectSettingsSchema` 从任意 `record<unknown>` 收紧；普通设置与 AI credential 完全拆开。
+- [x] 新增稳定错误码：`AUTH_*`、`FORBIDDEN_*`、`ACCOUNT_*`、`CLASS_*`、`SYNC_*`、`CONFLICT_*`、`QUOTA_*`、`CREDENTIAL_*`。
 
 ### 4.2 sync-core 行为
 
-- [ ] 纯状态机实现 `idle → pushing → conflict|pulling → completed|failed|cancelled`。
-- [ ] 网络恢复事件只能更新 `online`，不得自动调用 push。
-- [ ] context generation 改变后，旧请求结果必须被判为 stale，不能写新 workspace。
-- [ ] 冲突未解决前保留三方快照；解决策略为 `keepLocal`、`keepCloud`，支持的资源另有 `duplicateLocal`。
-- [ ] tombstone 在服务端确认和保留期结束前不可物理删除。
-- [ ] 测试重复 operation、乱序响应、取消、重启恢复、cursor 不倒退、冲突不覆盖。
+- [x] 纯状态机实现 `idle → pushing → conflict|pulling → completed|failed|cancelled`。
+- [x] 网络恢复事件只能更新 `online`，不得自动调用 push。
+- [x] context generation 改变后，旧请求结果必须被判为 stale，不能写新 workspace。
+- [x] 冲突未解决前保留三方快照；解决策略为 `keepLocal`、`keepCloud`，支持的资源另有 `duplicateLocal`。
+- [x] tombstone 在服务端确认和保留期结束前不可物理删除。
+- [x] 测试重复 operation、乱序响应、取消、重启恢复、cursor 不倒退、冲突不覆盖。
 
 ### 4.3 验证
 
 ```bash
-npm run test -w @xiaohuang/contracts
-npm run test -w @xiaohuang/sync-core
+npm run test -w @xiaohuang/contracts   # 27/27 pass
+npm run test -w @xiaohuang/sync-core   # 28/28 pass
 npm run build -w @xiaohuang/contracts
 npm run build -w @xiaohuang/sync-core
-npm run typecheck
+npm run typecheck                      # 21/21 tasks pass
+npm run lint:arch                      # OK
 ```
 
-Expected: 全绿；CJS/ESM/d.ts 双产物一致；`packages` 不导入任何 `apps`。
+Expected: 全绿；CJS/ESM/d.ts 双产物一致；`packages` 不导入任何 `apps`。  
+**证据：** 2026-08-11 全部通过
 
-Commit: `feat(contracts): add account workspace and sync contracts`。
+Commit: `feat(contracts): add account workspace and sync contracts`。  
+**SHA：** `9e72673`（sync-core）+ `06d2397`（contracts/domain-core）  
+**M1 合同：** ✅ 达成
 
 ---
 
