@@ -51,10 +51,17 @@ test('object style panel exposes structured name segments UI', () => {
     path.join(root, 'apps/web/src/math/shared/object-style-panel.js'),
     'utf8',
   );
+  const editor = fs.readFileSync(
+    path.join(root, 'apps/web/src/math/shared/object-name-editor.js'),
+    'utf8',
+  );
   assert.match(panel, /math-name-seg/);
   assert.match(panel, /setNameEditHooks/);
   assert.match(panel, /data-seg="style"/);
   assert.match(panel, /data-seg="letter"/);
   assert.match(panel, /data-seg="number"/);
-  assert.match(panel, /showNameKeypad/);
+  assert.match(panel, /createObjectNameEditor/);
+  assert.match(editor, /showNameKeypad/);
+  assert.match(editor, /hideNameKeypad/);
+  assert.match(editor, /commitNameSegments/);
 });
