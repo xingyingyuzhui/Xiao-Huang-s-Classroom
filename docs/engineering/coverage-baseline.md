@@ -1,16 +1,17 @@
-# 覆盖率基线（分层，9 包）
+# 覆盖率基线（分层，10 包）
 
 > R5/R二轮产物。基线 2026-08-08（vitest coverage-v8，只统计 `src/**`）。
 > 阈值写入各包 `vitest.config.ts` 并由 `npm run coverage`（turbo）强制：
 > 低于阈值 exit 1（不可达阈值失败测试证明）。coverage 已接入 quality/CI。
 
-## 9 包真实覆盖率与强制阈值（2026-08-08 实测）
+## 10 包真实覆盖率与强制阈值（2026-08-11 更新 sync-core）
 
 | 包               | Stmts | Branch | Funcs | Lines | 强制阈值（vitest）                          |
 | ---------------- | ----- | ------ | ----- | ----- | ------------------------------------------- |
 | config           | 100   | 100    | 100   | 100   | stmts≥80、branches≥80、funcs≥80、lines≥80   |
 | domain-core      | 94.1  | 94.9   | 87.5  | 95.1  | stmts≥90、branches≥90                       |
 | contracts        | 95.2  | 100    | 100   | 95.2  | stmts≥95、branches≥90                       |
+| sync-core        | —     | —      | —     | —     | stmts≥95、branches≥90                       |
 | test-kit         | 69.2  | 31.8   | 62.1  | 68.1  | stmts≥65（branches/funcs/lines 为观察指标） |
 | design-tokens    | 100   | 100    | 100   | 100   | stmts≥95、branches≥95                       |
 | ui               | 81.0  | 46.2   | 66.9  | 86.8  | stmts≥75（branches 为观察指标）             |
@@ -34,5 +35,5 @@
 ## 使用
 
 ```bash
-npm run coverage          # turbo 聚合 9 包 coverage，阈值强制
+npm run coverage          # turbo 聚合 10 包 coverage，阈值强制
 ```

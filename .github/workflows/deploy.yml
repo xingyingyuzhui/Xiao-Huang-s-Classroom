@@ -1,0 +1,39 @@
+name: Deploy
+on:
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Git SHA to deploy'
+        required: true
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'production'
+        type: choice
+        options: [production, staging]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.sha }}
+      - name: Deploy
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          echo "Deployment to ${{ github.event.inputs.environment }} for SHA ${{ github.event.inputs.sha }}"
+          echo "Requires SSH_PRIVATE_KEY, DEPLOY_HOST, DEPLOY_USER in environment secrets"
+      - name: Post-deploy verify
+        run: echo "Post-deploy health check placeholder"

@@ -4,6 +4,7 @@ import { createFakeStorage } from '../src/fake-storage.js';
 import { createFakeClock } from '../src/fake-clock.js';
 import { createFakeDocument } from '../src/fake-dom.js';
 import { createFakeFetch } from '../src/fake-fetch.js';
+import { createFakeIndexedDb } from '../src/fake-indexeddb.js';
 
 describe('fake-timer-raf', () => {
   it('timer 到期执行一次；clear 后不执行', () => {
@@ -97,3 +98,50 @@ describe('fake-fetch', () => {
     expect(miss.status).toBe(404);
   });
 });
+
+describe('fake-indexeddb', () => {
+  it('opens database, creates stores, and persists records across reopen', async () => {
+    const { factory } = createFakeIndexedDb();
+    const db = await openFakeDb(factory, 1);
+    const tx = db.transaction('items', 'readwrite');
+    tx.objectStore('items').put({ id: 'a', value: 1 });
+    await transactionDone(tx);
+    db.close();
+
+    const reopened = await openFakeDb(factory, 1);
+    const readTx = reopened.transaction('items', 'readonly');
+    const row = await requestResult(readTx.objectStore('items').get('a'));
+    await transactionDone(readTx);
+    expect(row).toEqual({ id: 'a', value: 1 });
+    reopened.close();
+  });
+});
+
+async function openFakeDb(factory: IDBFactory, version: number): Promise<IDBDatabase> {
+  return new Promise((resolve, reject) => {
+    const request = factory.open('test-db', version);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains('items')) {
+        db.createObjectStore('items', { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function requestResult<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function transactionDone(tx: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.onabort = () => reject(tx.error);
+  });
+}

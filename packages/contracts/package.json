@@ -23,6 +23,7 @@
     "coverage": "vitest run --coverage"
   },
   "devDependencies": {
+    "@xiaohuang/domain-core": "*",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.1.10",

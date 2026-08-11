@@ -3,7 +3,7 @@ export { ok, err, isOk, isErr } from './result.js';
 export type { Result } from './result.js';
 export { ErrorCode, AppError, errorCodeOf } from './errors.js';
 export { makeId } from './ids.js';
-export type { BrandedId, FunctionId, PointId, ConstructionId, SubjectId } from './ids.js';
+export type { BrandedId, FunctionId, PointId, ConstructionId, SubjectId, AccountId, ClassId, WorkspaceId, DeviceId, SessionId, ResourceId, OperationId, SyncCursor } from './ids.js';
 export { SystemClock, MathRandom, createIdAllocator } from './ids-clock.js';
 export type { Clock, RandomSource, IdAllocator } from './ids-clock.js';
 export { serializableClone, normalizeFinite } from './serialization.js';

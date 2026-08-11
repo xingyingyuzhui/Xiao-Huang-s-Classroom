@@ -1,0 +1,12 @@
+# Ephemeral PostgreSQL for integration tests (Task 3).
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: cloud_test
+      POSTGRES_PASSWORD: cloud_test
+      POSTGRES_DB: cloud_test
+    ports:
+      - '127.0.0.1:55432:5432'
+    tmpfs:
+      - /var/lib/postgresql/data

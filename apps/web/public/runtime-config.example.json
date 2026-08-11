@@ -1,0 +1,8 @@
+{
+  "cloudBaseUrl": "",
+  "features": {
+    "accountCloudProgram": false,
+    "publicGuestAi": false
+  },
+  "releaseChannel": "stable"
+}

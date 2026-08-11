@@ -17,7 +17,7 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 // 支持单 app 参数（workspace typecheck 脚本调用）；无参数时检查全部
 const only = process.argv[2];
-const apps = only ? [only] : ['web', 'server', 'desktop'];
+const apps = only ? [only] : ['web', 'server', 'desktop', 'cloud-server'];
 let failed = false;
 
 for (const app of apps) {

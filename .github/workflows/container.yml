@@ -1,0 +1,27 @@
+name: Container Build
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: container-${{ github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build cloud-server image
+        run: docker build -t xiaohuang-cloud:${{ github.sha }} -f apps/cloud-server/Dockerfile .
+      - name: Health smoke test
+        run: |
+          docker compose -f deploy/compose.test.yml up -d
+          sleep 10
+          curl -sf http://localhost:3000/livez
+          docker compose -f deploy/compose.test.yml down

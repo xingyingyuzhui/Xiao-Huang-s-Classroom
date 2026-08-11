@@ -45,3 +45,15 @@ coverage/
 # keep coverage gate source (not runtime reports)
 !tooling/coverage/
 !tooling/coverage/**
+
+# Secrets and environment (account/cloud program)
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+*.key
+deploy/secrets/
+deploy/backups/
+deploy/uploads/

@@ -1,0 +1,58 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-xiaohuang_cloud}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-xiaohuang_classroom}
+    volumes:
+      - cloud_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-xiaohuang_cloud} -d ${POSTGRES_DB:-xiaohuang_classroom}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
+  cloud-server:
+    build:
+      context: ..
+      dockerfile: apps/cloud-server/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - path: ${ENV_FILE:-./secrets/.env}
+        required: false
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-xiaohuang_cloud}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-xiaohuang_classroom}
+      CLOUD_TOKEN_SIGNING_KEY: ${CLOUD_TOKEN_SIGNING_KEY:?set CLOUD_TOKEN_SIGNING_KEY}
+      CLOUD_AI_KEK: ${CLOUD_AI_KEK:?set CLOUD_AI_KEK}
+      CLOUD_PUBLIC_ORIGIN: ${CLOUD_PUBLIC_ORIGIN:?set CLOUD_PUBLIC_ORIGIN}
+      CLOUD_REGISTRATION_MODE: ${CLOUD_REGISTRATION_MODE:-closed}
+      CLOUD_BODY_LIMIT_BYTES: ${CLOUD_BODY_LIMIT_BYTES:-2097152}
+    ports:
+      - '127.0.0.1:3000:3000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 2G
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  cloud_pg_data:

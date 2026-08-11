@@ -1,0 +1,36 @@
+{
+  "name": "@xiaohuang/cloud-server",
+  "version": "0.0.1",
+  "private": true,
+  "description": "小黄的教室云端 API（账户/班级/同步/AI）",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsup",
+    "start": "node dist/server.js",
+    "dev": "node --watch dist/server.js",
+    "predev": "npm run build",
+    "test": "vitest run",
+    "typecheck": "node ../../scripts/typecheck-apps.mjs cloud-server"
+  },
+  "dependencies": {
+    "@node-rs/argon2": "^2.0.2",
+    "@xiaohuang/contracts": "*",
+    "@xiaohuang/domain-core": "*",
+    "express": "^4.18.2",
+    "jose": "^6.0.11",
+    "pg": "^8.16.3",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@testcontainers/postgresql": "^11.0.3",
+    "@types/express": "^4.17.25",
+    "@types/pg": "^8.15.5",
+    "@types/supertest": "^6.0.3",
+    "supertest": "^7.1.4",
+    "testcontainers": "^11.0.3",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}
