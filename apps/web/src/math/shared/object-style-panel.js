@@ -9,9 +9,12 @@ import {
   applyObjectStyle,
   COLOR_PRESETS,
   DASH_STYLES,
+  detectObjectKind,
   kindLabel,
   readObjectStyle,
 } from './object-style.js';
+import { hideNameKeypad, isNameKeypadOpen } from './name-keypad.js';
+import { createObjectNameEditor } from './object-name-editor.js';
 
 const BUBBLE_ID = 'mathObjectStyleBubble';
 
@@ -62,10 +65,26 @@ export function setStyleIntentBridge(bridge) {
 }
 
 /**
+ * 短名编辑钩子（graph 注入持久化；其它 lab 可只做 runtime）
+ * @type {null | {
+ *   canEditName?: (el: any) => boolean,
+ *   getName?: (el: any) => string,
+ *   getNameKind?: (el: any) => 'point' | 'line',
+ *   setName?: (el: any, formatted: string, segments: { style: string, letter: string, number: string }) => void,
+ * }}
+ */
+let nameEditHooks = null;
+
+/** @param {typeof nameEditHooks} hooks */
+export function setNameEditHooks(hooks) {
+  nameEditHooks = hooks || null;
+}
+
+/**
  * @returns {HTMLElement}
  */
 /** 布局版本：旧气泡 DOM 不匹配时整段重建 */
-const BUBBLE_LAYOUT = 'v8-hidden-extend';
+const BUBBLE_LAYOUT = 'v9-name-segments';
 
 const BUBBLE_INNER = `
     <div class="brand-tip-card math-object-style-card">
@@ -74,10 +93,14 @@ const BUBBLE_INNER = `
         <button type="button" class="brand-tip-btn brand-tip-btn-close" data-role="close" aria-label="关闭">收起</button>
       </div>
       <div class="brand-tip-body math-object-style-bubble-body">
-        <p class="math-object-style-name">
+        <div class="math-object-style-name" data-field="nameRow">
           <strong data-role="kind">对象</strong>
-          <span data-role="label">—</span>
-        </p>
+          <span class="math-name-segments" data-role="nameSegments">
+            <button type="button" class="math-name-seg" data-seg="style" aria-label="样式">样式</button>
+            <button type="button" class="math-name-seg" data-seg="letter" aria-label="字母">A</button>
+            <button type="button" class="math-name-seg math-name-seg--optional" data-seg="number" aria-label="数字">—</button>
+          </span>
+        </div>
         <div class="math-field" data-field="strokeColor">
           <span class="math-field-label">颜色</span>
           <div class="math-color-row">
@@ -214,7 +237,6 @@ function buildBubbleApi() {
 
   const badgeEl = /** @type {HTMLElement} */ ($('badge'));
   const kindEl = /** @type {HTMLElement} */ ($('kind'));
-  const labelEl = /** @type {HTMLElement} */ ($('label'));
   const strokeColor = /** @type {HTMLInputElement} */ ($('strokeColor'));
   const fillColor = /** @type {HTMLInputElement} */ ($('fillColor'));
   const strokeWidth = /** @type {HTMLInputElement} */ ($('strokeWidth'));
@@ -252,6 +274,17 @@ function buildBubbleApi() {
   let outsideRaf = 0;
   let openToken = 0;
 
+  const nameEditor = createObjectNameEditor({
+    root,
+    getTarget: () => target,
+    getNameEditHooks: () => nameEditHooks,
+    detectObjectKind,
+    setFieldVisible: (field, on) => {
+      const el = root.querySelector(`[data-field="${field}"]`);
+      if (el) /** @type {HTMLElement} */ (el).hidden = !on;
+    },
+  });
+
   function fillColorSwatches(host) {
     if (!host || host.dataset.ready) return;
     host.innerHTML = COLOR_PRESETS.map(
@@ -283,7 +316,7 @@ function buildBubbleApi() {
     syncing = true;
     if (badgeEl) badgeEl.textContent = `${kindLabel(snap.kind)}样式`;
     if (kindEl) kindEl.textContent = kindLabel(snap.kind);
-    if (labelEl) labelEl.textContent = snap.label;
+    nameEditor.paintNameSegments();
     if (strokeColor) strokeColor.value = toColorInput(snap.strokeColor);
     if (fillColor) fillColor.value = toColorInput(snap.fillColor);
     if (strokeWidth) strokeWidth.value = String(snap.strokeWidth);
@@ -410,6 +443,7 @@ function buildBubbleApi() {
   }
 
   function hide() {
+    nameEditor.hide();
     root.classList.remove('is-visible');
     root.hidden = true;
     root.style.opacity = '';
@@ -435,6 +469,10 @@ function buildBubbleApi() {
     outsideHandler = (ev) => {
       if (token !== openToken) return;
       const t = /** @type {EventTarget | null} */ (ev.target);
+      if (isNameKeypadOpen()) {
+        const keypad = document.getElementById('mathNameKeypadBubble');
+        if (t instanceof Node && keypad?.contains(t)) return;
+      }
       // 点在气泡内：不关
       if (t instanceof Node && root.contains(t)) return;
       // 原生 color 面板等可能不在 bubble 树内，若当前焦点仍在本气泡控件上则先不关
@@ -615,6 +653,8 @@ function buildBubbleApi() {
         target._mathExtend = on;
       }
     });
+
+    nameEditor.bind();
   }
 
   return {
@@ -645,6 +685,7 @@ function buildBubbleApi() {
         activeSelection = null;
       }
       hide();
+      nameEditor.dispose();
     },
   };
 }
@@ -674,6 +715,7 @@ export function dismissObjectStyleBubble() {
     }
     panel.setActiveSelection(null);
   }
+  hideNameKeypad();
   panel.hide();
 }
 

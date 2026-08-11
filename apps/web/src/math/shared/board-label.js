@@ -9,9 +9,8 @@ export const BOARD_LABEL_FONT_SIZE = 16;
 export const BOARD_LABEL_ATTR = {
   fontSize: BOARD_LABEL_FONT_SIZE,
   parse: false,
-  autoPosition: true,
-  autoPositionMinDistance: 16,
-  autoPositionMaxDistance: 52,
+  // 关闭持续 autoPosition：拖动中会扫全板对象；改拖动结束再统一刷新融合
+  autoPosition: false,
   offset: [14, 14],
 };
 
@@ -64,11 +63,50 @@ export function formatNamedCoords(baseName, x, y, maxDecimals = 2) {
 }
 
 /**
+ * 刷新对象短名（样式面板改名、文档投影）
+ * @param {any} el
+ * @param {string} name
+ */
+export function applyDisplayName(el, name) {
+  if (!el) return;
+  const next = String(name ?? '').trim() || '·';
+  el._mathBaseName = next;
+  el._mathSelectLabel = next;
+  try {
+    el.name = next;
+  } catch {
+    /* */
+  }
+  try {
+    if (typeof el._mathLiveLabelTick === 'function') el._mathLiveLabelTick();
+  } catch {
+    /* */
+  }
+  // 线段/垂线等量测标签挂在独立 text 上，短名变更需刷新量测文案
+  try {
+    el._mathMeasureText?._mathLiveLabelTick?.();
+  } catch {
+    /* */
+  }
+  try {
+    el.board?._mathSchedulePointLabelFusion?.();
+  } catch {
+    /* */
+  }
+  try {
+    el.board?.update?.();
+  } catch {
+    /* */
+  }
+}
+
+/**
  * 点标签：尊重 `_mathShowCoords`（关则只显示短名）
  * @param {any} el
  * @param {string} [baseName]
  * @param {number} [maxDecimals=2]
  */
+
 export function formatElementCoordsLabel(el, baseName, maxDecimals = 2) {
   const b = el?._mathBaseName || baseName || 'P';
   if (!el?._mathShowCoords) return b;
@@ -164,14 +202,12 @@ export function lineLabelAnchorOnViewportRim(board, p1, p2, insetFrac = 0.07) {
     bb = null;
   }
   if (!bb || bb.length < 4) return null;
-
   // JSXGraph: [xMin, yMax, xMax, yMin]
   const xMin = Number(bb[0]);
   const yMax = Number(bb[1]);
   const xMax = Number(bb[2]);
   const yMin = Number(bb[3]);
   if (![xMin, yMax, xMax, yMin].every(Number.isFinite)) return null;
-
   const w = xMax - xMin;
   const h = yMax - yMin;
   const ix = Math.max(Math.abs(w) * insetFrac, 1e-6);
@@ -180,7 +216,6 @@ export function lineLabelAnchorOnViewportRim(board, p1, p2, insetFrac = 0.07) {
   const right = Math.max(xMin, xMax) - ix;
   const bottom = Math.min(yMin, yMax) + iy;
   const top = Math.max(yMin, yMax) - iy;
-
   let x1;
   let y1;
   let x2;
@@ -202,7 +237,6 @@ export function lineLabelAnchorOnViewportRim(board, p1, p2, insetFrac = 0.07) {
   const eps = 1e-9;
   const inY = (y) => y >= bottom - eps && y <= top + eps;
   const inX = (x) => x >= left - eps && x <= right + eps;
-
   if (Math.abs(dx) > 1e-12) {
     let t = (left - x1) / dx;
     let y = y1 + t * dy;
@@ -237,7 +271,6 @@ export function lineLabelAnchorOnViewportRim(board, p1, p2, insetFrac = 0.07) {
     uniq.sort((a, b) => b.x - a.x || b.y - a.y);
     rim = uniq[0];
   }
-
   return offsetPointOffLine(rim.x, rim.y, dx, dy, {
     towardX: (left + right) / 2,
     towardY: (bottom + top) / 2,
@@ -351,7 +384,6 @@ export function attachMidpointMeasureLabel(board, hostEl, p1, p2, text, opts = {
     attr.strokeColor = opts.color;
     attr.color = opts.color;
   }
-
   const midAnchor = () => {
     const x1 = Number(p1.X());
     const y1 = Number(p1.Y());
@@ -374,7 +406,6 @@ export function attachMidpointMeasureLabel(board, hostEl, p1, p2, text, opts = {
     const a = lineLabelAnchorOnViewportRim(board, p1, p2);
     return a ? a.y : midY();
   };
-
   let txt = null;
   try {
     txt = board.create(
@@ -411,7 +442,6 @@ export function applyBoardLabel(el, opts) {
   if (!el) return;
   const getText = typeof opts.text === 'function' ? opts.text : () => String(opts.text ?? '');
   if (opts.baseName != null) el._mathBaseName = opts.baseName;
-
   const kind = resolveLabelKind(el, opts);
   /** @type {Record<string, unknown>} */
   const label = boardLabelAttrs(
@@ -425,7 +455,6 @@ export function applyBoardLabel(el, opts) {
     label.strokeColor = opts.color;
     label.color = opts.color;
   }
-
   // name 只保留短名（点身份）；完整量测文案走 label 函数
   const shortName =
     opts.baseName != null
@@ -433,7 +462,6 @@ export function applyBoardLabel(el, opts) {
       : typeof opts.text === 'string'
         ? opts.text
         : el._mathBaseName || '·';
-
   try {
     el.setAttribute({
       withLabel: true,
@@ -443,7 +471,6 @@ export function applyBoardLabel(el, opts) {
   } catch {
     /* */
   }
-
   // setAttribute(name) 可能把 label 写成静态短名，这里立刻换成函数
   setLabelContent(el, getText);
   el._mathLiveLabelTick = () => setLabelContent(el, getText);
@@ -467,13 +494,11 @@ export function bindLiveLabel(el, getText, watchEls = []) {
     }
     el._mathDepWatchCleanup = null;
   }
-
   setLabelContent(el, getText);
   const tick = () => setLabelContent(el, getText);
   el._mathLiveLabelTick = tick;
   el._mathLiveLabelBound = true;
-
-  // 确保点标签开了 autoPosition；路径量测标签保持中段定位
+  // 路径量测保持中段定位；点标签固定偏移，不做持续 autoPosition
   try {
     if (el.elType === 'text') {
       // 中点量测 text：不走 autoPosition
@@ -489,10 +514,9 @@ export function bindLiveLabel(el, getText, watchEls = []) {
       el.label?.setAttribute?.(boardLabelAttrs({}, 'path'));
     } else {
       el.label?.setAttribute?.({
-        autoPosition: true,
-        autoPositionMinDistance: 16,
-        autoPositionMaxDistance: 52,
+        autoPosition: false,
         parse: false,
+        offset: [14, 14],
       });
     }
   } catch {
@@ -528,8 +552,53 @@ export function bindLiveLabel(el, getText, watchEls = []) {
 export function ensurePointGeomHook(el) {
   if (!el || el._mathGeomHookBound || typeof el.on !== 'function') return;
   el._mathGeomHookBound = true;
-
-  const run = () => {
+  const hideLabel = () => {
+    try {
+      el._mathLabelHiddenForDrag = true;
+      el.label?.setAttribute?.({ visible: false });
+    } catch {
+      /* */
+    }
+  };
+  const showLabel = () => {
+    try {
+      el._mathLabelHiddenForDrag = false;
+      if (el._mathIntersectOnBody === false) return;
+      if (el._mathLabelFusionSuppressed) return;
+      el.label?.setAttribute?.({ visible: true });
+    } catch {
+      /* */
+    }
+  };
+  const runDrag = () => {
+    hideLabel();
+    try {
+      el._mathSnapTick?.();
+    } catch {
+      /* */
+    }
+    const deps = el._mathDepLabelTicks;
+    if (deps) {
+      for (const tick of deps) {
+        try {
+          tick();
+        } catch {
+          /* */
+        }
+      }
+    }
+    const intersectDeps = el._mathDepIntersectTicks;
+    if (intersectDeps) {
+      for (const tick of intersectDeps) {
+        try {
+          tick();
+        } catch {
+          /* */
+        }
+      }
+    }
+  };
+  const runUp = () => {
     try {
       el._mathSnapTick?.();
     } catch {
@@ -560,22 +629,27 @@ export function ensurePointGeomHook(el) {
         }
       }
     }
+    // 松手后补一次 board.update，确保最后一帧坐标落地（全端点共享一次）
     try {
-      const board = el.board;
-      board?._mathRefreshPointLabelFusion?.();
+      el.board?.update?.();
+    } catch {
+      /* */
+    }
+    showLabel();
+    try {
+      el.board?._mathSchedulePointLabelFusion?.();
     } catch {
       /* */
     }
     try {
       el.label?.updateText?.();
-      el.label?.setAutoPosition?.();
     } catch {
       /* */
     }
   };
-
-  el.on('drag', run);
-  el.on('up', run);
+  el.on('down', hideLabel);
+  el.on('drag', runDrag);
+  el.on('up', runUp);
 }
 
 /** @deprecated 保留导出，避免旧引用报错；autoPosition 已接管避让 */

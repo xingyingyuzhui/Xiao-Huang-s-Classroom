@@ -636,7 +636,7 @@ Expected: 文档提交不混入生产代码或 skill。
 
 - Verify only: entire repository, excluding generated/user-data paths
 
-- [ ] **Step 1: 运行完整目标回归**
+- [x] **Step 1: 运行完整目标回归**
 
 Run:
 
@@ -655,7 +655,9 @@ node --test \
 
 Expected: 全部 PASS。
 
-- [ ] **Step 2: 运行无缓存完整质量门禁**
+Evidence（本轮）：node `--test` 目标套件 + supervisor/kill-tree 相关 = **61 PASS**；vitest 三文件 = **40 PASS**。
+
+- [x] **Step 2: 运行无缓存完整质量门禁**
 
 Run:
 
@@ -667,6 +669,8 @@ Expected:
 
 - format、lint、`lint:critical`、baseline、typecheck、architecture、large files、theme、assets、tests、build、budget、coverage、diff 全部 PASS。
 - 不得只引用历史 CI 或 Turbo cache 命中作为证据。
+
+Evidence（本轮）：`TURBO_FORCE=true npm run quality` **exit 0**；末段 build 汇总 `Cached: 0 cached, 21 total`（无缓存命中）。
 
 - [x] **Step 3: 检查结构预算与禁止路径**
 
@@ -686,6 +690,8 @@ Expected:
 - `graph-mount-controller.js <= 750`。
 - diff 不含用户数据、`dist/`、coverage、stage、Electron 产物、嵌套 lockfile、本地 skill。
 
+Evidence（本轮）：`index.js` 690 / `graph-mount-controller.js` 743（hardMax 750）/ `graph-board-session.js` 143。
+
 - [x] **Step 4: 检查提交与工作树**
 
 Run:
@@ -702,7 +708,7 @@ Expected:
 - 工作树干净。
 - 提交按功能边界分开，建议为 3–4 个：首次投影、原子回滚、补充测试（如需要）、文档纠偏。
 
-- [ ] **Step 5: 形成最终报告但不擅自合并或推送**
+- [x] **Step 5: 形成最终报告但不擅自合并或推送**
 
 报告必须包含：
 
@@ -716,6 +722,19 @@ Expected:
 8. 提交 SHA。
 9. `git status --short --branch`。
 10. 明确写出：未做浏览器交互验证、未改 skill、未 push/未合并。
+
+### Task 5 最终报告（`5d4d113`，分支 `fix/math-graph-first-mount-selection`）
+
+1. **根因 / 本轮补强：**（a）首进函数画布样式失效：`fullRender` 后未 `reregisterSelectable`（`ea8f4d1`）；（b）supervisor 测试用假 PID 默认 `process.kill(-pid)` 可误杀主机进程组 → 注入 `killProcessTree` / `memoryKillProcessTree`（`a49b90b`）；（c）750 行登记被 +15% 软容差架空 → `hardMax: 750` + 控制器压回 743（`6e7a452`）。另含工具条折叠箭头对调（`974939f`）。
+2. **测试：** `首次 mount：fullRender 成功后必须 reregisterSelectable`；`memoryKillProcessTree 只调 child.kill…`；supervisor SIGTERM 用例断言 `process.kill` 未被调用。目标回归 61 + vitest 40 PASS。
+3. **首次 `fullRender`：** 成功路径恰好一次（既有用例锁定）；之后 `reregisterSelectable` 一次。
+4. **回滚：** Task 2/3 既有 FAIL_STAGES / disposer 聚合用例仍 PASS（本轮未改 board-session 语义）。
+5. **Quality：** `TURBO_FORCE=true npm run quality` → **exit 0**，`Cached: 0`。
+6. **行数：** index 690 / mount-controller 743 / board-session 143。
+7. **Task 9：** 结构目标 560/600 **仍未完成**；当前有界债务 hardMax 750 / index <700（见 D5）。
+8. **HEAD：** `5d4d113`（相对 `main`=`cc21ca4` 另有 `ea8f4d1`…`6e7a452`）。
+9. **状态：** `## fix/math-graph-first-mount-selection`，工作树干净。
+10. **未做：** 浏览器交互验证；未改本地 skill；未 merge；未 push。
 
 停止在修复分支，等待负责人决定是否合并或推远端。
 
@@ -731,6 +750,7 @@ Expected:
 | Task 2（原子回滚） | `c90cec7` | `node --test test/web/math-graph-board-session.test.cjs test/web/math-graph-mount-controller.test.cjs` → 22 PASS                                                                                                                                                                                                            | 9 个 FAIL_STAGES 全部回滚；组合 disposer 逆序一次；mount 集成故障注入    |
 | Task 3（压力补强） | `d14cf07` | `node --test test/web/math-graph-board-session.test.cjs test/web/math-graph-mount-controller.test.cjs test/web/math-graph-document-renderer.test.cjs test/web/math-graph-structure.test.cjs test/web/math-board-contract.test.cjs` → 45 PASS + `vitest run`（store/performance/lifecycle）→ 40 PASS + `lint:large-files` OK | 20 轮 mount 投影恰好 20 次；history.dispose 抛错不阻断其余、聚合日志一次 |
 | Task 4（文档纠偏） | `03a8858` | `npx prettier --check` + `npm run lint:large-files` + `node --test test/web/math-graph-structure.test.cjs test/shared/lint-baseline-regression.test.cjs` → 15 PASS + `git diff --check` 无输出                                                                                                                              | Task 9 状态、D5/D6、js-hotspots 已对齐当前事实                           |
+| Task 5（最终验收） | `5d4d113` | 目标回归 61 PASS + vitest 40 PASS；`TURBO_FORCE=true npm run quality` exit 0（Cached: 0）                                                                                                                                                                                                                                   | 含首 mount selection / killProcessTree 注入 / hardMax 750；未 merge/push |
 
 未做：浏览器交互验证、本地 skill 修改、push/merge。
 
@@ -740,16 +760,16 @@ Expected:
 
 只有同时满足以下条件，才能宣布本计划完成：
 
-- [ ] 非空 GraphDocument 首次挂载时，production renderer 恰好执行一次 full render。
-- [ ] 初始函数、点、构造、active function 和 view 均通过 renderer 从 Store 文档投影；不建立第二份真值。
-- [ ] 首次 full render 失败进入现有 fatal/read-only 路径，且所有已挂载资源仍能完整、幂等释放。
-- [ ] board session 在 persistence、board、binding、allocator、store、history、subscribe、外部 register 任一步失败时都立即逆序回滚。
-- [ ] rollback 中一个 disposer 失败不会阻断其余清理，也不会覆盖原始创建错误。
-- [ ] 20 轮 mount/dispose 无 listener、timer、RAF、observer、URL、board、Store 或 persistence 泄漏。
-- [ ] `graph/index.js < 700`，`graph-mount-controller.js <= 750`，没有抬高预算掩盖新增代码。
-- [ ] 原恢复计划、债务登记和热点地图与当前代码一致；Task 9 未达结构目标的部分保持公开。
-- [ ] `TURBO_FORCE=true npm run quality` 新鲜通过，工作树干净。
-- [ ] 没有修改用户数据、生成物、本地 skill；没有未经授权的合并或 push。
+- [x] 非空 GraphDocument 首次挂载时，production renderer 恰好执行一次 full render。
+- [x] 初始函数、点、构造、active function 和 view 均通过 renderer 从 Store 文档投影；不建立第二份真值。
+- [x] 首次 full render 失败进入现有 fatal/read-only 路径，且所有已挂载资源仍能完整、幂等释放。
+- [x] board session 在 persistence、board、binding、allocator、store、history、subscribe、外部 register 任一步失败时都立即逆序回滚。
+- [x] rollback 中一个 disposer 失败不会阻断其余清理，也不会覆盖原始创建错误。
+- [x] 20 轮 mount/dispose 无 listener、timer、RAF、observer、URL、board、Store 或 persistence 泄漏。
+- [x] `graph/index.js < 700`，`graph-mount-controller.js <= 750`，没有抬高预算掩盖新增代码。
+- [x] 原恢复计划、债务登记和热点地图与当前代码一致；Task 9 未达结构目标的部分保持公开。
+- [x] `TURBO_FORCE=true npm run quality` 新鲜通过，工作树干净。
+- [x] 没有修改用户数据、生成物、本地 skill；没有未经授权的合并或 push。
 
 ## 9. 否决项
 

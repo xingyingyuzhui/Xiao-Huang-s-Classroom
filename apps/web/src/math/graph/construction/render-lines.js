@@ -9,7 +9,7 @@ import {
 import { getMathBoardChrome } from '../../shared/math-theme.js';
 import { autoIntersectNewLine } from './intersections.js';
 import { createExtendRay } from './primitives.js';
-import { lineSlopeText, segmentLengthText } from './measurements.js';
+import { formatLineMeasureLabel, lineSlopeText, segmentLengthText } from './measurements.js';
 
 /**
  * @param {any} host
@@ -24,9 +24,6 @@ export function createSegmentOrLine(host, kind, p1, p2, pointIds, id, opts = {})
   const board = host.getBoard();
   if (!board || !p1 || !p2) return null;
   const chrome = getMathBoardChrome();
-  const getText = kind === 'segment'
-    ? () => segmentLengthText(p1, p2)
-    : () => lineSlopeText(p1, p2);
   const rec = {
     id: id || host.nextConstrId(),
     kind,
@@ -48,7 +45,12 @@ export function createSegmentOrLine(host, kind, p1, p2, pointIds, id, opts = {})
   el._mathConstr = true;
   el._mathConstrKind = kind;
   el._mathConstrId = rec.id;
+  el._mathBaseName = rec.label;
   rec.els.push(el);
+  const getText =
+    kind === 'segment'
+      ? () => formatLineMeasureLabel(el, segmentLengthText(p1, p2))
+      : () => formatLineMeasureLabel(el, lineSlopeText(p1, p2));
   const measure = attachMidpointMeasureLabel(board, el, p1, p2, getText, {
     color: chrome.ink,
     placement: measureLabelPlacementFor(kind),
@@ -91,9 +93,12 @@ export function createTangent(host, pt, fn, pointId, id, opts = {}) {
   line._mathConstrKind = 'tangent';
   pA._mathConstr = true;
   pB._mathConstr = true;
+  const tangentLabel = '切线';
+  line._mathBaseName = tangentLabel;
   const getText = () => {
     const slope = slopeAt(Number(pt.X()));
-    return Number.isFinite(slope) ? `切线 · k=${formatSmartNumber(slope)}` : '切线';
+    const measure = Number.isFinite(slope) ? `k=${formatSmartNumber(slope)}` : '';
+    return formatLineMeasureLabel(line, measure);
   };
   const measure = attachMidpointMeasureLabel(board, line, pA, pB, getText, {
     color: chrome.ink, placement: measureLabelPlacementFor('tangent'),
@@ -158,19 +163,31 @@ export function createSecantConstruction(host, meta = {}, opts = {}) {
     withLabel: false,
     name: '割线',
   });
+  seg._mathBaseName = '割线';
 
   const getText = () => {
     const ax = Number(pA.X());
     const bx = Number(pB.X());
     const ay = host.evalFnY(fn, ax);
     const by = host.evalFnY(fn, bx);
-    if (ay == null || by == null) return '割线 · 暂停';
-    const dx = bx - ax;
-    if (Math.abs(dx) < 1e-9) return '割线 · 暂停';
-    const dy = by - ay;
-    const slope = dy / dx;
-    const parts = [`Δx=${formatSmartNumber(dx)}`, `Δy=${formatSmartNumber(dy)}`, `平均变化率=${formatSmartNumber(slope)}`];
-    return meta.showDelta === false ? `平均变化率=${formatSmartNumber(slope)}` : parts.join('  ');
+    let measure = '暂停';
+    if (ay != null && by != null) {
+      const dx = bx - ax;
+      if (Math.abs(dx) >= 1e-9) {
+        const dy = by - ay;
+        const slope = dy / dx;
+        const parts = [
+          `Δx=${formatSmartNumber(dx)}`,
+          `Δy=${formatSmartNumber(dy)}`,
+          `平均变化率=${formatSmartNumber(slope)}`,
+        ];
+        measure =
+          meta.showDelta === false
+            ? `平均变化率=${formatSmartNumber(slope)}`
+            : parts.join('  ');
+      }
+    }
+    return formatLineMeasureLabel(seg, measure);
   };
 
   const measure = attachMidpointMeasureLabel(board, seg, pA, pB, getText, {

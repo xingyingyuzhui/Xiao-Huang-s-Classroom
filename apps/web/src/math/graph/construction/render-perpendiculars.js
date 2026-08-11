@@ -10,7 +10,7 @@ import {
 import { getMathBoardChrome } from '../../shared/math-theme.js';
 import { autoIntersectNewLine } from './intersections.js';
 import { findPerpFootOnFn, normalDirectionFromSlope } from './geometry.js';
-import { segmentLengthText } from './measurements.js';
+import { segmentLengthText, formatLineMeasureLabel } from './measurements.js';
 import { applyFootPointLabel, createExtendRay } from './primitives.js';
 
 /** @param {any} host @param {any} pt @param {'x'|'y'} axis @param {string} pointId @param {string} [id] @param {{ skipAutoIntersect?: boolean, extend?: boolean, notify?: boolean }} [opts] */
@@ -36,12 +36,14 @@ export function createPerpToAxis(host, pt, axis, pointId, id, opts = {}) {
     els: [], label: axis === 'x' ? '垂线→x' : '垂线→y', extend: Boolean(opts.extend),
   };
   rec.els.push(createExtendRay(board, pt, foot, rec, chrome.diagram));
-  const getText = () => `${axis === 'x' ? '⊥x' : '⊥y'} · ${segmentLengthText(pt, foot)}`;
   const seg = board.create('segment', [pt, foot], {
     strokeColor: chrome.diagram, strokeWidth: 1.6, dash: 2, fixed: true, withLabel: false, name: '垂线',
   });
   seg._mathConstr = true;
   seg._mathConstrKind = 'perp';
+  seg._mathBaseName = rec.label;
+  const getText = () =>
+    formatLineMeasureLabel(seg, `${axis === 'x' ? '⊥x' : '⊥y'} · ${segmentLengthText(pt, foot)}`);
   const measure = attachMidpointMeasureLabel(board, seg, pt, foot, getText, {
     color: chrome.ink, placement: measureLabelPlacementFor('perp'),
   });
@@ -79,12 +81,13 @@ export function createPerpToLine(host, pt, lineEl, pointId, targetConstrId, id, 
     els: [], label: '垂线→线', extend: Boolean(opts.extend),
   };
   rec.els.push(createExtendRay(board, pt, foot, rec, chrome.diagram));
-  const getText = () => `⊥线 · ${segmentLengthText(pt, foot)}`;
   const seg = board.create('segment', [pt, foot], {
     strokeColor: chrome.diagram, strokeWidth: 1.6, dash: 2, fixed: true, withLabel: false, name: '垂线',
   });
   seg._mathConstr = true;
   seg._mathConstrKind = 'perp';
+  seg._mathBaseName = rec.label;
+  const getText = () => formatLineMeasureLabel(seg, `⊥线 · ${segmentLengthText(pt, foot)}`);
   const measure = attachMidpointMeasureLabel(board, seg, pt, foot, getText, {
     color: chrome.ink, placement: measureLabelPlacementFor('perp'),
   });
@@ -135,13 +138,24 @@ export function createPerpFootToFn(host, pt, fn, pointId, id, opts = {}) {
   applyFootPointLabel(foot, () => formatElementCoordsLabel(foot, 'H'), chrome.ink, offset, [pt]);
   const rec = { id: id || host.nextConstrId(), kind: 'perp', perpTarget: 'curve', pointIds: [pointId], fnId: fn.id, els: [], label: '垂线→曲线', extend: Boolean(opts.extend) };
   rec.els.push(createExtendRay(board, pt, foot, rec, chrome.diagram));
-  const getText = () => `⊥曲线 · ${segmentLengthText(pt, foot)}`;
-  const seg = board.create('segment', [pt, foot], { strokeColor: chrome.diagram, strokeWidth: 1.6, dash: 2, fixed: true, withLabel: false, name: '垂线' });
-  seg._mathConstr = true; seg._mathConstrKind = 'perp';
-  const measure = attachMidpointMeasureLabel(board, seg, pt, foot, getText, { color: chrome.ink, placement: measureLabelPlacementFor('perp') });
-  if (measure) { measure._mathConstr = true; bindLiveLabel(measure, getText, [pt, foot]); }
+  const seg = board.create('segment', [pt, foot], {
+    strokeColor: chrome.diagram, strokeWidth: 1.6, dash: 2, fixed: true, withLabel: false, name: '垂线',
+  });
+  seg._mathConstr = true;
+  seg._mathConstrKind = 'perp';
+  seg._mathBaseName = rec.label;
+  const getText = () => formatLineMeasureLabel(seg, `⊥曲线 · ${segmentLengthText(pt, foot)}`);
+  const measure = attachMidpointMeasureLabel(board, seg, pt, foot, getText, {
+    color: chrome.ink,
+    placement: measureLabelPlacementFor('perp'),
+  });
+  if (measure) {
+    measure._mathConstr = true;
+    bindLiveLabel(measure, getText, [pt, foot]);
+  }
   for (const el of [foot, seg, measure].filter(Boolean)) el._mathConstrId = rec.id;
-  rec.els.push(foot, seg); if (measure) rec.els.push(measure);
+  rec.els.push(foot, seg);
+  if (measure) rec.els.push(measure);
   host.getConstructions().push(rec);
   if (!opts.skipAutoIntersect) autoIntersectNewLine(host, rec);
   if (opts.notify !== false) host.onChanged?.();
@@ -197,12 +211,27 @@ export function createNormalAtFn(host, pt, fn, pointId, id, opts = {}) {
   anchor._mathConstr = true;
   directionPoint._mathConstr = true;
 
+  const rec = {
+    id: id || host.nextConstrId(),
+    kind: 'perp',
+    perpTarget: 'normal',
+    pointIds: [pointId],
+    fnId: fn.id,
+    els: [],
+    label: '法线',
+  };
+  line._mathBaseName = rec.label;
+
   const getText = () => {
     const tangentSlope = slopeAt(Number(pt.X()));
-    if (!Number.isFinite(tangentSlope)) return '法线';
-    if (Math.abs(tangentSlope) < 1e-9) return '法线 · 竖直线';
-    if (Math.abs(tangentSlope) > 1e6) return '法线 · 水平线';
-    return `法线 · k=${formatSmartNumber(-1 / tangentSlope)}`;
+    const measure = !Number.isFinite(tangentSlope)
+      ? ''
+      : Math.abs(tangentSlope) < 1e-9
+        ? '竖直线'
+        : Math.abs(tangentSlope) > 1e6
+          ? '水平线'
+          : `k=${formatSmartNumber(-1 / tangentSlope)}`;
+    return formatLineMeasureLabel(line, measure);
   };
   const measure = attachMidpointMeasureLabel(
     board,
@@ -220,17 +249,9 @@ export function createNormalAtFn(host, pt, fn, pointId, id, opts = {}) {
     bindLiveLabel(measure, getText, [pt]);
   }
 
-  const rec = {
-    id: id || host.nextConstrId(),
-    kind: 'perp',
-    perpTarget: 'normal',
-    pointIds: [pointId],
-    fnId: fn.id,
-    els: measure
-      ? [anchor, directionPoint, line, measure]
-      : [anchor, directionPoint, line],
-    label: '法线',
-  };
+  rec.els = measure
+    ? [anchor, directionPoint, line, measure]
+    : [anchor, directionPoint, line];
   for (const el of rec.els) el._mathConstrId = rec.id;
   host.getConstructions().push(rec);
   if (!opts.skipAutoIntersect) autoIntersectNewLine(host, rec);

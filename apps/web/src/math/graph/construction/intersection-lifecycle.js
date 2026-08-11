@@ -1,7 +1,11 @@
 /** 交点与其支撑对象之间的更新绑定和回收规则。 */
 
 import { ensurePointGeomHook } from '../../shared/board-label.js';
-import { bindConstructionDependency } from './dependencies.js';
+import {
+  bindConstructionDependency,
+  clearConstructionDependencies,
+} from './dependencies.js';
+import { scheduleIntersectUpdate } from './intersect-update.js';
 import { syncIntersectVisibility } from './intersection-visibility.js';
 import { deleteConstruction } from './operations.js';
 import { lineLikeElOf, pointLiesOnConstr } from './records.js';
@@ -13,18 +17,50 @@ export function bindIntersectVisibility(host, construction, point, lineIds) {
   point._mathIntersectVisTick = sync;
   point._mathIntersectLineIds = [...lineIds];
 
+  if (typeof point._mathIntersectUpdate !== 'function') {
+    point._mathIntersectUpdate = () => {
+      // 缓存已在 scheduleIntersectUpdate 时失效；此处只做副作用
+      try {
+        sync();
+      } catch {
+        /* */
+      }
+      try {
+        point._mathLiveLabelTick?.();
+      } catch {
+        /* */
+      }
+      try {
+        point.board?._mathSchedulePointLabelFusion?.();
+      } catch {
+        /* */
+      }
+    };
+  }
+
+  // 唯一 owner：先清空再按唯一端点登记，避免与 renderers 双绑或共享端点重复
+  clearConstructionDependencies(construction);
+  /** @type {Set<any>} */
+  const endpoints = new Set();
   for (const id of lineIds) {
     const line = lineLikeElOf(host.findConstr(id));
     for (const endpoint of [line?.point1, line?.point2].filter(Boolean)) {
-      if (typeof endpoint.on !== 'function') continue;
-      bindConstructionDependency(construction, endpoint, sync);
-      ensurePointGeomHook(endpoint);
+      endpoints.add(endpoint);
     }
   }
+  for (const endpoint of endpoints) {
+    if (typeof endpoint.on !== 'function') continue;
+    bindConstructionDependency(construction, endpoint, () => scheduleIntersectUpdate(point));
+    ensurePointGeomHook(endpoint);
+  }
+
   try {
     if (typeof point.on === 'function' && !point._mathIntersectUpdateBound) {
       point._mathIntersectUpdateBound = true;
-      point.on('update', sync);
+      point.on('update', () => {
+        if (point._mathIntersectUpdating) return;
+        scheduleIntersectUpdate(point);
+      });
     }
   } catch {
     /* partially disposed points cannot bind updates */
@@ -42,7 +78,9 @@ export function refreshIntersectVisibilityFor(host, constructionId) {
       (element) => element?.elType === 'point' || element?.elType === 'glider',
     );
     if (!point) continue;
-    if (typeof point._mathIntersectVisTick === 'function') {
+    if (typeof point._mathIntersectUpdate === 'function') {
+      scheduleIntersectUpdate(point);
+    } else if (typeof point._mathIntersectVisTick === 'function') {
       point._mathIntersectVisTick();
     } else {
       syncIntersectVisibility(host, point, construction.lineIds);
@@ -68,8 +106,17 @@ export function pruneIntersectsNotOnBody(host, construction) {
     let x;
     let y;
     try {
-      x = Number(point.X());
-      y = Number(point.Y());
+      const hit =
+        typeof point._mathIntersectComputeRaw === 'function'
+          ? point._mathIntersectComputeRaw()
+          : null;
+      if (hit) {
+        x = hit.x;
+        y = hit.y;
+      } else {
+        x = Number(point.X());
+        y = Number(point.Y());
+      }
     } catch {
       continue;
     }

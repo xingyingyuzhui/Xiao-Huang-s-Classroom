@@ -9,7 +9,7 @@ import { getMathGridColor } from './math-theme.js';
 
 const BTN_CLASS = 'math-axis-settings-btn';
 const BUBBLE_ID = 'mathAxisLegendBubble';
-const BUBBLE_LAYOUT = 'v6-board-settings-snap';
+const BUBBLE_LAYOUT = 'v7-viewport-vs-domain';
 
 /**
  * @typedef {{
@@ -156,6 +156,7 @@ function ensureBubble() {
         </section>
 
         <section class="math-axis-legend-section">
+          <p class="math-field-label" style="margin:0 0 0.35rem">视窗范围</p>
           <div class="math-axis-legend-grid2">
             <label class="math-axis-num-field">X 最小
               <input type="number" class="math-num-input" data-role="xMin" step="0.5" />
@@ -173,6 +174,7 @@ function ensureBubble() {
         </section>
 
         <section class="math-axis-legend-section" data-role="funcDomainSection">
+          <p class="math-field-label" style="margin:0 0 0.35rem">函数采样域（仅曲线）</p>
           <div class="math-axis-legend-grid2">
             <label class="math-axis-num-field">X 从
               <input type="number" class="math-num-input" data-role="fXMin" step="0.5" />

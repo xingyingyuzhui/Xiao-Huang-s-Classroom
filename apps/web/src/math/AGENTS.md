@@ -32,7 +32,9 @@
 禁止重新引入聚合实现文件；新增作图算法优先落在纯模块，再由渲染工厂接线。
 批量创建/恢复构造时传 `{ notify: false }`，由最外层操作统一触发一次 `host.onChanged()`。
 滑条等高频输入通过 `shared/frame-task.js` 合并到下一动画帧，禁止每个 `input` 事件同步全量重建画板。
-重合点坐标标签通过 `shared/point-label-fusion.js` 在 snap 容差内融合成一条 `名1·名2(x, y)`；`board-label` 只调用 `board._mathRefreshPointLabelFusion`，禁止 shared 反向依赖 graph。
+重合点坐标标签通过 `shared/point-label-fusion.js` 在 snap 容差内融合成一条 `名1·名2(x, y)`（空间分桶，接近 O(P)）；`board-label` 只调用 `board._mathSchedulePointLabelFusion`（RAF 合并），禁止拖动中同步全量融合，禁止 shared 反向依赖 graph。
+交点默认只显示短名；悬停/选中显示坐标。线×线交点坐标按帧缓存，`intersect-update.js` 合并端点依赖回调。自动求交用 `intersect-keys` Map + 视口裁剪 + `board.suspendUpdate`。
+函数曲线采样域由画布设置「函数 X 从/到」与函数自定义定义域决定；交点/作图对象按当前视口裁剪显隐。
 切线工具靠近顶点时，锚点跟随 `graph:fn:{id}:feature:vertex`（见 `tangent-follow.js` / `makeFeaturePointTarget`），改参数后追顶点；拖离容差后降级为曲线跟随。
 
 `graph/index.js` 只负责画板挂载、工具事件状态机、曲线重建与销毁；其它职责固定如下：
@@ -43,6 +45,7 @@
 | `graph/function-analysis.js` | 函数求值、显示公式、值表和函数交点纯计算   |
 | `graph/function-records.js`  | 预设、自定义表达式及 AI 规格的函数记录工厂 |
 | `graph/function-panel.js`    | 函数侧栏、添加弹窗、AI 弹窗与集合增删 UI   |
+| `graph/graph-tool-controller.js` / `tool-perp.js` | 工具 tap 状态机；垂线两步分发（轴/线/曲线） |
 
 禁止把上述逻辑重新堆回 `graph/index.js`；结构契约见 `test/web/math-graph-structure.test.cjs`。
 

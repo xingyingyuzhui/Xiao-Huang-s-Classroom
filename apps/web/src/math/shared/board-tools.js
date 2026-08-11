@@ -98,7 +98,7 @@ export function attachBoardToolStrip(opts) {
   const collapseArrow = document.createElement('span');
   collapseArrow.className = 'math-board-tool-collapse-arrow';
   collapseArrow.setAttribute('aria-hidden', 'true');
-  collapseArrow.textContent = '▲';
+  collapseArrow.textContent = '▼';
   collapseBtn.replaceChildren(collapseArrow);
   btns.appendChild(collapseBtn);
 
@@ -173,8 +173,8 @@ export function attachBoardToolStrip(opts) {
       collapseBtn.title = collapsed ? '展开工具' : '收起工具';
       collapseBtn.setAttribute('aria-label', collapsed ? '展开工具' : '收起工具');
       const arrow = collapseBtn.querySelector('.math-board-tool-collapse-arrow');
-      // 展开态：▲ 向上收起；收起态：▼ 向下展开
-      if (arrow) arrow.textContent = collapsed ? '▼' : '▲';
+      // 展开态：▼ 表示可向下收起；收起态：▲ 表示可向上展开
+      if (arrow) arrow.textContent = collapsed ? '▲' : '▼';
     }
     syncButtons();
   }

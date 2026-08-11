@@ -6,6 +6,8 @@
  * 取消与 dispose 全部显式化。
  */
 
+import { handlePerpAxisTap } from './tool-perp.js';
+
 /**
  * @param {{
  *   getState: () => any,
@@ -61,7 +63,7 @@ export function createGraphToolController(context) {
     const state = getState();
 
     if (tool === 'point') {
-      await context.addPointAt?.(usrX, usrY);
+      await addPointAt(usrX, usrY);
       return;
     }
     if (tool === 'delete') {
@@ -71,19 +73,41 @@ export function createGraphToolController(context) {
           state.styleBind?.selection?.clear?.();
           context.removeUserPointById(rec.id);
         }
-      } else if (hit?._mathConstrId) {
+        return;
+      }
+      if (hit?._mathConstrId) {
         state.styleBind?.selection?.clear?.();
         context.removeConstructionById(hit._mathConstrId);
-      } else if (hit?._mathFnId || state.functions.some((f) => f.curve === hit)) {
+        return;
+      }
+      if (hit?._mathFnId || state.functions.some((f) => f.curve === hit)) {
         const fn =
           (hit._mathFnId && state.functions.find((f) => f.id === hit._mathFnId)) ||
           state.functions.find((f) => f.curve === hit);
-        if (fn && !fn.locked) state.deleteFn?.(fn.id);
+        if (fn && !fn.locked) context.deleteFn?.(fn.id);
+        return;
       }
+      // hit 未命中时：按像素容差扫用户点（小点难精确点中）
+      for (const rec of state.userPoints || []) {
+        if (rec.locked || !rec.el) continue;
+        try {
+          const dx = Number(rec.el.X()) - usrX;
+          const dy = Number(rec.el.Y()) - usrY;
+          const unit = Math.abs(Number(state.board?.unitX) || 40);
+          if (Math.hypot(dx, dy) * unit < 16) {
+            state.styleBind?.selection?.clear?.();
+            context.removeUserPointById(rec.id);
+            return;
+          }
+        } catch {
+          /* invalid point */
+        }
+      }
+      state.toolStrip?.setHint?.('请点中要删除的点或线');
       return;
     }
     if (tool === 'probe') {
-      state.probe?.setActive?.(true);
+      state.probe?.activate?.();
       return;
     }
     if (tool === 'segment' || tool === 'line') {
@@ -94,8 +118,21 @@ export function createGraphToolController(context) {
       if (!rec && hit?._mathFeatureMark) {
         rec = context.ensureUserPointFromHit(hit, usrX, usrY);
       }
+      if (!rec && context.isCurveEl?.(hit)) {
+        rec = context.ensureUserPointFromHit(hit, usrX, usrY);
+      }
       if (!rec) {
-        rec = context.createUserPoint(usrX, usrY, { showCoords: true });
+        const near = context.nearestFnAt(usrX, usrY);
+        if (near?.fn) {
+          const followId =
+            context.followIdForFn?.(near.fn.id) || context.curveFollowTargetId?.(near.fn.id);
+          rec = context.createUserPoint(usrX, near.y ?? usrY, {
+            followTargetId: followId,
+            showCoords: true,
+          });
+        } else {
+          rec = context.createUserPoint(usrX, usrY, { showCoords: true });
+        }
         context.reregisterSelectable();
       }
       if (!rec) {
@@ -168,42 +205,7 @@ export function createGraphToolController(context) {
     }
 
     if (tool === 'perp-axis') {
-      const pick = state.toolPick;
-      if (!pick || pick.tool !== 'perp-axis') {
-        let rec = context.findUserRec(hit);
-        if (!rec) {
-          const near = context.nearestFnAt(usrX, usrY);
-          if (near) {
-            rec = context.createUserPoint(usrX, usrY, {
-              followTargetId: context.curveFollowTargetId?.(near.id),
-              showCoords: true,
-            });
-            context.reregisterSelectable();
-          }
-        }
-        if (!rec) {
-          state.toolStrip?.setHint?.('请先选一点');
-          return;
-        }
-        state.toolPick = { tool, pointId: rec.id };
-        state.toolStrip?.setHint?.('已选点，再点坐标轴或直线');
-        return;
-      }
-      const p1 = host.findUserEl(pick.pointId);
-      if (!p1) {
-        clearToolPick();
-        return;
-      }
-      const rec = context.findUserRec(hit);
-      if (rec && rec.id === pick.pointId) {
-        state.toolStrip?.setHint?.('请选择不同的对象');
-        return;
-      }
-      const created = context.createPerpToAxis?.(host, p1, hit, usrX, usrY, [pick.pointId]);
-      if (created) {
-        context.commitConstructionDocument(created);
-        clearToolPick();
-      }
+      handlePerpAxisTap(context, host, ctx, state, { clearToolPick });
       return;
     }
 

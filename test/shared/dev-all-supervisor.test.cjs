@@ -14,7 +14,11 @@ const { pathToFileURL } = require('node:url');
 const root = require('../helpers/repo-root.js');
 
 let mod;
+let killLib;
 let pidCounter = 5000;
+/** 测试必须注入；若误走真实 process.kill(-pid) 会误杀本机进程组 */
+let processKillCalls = 0;
+const originalProcessKill = process.kill.bind(process);
 
 /**
  * fake child：kill → 同步或 setImmediate 后 emitExit（模拟 SIGTERM 退出）
@@ -63,6 +67,7 @@ function setup({ asyncExit = false } = {}) {
     },
     signals,
     logger: silence(),
+    killProcessTree: killLib.memoryKillProcessTree,
   });
   sup.start();
   return { sup, children, signals };
@@ -86,6 +91,7 @@ test('成功退出（code 0）同样终止另一棵树并退出 0', async () => 
 });
 
 test('SIGTERM 信号转发：两棵树都回收，重复信号幂等', async () => {
+  const beforeKills = processKillCalls;
   const { sup, children, signals } = setup();
   signals.emit('SIGTERM');
   signals.emit('SIGTERM');
@@ -94,6 +100,7 @@ test('SIGTERM 信号转发：两棵树都回收，重复信号幂等', async () 
   assert.equal(children['dev:server'].killCalls.length, 1, 'dev:server 只回收一次');
   const code = await sup.done;
   assert.equal(code, 0, '信号关闭以 0 退出');
+  assert.equal(processKillCalls, beforeKills, '注入内存杀树时不得调用真实 process.kill');
 });
 
 test('无孤儿：所有 child 退出后 supervisor 才 resolve（异步退出场景）', async () => {
@@ -111,5 +118,15 @@ test('无孤儿：所有 child 退出后 supervisor 才 resolve（异步退出�
 });
 
 test.before(async () => {
+  processKillCalls = 0;
+  process.kill = (...args) => {
+    processKillCalls += 1;
+    return originalProcessKill(...args);
+  };
   mod = await import(pathToFileURL(path.join(root, 'scripts/dev-all.mjs')).href);
+  killLib = await import(pathToFileURL(path.join(root, 'scripts/lib/kill-process-tree.mjs')).href);
+});
+
+test.after(() => {
+  process.kill = originalProcessKill;
 });

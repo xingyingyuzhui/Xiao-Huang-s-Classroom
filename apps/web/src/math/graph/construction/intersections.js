@@ -9,6 +9,11 @@ import {
   createLineIntersection,
 } from './intersection-renderers.js';
 import {
+  buildIntersectKeyIndex,
+  lineFnIntersectKey,
+  lineLineIntersectKey,
+} from './intersect-keys.js';
+import {
   canExtendConstr,
   lineLikeElOf,
   supportingLineElOf,
@@ -23,6 +28,9 @@ export {
   intersectLiesOnAllLines,
   syncIntersectVisibility,
 } from './intersection-visibility.js';
+
+/** 线×函数自动尝试的最大交点索引（含 0）；保持 0…7 数学完整性 */
+const MAX_LINE_FN_INDEX = 7;
 
 /** @param {any} host @param {any} elementOrRecord @param {boolean} enabled */
 export function setConstructionExtend(host, elementOrRecord, enabled) {
@@ -51,88 +59,99 @@ export function setConstructionExtend(host, elementOrRecord, enabled) {
   host.onChanged?.();
 }
 
-/** @param {any} host @param {string} firstId @param {string} secondId */
-function hasLineLineIntersection(host, firstId, secondId) {
-  const ids = [firstId, secondId].sort();
-  return host.getConstructions().some((construction) => {
-    if (
-      construction.kind !== 'intersect' ||
-      construction.lineIds?.length !== 2 ||
-      construction.fnIds?.length
-    ) {
-      return false;
+/**
+ * @param {any} board
+ * @param {() => void} work
+ */
+function withSuspendedBoard(board, work) {
+  const canSuspend = typeof board?.suspendUpdate === 'function';
+  const canUnsuspend = typeof board?.unsuspendUpdate === 'function';
+  if (canSuspend) {
+    try {
+      board.suspendUpdate();
+    } catch {
+      /* */
     }
-    const existingIds = [...construction.lineIds].sort();
-    return existingIds[0] === ids[0] && existingIds[1] === ids[1];
-  });
-}
-
-/** @param {any} host @param {string} lineId @param {string} functionId @param {number} index */
-function hasLineFunctionIntersection(host, lineId, functionId, index) {
-  return host.getConstructions().some(
-    (construction) =>
-      construction.kind === 'intersect' &&
-      construction.lineIds?.length === 1 &&
-      construction.fnIds?.length === 1 &&
-      construction.lineIds[0] === lineId &&
-      construction.fnIds[0] === functionId &&
-      (construction.intersectIndex ?? 0) === index,
-  );
+  }
+  try {
+    work();
+  } finally {
+    if (canUnsuspend) {
+      try {
+        board.unsuspendUpdate();
+      } catch {
+        /* */
+      }
+    } else if (canSuspend) {
+      try {
+        board.update?.();
+      } catch {
+        /* */
+      }
+    }
+  }
 }
 
 /** @param {any} host @param {any} newConstruction */
 export function autoIntersectNewLine(host, newConstruction) {
   if (!newConstruction) return;
+  const board = host.getBoard?.();
   const supportLine =
     supportingLineElOf(newConstruction) || lineLikeElOf(newConstruction);
   if (!supportLine) return;
   const visibleLine = lineLikeElOf(newConstruction) || supportLine;
+  const index = buildIntersectKeyIndex(host);
 
-  for (const construction of host.getConstructions().slice()) {
-    if (
-      !construction ||
-      construction.id === newConstruction.id ||
-      construction.kind === 'intersect'
-    ) {
-      continue;
+  const run = () => {
+    for (const construction of host.getConstructions().slice()) {
+      if (
+        !construction ||
+        construction.id === newConstruction.id ||
+        construction.kind === 'intersect'
+      ) {
+        continue;
+      }
+      const otherLine =
+        supportingLineElOf(construction) || lineLikeElOf(construction);
+      const key = lineLineIntersectKey(newConstruction.id, construction.id);
+      if (!otherLine || otherLine === supportLine || index.has(key)) {
+        continue;
+      }
+      try {
+        const made = createLineIntersection(
+          host,
+          supportLine,
+          otherLine,
+          [newConstruction.id, construction.id].sort(),
+          undefined,
+          { notify: false },
+        );
+        if (made) index.set(key, made);
+      } catch {
+        /* parallel or temporarily invalid JSXGraph objects have no intersection */
+      }
     }
-    const otherLine =
-      supportingLineElOf(construction) || lineLikeElOf(construction);
-    if (
-      !otherLine ||
-      otherLine === supportLine ||
-      hasLineLineIntersection(host, newConstruction.id, construction.id)
-    ) {
-      continue;
-    }
-    try {
-      createLineIntersection(
-        host,
-        supportLine,
-        otherLine,
-        [newConstruction.id, construction.id].sort(),
-        undefined,
-        { notify: false },
-      );
-    } catch {
-      /* parallel or temporarily invalid JSXGraph objects have no intersection */
-    }
-  }
 
-  const visibleFunctions = host.getFunctions().filter((fn) => fn.visible && fn.curve);
-  for (const fn of visibleFunctions) {
-    for (let index = 0; index < 8; index += 1) {
-      if (hasLineFunctionIntersection(host, newConstruction.id, fn.id, index)) continue;
-      createLineFnIntersection(
-        host,
-        visibleLine,
-        fn,
-        newConstruction.id,
-        fn.id,
-        index,
-        undefined,
-        { notify: false },
-      );
+    const visibleFunctions = host.getFunctions().filter((fn) => fn.visible && fn.curve);
+    for (const fn of visibleFunctions) {
+      for (let i = 0; i <= MAX_LINE_FN_INDEX; i += 1) {
+        const key = lineFnIntersectKey(newConstruction.id, fn.id, i);
+        if (index.has(key)) continue;
+        const made = createLineFnIntersection(
+          host,
+          visibleLine,
+          fn,
+          newConstruction.id,
+          fn.id,
+          i,
+          undefined,
+          { notify: false },
+        );
+        if (made) index.set(key, made);
+      }
     }
-  }
+  };
+
+  if (board) withSuspendedBoard(board, run);
+  else run();
 }

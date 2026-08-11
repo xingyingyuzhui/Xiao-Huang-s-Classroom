@@ -18,6 +18,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import chokidar from 'chokidar';
+import { killProcessTree as defaultKillProcessTree } from './lib/kill-process-tree.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SERVER_ROOT = path.join(ROOT, 'apps/server');
@@ -57,6 +58,7 @@ function spawnDetached(file, args, cwd) {
  * @param {Console} [options.logger]
  * @param {number} [options.debounceMs]
  * @param {import('node:events').EventEmitter} [options.signals] CLI 传 process，测试传 fake
+ * @param {(child: any) => void} [options.killProcessTree] 默认真实杀树；测试必须注入内存实现
  */
 export function createDevServerSupervisor({
   spawnCompiler = () => spawnDetached(process.execPath, [TSUP_CLI, '--watch'], SERVER_ROOT),
@@ -73,6 +75,7 @@ export function createDevServerSupervisor({
   logger = console,
   debounceMs = 300,
   signals = null,
+  killProcessTree = defaultKillProcessTree,
 }) {
   const state = {
     compiler: null,
@@ -151,19 +154,7 @@ export function createDevServerSupervisor({
   function killChild(child) {
     if (!child || child.exitCode != null || child.signalCode) return;
     child.__intentional = true;
-    try {
-      if (process.platform === 'win32') {
-        spawnDetached('taskkill', ['/PID', String(child.pid), '/T', '/F'], ROOT);
-      } else {
-        process.kill(-child.pid, 'SIGTERM');
-      }
-    } catch {
-      try {
-        child.kill('SIGTERM');
-      } catch {
-        /* 已退出 */
-      }
-    }
+    killProcessTree(child);
     // 兜底：5s 未退出则 SIGKILL
     const timer = setTimeout(() => {
       state.killFallbackTimers.delete(timer);

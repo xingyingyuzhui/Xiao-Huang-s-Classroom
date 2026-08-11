@@ -51,6 +51,12 @@ test('graph orchestrator delegates function collection UI and record creation', 
   assert.match(orchestrator, /createGraphDocumentRenderer/);
   assert.match(orchestrator, /createGraphToolController/);
   assert.match(orchestrator, /createGraphFunctionRuntime/);
+  // 工具注入契约：deleteFn / isCurveEl 必须进 controller；加点走内部 addPointAt
+  assert.match(orchestrator, /createGraphToolController\(\{[\s\S]*?deleteFn[\s\S]*?\}\)/);
+  assert.match(orchestrator, /createGraphToolController\(\{[\s\S]*?isCurveEl[\s\S]*?\}\)/);
+  assert.match(read('graph-tool-controller.js'), /await addPointAt\(usrX, usrY\)/);
+  assert.doesNotMatch(read('graph-tool-controller.js'), /context\.addPointAt/);
+  assert.doesNotMatch(read('graph-tool-controller.js'), /state\.deleteFn/);
   assert.ok(
     orchestrator.split('\n').length < 700,
     'graph/index.js 必须保持编排入口（Task 8 最终阈值 <700）',

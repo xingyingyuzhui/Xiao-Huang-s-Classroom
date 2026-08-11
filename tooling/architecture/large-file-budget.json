@@ -106,8 +106,9 @@
   },
   "web/src/math/graph/graph-mount-controller.js": {
     "category": "controller",
-    "plan": "挂载生命周期控制器（Task 9 拆分后 750 行：board/ui/dispose 已收敛 session 文件）",
-    "lines": 750
+    "plan": "挂载生命周期控制器（Task 9 拆分后收敛；hardMax 750 禁止 +15% 容差掩盖膨胀）",
+    "lines": 749,
+    "hardMax": 750
   },
   "web/src/math/graph/graph-record-validation.js": {
     "category": "logic",
@@ -127,7 +128,7 @@
   "web/src/math/graph/index.js": {
     "category": "entry",
     "plan": "graph 编排入口，<700 行门禁已锁（math-graph-structure）",
-    "lines": 690
+    "lines": 696
   },
   "web/src/math/graph/user-points.js": {
     "category": "controller",
@@ -156,8 +157,13 @@
   },
   "web/src/math/shared/object-style-panel.js": {
     "category": "controller",
-    "plan": "board 工具/面板控制器",
+    "plan": "board 工具/面板控制器（名称编辑拆至 object-name-editor）",
     "lines": 738
+  },
+  "web/src/math/shared/point-label-fusion.js": {
+    "category": "logic",
+    "plan": "点标签融合（桶+邻接滑动窗口，操作数合同由 vitest 锁定）",
+    "lines": 403
   },
   "web/src/shared/api/client.js": {
     "category": "adapter",

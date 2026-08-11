@@ -18,7 +18,11 @@ const { pathToFileURL } = require('node:url');
 const root = require('../helpers/repo-root.js');
 
 let mod;
+let killLib;
 let pidCounter = 1000;
+/** 测试必须注入；若误走真实 process.kill(-pid) 会误杀本机进程组 */
+let processKillCalls = 0;
+const originalProcessKill = process.kill.bind(process);
 
 /** fake child：kill 后同步 emitExit（模拟 SIGTERM 优雅退出） */
 function makeFakeChild(name) {
@@ -80,35 +84,44 @@ async function waitFor(predicate, timeoutMs) {
   }
 }
 
+function withMemoryKill(options) {
+  return {
+    ...options,
+    killProcessTree: killLib.memoryKillProcessTree,
+  };
+}
+
 /** 建一个已首轮启动的 supervisor（compiler+server 都在跑） */
 async function bootedSupervisor(debounceMs = 30) {
   const spawned = { compilers: [], servers: [] };
   const signals = new EventEmitter();
   const watchers = [];
   let watcherClosed = false;
-  const sup = mod.createDevServerSupervisor({
-    spawnCompiler: () => {
-      const c = makeFakeChild('compiler');
-      spawned.compilers.push(c);
-      return c;
-    },
-    spawnServer: () => {
-      const c = makeFakeChild('server');
-      spawned.servers.push(c);
-      return c;
-    },
-    watch: (onChange) => {
-      watchers.push(onChange);
-      return {
-        close: async () => {
-          watcherClosed = true;
-        },
-      };
-    },
-    logger: silence(),
-    debounceMs,
-    signals,
-  });
+  const sup = mod.createDevServerSupervisor(
+    withMemoryKill({
+      spawnCompiler: () => {
+        const c = makeFakeChild('compiler');
+        spawned.compilers.push(c);
+        return c;
+      },
+      spawnServer: () => {
+        const c = makeFakeChild('server');
+        spawned.servers.push(c);
+        return c;
+      },
+      watch: (onChange) => {
+        watchers.push(onChange);
+        return {
+          close: async () => {
+            watcherClosed = true;
+          },
+        };
+      },
+      logger: silence(),
+      debounceMs,
+      signals,
+    }),
+  );
   sup.start();
   const compiler = spawned.compilers[0];
   // 首轮：CJS 成功（armed 前，应被忽略）→ Watching for changes（armed）→ 启动 Server
@@ -136,21 +149,23 @@ test('初次启动：watcher 首轮构建成功（armed）后才启动 Server，
 
 test('初始构建失败不启动半成品 Server；随后成功才启动', async () => {
   const spawned = { compilers: [], servers: [] };
-  const sup = mod.createDevServerSupervisor({
-    spawnCompiler: () => {
-      const c = makeFakeChild('compiler');
-      spawned.compilers.push(c);
-      return c;
-    },
-    spawnServer: () => {
-      const c = makeFakeChild('server');
-      spawned.servers.push(c);
-      return c;
-    },
-    watch: () => ({ close: async () => {} }),
-    logger: silence(),
-    debounceMs: 20,
-  });
+  const sup = mod.createDevServerSupervisor(
+    withMemoryKill({
+      spawnCompiler: () => {
+        const c = makeFakeChild('compiler');
+        spawned.compilers.push(c);
+        return c;
+      },
+      spawnServer: () => {
+        const c = makeFakeChild('server');
+        spawned.servers.push(c);
+        return c;
+      },
+      watch: () => ({ close: async () => {} }),
+      logger: silence(),
+      debounceMs: 20,
+    }),
+  );
   sup.start();
   const compiler = spawned.compilers[0];
   compiler.emitStderr('Error: Build failed with 1 error:'); // 首轮 CJS 失败 → 无 armed
@@ -205,6 +220,7 @@ test('组合根 JS 变化触发一次 debounce 重启（chokidar 路径）', asy
 });
 
 test('SIGTERM 全回收两个 child，且幂等（重复信号不重复杀）', async () => {
+  const beforeKills = processKillCalls;
   const { spawned, signals, getWatcherClosed } = await bootedSupervisor();
   signals.emit('SIGTERM');
   assert.equal(spawned.compilers[0].killCalls.length, 1, 'compiler 被回收一次');
@@ -215,6 +231,7 @@ test('SIGTERM 全回收两个 child，且幂等（重复信号不重复杀）', 
   signals.emit('SIGINT');
   assert.equal(spawned.compilers[0].killCalls.length, 1);
   assert.equal(spawned.servers[0].killCalls.length, 1);
+  assert.equal(processKillCalls, beforeKills, '注入内存杀树时不得调用真实 process.kill');
 });
 
 test('compiler 意外退出时回收 Server', async () => {
@@ -244,5 +261,15 @@ test('重启期间到来的成功事件在重启完成后再次调度（不丢�
 });
 
 test.before(async () => {
+  processKillCalls = 0;
+  process.kill = (...args) => {
+    processKillCalls += 1;
+    return originalProcessKill(...args);
+  };
   mod = await import(pathToFileURL(path.join(root, 'scripts/dev-server.mjs')).href);
+  killLib = await import(pathToFileURL(path.join(root, 'scripts/lib/kill-process-tree.mjs')).href);
+});
+
+test.after(() => {
+  process.kill = originalProcessKill;
 });

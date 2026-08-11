@@ -12,6 +12,19 @@ export function segmentLengthText(p1, p2) {
   }
 }
 
+/**
+ * 线段/直线量测标签：短名 + 量测（改名后读 host._mathBaseName）
+ * @param {any} hostEl 线段/直线 JSXGraph 元素
+ * @param {string} measurePart 长度/斜率等量测文案
+ */
+export function formatLineMeasureLabel(hostEl, measurePart) {
+  const name = String(hostEl?._mathBaseName || hostEl?.name || '').trim();
+  const measure = String(measurePart ?? '').trim();
+  if (name && measure) return `${name} · ${measure}`;
+  if (name) return name;
+  return measure || '·';
+}
+
 /** @param {any} p1 @param {any} p2 */
 export function lineSlopeText(p1, p2) {
   try {
