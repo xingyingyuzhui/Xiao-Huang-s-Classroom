@@ -1,5 +1,4 @@
 import type { ConflictRecord, ConflictResolution } from '@xiaohuang/sync-core';
-import { createButton, createDialog } from '@xiaohuang/ui';
 
 export type ConflictDialogOptions = {
   conflicts: ConflictRecord[];
@@ -18,17 +17,28 @@ function summarize(value: unknown): string {
   }
 }
 
+function makeBtn(label: string, onClick: () => void): HTMLButtonElement {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.textContent = label;
+  btn.addEventListener('click', onClick);
+  return btn;
+}
+
 export function showConflictDialog(options: ConflictDialogOptions): void {
   const { conflicts, onResolve, onClose } = options;
 
-  const dialog = createDialog({
-    title: '同步冲突',
-    open: true,
-    onClose: () => {
-      dialog.dispose();
-      onClose();
-    },
-  });
+  const overlay = document.createElement('div');
+  overlay.className = 'conflict-dialog-overlay';
+
+  const panel = document.createElement('div');
+  panel.className = 'conflict-dialog-panel';
+  panel.setAttribute('role', 'dialog');
+  panel.setAttribute('aria-modal', 'true');
+
+  const title = document.createElement('h2');
+  title.textContent = '同步冲突';
+  panel.appendChild(title);
 
   const body = document.createElement('div');
   body.className = 'conflict-dialog-body';
@@ -56,33 +66,25 @@ export function showConflictDialog(options: ConflictDialogOptions): void {
     const actions = document.createElement('div');
     actions.className = 'conflict-actions';
 
-    const keepLocalBtn = createButton({
-      label: '保留本地版本',
-      kind: 'secondary',
-      onClick: () => onResolve(conflict.conflictId, 'keepLocal'),
-    });
-    actions.appendChild(keepLocalBtn.element);
-
-    const keepCloudBtn = createButton({
-      label: '使用云端版本',
-      kind: 'secondary',
-      onClick: () => onResolve(conflict.conflictId, 'keepCloud'),
-    });
-    actions.appendChild(keepCloudBtn.element);
+    actions.appendChild(makeBtn('保留本地版本', () => onResolve(conflict.conflictId, 'keepLocal')));
+    actions.appendChild(makeBtn('使用云端版本', () => onResolve(conflict.conflictId, 'keepCloud')));
 
     if (conflict.supportsDuplicateLocal) {
-      const dupBtn = createButton({
-        label: '两者都保留',
-        kind: 'ghost',
-        onClick: () => onResolve(conflict.conflictId, 'duplicateLocal'),
-      });
-      actions.appendChild(dupBtn.element);
+      actions.appendChild(makeBtn('两者都保留', () => onResolve(conflict.conflictId, 'duplicateLocal')));
     }
 
     card.appendChild(actions);
     body.appendChild(card);
   }
 
-  dialog.element.appendChild(body);
-  document.body.appendChild(dialog.element);
+  panel.appendChild(body);
+
+  const closeBtn = makeBtn('关闭', () => {
+    overlay.remove();
+    onClose();
+  });
+  panel.appendChild(closeBtn);
+
+  overlay.appendChild(panel);
+  document.body.appendChild(overlay);
 }

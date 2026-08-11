@@ -18,14 +18,21 @@ export type UpdaterOptions = {
 const CHECK_DELAY_MS = 60_000;
 const CHECK_INTERVAL_MS = 4 * 60 * 60 * 1_000;
 
+interface MinimalAutoUpdater {
+  setFeedURL(options: { provider: string; url: string }): void;
+  autoDownload: boolean;
+  autoInstallOnAppQuit: boolean;
+  on(event: string, listener: (...args: never[]) => void): void;
+  checkForUpdates(): Promise<unknown>;
+}
+
 export function setupUpdater(options: UpdaterOptions): void {
   if (!app.isPackaged) return;
 
-  let autoUpdater: typeof import('electron-updater').autoUpdater | undefined;
+  let autoUpdater: MinimalAutoUpdater | undefined;
   try {
-    // electron-updater is an optional dependency; fail gracefully if absent
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    ({ autoUpdater } = require('electron-updater') as typeof import('electron-updater'));
+    ({ autoUpdater } = require('electron-updater') as { autoUpdater: MinimalAutoUpdater });
   } catch {
     return;
   }
@@ -34,15 +41,15 @@ export function setupUpdater(options: UpdaterOptions): void {
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = false;
 
-  autoUpdater.on('update-available', (info) => {
+  autoUpdater.on('update-available', (info: { version: string }) => {
     options.onUpdateAvailable?.({ version: info.version });
   });
 
-  autoUpdater.on('update-downloaded', (info) => {
+  autoUpdater.on('update-downloaded', (info: { version: string }) => {
     options.onUpdateDownloaded?.({ version: info.version });
   });
 
-  autoUpdater.on('error', (err) => {
+  autoUpdater.on('error', (err: Error) => {
     options.onError?.(err);
   });
 

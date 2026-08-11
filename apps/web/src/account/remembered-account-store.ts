@@ -49,6 +49,6 @@ export class RememberedAccountStore {
 
   getLastUsed(): RememberedAccount | null {
     const accounts = this.list();
-    return accounts.length > 0 ? accounts[0] : null;
+    return accounts[0] ?? null;
   }
 }

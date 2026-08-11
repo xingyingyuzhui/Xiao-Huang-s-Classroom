@@ -118,6 +118,8 @@ export class SyncController {
                     base: null,
                   },
                   supportsDuplicateLocal: false,
+                  resolvedAt: null,
+                  resolution: null,
                 },
               })),
             ],

@@ -1,6 +1,194 @@
-# 小黄的教室账户、班级、云同步与部署 Implementation Plan
+# 小黄的教室 · 账户/云同步/部署 Program — 进度总览 + 完整计划
 
-> **进度总览 + 完整计划（单页）：** [`2026-08-11-account-cloud-program-full-with-progress.md`](./2026-08-11-account-cloud-program-full-with-progress.md) — 含 §1–§7 现阶段进度、Milestone、提交记录与下文完整 Task 正文。
+> **文档用途：** 单页查阅本 Program 的**现阶段执行进度**与**完整 Implementation Plan**。  
+> **原始计划：** 与 `2026-08-11-account-cloud-sync-deployment-program.md` 同步；进度以本节 §1–§6 为准。  
+> **最后更新：** 2026-08-11（分支 `codex/account-cloud-program` @ `fba480d`）
+
+---
+
+## 1. 一句话状态
+
+在保留 Electron/Web 离线能力前提下，为「小黄的教室」增加教师账户、班级容器、手动云同步与云端部署。**合同与 sync-core 已冻结（M1 ✅）；Cloud Server + PostgreSQL 基础、认证/设备会话、本地 IndexedDB/outbox 框架已落地（M2 部分 ✅、M3 部分 ✅）。** 班级/workspace 云端与客户端上下文（Task 5）、手动同步协议（Task 7）、登录 UI（Task 8）及之后任务**尚未开始**。
+
+---
+
+## 2. 分支与基线
+
+| 项 | 值 |
+| --- | --- |
+| **工作分支** | `codex/account-cloud-program` |
+| **基于** | `origin/main` @ `8de23d0` |
+| **当前 HEAD** | `fba480d` |
+| **相对 main** | 领先 10 commits（未 push） |
+| **排除分支** | `codex/fix-intersection-state-perf` @ `e1dc725`（未合并，不在本 Program 继续） |
+| **基线门禁** | `npm run quality:fast` @ `8de23d0` PASS；`inspect-current.mjs --check` PASS |
+
+### 2.1 本分支提交记录（新 → 旧）
+
+| SHA | 说明 |
+| --- | --- |
+| `fba480d` | fix(test-kit): fake IndexedDB 每 factory 实例隔离 |
+| `9155c92` | feat(web): scoped local repository + durable outbox（Task 6） |
+| `6578a19` | feat(cloud): secure account and device sessions（Task 4） |
+| `93e770c` | docs: sync-core 加入 coverage baseline |
+| `87923e5` | docs: Task 3 完成证据 |
+| `f1f42cc` | feat(cloud): postgres application foundation（Task 3） |
+| `af38687` | docs: Task 1–2 完成证据 |
+| `06d2397` | feat(contracts): account/workspace/sync contracts |
+| `9e72673` | feat(sync-core): pure manual sync state machine |
+| `c3e83f9` | docs: account and sync data boundaries（Task 1） |
+
+---
+
+## 3. Milestone 进度（M1–M9）
+
+| Milestone | 目标 | 状态 | 证据摘要 |
+| --- | --- | --- | --- |
+| **M1 合同** | schemas + sync-core 全绿 | ✅ **达成** | contracts 27/27；sync-core 28/28；typecheck + lint:arch PASS |
+| **M2 云基础** | Cloud Server + PG + auth + tenant | 🟡 **进行中** | Task 3 ✅；Task 4 核心 ✅（23/23）；Task 5 未开始；RLS/班级待 Task 5 |
+| **M3 本地隔离** | guest/account/class/subject 不串用 | 🟡 **框架就绪** | IndexedDB + outbox 6/6；旧写路径未切换；workspace context 待 Task 5 |
+| **M4 手动同步** | push/pull/conflict E2E | ⬜ 未开始 | Task 7 |
+| **M5 全资源** | 14 类资源 wave 接入 | ⬜ 未开始 | Task 9 |
+| **M6 AI** | 云端加密 Key + 额度 | ⬜ 未开始 | Task 10 |
+| **M7 客户端** | 多账户 UI + Electron vault + 离线壳 | ⬜ 未开始 | Task 8/11/12 |
+| **M8 部署** | Compose/Nginx/backup 真实 Ubuntu | ⬜ 骨架 only | `deploy/compose.yml` 可 config；Task 13 未完成 |
+| **M9 发布** | Win 签名 + 自动更新 + 恢复演练 | ⬜ 未开始 | Task 11/16 |
+
+---
+
+## 4. Task 进度一览（Task 0–16）
+
+| Task | 名称 | 状态 | Commit / 测试 |
+| --- | --- | --- | --- |
+| **0** | 基线与分支 | ✅ | 分支 @ `8de23d0`；quality:fast PASS |
+| **1** | 数据边界与威胁模型 | ✅ | `c3e83f9`；doc contract 6/6 |
+| **2** | 合同 + sync-core | ✅ | `9e72673` + `06d2397`；**M1 ✅** |
+| **3** | Cloud Server + PostgreSQL | ✅ | `f1f42cc`；cloud-server 13→23 测试基线 |
+| **4** | 认证/账户/设备 | 🟡 **核心完成** | `6578a19`；23/23；§6.2 行为/API 部分待 sync/UI |
+| **5** | 班级/Workspace/废纸篓 | ⬜ **进行中/待交付** | 无 commit；agent 已派工 |
+| **6** | 本地 IndexedDB/outbox | 🟡 **框架完成** | `9155c92` + `fba480d`；6/6 vitest；仅 math graph 迁移 |
+| **7** | Cloud client + 手动同步 | ⬜ | — |
+| **8** | 账户/班级/冲突 UI | ⬜ | **禁止**在 Task 6 隔离完成前开 `accountCloudProgram` |
+| **9** | 14 类资源 wave | ⬜ | — |
+| **10** | 云端 AI Key/额度 | ⬜ | — |
+| **11** | Electron vault + 更新 | ⬜ | — |
+| **12** | Web 离线壳 | ⬜ | — |
+| **13** | Docker/Nginx/部署 | ⬜ | compose 骨架存在 |
+| **14** | 备份/恢复/审计 | ⬜ | — |
+| **15** | CI/CD 门禁 | ⬜ | — |
+| **16** | 最终验收 | ⬜ | — |
+
+### 4.1 Task 4 已完成 vs 待办（摘要）
+
+**已完成：** Argon2id、`0010_identity_sessions.sql`、JWT access（15min）+ opaque refresh rotation/reuse、HttpOnly cookie + CSRF、register closed、统一登录错误、repository 层、auth/devices/authorization 测试。
+
+**待后续 Task：** Electron safeStorage（Task 11）、微信 adapter、邮件重置 FEATURE_DISABLED 端点、完整 rate limit（Task 8/13）、头像 MIME、30 天清理 job、pending_deletion 全行为 E2E、远程撤销后 sync/AI 失败（需 Task 7）。
+
+### 4.2 Task 6 已完成 vs 待办（摘要）
+
+**已完成：** `apps/web/src/shared/persistence/indexeddb/*`、`local-resource-service.ts`、scoped key、同事务 outbox、migration marker/postcondition、`xiaohuang:math:graph-document:v2` → guest/math、`packages/test-kit` fake IndexedDB。
+
+**待办：** 其余 legacy key 迁移（notes/化学进度/settings/class_students…）、旧写路径退役、Electron 接线、localStorage 收敛。
+
+---
+
+## 5. 已交付主要目录/文件
+
+```text
+docs/operations/
+  account-data-boundaries.md          # Task 1
+  account-threat-model.md
+  sync-resource-inventory.md          # 14 类资源登记
+  web-offline-capability-matrix.md
+
+packages/
+  contracts/src/{auth,account,classroom,workspace,sync,ai-provider}.ts
+  sync-core/                          # 纯同步状态机
+  domain-core/                        # 扩展 ID + 错误码
+
+apps/cloud-server/                    # Task 3–4
+  src/{app,server,config}.ts
+  src/auth/ accounts/ devices/
+  src/db/migrations/{0001_platform,0010_identity_sessions}.sql
+  src/db/repositories/{account,identity,session}.ts
+  test/                               # 23 tests (Testcontainers)
+
+apps/web/src/
+  shared/persistence/indexeddb/       # Task 6
+  sync/local-resource-service.ts
+
+deploy/
+  compose.yml                         # 骨架
+  compose.test.yml
+
+packages/test-kit/src/fake-indexeddb.ts
+test/web/local-data-{isolation,migration}.vitest.ts
+```
+
+---
+
+## 6. 外部阻塞与执行纪律
+
+### 6.1 需用户/运维后续提供
+
+- 正式**域名 + HTTPS**（真实 Web 登录、微信回调、更新 feed）
+- 服务器 secret：`DATABASE_URL` 密码、token signing key、AI KEK（仅 env，不进仓库）
+- **SSH tunnel** 做 staging 真实 auth 测试（公网 HTTP 禁止测凭据）
+- 大陆公网 Web 可能需 **ICP 备案**
+- Windows **代码签名**（M9 正式发布前）
+
+### 6.2 Agent 纪律（仍有效）
+
+- **禁止**把 `apps/server` 暴露公网；云端走 `apps/cloud-server` + PostgreSQL
+- **禁止** push `origin/main`、生产部署、改安全组，除非用户当轮明确授权
+- **禁止**登录 UI / `accountCloudProgram=true`，直到 workspace 隔离 + outbox 就绪
+- migration **0010–0019** → Auth；**0020–0029** → Classes/Sync；**0030–0039** → AI；runner/manifest 由 Supervisor 收口
+- 多 Agent 并行用独立 worktree/分支；公共热点由 Supervisor cherry-pick
+
+### 6.3 建议下一步（Supervisor）
+
+1. 完成 **Task 5**：`0020_classes_workspaces.sql`、RLS、classes API、`workspace-context-store`
+2. **Task 7** 手动同步（cloud sync routes + web sync-controller）
+3. 每 milestone 跑 `npm run quality:fast`；发布候选跑两次 `npm run quality`
+4. Task 8 UI 前确认「未隔离功能清单」与 feature flag 策略
+
+---
+
+## 7. 验证命令速查（当前可跑）
+
+```bash
+# 文档合同
+node --test test/shared/account-program-doc-contract.test.cjs
+
+# 包
+npm run test -w @xiaohuang/contracts
+npm run test -w @xiaohuang/sync-core
+
+# Cloud
+npm run test -w @xiaohuang/cloud-server      # 23/23 @ 6578a19 链
+
+# 本地持久化
+cd apps/web && npx vitest run ../../test/web/local-data-*.vitest.ts   # 6/6
+
+# 架构
+npm run lint:arch
+
+# Compose 骨架（需占位 env）
+POSTGRES_PASSWORD=x CLOUD_TOKEN_SIGNING_KEY=01234567890123456789012345678901 \
+CLOUD_AI_KEK=abcdefghijklmnopqrstuvwxyz123456 CLOUD_PUBLIC_ORIGIN=https://example.com \
+docker compose -f deploy/compose.yml config
+```
+
+---
+
+# 附录：完整 Implementation Plan（原文）
+
+> 以下为本 Program 完整计划正文；Task 1–6 中已完成的 `[x]` 与 SHA/证据已在各 Task 小节内标注。  
+> 执行时仍以 §0 否决项、§2 多 Agent 纪律为准。
+
+---
+
+# 小黄的教室账户、班级、云同步与部署 Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development`（推荐）或 `superpowers:executing-plans` 按任务执行。总控 Agent 必须先建立集成分支和独立 worktree，冻结合同后再并行；不得让多个 Agent 在同一工作树同时编辑。
 
@@ -316,8 +504,8 @@ Commit: `feat(contracts): add account workspace and sync contracts`。
 0030–0039  ai/audit（Agent F）
 ```
 
-- [ ] 所有后续业务表都必须有明确 owner FK；跨租户查询必须包含 `account_id`。（Task 4–6 落地）
-- [ ] `account_identities` 对规范化 username/email/provider subject 建唯一约束。（Task 4 落地）
+- [x] 所有后续业务表都必须有明确 owner FK；跨租户查询必须包含 `account_id`。（Task 4 身份表已落地；班级/sync 待 Task 5/7）
+- [x] `account_identities` 对规范化 username/email/provider subject 建唯一约束。（Task 4 落地）
 - [x] migration manifest 与 runner 由 Task 3/Supervisor 独占；B/C/F 只能在预留号段新增文件，不得并行改 runner 或重排已合并编号。
 - [x] migrations 使用事务、checksum 和 advisory lock；空库、重复运行、前一版升级、高版本拒绝都要测。
 - [x] 不提供“自动 down migration”；回滚依赖发布前 `pg_dump` 和向后兼容的 expand/contract 策略。
@@ -326,7 +514,7 @@ Commit: `feat(contracts): add account workspace and sync contracts`。
 ### 5.3 验证
 
 ```bash
-npm run test -w @xiaohuang/cloud-server      # 13/13 pass
+npm run test -w @xiaohuang/cloud-server      # 13/13 pass → 现 23/23（含 Task 4）
 npm run typecheck -w @xiaohuang/cloud-server # 16 TS files pass
 npm run lint:arch                            # OK
 POSTGRES_PASSWORD=… CLOUD_*=… docker compose -f deploy/compose.yml config
@@ -484,7 +672,7 @@ Commit: `feat(workspace): isolate account class and subject context`。
 
 至少覆盖：
 
-- `xiaohuang:math:graph-document:v2`
+- `xiaohuang:math:graph-document:v2` ✅（migration v1）
 - `math-graph-board-notes-v1`
 - 化学配平/实验预习进度
 - 当前全局 settings cache
@@ -508,7 +696,7 @@ npm run build -w @xiaohuang/test-kit
 **证据：** 2026-08-11 6/6 vitest pass
 
 Commit: `feat(web): add scoped local repository and durable outbox`。  
-**SHA：** `9155c92`
+**SHA：** `9155c92`（+ `fba480d` test-kit 隔离修复）
 
 ---
 

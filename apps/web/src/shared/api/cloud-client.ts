@@ -72,13 +72,13 @@ export class CloudClient {
     const res = await fetch(`${this.config.baseUrl}${path}`, {
       method,
       headers,
-      body: body != null ? JSON.stringify(body) : undefined,
-      signal,
+      ...(body != null ? { body: JSON.stringify(body) } : {}),
+      ...(signal ? { signal } : {}),
     });
 
     if (res.status === 401) {
       this.config.onUnauthorized?.();
-      throw new AppError('AUTH_UNAUTHORIZED', 'Unauthorized');
+      throw new AppError('AUTH_SESSION_EXPIRED', 'Unauthorized');
     }
 
     const json = (await res.json()) as { success: boolean; data?: T; error?: { code: string; message: string }; requestId: string };

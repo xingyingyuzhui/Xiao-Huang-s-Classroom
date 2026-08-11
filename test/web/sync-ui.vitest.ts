@@ -153,10 +153,15 @@ function matchesClass(el: FakeElement, cls: string): boolean {
   return el.classList._s.has(cls);
 }
 
+function matchesSelector(el: FakeElement, sel: string): boolean {
+  if (sel.startsWith('.')) return matchesClass(el, sel.slice(1));
+  if (sel.startsWith('#')) return el.id === sel.slice(1);
+  return el.tagName === sel.toUpperCase();
+}
+
 function findBySelector(root: FakeElement, sel: string): FakeElement | null {
   for (const child of root.children) {
-    if (sel.startsWith('.') && matchesClass(child, sel.slice(1))) return child;
-    if (sel.startsWith('#') && child.id === sel.slice(1)) return child;
+    if (matchesSelector(child, sel)) return child;
     const found = findBySelector(child, sel);
     if (found) return found;
   }
@@ -166,7 +171,7 @@ function findBySelector(root: FakeElement, sel: string): FakeElement | null {
 function findAllBySelector(root: FakeElement, sel: string): FakeElement[] {
   const result: FakeElement[] = [];
   for (const child of root.children) {
-    if (sel.startsWith('.') && matchesClass(child, sel.slice(1))) result.push(child);
+    if (matchesSelector(child, sel)) result.push(child);
     result.push(...findAllBySelector(child, sel));
   }
   return result;
@@ -315,7 +320,7 @@ describe('showConflictDialog', () => {
     const body = (globalThis as any).document.body as FakeElement;
     const card = findBySelector(body, '.conflict-card');
     expect(card).toBeTruthy();
-    const buttons = findAllBySelector(card!, '.ui-btn');
+    const buttons = findAllBySelector(card!, 'button');
     expect(buttons.length).toBe(3);
     const labels = buttons.map((b) => (b as any).textContent);
     expect(labels).toContain('保留本地版本');

@@ -1,5 +1,3 @@
-import { AppError } from '@xiaohuang/domain-core';
-import { createDialog, createButton, createInput } from '@xiaohuang/ui';
 import type { CloudClient } from '../shared/api/cloud-client.js';
 
 export type LoginDialogResult = {
@@ -15,13 +13,21 @@ export async function showLoginDialog(cloudClient: CloudClient): Promise<LoginDi
     const finish = (result: LoginDialogResult) => {
       if (resolved) return;
       resolved = true;
-      dialog.update({ open: false });
-      dialog.dispose();
       overlay.remove();
       resolve(result);
     };
 
-    const dialog = createDialog({ title: '登录', open: true });
+    const overlay = document.createElement('div');
+    overlay.className = 'account-login-overlay';
+
+    const panel = document.createElement('div');
+    panel.className = 'account-login-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-modal', 'true');
+
+    const title = document.createElement('h2');
+    title.textContent = '登录';
+    panel.appendChild(title);
 
     const form = document.createElement('form');
     form.className = 'account-login-form';
@@ -29,8 +35,11 @@ export async function showLoginDialog(cloudClient: CloudClient): Promise<LoginDi
     const usernameLabel = document.createElement('label');
     usernameLabel.className = 'account-login-label';
     usernameLabel.textContent = '用户名';
-    const usernameInput = createInput({ placeholder: '用户名' });
-    usernameLabel.appendChild(usernameInput.element);
+    const usernameInput = document.createElement('input');
+    usernameInput.type = 'text';
+    usernameInput.className = 'ui-input';
+    usernameInput.placeholder = '用户名';
+    usernameLabel.appendChild(usernameInput);
     form.appendChild(usernameLabel);
 
     const passwordLabel = document.createElement('label');
@@ -51,43 +60,48 @@ export async function showLoginDialog(cloudClient: CloudClient): Promise<LoginDi
     const actions = document.createElement('div');
     actions.className = 'account-login-actions';
 
-    const cancelBtn = createButton({ label: '取消' });
-    cancelBtn.element.addEventListener('click', () => finish(null));
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = '取消';
+    cancelBtn.addEventListener('click', () => finish(null));
 
-    const loginBtn = createButton({ label: '登录', variant: 'primary' });
-    loginBtn.element.setAttribute('type', 'submit');
+    const loginBtn = document.createElement('button');
+    loginBtn.type = 'submit';
+    loginBtn.textContent = '登录';
 
-    actions.appendChild(cancelBtn.element);
-    actions.appendChild(loginBtn.element);
+    actions.appendChild(cancelBtn);
+    actions.appendChild(loginBtn);
     form.appendChild(actions);
 
     form.addEventListener('submit', async (ev) => {
       ev.preventDefault();
       errorEl.hidden = true;
-      const username = (usernameInput.element as HTMLInputElement).value.trim();
+      const username = usernameInput.value.trim();
       const password = passwordEl.value;
       if (!username || !password) {
         errorEl.textContent = '请填写用户名和密码';
         errorEl.hidden = false;
         return;
       }
-      loginBtn.update({ disabled: true, label: '登录中...' });
+      loginBtn.disabled = true;
+      loginBtn.textContent = '登录中...';
       try {
         const result = await cloudClient.login(username, password);
         finish(result);
-      } catch (e) {
-        loginBtn.update({ disabled: false, label: '登录' });
+      } catch {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '登录';
         errorEl.textContent = '用户名或密码错误';
         errorEl.hidden = false;
       }
     });
 
-    dialog.element.appendChild(form);
-    dialog.on('close', () => finish(null));
-
-    const overlay = document.createElement('div');
-    overlay.className = 'account-login-overlay';
-    overlay.appendChild(dialog.element);
+    panel.appendChild(form);
+    overlay.appendChild(panel);
     document.body.appendChild(overlay);
+    overlay.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') finish(null);
+    });
+    usernameInput.focus();
   });
 }
