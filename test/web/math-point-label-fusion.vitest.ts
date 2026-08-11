@@ -179,22 +179,110 @@ test('fusion module stays shared and does not import graph', () => {
   assert.match(fusionSrc, /export function applyPointLabelFusion/);
 });
 
-test('board-label hooks fusion after intersect ticks', () => {
+test('same-bucket 5000 points form one cluster with linear ops', async () => {
+  const { clusterLabeledPoints } = await fusionMod();
+  const pts = [];
+  for (let i = 0; i < 5000; i += 1) {
+    pts.push(
+      mockPoint({
+        id: `d${i}`,
+        baseName: `D${i}`,
+        x: 0.001 * (i % 10),
+        y: 0.001 * (Math.floor(i / 10) % 10),
+        role: { kind: 'intersect' },
+      }),
+    );
+  }
+  const stats = { xyReads: 0, distanceChecks: 0, unions: 0, buckets: 0 };
+  const t0 = performance.now();
+  const clusters = clusterLabeledPoints(pts, { tolX: 0.05, tolY: 0.05 }, { stats });
+  const ms = performance.now() - t0;
+  assert.equal(clusters.length, 1);
+  assert.equal(clusters[0].members.length, 5000);
+  assert.equal(stats.xyReads, 10000);
+  assert.ok(stats.distanceChecks < 5000, `no O(N^2) checks, got ${stats.distanceChecks}`);
+  assert.ok(stats.unions < 5000);
+  assert.ok(ms < 500, `dense fusion ${ms}ms`);
+});
+
+test('cross-bucket chain A-B-C merges; far neighbor does not', async () => {
+  const { clusterLabeledPoints } = await fusionMod();
+  const tol = { tolX: 1, tolY: 1 };
+  // bucket boundaries at integers for tol=1
+  const a = mockPoint({ id: 'a', baseName: 'A', x: 0.9, y: 0, role: { user: true } });
+  const b = mockPoint({ id: 'b', baseName: 'B', x: 1.1, y: 0, role: { user: true } });
+  const c = mockPoint({ id: 'c', baseName: 'C', x: 2.0, y: 0, role: { user: true } });
+  const far = mockPoint({ id: 'f', baseName: 'F', x: 10, y: 10, role: { user: true } });
+  const clusters = clusterLabeledPoints([a, b, c, far], tol);
+  assert.equal(clusters.length, 2);
+  const multi = clusters.find((cl) => cl.members.length === 3);
+  assert.ok(multi);
+});
+
+test('adjacent buckets beyond tolerance stay separate', async () => {
+  const { clusterLabeledPoints } = await fusionMod();
+  const tol = { tolX: 1, tolY: 1 };
+  const a = mockPoint({ id: 'a', baseName: 'A', x: 0.1, y: 0, role: { user: true } });
+  const b = mockPoint({ id: 'b', baseName: 'B', x: 1.9, y: 0, role: { user: true } });
+  // same neighboring buckets possible but distance 1.8 > 1
+  const clusters = clusterLabeledPoints([a, b], tol);
+  assert.equal(clusters.length, 2);
+});
+
+test('negative coords and priority representative preserved', async () => {
+  const { clusterLabeledPoints } = await fusionMod();
+  const u = mockPoint({ id: 'u', baseName: 'U', x: -0.01, y: -0.01, role: { user: true } });
+  const i = mockPoint({
+    id: 'i',
+    baseName: '交点',
+    x: 0,
+    y: 0,
+    role: { kind: 'intersect' },
+  });
+  const [cluster] = clusterLabeledPoints([i, u], { tolX: 0.05, tolY: 0.05 });
+  assert.equal(cluster.representative.id, 'u');
+});
+
+test('scattered 5000 points stay near-linear in distance checks', async () => {
+  const { clusterLabeledPoints } = await fusionMod();
+  const pts = [];
+  for (let i = 0; i < 5000; i += 1) {
+    pts.push(
+      mockPoint({
+        id: `s${i}`,
+        baseName: `S${i}`,
+        x: i * 3,
+        y: (i % 50) * 3,
+        role: { kind: 'intersect' },
+      }),
+    );
+  }
+  const stats = { xyReads: 0, distanceChecks: 0, unions: 0, buckets: 0 };
+  const clusters = clusterLabeledPoints(pts, { tolX: 0.05, tolY: 0.05 }, { stats });
+  assert.equal(clusters.length, 5000);
+  assert.equal(stats.xyReads, 10000);
+  // 分散点邻桶几乎不相交；允许少量检查但远小于 N^2
+  assert.ok(stats.distanceChecks < 5000 * 20, `checks=${stats.distanceChecks}`);
+});
+
+test('board-label schedules fusion after drag end (no sync refresh / autoPosition)', () => {
   const labelSrc = fs.readFileSync(
     path.join(root, 'apps/web/src/math/shared/board-label.js'),
     'utf8',
   );
-  const intersectIdx = labelSrc.indexOf('_mathDepIntersectTicks');
-  const fusionIdx = labelSrc.indexOf('_mathRefreshPointLabelFusion');
-  const autoIdx = labelSrc.indexOf('setAutoPosition');
-  assert.ok(intersectIdx > 0);
-  assert.ok(fusionIdx > intersectIdx);
-  assert.ok(autoIdx > fusionIdx);
+  const hookStart = labelSrc.indexOf('export function ensurePointGeomHook');
+  assert.ok(hookStart > 0);
+  const hookSrc = labelSrc.slice(hookStart);
+  assert.match(hookSrc, /_mathDepIntersectTicks/);
+  assert.match(hookSrc, /_mathSchedulePointLabelFusion/);
+  assert.match(hookSrc, /_mathLabelHiddenForDrag/);
+  assert.doesNotMatch(hookSrc, /_mathRefreshPointLabelFusion/);
+  assert.doesNotMatch(hookSrc, /setAutoPosition/);
   assert.match(labelSrc, /export function setLabelContent/);
   assert.match(labelSrc, /_mathLabelFusionSuppressed/);
 });
 
-test('graph registers fusion refresh and feature marks', () => {
+test('graph registers fusion schedule and feature marks', () => {
   const graphSrc = fs.readFileSync(
     path.join(root, 'apps/web/src/math/graph/index.js'),
     'utf8',
@@ -204,8 +292,8 @@ test('graph registers fusion refresh and feature marks', () => {
     'utf8',
   );
   assert.match(graphSrc, /point-label-fusion/);
-  assert.match(graphSrc, /_mathRefreshPointLabelFusion/);
-  assert.match(graphSrc, /_mathSchedulePointLabelFusion|_mathRefreshPointLabelFusion/);
+  assert.match(graphSrc, /_mathSchedulePointLabelFusion/);
+  assert.match(graphSrc, /_mathRefreshPointLabelFusion = \(\) => schedulePointLabelFusion/);
   // 特征点/渐近线绘制已随曲线生命周期移入 function-runtime 模块
   assert.match(fnRuntime, /paintActiveFeatureMarks/);
   assert.match(fnRuntime, /_mathFeatureMark/);

@@ -52,20 +52,25 @@ test('clusterLabeledPoints scales near-linear for 100 separated points', async (
   const { clusterLabeledPoints } = await load('apps/web/src/math/shared/point-label-fusion.js');
   const pts = [];
   for (let i = 0; i < 100; i += 1) {
-    pts.push(
-      mockPoint({
-        id: `p${i}`,
-        baseName: `P${i}`,
-        x: i * 2,
-        y: (i % 10) * 2,
-        role: { kind: 'intersect' },
-      }),
-    );
+    pts.push({
+      id: `p${i}`,
+      elType: 'point',
+      _mathBaseName: `P${i}`,
+      _mathShowCoords: true,
+      _mathLiveLabelBound: true,
+      _mathConstrKind: 'intersect',
+      visProp: { visible: true },
+      X: () => i * 2,
+      Y: () => (i % 10) * 2,
+    });
   }
+  const stats = { xyReads: 0, distanceChecks: 0, unions: 0, buckets: 0 };
   const t0 = process.hrtime.bigint();
-  const clusters = clusterLabeledPoints(pts, { tolX: 0.05, tolY: 0.05 });
+  const clusters = clusterLabeledPoints(pts, { tolX: 0.05, tolY: 0.05 }, { stats });
   const ms = Number(process.hrtime.bigint() - t0) / 1e6;
   assert.equal(clusters.length, 100);
+  assert.equal(stats.xyReads, 200);
+  assert.ok(stats.distanceChecks < 2000, `distanceChecks=${stats.distanceChecks}`);
   assert.ok(ms < 50, `100-point fusion clustering took ${ms}ms`);
 });
 
@@ -95,9 +100,13 @@ test('intersect keys index avoids full-array rescans', async () => {
   assert.ok(map.has(lineFnIntersectKey('L1', 'F1', 0)));
 });
 
-test('intersect update scheduler coalesces to one flush per frame', async () => {
-  const { configureIntersectUpdateScheduler, scheduleIntersectUpdate, pendingIntersectUpdateCount, flushIntersectUpdates } =
-    await load('apps/web/src/math/graph/construction/intersect-update.js');
+test('intersect update scheduler invalidates immediately and coalesces side effects', async () => {
+  const {
+    configureIntersectUpdateScheduler,
+    scheduleIntersectUpdate,
+    pendingIntersectUpdateCount,
+    flushIntersectUpdates,
+  } = await load('apps/web/src/math/graph/construction/intersect-update.js');
 
   /** @type {FrameRequestCallback[]} */
   const queue = [];
@@ -111,8 +120,12 @@ test('intersect update scheduler coalesces to one flush per frame', async () => 
     },
   });
 
+  let invalidates = 0;
   let calls = 0;
   const pt = {
+    _mathIntersectInvalidate() {
+      invalidates += 1;
+    },
     _mathIntersectUpdate() {
       calls += 1;
     },
@@ -120,6 +133,7 @@ test('intersect update scheduler coalesces to one flush per frame', async () => 
   scheduleIntersectUpdate(pt);
   scheduleIntersectUpdate(pt);
   scheduleIntersectUpdate(pt);
+  assert.equal(invalidates, 3, 'each schedule invalidates immediately');
   assert.equal(pendingIntersectUpdateCount(), 1);
   assert.equal(queue.length, 1);
   queue[0](0);
@@ -166,7 +180,7 @@ test('board-label and intersections wire perf contracts', () => {
 
   assert.match(renderers, /_mathIntersectComputeCount/);
   assert.match(renderers, /_mathShowCoords = false/);
-  assert.match(renderers, /scheduleIntersectUpdate/);
+  assert.match(renderers, /attachIntersectFrameCache|_mathIntersectInvalidate/);
   assert.match(intersections, /MAX_LINE_FN_INDEX = 7/);
 
   assert.match(index, /_mathRefreshPointLabelFusion = \(\) => schedulePointLabelFusion/);
