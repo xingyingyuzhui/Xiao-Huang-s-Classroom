@@ -9,9 +9,8 @@ export const BOARD_LABEL_FONT_SIZE = 16;
 export const BOARD_LABEL_ATTR = {
   fontSize: BOARD_LABEL_FONT_SIZE,
   parse: false,
-  autoPosition: true,
-  autoPositionMinDistance: 16,
-  autoPositionMaxDistance: 52,
+  // 关闭持续 autoPosition：拖动中会扫全板对象；改拖动结束再统一刷新融合
+  autoPosition: false,
   offset: [14, 14],
 };
 
@@ -64,11 +63,50 @@ export function formatNamedCoords(baseName, x, y, maxDecimals = 2) {
 }
 
 /**
+ * 刷新对象短名（样式面板改名、文档投影）
+ * @param {any} el
+ * @param {string} name
+ */
+export function applyDisplayName(el, name) {
+  if (!el) return;
+  const next = String(name ?? '').trim() || '·';
+  el._mathBaseName = next;
+  el._mathSelectLabel = next;
+  try {
+    el.name = next;
+  } catch {
+    /* */
+  }
+  try {
+    if (typeof el._mathLiveLabelTick === 'function') el._mathLiveLabelTick();
+  } catch {
+    /* */
+  }
+  // 线段/垂线等量测标签挂在独立 text 上，短名变更需刷新量测文案
+  try {
+    el._mathMeasureText?._mathLiveLabelTick?.();
+  } catch {
+    /* */
+  }
+  try {
+    el.board?._mathSchedulePointLabelFusion?.();
+  } catch {
+    /* */
+  }
+  try {
+    el.board?.update?.();
+  } catch {
+    /* */
+  }
+}
+
+/**
  * 点标签：尊重 `_mathShowCoords`（关则只显示短名）
  * @param {any} el
  * @param {string} [baseName]
  * @param {number} [maxDecimals=2]
  */
+
 export function formatElementCoordsLabel(el, baseName, maxDecimals = 2) {
   const b = el?._mathBaseName || baseName || 'P';
   if (!el?._mathShowCoords) return b;
@@ -473,7 +511,7 @@ export function bindLiveLabel(el, getText, watchEls = []) {
   el._mathLiveLabelTick = tick;
   el._mathLiveLabelBound = true;
 
-  // 确保点标签开了 autoPosition；路径量测标签保持中段定位
+  // 路径量测保持中段定位；点标签固定偏移，不做持续 autoPosition
   try {
     if (el.elType === 'text') {
       // 中点量测 text：不走 autoPosition
@@ -489,10 +527,9 @@ export function bindLiveLabel(el, getText, watchEls = []) {
       el.label?.setAttribute?.(boardLabelAttrs({}, 'path'));
     } else {
       el.label?.setAttribute?.({
-        autoPosition: true,
-        autoPositionMinDistance: 16,
-        autoPositionMaxDistance: 52,
+        autoPosition: false,
         parse: false,
+        offset: [14, 14],
       });
     }
   } catch {
@@ -529,7 +566,56 @@ export function ensurePointGeomHook(el) {
   if (!el || el._mathGeomHookBound || typeof el.on !== 'function') return;
   el._mathGeomHookBound = true;
 
-  const run = () => {
+  const hideLabel = () => {
+    try {
+      el._mathLabelHiddenForDrag = true;
+      el.label?.setAttribute?.({ visible: false });
+    } catch {
+      /* */
+    }
+  };
+
+  const showLabel = () => {
+    try {
+      el._mathLabelHiddenForDrag = false;
+      if (el._mathIntersectOnBody === false) return;
+      if (el._mathLabelFusionSuppressed) return;
+      el.label?.setAttribute?.({ visible: true });
+    } catch {
+      /* */
+    }
+  };
+
+  const runDrag = () => {
+    hideLabel();
+    try {
+      el._mathSnapTick?.();
+    } catch {
+      /* */
+    }
+    const deps = el._mathDepLabelTicks;
+    if (deps) {
+      for (const tick of deps) {
+        try {
+          tick();
+        } catch {
+          /* */
+        }
+      }
+    }
+    const intersectDeps = el._mathDepIntersectTicks;
+    if (intersectDeps) {
+      for (const tick of intersectDeps) {
+        try {
+          tick();
+        } catch {
+          /* */
+        }
+      }
+    }
+  };
+
+  const runUp = () => {
     try {
       el._mathSnapTick?.();
     } catch {
@@ -560,22 +646,28 @@ export function ensurePointGeomHook(el) {
         }
       }
     }
+    // 松手后补一次 board.update，确保最后一帧坐标落地（全端点共享一次）
     try {
-      const board = el.board;
-      board?._mathRefreshPointLabelFusion?.();
+      el.board?.update?.();
+    } catch {
+      /* */
+    }
+    showLabel();
+    try {
+      el.board?._mathSchedulePointLabelFusion?.();
     } catch {
       /* */
     }
     try {
       el.label?.updateText?.();
-      el.label?.setAutoPosition?.();
     } catch {
       /* */
     }
   };
 
-  el.on('drag', run);
-  el.on('up', run);
+  el.on('down', hideLabel);
+  el.on('drag', runDrag);
+  el.on('up', runUp);
 }
 
 /** @deprecated 保留导出，避免旧引用报错；autoPosition 已接管避让 */

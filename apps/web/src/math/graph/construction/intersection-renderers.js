@@ -316,7 +316,7 @@ export function createLineIntersection(host, lineA, lineB, lineIds, id, options 
   pt._mathConstrId = rec.id;
 
   pt._mathIntersectUpdate = () => {
-    pt._mathIntersectInvalidate?.();
+    // 缓存已在 schedule 时失效；RAF 只同步显隐/标签/融合
     try {
       pt._mathIntersectVisTick?.();
     } catch {

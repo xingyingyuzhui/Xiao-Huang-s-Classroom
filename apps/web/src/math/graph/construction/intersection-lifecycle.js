@@ -16,7 +16,7 @@ export function bindIntersectVisibility(host, construction, point, lineIds) {
 
   if (typeof point._mathIntersectUpdate !== 'function') {
     point._mathIntersectUpdate = () => {
-      point._mathIntersectInvalidate?.();
+      // 缓存已在 scheduleIntersectUpdate 时失效；此处只做副作用
       try {
         sync();
       } catch {
@@ -46,7 +46,10 @@ export function bindIntersectVisibility(host, construction, point, lineIds) {
   try {
     if (typeof point.on === 'function' && !point._mathIntersectUpdateBound) {
       point._mathIntersectUpdateBound = true;
-      point.on('update', () => scheduleIntersectUpdate(point));
+      point.on('update', () => {
+    if (point._mathIntersectUpdating) return;
+    scheduleIntersectUpdate(point);
+  });
     }
   } catch {
     /* partially disposed points cannot bind updates */
