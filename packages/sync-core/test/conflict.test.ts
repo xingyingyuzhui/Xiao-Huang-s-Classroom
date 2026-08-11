@@ -20,6 +20,7 @@ describe('ConflictRegistry', () => {
     });
 
     expect(first.registered).toBe(true);
+    if (!first.registered) throw new Error('expected registered');
     expect(second).toEqual({
       registered: false,
       reason: 'already-unresolved',
