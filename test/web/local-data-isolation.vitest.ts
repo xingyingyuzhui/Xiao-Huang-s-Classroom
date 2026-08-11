@@ -38,7 +38,7 @@ test('workspace scope isolation: resources and outbox stay within workspaceId', 
       'apps/web/src/sync/local-resource-service.ts',
     );
 
-    const db = await openLocalDatabase({ factory: fake.factory, legacyStorage: createMemoryStorage() });
+    const db = await openLocalDatabase({ factory: fake.factory });
     const mathWorkspace = guestWorkspaceId('math');
     const chemWorkspace = guestWorkspaceId('chemistry');
     const service = new LocalResourceService({ db, generation: 0, now: () => 1_700_000_000_000 });
@@ -113,7 +113,7 @@ test('generation discard: stale expectedGeneration rejects writes', async () => 
       'packages/domain-core/src/index.ts',
     );
 
-    const db = await openLocalDatabase({ factory: fake.factory, legacyStorage: createMemoryStorage() });
+    const db = await openLocalDatabase({ factory: fake.factory });
     const service = new LocalResourceService({ db, generation: 2 });
 
     await assert.rejects(
@@ -159,7 +159,7 @@ test('localOnly writes do not append outbox rows', async () => {
       'apps/web/src/sync/local-resource-service.ts',
     );
 
-    const db = await openLocalDatabase({ factory: fake.factory, legacyStorage: createMemoryStorage() });
+    const db = await openLocalDatabase({ factory: fake.factory });
     const service = new LocalResourceService({ db, generation: 0 });
     const workspaceId = guestWorkspaceId('math');
 
@@ -197,7 +197,7 @@ test('pending outbox survives database reopen', async () => {
       'apps/web/src/shared/persistence/indexeddb/outbox-repository.ts',
     );
 
-    const db = await openLocalDatabase({ factory: fake.factory, legacyStorage: createMemoryStorage() });
+    const db = await openLocalDatabase({ factory: fake.factory });
     const workspaceId = guestWorkspaceId('math');
     const service = new LocalResourceService({ db, generation: 0 });
 
@@ -215,7 +215,7 @@ test('pending outbox survives database reopen', async () => {
 
     db.close();
 
-    const reopened = await openLocalDatabase({ factory: fake.factory, legacyStorage: createMemoryStorage() });
+    const reopened = await openLocalDatabase({ factory: fake.factory });
     const outbox = new OutboxRepository(reopened);
     const pending = await outbox.listPending(workspaceId);
     assert.equal(pending.length, 1);
@@ -226,27 +226,3 @@ test('pending outbox survives database reopen', async () => {
     fake.restore();
   }
 });
-
-function createMemoryStorage(): Storage {
-  const map = new Map<string, string>();
-  return {
-    get length() {
-      return map.size;
-    },
-    clear() {
-      map.clear();
-    },
-    getItem(key: string) {
-      return map.has(key) ? map.get(key)! : null;
-    },
-    key(index: number) {
-      return [...map.keys()][index] ?? null;
-    },
-    removeItem(key: string) {
-      map.delete(key);
-    },
-    setItem(key: string, value: string) {
-      map.set(key, value);
-    },
-  };
-}

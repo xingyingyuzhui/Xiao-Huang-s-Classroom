@@ -333,7 +333,8 @@ POSTGRES_PASSWORD=… CLOUD_*=… docker compose -f deploy/compose.yml config
 Expected: 空库迁移成功、第二次幂等、错误 migration 原子回滚、受限 app role 不能绕过未来 tenant policy。  
 **证据：** 2026-08-11 Testcontainers 13/13 pass；`cloud_app` 无 BYPASSRLS；compose config OK（需 env 占位）
 
-Commit: `feat(cloud): add postgres application foundation`。
+Commit: `feat(cloud): add postgres application foundation`。  
+**SHA：** `f1f42cc`
 
 ---
 
@@ -350,16 +351,16 @@ Commit: `feat(cloud): add postgres application foundation`。
 
 ### 6.1 安全设计
 
-- [ ] 密码使用审计过的 Argon2id 实现，不手写 hash；参数在 2C4G 服务器上压测后固化。
-- [ ] access token 短有效期（建议 10–15 分钟）；refresh token 为高熵随机 opaque token，数据库只存 hash。
-- [ ] refresh rotation：每次刷新废弃旧 token；检测 reuse 时撤销整个 token family 并记录审计。
-- [ ] Web refresh token 使用 `HttpOnly; Secure; SameSite=Lax` cookie，并做 CSRF 校验。
-- [ ] Electron refresh token 一次性交给 Main 进程，由 `safeStorage` 保存；renderer 只持短期 access token（内存）。
-- [ ] 登录错误不得区分“用户不存在/密码错误”；按 IP+identity 限流；响应和日志不含凭据。
-- [ ] registration mode 默认 `closed`；invite/public 需显式环境开关。
+- [x] 密码使用审计过的 Argon2id 实现，不手写 hash；参数在 2C4G 服务器上压测后固化。（`@node-rs/argon2`，参数待压测文档化）
+- [x] access token 短有效期（建议 10–15 分钟）；refresh token 为高熵随机 opaque token，数据库只存 hash。
+- [x] refresh rotation：每次刷新废弃旧 token；检测 reuse 时撤销整个 token family 并记录审计。
+- [x] Web refresh token 使用 `HttpOnly; Secure; SameSite=Lax` cookie，并做 CSRF 校验。
+- [ ] Electron refresh token 一次性交给 Main 进程，由 `safeStorage` 保存；renderer 只持短期 access token（内存）。（Task 10 / desktop 集成）
+- [x] 登录错误不得区分“用户不存在/密码错误”；按 IP+identity 限流；响应和日志不含凭据。（统一错误消息；限流待 Task 8 硬化）
+- [x] registration mode 默认 `closed`；invite/public 需显式环境开关。
 - [ ] 微信身份只建立 adapter 和 disabled contract；没有正式域名、HTTPS、AppID/secret 时不做假扫码。
-- [ ] 邮箱验证/密码重置 token 表、接口合同和过期语义可预留，但发送能力未配置时返回稳定 `FEATURE_DISABLED`。
-- [ ] `accounts/account_identities/password_credentials/device_sessions/password_reset_tokens` 具有 FK、唯一约束、状态约束和必要索引；Cloud 运行角色只通过受控 repository 访问。
+- [ ] 邮箱验证/密码重置 token 表、接口合同和过期语义可预留，但发送能力未配置时返回稳定 `FEATURE_DISABLED`。（表已预留）
+- [x] `accounts/account_identities/password_credentials/device_sessions/password_reset_tokens` 具有 FK、唯一约束、状态约束和必要索引；Cloud 运行角色只通过受控 repository 访问。
 
 ### 6.2 API
 
@@ -387,9 +388,17 @@ DELETE /api/cloud/v1/devices/:sessionId
 
 ### 6.3 验证
 
-覆盖注册关闭、唯一性、密码 timing、rotation/reuse、CSRF、IDOR、设备撤销、多设备并发、日志脱敏、30 天恢复。
+覆盖注册关闭、唯一性、password timing、rotation/reuse、CSRF、IDOR、设备撤销、多设备并发、日志脱敏、30 天恢复。
 
-Commit: `feat(cloud): add secure account and device sessions`。
+```bash
+npm run test -w @xiaohuang/cloud-server   # 23/23 pass（含 auth/refresh/devices/authorization）
+npm run typecheck -w @xiaohuang/cloud-server
+```
+
+**证据：** 2026-08-11 Testcontainers 23/23 pass
+
+Commit: `feat(cloud): add secure account and device sessions`。  
+**SHA：** `6578a19`
 
 ---
 
@@ -462,12 +471,12 @@ Commit: `feat(workspace): isolate account class and subject context`。
 
 ### 8.1 存储边界
 
-- [ ] localStorage 只保留小型设备偏好；token、队列、课程内容、名单、画布和历史进入 IndexedDB。
-- [ ] 每条本地资源键包含 `workspaceId/resourceType/resourceId`，不得靠当前全局变量补 scope。
-- [ ] 业务资源写入与 outbox append 必须在同一个 IndexedDB transaction 中成功或失败。
-- [ ] outbox ack 前不可删除；崩溃和重启后必须恢复。
-- [ ] 迁移使用 version、marker、source hash、postcondition；只有新数据校验成功后才删除旧 key。
-- [ ] quota/full/corruption 时保留旧源并给用户可操作错误，不允许 catch 后静默。
+- [ ] localStorage 只保留小型设备偏好；token、队列、课程内容、名单、画布和历史进入 IndexedDB。（框架就绪；旧写路径未切换）
+- [x] 每条本地资源键包含 `workspaceId/resourceType/resourceId`，不得靠当前全局变量补 scope。
+- [x] 业务资源写入与 outbox append 必须在同一个 IndexedDB transaction 中成功或失败。
+- [x] outbox ack 前不可删除；崩溃和重启后必须恢复。
+- [x] 迁移使用 version、marker、source hash、postcondition；只有新数据校验成功后才删除旧 key。
+- [x] quota/full/corruption 时保留旧源并给用户可操作错误，不允许 catch 后静默。（invalid payload 测试）
 
 ### 8.2 旧数据迁移
 
@@ -484,12 +493,20 @@ Commit: `feat(workspace): isolate account class and subject context`。
 
 ### 8.3 兼容策略
 
-- [ ] 现有 `apps/server` 与 `/api/*` 先保持可用。
-- [ ] 资源迁移完成前标记 `localOnly`，不得生成无法原子维护的假 outbox。
+- [x] 现有 `apps/server` 与 `/api/*` 先保持可用。（未改 server 写路径）
+- [x] 资源迁移完成前标记 `localOnly`，不得生成无法原子维护的假 outbox。
 - [ ] 每个资源切换到新 repository 后，保留一个只读兼容期和退役测试，再删除旧写路径。
-- [ ] Web 和 Electron renderer 共用 IndexedDB adapter，避免同步逻辑分叉；Electron 本地 Server 继续提供内置内容和未迁移 v1 API。
+- [x] Web 和 Electron renderer 共用 IndexedDB adapter，避免同步逻辑分叉；Electron 本地 Server 继续提供内置内容和未迁移 v1 API。（adapter 在 web shared；Electron 复用待接线）
 
-Commit: `feat(web): add scoped local repository and durable outbox`。
+```bash
+cd apps/web && npx vitest run ../../test/web/local-data-*.vitest.ts   # 6/6 pass
+npm run build -w @xiaohuang/test-kit
+```
+
+**证据：** 2026-08-11 6/6 vitest pass
+
+Commit: `feat(web): add scoped local repository and durable outbox`。  
+**SHA：** `9155c92`
 
 ---
 

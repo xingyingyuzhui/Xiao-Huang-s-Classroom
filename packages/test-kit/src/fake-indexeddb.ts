@@ -16,7 +16,7 @@ interface DbRecord {
   schemas: Map<string, StoreSchema>;
 }
 
-const databases = new Map<string, DbRecord>();
+type DatabaseRegistry = Map<string, DbRecord>;
 
 function extractKey(value: unknown, keyPath: string): IDBValidKey {
   if (!value || typeof value !== 'object') {
@@ -301,6 +301,7 @@ class FakeOpenRequest {
   onupgradeneeded: ((this: FakeOpenRequest, ev: IDBVersionChangeEvent) => void) | null = null;
 
   constructor(
+    private readonly databases: DatabaseRegistry,
     private readonly name: string,
     private readonly version: number,
   ) {
@@ -308,14 +309,14 @@ class FakeOpenRequest {
   }
 
   private run(): void {
-    let record = databases.get(this.name);
+    let record = this.databases.get(this.name);
     if (!record) {
       record = {
         version: 0,
         stores: new Map(),
         schemas: new Map(),
       };
-      databases.set(this.name, record);
+      this.databases.set(this.name, record);
     }
 
     const oldVersion = record.version;
@@ -351,15 +352,17 @@ class FakeDeleteRequest {
   onsuccess: ((this: FakeDeleteRequest, ev: Event) => void) | null = null;
   onupgradeneeded: ((this: FakeDeleteRequest, ev: IDBVersionChangeEvent) => void) | null = null;
 
-  constructor(private readonly name: string) {
+  constructor(private readonly databases: DatabaseRegistry, private readonly name: string) {
     setTimeout(() => {
-      databases.delete(this.name);
+      this.databases.delete(this.name);
       this.onsuccess?.call(this, new Event('success'));
     }, 0);
   }
 }
 
 class FakeFactory {
+  private readonly registry: DatabaseRegistry = new Map();
+
   cmp(first: unknown, second: unknown): number {
     if (first === second) return 0;
     return (first as number) < (second as number) ? -1 : 1;
@@ -367,7 +370,7 @@ class FakeFactory {
 
   databases(): Promise<Array<{ name?: string; version?: number }>> {
     return Promise.resolve(
-      [...databases.entries()].map(([name, record]) => ({
+      [...this.registry.entries()].map(([name, record]) => ({
         name,
         version: record.version,
       })),
@@ -375,11 +378,15 @@ class FakeFactory {
   }
 
   deleteDatabase(name: string): FakeDeleteRequest {
-    return new FakeDeleteRequest(name);
+    return new FakeDeleteRequest(this.registry, name);
   }
 
   open(name: string, version?: number): FakeOpenRequest {
-    return new FakeOpenRequest(name, version ?? 1);
+    return new FakeOpenRequest(this.registry, name, version ?? 1);
+  }
+
+  clear(): void {
+    this.registry.clear();
   }
 }
 
@@ -390,37 +397,12 @@ export interface FakeIndexedDbHandle {
 
 /** Create an isolated in-memory IndexedDB factory for tests. */
 export function createFakeIndexedDb(): FakeIndexedDbHandle {
-  const snapshot = [...databases.entries()].map(([name, record]) => ({
-    name,
-    version: record.version,
-    stores: [...record.stores.entries()].map(([storeName, data]) => [storeName, [...data.entries()]] as const),
-    schemas: [...record.schemas.entries()].map(
-      ([storeName, schema]) =>
-        [storeName, { keyPath: schema.keyPath, indexes: [...schema.indexes.entries()] }] as const,
-    ),
-  }));
+  const factory = new FakeFactory();
 
   return {
-    factory: new FakeFactory() as unknown as IDBFactory,
+    factory: factory as unknown as IDBFactory,
     reset() {
-      databases.clear();
-      for (const entry of snapshot) {
-        const record: DbRecord = {
-          version: entry.version,
-          stores: new Map(),
-          schemas: new Map(),
-        };
-        for (const [storeName, rows] of entry.stores) {
-          record.stores.set(storeName, new Map(rows));
-        }
-        for (const [storeName, schema] of entry.schemas) {
-          record.schemas.set(storeName, {
-            keyPath: schema.keyPath,
-            indexes: new Map(schema.indexes),
-          });
-        }
-        databases.set(entry.name, record);
-      }
+      factory.clear();
     },
   };
 }
@@ -438,7 +420,7 @@ export function installFakeIndexedDb(): { factory: IDBFactory; restore(): void }
       } else {
         globalThis.indexedDB = previous;
       }
-      databases.clear();
+      handle.reset();
     },
   };
 }
