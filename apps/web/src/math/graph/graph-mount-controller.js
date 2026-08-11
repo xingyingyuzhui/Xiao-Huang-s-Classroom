@@ -7,6 +7,10 @@ import { GRAPH_BOARD_TOOLS } from './tool-definitions.js';
 import { createDisposeSession } from './graph-dispose-session.js';
 import { createGraphBoardSession } from './graph-board-session.js';
 import { createGraphUiBindings } from './graph-ui-bindings.js';
+import { createGraphNameEditController } from './graph-name-edit-controller.js';
+import { setNameEditHooks } from '../shared/object-style-panel.js';
+import { applyDisplayName } from '../shared/board-label.js';
+import { detectObjectKind } from '../shared/object-style.js';
 
 export function createGraphMountController(deps) {
   const {
@@ -472,6 +476,12 @@ function initGraphUI() {
     return false;
   });
 
+  const nameEdit = createGraphNameEditController({
+    state, setNameEditHooks, applyDisplayName, detectObjectKind, findUserRec, userPointIdOf,
+  });
+  nameEdit.mount();
+  register(() => nameEdit.dispose());
+
   state.compass?.dispose?.();
   state.compass = attachBoardCompass(state.board, {
     items: GRAPH_BOARD_TOOLS.filter((t) => t.id !== 'select').map((t) => ({
@@ -479,16 +489,11 @@ function initGraphUI() {
       label: t.label,
     })),
     shouldIgnoreTarget: () => Boolean(state.notes?.isActive?.()),
-    // 仅笔记模式抑制；点上长按要能开罗盘（切线等）
     shouldSuppressHold: () => Boolean(state.notes?.isActive?.()),
-    // 按住点时 JSXGraph 会进 DRAG，仍允许开罗盘
     shouldAllowHoldDespiteDrag: (ev) => {
       const hit = hitBoardPrefer(state.board, ev);
       if (!hit) return false;
-      if (hit._mathUserPoint) return true;
-      if (hit.elType === 'point' || hit.elType === 'glider') return true;
-      if (hit.elementClass === 1) return true;
-      return false;
+      return Boolean(hit._mathUserPoint || hit.elType === 'point' || hit.elType === 'glider' || hit.elementClass === 1);
     },
     onAction: async (id, ctx) => {
       if (state.notes?.isActive?.()) return;
@@ -694,6 +699,7 @@ function disposeGraph() {
     guard('notes mode', () => dismissBoardNotesMode());
     guard('point hooks', () => setPointOptionHooks(null));
     guard('style bridge', () => setStyleIntentBridge(null));
+    guard('name hooks', () => setNameEditHooks(null));
     if (state.referenceCurve) {
       try {
         state.board?.removeObject?.(state.referenceCurve);

@@ -56,7 +56,7 @@ test('lineLabelAnchorOnViewportRim prefers inset board edge', async () => {
   assert.ok(Math.abs(off.y - 0.5) < 1e-9);
 });
 
-test('board-label uses function text and autoPosition', async () => {
+test('board-label uses function text without continuous autoPosition', async () => {
   const mod = await import(
     pathToFileURL(path.join(root, 'apps/web/src/math/shared/board-label.js')).href
   );
@@ -65,7 +65,7 @@ test('board-label uses function text and autoPosition', async () => {
   assert.equal(typeof mod.boardLabelAttrs, 'function');
   assert.equal(typeof mod.attachMidpointMeasureLabel, 'function');
   assert.equal(typeof mod.lineLabelAnchorOnViewportRim, 'function');
-  assert.equal(mod.BOARD_LABEL_ATTR.autoPosition, true);
+  assert.equal(mod.BOARD_LABEL_ATTR.autoPosition, false);
   assert.equal(mod.BOARD_PATH_LABEL_ATTR.autoPosition, false);
 
   const src = fs.readFileSync(
@@ -73,7 +73,8 @@ test('board-label uses function text and autoPosition', async () => {
     'utf8',
   );
   assert.match(src, /label\.setText\(content\)/);
-  assert.match(src, /autoPosition:\s*true/);
+  assert.match(src, /autoPosition:\s*false/);
+  assert.match(src, /_mathSchedulePointLabelFusion/);
   assert.match(src, /viewport-rim/);
 });
 

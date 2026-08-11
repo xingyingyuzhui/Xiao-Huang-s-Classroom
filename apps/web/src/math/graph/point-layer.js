@@ -9,6 +9,7 @@
  * 构造，替换点元素，再按文档重建依赖构造；绝不保留引用旧元素的构造。
  */
 
+import { applyDisplayName } from '../shared/board-label.js';
 import { pointUpdateMode } from './graph-record-validation.js';
 import { graphDependentsOf } from './graph-dependency-plan.js';
 
@@ -86,12 +87,7 @@ export function createPointLayer(context) {
       }
       if (typeof record.name === 'string' && record.name && record.name !== existing.baseName) {
         existing.baseName = record.name;
-        if (existing.el) existing.el._mathBaseName = record.name;
-        try {
-          existing.el?._mathLiveLabelTick?.();
-        } catch {
-          /* label refresh is best-effort */
-        }
+        if (existing.el) applyDisplayName(existing.el, record.name);
       }
       if (record.style) {
         context.controller.applyStyle?.(existing.el, record.style);

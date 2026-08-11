@@ -223,7 +223,8 @@ function schedulePointLabelFusion() {
 
 function bindPointLabelFusion(board) {
   if (!board) return;
-  board._mathRefreshPointLabelFusion = () => refreshPointLabelFusion();
+  // 兼容旧调用：Refresh 也走 schedule，避免拖动热路径同步 O(P) 融合
+  board._mathRefreshPointLabelFusion = () => schedulePointLabelFusion();
   board._mathSchedulePointLabelFusion = () => schedulePointLabelFusion();
   try {
     if (typeof board.on === 'function' && !board._mathFusionBBoxBound) {
@@ -413,10 +414,15 @@ const graphToolController = createGraphToolController({
   createLineIntersection,
   createSecantConstruction,
   createPerpToAxis,
+  createPerpToLine,
+  createPerpToFn,
   isLineLike,
+  isCurveEl,
+  deleteFn,
   pickTangentFollowTargetId,
   parseFeatureFollowTargetId,
   curveFollowTargetId,
+  followIdForFn,
   userPointIdOf,
   followTol,
   resolveTangentAnchor,

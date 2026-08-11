@@ -5,7 +5,8 @@
  * 不在文档中保存 element。
  */
 
-import { detachConstr } from './construction/records.js';
+import { applyDisplayName } from '../shared/board-label.js';
+import { detachConstr, lineLikeElOf } from './construction/records.js';
 import { createConstructionFromDocument } from './construction/restore.js';
 import { normalizeConstructionStylePatch } from './graph-record-validation.js';
 
@@ -77,6 +78,11 @@ export function createConstructionLayer(context) {
         } catch {
           /* partially disposed ray */
         }
+      }
+      if (typeof record.label === 'string' && record.label !== existing.label) {
+        existing.label = record.label;
+        const lineEl = lineLikeElOf(existing);
+        if (lineEl) applyDisplayName(lineEl, record.label);
       }
       if (stylePatch) {
         applyConstructionStyle(existing, stylePatch);

@@ -283,6 +283,15 @@ export function setSelectionChrome(el, on) {
     } catch {
       /* */
     }
+    // 交点：选中时显示坐标
+    if (el._mathConstrKind === 'intersect') {
+      el._mathShowCoords = true;
+      try {
+        el._mathLiveLabelTick?.();
+      } catch {
+        /* */
+      }
+    }
   } else if (el._mathSelChrome) {
     const b = el._mathSelChrome;
     el.setAttribute({
@@ -297,6 +306,14 @@ export function setSelectionChrome(el, on) {
       /* */
     }
     el._mathSelChrome = null;
+    if (el._mathConstrKind === 'intersect' && !el._mathIntersectHoverCoords) {
+      el._mathShowCoords = false;
+      try {
+        el._mathLiveLabelTick?.();
+      } catch {
+        /* */
+      }
+    }
   }
   try {
     el.board?.update?.();
