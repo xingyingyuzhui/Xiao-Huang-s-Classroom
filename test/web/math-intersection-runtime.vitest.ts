@@ -242,3 +242,71 @@ test('syncIntersectVisibility does not conflate onBody with inViewport', async (
   assert.equal(pt._mathIntersectInViewport, false);
   assert.equal(pt.visProp.visible, false);
 });
+
+test('autoIntersectNewLine creates at least four line×fn indices when geometry allows', async () => {
+  const { autoIntersectNewLine } = await load('intersections.js');
+  const { createLineFnIntersection } = await load('intersection-renderers.js');
+
+  const p1 = makePoint(-20, 0);
+  const p2 = makePoint(20, 0);
+  const lineEl = makeLine(p1, p2);
+  const fn = { id: 'Fsin', visible: true, curve: { id: 'c-sin' } };
+
+  let suspend = 0;
+  let unsuspend = 0;
+  const host = makeHost({ bbox: [-30, 30, 30, -30] });
+  const board = host.getBoard();
+  board.suspendUpdate = () => {
+    suspend += 1;
+  };
+  board.unsuspendUpdate = () => {
+    unsuspend += 1;
+  };
+  const hits = [
+    [-4.5, 0],
+    [-1.5, 0],
+    [1.5, 0],
+    [4.5, 0],
+  ];
+  const origCreate = board.create.bind(board);
+  board.create = (type, args, attrs) => {
+    if (type === 'intersection') {
+      const idx = Number(args?.[2] ?? 0);
+      const pair = hits[idx];
+      if (!pair) throw new Error('no hit');
+      const [x, y] = pair;
+      const el = origCreate('point', [x, y], attrs);
+      el.elType = 'intersection';
+      el.X = () => x;
+      el.Y = () => y;
+      return el;
+    }
+    return origCreate(type, args, attrs);
+  };
+  host.getFunctions = () => [fn];
+  host.evalFnY = () => 0;
+
+  const lineRec = {
+    id: 'Lnew',
+    kind: 'line',
+    els: [lineEl],
+    extend: false,
+  };
+  host.getConstructions().push(lineRec);
+
+  createLineFnIntersection(host, lineEl, fn, 'Lnew', 'Fsin', 0, 'pre0', { notify: false });
+  createLineFnIntersection(host, lineEl, fn, 'Lnew', 'Fsin', 1, 'pre1', { notify: false });
+
+  const beforeNotify = host._notifyCount();
+  autoIntersectNewLine(host, lineRec);
+
+  const intersects = host
+    .getConstructions()
+    .filter((c) => c.kind === 'intersect' && c.fnIds?.[0] === 'Fsin');
+  const indices = intersects.map((c) => c.intersectIndex ?? 0).sort((a, b) => a - b);
+  assert.deepEqual(indices, [0, 1, 2, 3]);
+  assert.equal(intersects.filter((c) => c.id === 'pre0' || c.id === 'pre1').length, 2);
+  assert.equal(suspend, 1);
+  assert.equal(unsuspend, 1);
+  assert.equal(host._notifyCount(), beforeNotify, 'batch uses notify:false');
+});
