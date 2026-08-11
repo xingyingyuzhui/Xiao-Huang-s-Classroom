@@ -20,6 +20,16 @@ export function newWorkspaceId(): string {
 export class WorkspaceRepository {
   constructor(private readonly db: TenantClient) {}
 
+  async findById(workspaceId: string): Promise<WorkspaceRow | null> {
+    const result = await this.db.query<WorkspaceRow>(
+      `SELECT workspace_id, account_id, class_id, subject_id, kind, deleted_at, revision, created_at, updated_at
+       FROM workspaces
+       WHERE workspace_id = $1`,
+      [workspaceId],
+    );
+    return result.rows[0] ?? null;
+  }
+
   async findPersonal(accountId: string, subjectId: string): Promise<WorkspaceRow | null> {
     const result = await this.db.query<WorkspaceRow>(
       `SELECT workspace_id, account_id, class_id, subject_id, kind, deleted_at, revision, created_at, updated_at

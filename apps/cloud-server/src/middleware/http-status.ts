@@ -14,6 +14,9 @@ const STATUS_BY_CODE: Partial<Record<ErrorCode, number>> = {
   ACCOUNT_PENDING_DELETION: 403,
   CLASS_NOT_FOUND: 404,
   CLASS_TRASHED: 409,
+  SYNC_CONFLICT: 409,
+  SYNC_CURSOR_STALE: 400,
+  SYNC_IDEMPOTENT_REPLAY: 200,
 };
 
 export function httpStatusForError(code: ErrorCode): number {

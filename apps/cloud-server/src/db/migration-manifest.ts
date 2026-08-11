@@ -16,6 +16,7 @@ export const MIGRATION_MANIFEST: MigrationEntry[] = [
   { version: 1, filename: '0001_platform.sql', owner: 'platform' },
   { version: 10, filename: '0010_identity_sessions.sql', owner: 'auth' },
   { version: 20, filename: '0020_classes_workspaces.sql', owner: 'sync' },
+  { version: 21, filename: '0021_sync_resources.sql', owner: 'sync' },
 ];
 
 export const MAX_MIGRATION_VERSION = MIGRATION_MANIFEST.reduce(
