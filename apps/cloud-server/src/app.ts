@@ -13,6 +13,7 @@ import { createAccountsRouter } from './accounts/routes.js';
 import { createDevicesRouter } from './devices/routes.js';
 import { createClassesRouter, createTrashRouter } from './classes/routes.js';
 import { createSyncRouter } from './sync/routes.js';
+import { createAiRouter } from './ai/routes.js';
 
 export type CloudAppDeps = {
   config: CloudConfig;
@@ -80,6 +81,7 @@ export function createCloudApp(deps: CloudAppDeps): express.Application {
   v1.use('/classes', createClassesRouter(pool));
   v1.use('/trash', createTrashRouter(pool));
   v1.use('/sync', createSyncRouter(pool));
+  v1.use('/ai', createAiRouter(config, pool));
   app.use('/api/cloud/v1', v1);
 
   app.get('/api/cloud/v1/_internal/tenant-check', requireAuthTenantCheck);

@@ -17,6 +17,10 @@ const STATUS_BY_CODE: Partial<Record<ErrorCode, number>> = {
   SYNC_CONFLICT: 409,
   SYNC_CURSOR_STALE: 400,
   SYNC_IDEMPOTENT_REPLAY: 200,
+  CREDENTIAL_NOT_CONFIGURED: 404,
+  CREDENTIAL_INVALID: 400,
+  QUOTA_DAILY_EXCEEDED: 429,
+  QUOTA_MONTHLY_EXCEEDED: 429,
 };
 
 export function httpStatusForError(code: ErrorCode): number {
