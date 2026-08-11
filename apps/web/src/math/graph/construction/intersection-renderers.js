@@ -12,6 +12,7 @@ import { lineLineIntersectionCoords } from './geometry.js';
 import { bindConstructionDependency } from './dependencies.js';
 import { bindIntersectVisibility } from './intersection-lifecycle.js';
 import { findLineFnHitNumeric } from './intersection-numeric.js';
+import { scheduleIntersectUpdate } from './intersect-update.js';
 import {
   constrIsInfinite,
   pointLiesOnConstr,
@@ -53,6 +54,53 @@ import {
  *   onChanged?: () => void,
  * }} DrawHost
  */
+
+/**
+ * @param {any} pt
+ */
+function bindIntersectHoverCoords(pt) {
+  if (!pt || pt._mathIntersectHoverBound || typeof pt.on !== 'function') return;
+  pt._mathIntersectHoverBound = true;
+  pt.on('over', () => {
+    pt._mathIntersectHoverCoords = true;
+    pt._mathShowCoords = true;
+    try {
+      pt._mathLiveLabelTick?.();
+    } catch {
+      /* */
+    }
+  });
+  pt.on('out', () => {
+    pt._mathIntersectHoverCoords = false;
+    if (pt._mathSelChrome) return;
+    pt._mathShowCoords = false;
+    try {
+      pt._mathLiveLabelTick?.();
+    } catch {
+      /* */
+    }
+  });
+}
+
+/**
+ * @param {any} pt
+ * @param {() => ({ x: number, y: number } | null)} computeRaw
+ */
+function attachIntersectFrameCache(pt, computeRaw) {
+  /** @type {{ hit: { x: number, y: number } | null } | null} */
+  let cache = null;
+  pt._mathIntersectComputeCount = 0;
+  pt._mathIntersectInvalidate = () => {
+    cache = null;
+  };
+  pt._mathIntersectComputeRaw = () => {
+    if (cache) return cache.hit;
+    pt._mathIntersectComputeCount += 1;
+    const hit = computeRaw();
+    cache = { hit };
+    return hit;
+  };
+}
 
 /**
  * 线与函数曲线的交点（JSXGraph intersection；失败则数值兜底）
@@ -103,7 +151,6 @@ export function createLineFnIntersection(host, lineEl, fn, lineConstrId, fnId, i
     const lineRec = host.findConstr(lineConstrId);
     const hit = findLineFnHitNumeric(host, lineEl, fn, {
       allowBeyond: constrIsInfinite(lineRec),
-      // 传入的可能是 segment；若是支撑 line 也按作图是否有限约束
       forceFinite: !constrIsInfinite(lineRec),
     });
     if (!hit) return null;
@@ -126,22 +173,17 @@ export function createLineFnIntersection(host, lineEl, fn, lineConstrId, fnId, i
   }
   if (!pt) return null;
 
-  pt._mathConstr = true;
-  pt._mathConstrKind = 'intersect';
-  pt._mathBaseName = '交点';
-  pt._mathShowCoords = true;
-  const getText = () => formatElementCoordsLabel(pt, '交点');
-  applyBoardLabel(pt, {
-    baseName: '交点',
-    text: getText,
-    color: c.ink,
-  });
-  bindLiveLabel(pt, getText);
-
-  // 线段/垂线默认不含延长线交点；创建后绑定显隐（拖动端点滑出线段时隐藏）
   try {
     const x = Number(pt.X());
     const y = Number(pt.Y());
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      try {
+        board.removeObject(pt);
+      } catch {
+        /* */
+      }
+      return null;
+    }
     const lineRec = host.findConstr(lineConstrId);
     if (!pointLiesOnConstr(lineRec, x, y)) {
       try {
@@ -159,6 +201,20 @@ export function createLineFnIntersection(host, lineEl, fn, lineConstrId, fnId, i
     }
     return null;
   }
+
+  pt._mathConstr = true;
+  pt._mathConstrKind = 'intersect';
+  pt._mathBaseName = '交点';
+  // 默认只显示短名；悬停/选中时再出坐标
+  pt._mathShowCoords = false;
+  const getText = () => formatElementCoordsLabel(pt, '交点');
+  applyBoardLabel(pt, {
+    baseName: '交点',
+    text: getText,
+    color: c.ink,
+  });
+  bindLiveLabel(pt, getText);
+  bindIntersectHoverCoords(pt);
 
   const rec = {
     id: id || host.nextConstrId(),
@@ -202,22 +258,21 @@ export function createLineIntersection(host, lineA, lineB, lineIds, id, options 
     return raw;
   };
 
-  /** @type {any} */
-  let pt = null;
-
   const initial = computeRaw();
   if (!initial) return null;
 
-  // 用函数坐标点：随端点移动更新（保持几何精确位置，不做格点吸附）
+  /** @type {any} */
+  let pt = null;
+
   pt = board.create(
     'point',
     [
       () => {
-        const hit = computeRaw();
+        const hit = pt?._mathIntersectComputeRaw?.() ?? computeRaw();
         return hit ? hit.x : NaN;
       },
       () => {
-        const hit = computeRaw();
+        const hit = pt?._mathIntersectComputeRaw?.() ?? computeRaw();
         return hit ? hit.y : NaN;
       },
     ],
@@ -238,9 +293,10 @@ export function createLineIntersection(host, lineA, lineB, lineIds, id, options 
   pt._mathConstr = true;
   pt._mathConstrKind = 'intersect';
   pt._mathBaseName = '交点';
-  pt._mathShowCoords = true;
+  pt._mathShowCoords = false;
   pt._mathIntersectLocked = true;
-  pt._mathIntersectComputeRaw = computeRaw;
+  attachIntersectFrameCache(pt, computeRaw);
+
   const getText = () => formatElementCoordsLabel(pt, '交点');
   applyBoardLabel(pt, {
     baseName: '交点',
@@ -248,6 +304,8 @@ export function createLineIntersection(host, lineA, lineB, lineIds, id, options 
     color: c.ink,
   });
   bindLiveLabel(pt, getText);
+  bindIntersectHoverCoords(pt);
+
   const rec = {
     id: id || host.nextConstrId(),
     kind: /** @type {ConstrKind} */ ('intersect'),
@@ -256,20 +314,32 @@ export function createLineIntersection(host, lineA, lineB, lineIds, id, options 
     label: '交点',
   };
   pt._mathConstrId = rec.id;
+
+  pt._mathIntersectUpdate = () => {
+    pt._mathIntersectInvalidate?.();
+    try {
+      pt._mathIntersectVisTick?.();
+    } catch {
+      /* */
+    }
+    try {
+      pt._mathLiveLabelTick?.();
+    } catch {
+      /* */
+    }
+    try {
+      board._mathSchedulePointLabelFusion?.();
+    } catch {
+      /* */
+    }
+  };
+
   host.getConstructions().push(rec);
   bindIntersectVisibility(host, rec, pt, /** @type {string[]} */ ([...ids]));
-  // 端点拖动时刷新标签 / 显隐
   for (const lineEl of [lineA, lineB]) {
     for (const p of [lineEl?.point1, lineEl?.point2]) {
       if (!p) continue;
-      const tick = () => {
-        try {
-          pt._mathIntersectVisTick?.();
-          pt._mathLiveLabelTick?.();
-        } catch {
-          /* */
-        }
-      };
+      const tick = () => scheduleIntersectUpdate(pt);
       bindConstructionDependency(rec, p, tick);
       ensurePointGeomHook(p);
     }
