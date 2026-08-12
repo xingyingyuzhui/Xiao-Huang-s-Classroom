@@ -119,9 +119,7 @@ function resolveManifestKey(entryPath) {
   const bySrc = Object.entries(manifest).find(([, v]) => v && v.src === needle);
   if (bySrc) return bySrc[0];
   const base = path.basename(needle, path.extname(needle));
-  const byName = Object.entries(manifest).find(
-    ([, v]) => v && v.isDynamicEntry && v.name === base,
-  );
+  const byName = Object.entries(manifest).find(([, v]) => v && v.isDynamicEntry && v.name === base);
   if (byName) return byName[0];
   return entryPath;
 }
@@ -138,9 +136,12 @@ function closure(startKey) {
     if (!v || typeof v.file !== 'string') {
       throw new Error(`[budget] manifest 闭包引用缺失：${key}（禁止文件名猜测）`);
     }
-    const role = key === startKey || resolveManifestKey(startKey) === key
-      ? (v.isEntry ? 'entry' : 'dynamic-entry')
-      : 'shared';
+    const role =
+      key === startKey || resolveManifestKey(startKey) === key
+        ? v.isEntry
+          ? 'entry'
+          : 'dynamic-entry'
+        : 'shared';
     const add = (file, roleFor) => {
       if (byFile.has(file)) return;
       byFile.set(file, {
