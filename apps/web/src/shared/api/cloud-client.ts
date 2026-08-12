@@ -6,10 +6,15 @@ import type {
   ClassRecord,
 } from '@xiaohuang/contracts';
 
+export type CloudDeviceLabel = 'Web' | 'Desktop' | 'Mobile';
+
 export type CloudClientConfig = {
   /** Base URL including `/api/cloud/v1` (no trailing slash). */
   baseUrl: string;
   getAccessToken: () => string | null;
+  getDeviceId?: () => string;
+  /** Called after a successful cookie refresh so the session controller can store the new access token. */
+  onRefreshed?: (result: CloudLoginResult) => void;
   onUnauthorized?: () => void;
 };
 
@@ -54,10 +59,38 @@ export function newRequestId(): string {
   return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
+type RequestOpts = {
+  signal?: AbortSignal;
+  tokenOverride?: string;
+  auth?: boolean;
+  skipRefresh?: boolean;
+};
+
 export class CloudClient {
+  private refreshInflight: Promise<CloudLoginResult | null> | null = null;
+  private readonly pendingAborts = new Set<AbortController>();
+  private memoryAccessToken: string | null = null;
+
   constructor(private config: CloudClientConfig) {}
 
-  async login(username: string, password: string, deviceLabel = 'Web'): Promise<CloudLoginResult> {
+  abortInflight(): void {
+    this.refreshInflight = null;
+    for (const controller of this.pendingAborts) {
+      try {
+        controller.abort();
+      } catch {
+        /* ignore */
+      }
+    }
+    this.pendingAborts.clear();
+  }
+
+  async login(
+    username: string,
+    password: string,
+    deviceLabel: CloudDeviceLabel = 'Web',
+  ): Promise<CloudLoginResult> {
+    const deviceId = this.config.getDeviceId?.();
     const json = await this.requestRaw<{
       session: {
         accountId: string;
@@ -66,34 +99,58 @@ export class CloudClient {
         accessTokenExpiresAt: string;
       };
       accessToken: string;
-    }>('POST', '/auth/login', { username, password, deviceLabel }, { auth: false });
+    }>(
+      'POST',
+      '/auth/login',
+      {
+        username,
+        password,
+        deviceLabel,
+        ...(deviceId ? { deviceId } : {}),
+      },
+      { auth: false, skipRefresh: true },
+    );
 
-    const expiresAt = Date.parse(json.session.accessTokenExpiresAt);
-    let displayName = username;
-    let avatarUrl: string | null = null;
+    const result = await this.hydrateLoginResult(json);
+    this.memoryAccessToken = result.accessToken;
+    return result;
+  }
+
+  async logout(allDevices = false): Promise<void> {
+    const deviceId = this.config.getDeviceId?.();
+    this.abortInflight();
+    this.memoryAccessToken = null;
     try {
-      const profile = await this.request<{ displayName: string; avatarUrl: string | null }>(
-        'GET',
-        '/account',
-        undefined,
-        undefined,
-        json.accessToken,
+      await this.requestRaw(
+        'POST',
+        '/auth/logout',
+        {
+          ...(deviceId ? { deviceId } : {}),
+          ...(allDevices ? { allDevices: true } : {}),
+        },
+        { auth: true, skipRefresh: true },
       );
-      displayName = profile.displayName || username;
-      avatarUrl = profile.avatarUrl ?? null;
     } catch {
-      /* profile optional at first login */
+      /* local session is cleared by caller regardless */
     }
+  }
 
-    return {
-      accountId: json.session.accountId,
-      displayName,
-      accessToken: json.accessToken,
-      expiresAt: Number.isFinite(expiresAt) ? expiresAt : Date.now() + 15 * 60_000,
-      sessionId: json.session.sessionId,
-      deviceId: json.session.deviceId,
-      avatarUrl,
-    };
+  async refreshSession(): Promise<CloudLoginResult | null> {
+    const deviceId = this.config.getDeviceId?.();
+    if (!deviceId) return null;
+    const json = await this.requestRaw<{
+      session: {
+        accountId: string;
+        sessionId: string;
+        deviceId: string;
+        accessTokenExpiresAt: string;
+      };
+      accessToken: string;
+    }>('POST', '/auth/refresh', { deviceId }, { auth: false, skipRefresh: true });
+    const result = await this.hydrateLoginResult(json);
+    this.memoryAccessToken = result.accessToken;
+    this.config.onRefreshed?.(result);
+    return result;
   }
 
   async ensurePersonalWorkspace(subjectId: string): Promise<PersonalWorkspace> {
@@ -172,6 +229,42 @@ export class CloudClient {
     return this.request<SyncPullResponse>('GET', `/sync/pull?${params.toString()}`, undefined, signal);
   }
 
+  private async hydrateLoginResult(json: {
+    session: {
+      accountId: string;
+      sessionId: string;
+      deviceId: string;
+      accessTokenExpiresAt: string;
+    };
+    accessToken: string;
+  }): Promise<CloudLoginResult> {
+    const expiresAt = Date.parse(json.session.accessTokenExpiresAt);
+    let displayName = json.session.accountId;
+    let avatarUrl: string | null = null;
+    try {
+      const profile = await this.requestRaw<{ displayName: string; avatarUrl: string | null }>(
+        'GET',
+        '/account',
+        undefined,
+        { auth: true, skipRefresh: true, tokenOverride: json.accessToken },
+      );
+      displayName = profile.displayName || displayName;
+      avatarUrl = profile.avatarUrl ?? null;
+    } catch {
+      /* profile optional at first login */
+    }
+
+    return {
+      accountId: json.session.accountId,
+      displayName,
+      accessToken: json.accessToken,
+      expiresAt: Number.isFinite(expiresAt) ? expiresAt : Date.now() + 15 * 60_000,
+      sessionId: json.session.sessionId,
+      deviceId: json.session.deviceId,
+      avatarUrl,
+    };
+  }
+
   private async request<T>(
     method: string,
     path: string,
@@ -179,7 +272,7 @@ export class CloudClient {
     signal?: AbortSignal,
     tokenOverride?: string,
   ): Promise<T> {
-    const opts: { signal?: AbortSignal; tokenOverride?: string; auth?: boolean } = {
+    const opts: RequestOpts = {
       auth: true,
     };
     if (signal) opts.signal = signal;
@@ -187,14 +280,29 @@ export class CloudClient {
     return this.requestRaw<T>(method, path, body, opts);
   }
 
+  private currentAccessToken(): string | null {
+    return this.memoryAccessToken ?? this.config.getAccessToken();
+  }
+
+  private singleFlightRefresh(): Promise<CloudLoginResult | null> {
+    if (!this.refreshInflight) {
+      this.refreshInflight = this.refreshSession()
+        .catch(() => null)
+        .finally(() => {
+          this.refreshInflight = null;
+        });
+    }
+    return this.refreshInflight;
+  }
+
   private async requestRaw<T>(
     method: string,
     path: string,
     body?: unknown,
-    opts: { signal?: AbortSignal; tokenOverride?: string; auth?: boolean } = {},
+    opts: RequestOpts = {},
   ): Promise<T> {
     const auth = opts.auth !== false;
-    const token = opts.tokenOverride ?? (auth ? this.config.getAccessToken() : null);
+    const token = opts.tokenOverride ?? (auth ? this.currentAccessToken() : null);
     const requestId = newRequestId();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
@@ -204,13 +312,30 @@ export class CloudClient {
       headers.Authorization = `Bearer ${token}`;
     }
 
-    const res = await fetch(joinUrl(this.config.baseUrl, path), {
-      method,
-      headers,
-      credentials: 'include',
-      ...(body != null ? { body: JSON.stringify(body) } : {}),
-      ...(opts.signal ? { signal: opts.signal } : {}),
-    });
+    const localAbort = new AbortController();
+    this.pendingAborts.add(localAbort);
+    const onOuterAbort = () => localAbort.abort();
+    if (opts.signal) {
+      if (opts.signal.aborted) {
+        this.pendingAborts.delete(localAbort);
+        throw new AppError('NETWORK_TIMEOUT', '请求已取消');
+      }
+      opts.signal.addEventListener('abort', onOuterAbort, { once: true });
+    }
+
+    let res: Response;
+    try {
+      res = await fetch(joinUrl(this.config.baseUrl, path), {
+        method,
+        headers,
+        credentials: 'include',
+        ...(body != null ? { body: JSON.stringify(body) } : {}),
+        signal: localAbort.signal,
+      });
+    } finally {
+      this.pendingAborts.delete(localAbort);
+      opts.signal?.removeEventListener('abort', onOuterAbort);
+    }
 
     const json = (await res.json().catch(() => null)) as {
       success: boolean;
@@ -220,7 +345,20 @@ export class CloudClient {
     } | null;
 
     if (res.status === 401) {
-      this.config.onUnauthorized?.();
+      if (!opts.skipRefresh && this.config.getDeviceId?.()) {
+        const refreshed = await this.singleFlightRefresh();
+        if (refreshed) {
+          return this.requestRaw<T>(method, path, body, {
+            ...opts,
+            skipRefresh: true,
+            tokenOverride: refreshed.accessToken,
+          });
+        }
+      }
+      this.memoryAccessToken = null;
+      if (!opts.skipRefresh) {
+        this.config.onUnauthorized?.();
+      }
       const code = (json?.error?.code ?? 'AUTH_SESSION_EXPIRED') as never;
       const message = json?.error?.message ?? '登录已失效，请重新登录';
       throw new AppError(code, message);

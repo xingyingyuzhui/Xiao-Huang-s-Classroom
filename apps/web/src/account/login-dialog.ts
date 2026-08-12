@@ -6,6 +6,8 @@ export type LoginDialogResult = {
   accessToken: string;
   expiresAt: number;
   avatarUrl?: string | null;
+  sessionId?: string;
+  deviceId?: string;
 } | null;
 
 export async function showLoginDialog(cloudClient: CloudClient): Promise<LoginDialogResult> {

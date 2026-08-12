@@ -109,11 +109,26 @@ export async function bootAccountCloud() {
   statusStore.update({ online: network.isOnline() });
   const unsubNetwork = network.subscribe((online) => statusStore.update({ online }));
 
+  /** @type {() => void} */
+  let handleUnauthorized = () => {
+    session.clearSession();
+  };
+
   const client = new CloudClient({
     baseUrl,
     getAccessToken: () => session.getAccessToken(),
+    getDeviceId: () => deviceId,
+    onRefreshed: (result) => {
+      session.setSession({
+        accountId: result.accountId,
+        displayName: result.displayName,
+        accessToken: result.accessToken,
+        expiresAt: result.expiresAt,
+        avatarUrl: result.avatarUrl ?? null,
+      });
+    },
     onUnauthorized: () => {
-      session.clearSession();
+      handleUnauthorized();
     },
   });
 
@@ -145,6 +160,8 @@ export async function bootAccountCloud() {
     outbox = new OutboxRepository(db);
     cursors = new CursorRepository(db);
     resources = new ResourceRepository(db);
+    conflictStore.attach(db);
+    await conflictStore.hydrate();
 
     syncController = new SyncController({
       client,
@@ -152,6 +169,8 @@ export async function bootAccountCloud() {
       conflictStore,
       registry,
       contextStore,
+      localResources,
+      createOperationId: newOperationId,
       getOutboxOperations: async () => {
         const ctx = contextStore.getContext();
         const pending = await outbox.listPending(ctx.workspaceId);
@@ -162,7 +181,17 @@ export async function bootAccountCloud() {
           payload: entry.payload,
           baseRevision: entry.baseRevision,
           deletedAt: entry.deletedAt,
+          schemaVersion: entry.schemaVersion,
         }));
+      },
+      countPendingOutbox: async () => {
+        const ctx = contextStore.getContext();
+        return outbox.countPending(ctx.workspaceId);
+      },
+      updateOutboxStatuses: (patches) => outbox.updateStatuses(patches),
+      revertInflightOutbox: async () => {
+        const ctx = contextStore.getContext();
+        await outbox.revertInflightToPending(ctx.workspaceId);
       },
       ackOutboxOperations: async (operationIds) => {
         const now = Date.now();
@@ -238,6 +267,30 @@ export async function bootAccountCloud() {
     }
     return switcher.switch(next, contextStore.getGeneration());
   }
+
+  async function switchToGuest() {
+    syncController?.cancel();
+    client.abortInflight();
+    const subjectId = currentSubjectId();
+    await switchWorkspace({
+      mode: 'guest',
+      accountId: null,
+      classId: null,
+      subjectId,
+      workspaceId: guestWorkspaceKey(subjectId),
+      kind: 'guest',
+      deviceId,
+      generation: contextStore.getGeneration(),
+    });
+    classList = [];
+  }
+
+  handleUnauthorized = () => {
+    session.clearSession();
+    void switchToGuest().finally(() => {
+      refreshSettingsSection();
+    });
+  };
 
   async function ensureAuthenticatedPersonalWorkspace() {
     const subjectId = currentSubjectId();
@@ -450,19 +503,13 @@ export async function bootAccountCloud() {
         kind: 'secondary',
         onClick: () => {
           void (async () => {
+            try {
+              await client.logout();
+            } catch {
+              /* local clear still proceeds */
+            }
             session.clearSession();
-            const subjectId = currentSubjectId();
-            await switchWorkspace({
-              mode: 'guest',
-              accountId: null,
-              classId: null,
-              subjectId,
-              workspaceId: guestWorkspaceKey(subjectId),
-              kind: 'guest',
-              deviceId,
-              generation: contextStore.getGeneration(),
-            });
-            classList = [];
+            await switchToGuest();
             refreshSettingsSection();
           })();
         },
@@ -563,13 +610,15 @@ export async function bootAccountCloud() {
         showConflictDialog({
           conflicts,
           onResolve: (conflictId, resolution) => {
-            if (syncController) {
-              syncController.resolveConflict(conflictId, resolution);
-            } else {
-              conflictStore.resolve(conflictId, resolution);
-            }
-            statusStore.update({ conflictCount: conflictStore.listUnresolved().length });
-            refreshSettingsSection();
+            void (async () => {
+              if (syncController) {
+                await syncController.resolveConflict(conflictId, resolution);
+              } else {
+                conflictStore.resolve(conflictId, resolution);
+              }
+              statusStore.update({ conflictCount: conflictStore.listUnresolved().length });
+              refreshSettingsSection();
+            })();
           },
           onClose: () => {},
         });
@@ -663,7 +712,21 @@ export async function bootAccountCloud() {
     renderSyncBlock(syncRoot);
   });
 
-  if (session.isAuthenticated()) {
+  if (!session.getAccessToken()) {
+    void (async () => {
+      try {
+        const restored = await client.refreshSession();
+        if (restored) {
+          await afterLoginSuccess(restored);
+          return;
+        }
+      } catch (err) {
+        console.error('[account-cloud] cookie refresh failed', err);
+        session.clearSession();
+      }
+      refreshSettingsSection();
+    })();
+  } else if (session.isAuthenticated()) {
     void (async () => {
       try {
         await ensureAuthenticatedPersonalWorkspace();

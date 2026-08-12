@@ -31,13 +31,15 @@ export function registerAccountIpc(vault: AuthVault, cloudOrigin: string): void 
   });
 
   ipcMain.handle('account:login', async (_event, { username, password, deviceId, deviceLabel }) => {
+    const label = deviceLabel === 'Mobile' ? 'Mobile' : 'Desktop';
     const res = await fetch(cloudV1(cloudOrigin, '/auth/login'), {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         username,
         password,
-        deviceLabel: deviceLabel || 'Desktop',
+        deviceLabel: label,
+        ...(typeof deviceId === 'string' && deviceId ? { deviceId } : {}),
       }),
     });
     const body = await readJson(res);
@@ -159,10 +161,20 @@ export function registerAccountIpc(vault: AuthVault, cloudOrigin: string): void 
           'Content-Type': 'application/json',
           Cookie: `${REFRESH_COOKIE}=${cred.refreshToken}`,
         },
-        body: JSON.stringify({ deviceId }),
+        body: JSON.stringify({
+          ...(typeof deviceId === 'string' && deviceId ? { deviceId } : {}),
+        }),
       }).catch(() => {});
     }
     await vault.remove(accountId);
+    try {
+      await electronSession.defaultSession.cookies.remove(
+        cloudV1(cloudOrigin, '/auth/login'),
+        REFRESH_COOKIE,
+      );
+    } catch {
+      /* cookie clear optional */
+    }
     return { ok: true };
   });
 
