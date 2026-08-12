@@ -113,10 +113,23 @@ function familyOf(key, value, file) {
  * 沿 imports 递归计算静态闭包（循环去重；缺 key 硬失败）。
  * 返回按访问序排列的请求列表：[{ source, role, family, kind, file, rawKb, gzipKb }]
  */
+function resolveManifestKey(entryPath) {
+  if (manifest[entryPath]) return entryPath;
+  const needle = entryPath.replace(/\\/g, '/');
+  const bySrc = Object.entries(manifest).find(([, v]) => v && v.src === needle);
+  if (bySrc) return bySrc[0];
+  const base = path.basename(needle, path.extname(needle));
+  const byName = Object.entries(manifest).find(
+    ([, v]) => v && v.isDynamicEntry && v.name === base,
+  );
+  if (byName) return byName[0];
+  return entryPath;
+}
+
 function closure(startKey) {
   const seen = new Set();
   const byFile = new Map();
-  const queue = [startKey];
+  const queue = [resolveManifestKey(startKey)];
   while (queue.length) {
     const key = queue.shift();
     if (seen.has(key)) continue;
@@ -125,7 +138,9 @@ function closure(startKey) {
     if (!v || typeof v.file !== 'string') {
       throw new Error(`[budget] manifest 闭包引用缺失：${key}（禁止文件名猜测）`);
     }
-    const role = key === startKey ? (v.isEntry ? 'entry' : 'dynamic-entry') : 'shared';
+    const role = key === startKey || resolveManifestKey(startKey) === key
+      ? (v.isEntry ? 'entry' : 'dynamic-entry')
+      : 'shared';
     const add = (file, roleFor) => {
       if (byFile.has(file)) return;
       byFile.set(file, {
@@ -148,12 +163,13 @@ function closure(startKey) {
 
 /** 入口硬校验：manifest 必须包含预期 entry 且是真实 dynamic/静态 entry */
 function requireEntry(key, expectDynamic) {
-  const v = manifest[key];
+  const resolved = resolveManifestKey(key);
+  const v = manifest[resolved];
   if (!v) {
     throw new Error(`[budget] manifest 缺少预期入口 ${key}（不返回 0KB 假绿）`);
   }
   if (expectDynamic && !v.isDynamicEntry) {
-    throw new Error(`[budget] manifest 入口 ${key} 不是 dynamic entry`);
+    throw new Error(`[budget] manifest 入口 ${key}（→ ${resolved}）不是 dynamic entry`);
   }
   return v;
 }

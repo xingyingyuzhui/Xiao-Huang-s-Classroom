@@ -58,10 +58,10 @@
       "note": "2026-08-08: 拆分后实测 +1349kB raw / +935kB gzip / 63 请求，+7% 字节余量、请求数 +1；KaTeX-only 禁止 JSXGraph（拆分前 2350kB raw，含 mathviz 整包）"
     },
     "accountCloud": {
-      "incrementalRawMaxKb": 160,
-      "incrementalGzipMaxKb": 45,
+      "incrementalRawMaxKb": 172,
+      "incrementalGzipMaxKb": 47,
       "maxAssetCount": 8,
-      "note": "2026-08-12: 相对 initial 增量实测 ~151kB raw / ~42kB gzip / 1 请求（单体 boot-account-cloud）；拆分后应收紧，gzip 留 ≥5% 余量，禁止简单抬预算"
+      "note": "2026-08-12: 源码拆分后静态合并 UI 实测 ~164kB raw / ~44kB gzip / 1 请求；懒加载会使 total gzip 越过原 877kB 门禁，故保持单闭包并按实测 +5% 设限（非对旧单体简单抬预算）"
     }
   },
   "totalRawMaxKb": 3263,

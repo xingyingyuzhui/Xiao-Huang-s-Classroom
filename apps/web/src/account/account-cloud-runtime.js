@@ -2,7 +2,7 @@
  * Lightweight account-cloud orchestration. Controllers live in sibling modules.
  */
 import { loadRuntimeConfig, isFeatureEnabled, getRuntimeConfig } from '../shared/runtime-config.js';
-import { CloudClient } from '../shared/api/cloud-client.js';
+import { CloudClient, newRequestId } from '../shared/api/cloud-client.js';
 import { AccountSessionController } from './account-session-controller.js';
 import { RememberedAccountStore } from './remembered-account-store.js';
 import { SyncStatusStore } from '../sync/sync-status-store.js';
@@ -19,15 +19,34 @@ import {
 import { getCurrentSubjectId } from '../subjects/session.js';
 import { createSubjectContextController } from './subject-context-controller.js';
 import { createAccountSyncWiring } from './account-sync-wiring.js';
+import { bindAccountAi } from './account-ai-binding.js';
 import {
   createAccountSettingsController,
-  getOrCreateDeviceId,
   getDesktopAccountApi,
   mapDesktopSession,
-} from './account-settings-controller.js';
-import { createClassController } from './class-controller.js';
-import { createGuestCopyController } from './guest-copy-controller.js';
-import { bindAccountAi } from './account-ai-binding.js';
+  createClassController,
+  createGuestCopyController,
+} from './account-settings-ui.js';
+
+const DEVICE_ID_KEY = 'xh-device-id';
+
+function getOrCreateDeviceId() {
+  try {
+    const existing = localStorage.getItem(DEVICE_ID_KEY);
+    if (existing && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(existing)) {
+      return existing;
+    }
+  } catch {
+    /* ignore */
+  }
+  const id = `dev_${newRequestId().replace(/-/g, '').slice(0, 24)}`;
+  try {
+    localStorage.setItem(DEVICE_ID_KEY, id);
+  } catch {
+    /* ignore */
+  }
+  return id;
+}
 
 function bootstrapSubjectId() {
   try {
