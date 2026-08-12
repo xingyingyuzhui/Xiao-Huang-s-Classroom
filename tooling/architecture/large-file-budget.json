@@ -170,10 +170,10 @@
     "plan": "点标签融合（桶+邻接滑动窗口，操作数合同由 vitest 锁定）",
     "lines": 403
   },
-  "web/src/account/boot-account-cloud.js": {
-    "category": "shell",
-    "plan": "账户云启动壳；设置面板/班级切换/同步接线待拆到 account-settings-panel",
-    "lines": 1025
+  "web/src/account/account-settings-controller.js": {
+    "category": "controller",
+    "plan": "账户设置 UI；登录/设备/危险区可再拆 account-danger-panel 与 login-panel",
+    "lines": 528
   },
   "web/src/shared/api/client.js": {
     "category": "adapter",
@@ -183,7 +183,7 @@
   "web/src/shared/api/cloud-client.ts": {
     "category": "adapter",
     "plan": "Cloud HTTP 客户端；AI/班级/同步方法可按资源拆分",
-    "lines": 434
+    "lines": 541
   },
   "web/src/shared/ui/brand-tip.js": {
     "category": "controller",
