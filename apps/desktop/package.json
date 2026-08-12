@@ -4,8 +4,12 @@
   "version": "0.0.1",
   "main": "main.cjs",
   "scripts": {
-    "test": "node --test ../../test/desktop/*.cjs",
+    "test": "npm run build && node --test ../../test/desktop/*.cjs",
     "typecheck": "node ../../scripts/typecheck-apps.mjs desktop",
     "build": "tsup"
+  },
+  "dependencies": {
+    "@xiaohuang/contracts": "*",
+    "@xiaohuang/domain-core": "*"
   }
 }

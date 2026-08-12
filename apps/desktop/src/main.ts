@@ -16,6 +16,7 @@ import { app, BrowserWindow, shell, screen, Menu, dialog } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
+import { parseTrustedCloudOrigin } from '@xiaohuang/contracts';
 import { AuthVault } from './auth-vault.js';
 import { registerAccountIpc } from './account-ipc.js';
 
@@ -51,6 +52,8 @@ const ZOOM_STORE = 'ui-zoom.json';
 let mainWindow: BrowserWindow | null = null;
 let httpServer: { close(): void } | null = null;
 let shutdownServer: (() => void) | null = null;
+let disposeAccountIpc: (() => void) | null = null;
+let expectedAppOrigin = '';
 /** 启动状态机（R6.2）：idle→staging→serverStarting→ready→closing→closed/failed */
 const startup: StartupStateMachine = createStartupStateMachine();
 
@@ -338,6 +341,7 @@ function createWindow(url: string): Promise<void> {
 async function bootstrap(): Promise<void> {
   try {
     const { url } = await startBackend();
+    expectedAppOrigin = new URL(url).origin;
     await createWindow(url);
   } catch (err) {
     console.error('Electron 启动失败:', err);
@@ -359,6 +363,12 @@ async function bootstrap(): Promise<void> {
 }
 
 function cleanup(): void {
+  try {
+    disposeAccountIpc?.();
+    disposeAccountIpc = null;
+  } catch {
+    /* ignore */
+  }
   try {
     if (httpServer) {
       httpServer.close();
@@ -389,12 +399,21 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     buildAppMenu();
-    const cloudOrigin =
+    const rawOrigin =
       process.env.XIAOHUANG_CLOUD_ORIGIN ||
       process.env.CLOUD_PUBLIC_ORIGIN ||
-      'http://127.0.0.1:3000';
+      (app.isPackaged ? '' : 'http://127.0.0.1:3000');
+    const trusted = parseTrustedCloudOrigin(rawOrigin, { packaged: app.isPackaged });
+    const cloudOrigin = trusted.ok ? trusted.origin : null;
+    if (!trusted.ok) {
+      console.error('Invalid cloud origin:', trusted.message);
+    }
     const vault = new AuthVault(app.getPath('userData'));
-    registerAccountIpc(vault, cloudOrigin);
+    disposeAccountIpc = registerAccountIpc({
+      vault,
+      cloudOrigin,
+      getAppOrigin: () => expectedAppOrigin,
+    });
     return bootstrap();
   });
 

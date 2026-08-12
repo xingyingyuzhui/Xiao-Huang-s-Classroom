@@ -10,6 +10,7 @@ export default defineConfig({
   entry: {
     main: 'src/main.ts',
     'preload-account': 'src/preload-account.ts',
+    'account-ipc-core': 'src/account-ipc-core.ts',
   },
   format: ['cjs'],
   dts: false,
