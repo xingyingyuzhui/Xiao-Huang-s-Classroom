@@ -17,6 +17,7 @@
 import { Router, type Request, type Response } from 'express';
 import {
   createDefaultSubjectSettings,
+  extractLeftoverApiKeys,
   normalizeSubjectSettings,
 } from '@xiaohuang/subject-settings';
 
@@ -47,6 +48,10 @@ const { success, error, badRequest } = require('../utils/response') as {
 const { normalizeApiBase, normalizeModel } = require('../utils/ai-config') as {
   normalizeApiBase: (url: unknown) => { base: string; rejected: boolean };
   normalizeModel: (model: unknown) => string;
+};
+const { isElectron, isPkg } = require('../paths') as {
+  isElectron: () => boolean;
+  isPkg: () => boolean;
 };
 
 /** 组合根注入的 db 查询接口（src/db/sqlite 进程单例）。 */
@@ -101,12 +106,31 @@ export function createSettingsRouter(deps: SettingsRouterDeps): Router {
     }
   }
 
+  function loadRawSubjectSettings(): unknown {
+    const row = queryOne('SELECT value FROM settings WHERE key = ?', ['subjectSettings']);
+    if (!row?.value) return {};
+    try {
+      const parsed: unknown = JSON.parse(row.value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+
   function loadSubjectSettingsFromDb(): SubjectSettingsMap {
     const result = settingsService.loadSubjectSettings({
       queryOne: (sql, params) => queryOne(sql, params),
     });
     // 失败时回退默认（route 层容错；错误已由 service 记录，不静默）
-    return result.ok ? result.value : normalizeSubjectSettings({});
+    const map = result.ok ? result.value : normalizeSubjectSettings({});
+    // normalize 不再回传 apiKey；lab GET 掩码与 Electron 合并需要从原始 JSON 取回。
+    for (const leftover of extractLeftoverApiKeys(loadRawSubjectSettings())) {
+      const entry = map[leftover.subjectId];
+      if (entry) {
+        entry.ai.apiKey = leftover.apiKey;
+      }
+    }
+    return map;
   }
 
   function maskSubjectSettingsForClient(subjectSettings: SubjectSettingsMap): SubjectSettingsMap {
@@ -169,7 +193,28 @@ export function createSettingsRouter(deps: SettingsRouterDeps): Router {
         base.electronOrder = (patch.electronOrder as unknown[]).map(Number).filter((n) => Number.isFinite(n));
       }
     }
-    return normalizeSubjectSettings(current);
+    const normalized = normalizeSubjectSettings(current);
+    // Electron / pkg / local lab: keep historical keys for offline AI.
+    // Public bind (CHEM_LAB_BIND=0.0.0.0) never persists plaintext keys.
+    const publicBind = ['0.0.0.0', '::', '*'].includes(String(process.env.CHEM_LAB_BIND || '').trim());
+    if (isElectron() || isPkg() || !publicBind) {
+      for (const subjectId of Object.keys(normalized)) {
+        const prevKey = current[subjectId]?.ai?.apiKey;
+        const patchAi = (patchSubjects[subjectId] as { ai?: { apiKey?: unknown } } | undefined)?.ai;
+        const patchKey = patchAi?.apiKey;
+        let keep = '';
+        if (typeof patchKey === 'string' && patchKey && !settingsPolicy.isMaskedKey(patchKey)) {
+          keep = patchKey;
+        } else if (typeof prevKey === 'string' && prevKey) {
+          keep = prevKey;
+        }
+        const target = normalized[subjectId];
+        if (keep && target) {
+          target.ai.apiKey = keep;
+        }
+      }
+    }
+    return normalized;
   }
 
   /**

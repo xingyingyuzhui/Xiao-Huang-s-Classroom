@@ -222,6 +222,10 @@
             <h3 class="settings-section-title">AI</h3>
             <div class="settings-block">
               <h4>模型 API</h4>
+              <p class="settings-hint" id="aiCloudOnlyHint">
+                API Key 仅保存在云端，本机不保存明文。离线时云端 AI 不可用。
+              </p>
+              <p class="settings-hint" id="aiCredentialStatus" hidden></p>
               <label class="field">
                 <span>API Base URL</span>
                 <input
@@ -235,10 +239,10 @@
               <label class="field">
                 <span>API Key</span>
                 <input
-                  type="text"
+                  type="password"
                   id="aiApiKey"
-                  placeholder="sk-…"
-                  autocomplete="off"
+                  placeholder="粘贴新密钥（不会回显已保存的密钥）"
+                  autocomplete="new-password"
                   spellcheck="false"
                 />
               </label>

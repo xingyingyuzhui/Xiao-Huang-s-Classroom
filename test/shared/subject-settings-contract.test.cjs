@@ -86,7 +86,8 @@ test('normalizeSubjectSettings roundtrip preserves per-subject slices', () => {
   assert.equal(merged.chemistry.ai.model, 'deepseek-v4-pro');
   assert.deepEqual(merged.chemistry.electronOrder, [1, 2, 3]);
   assert.equal(merged.physics.brand.title, '小黄的物理教室');
-  assert.equal(merged.physics.ai.apiKey, 'sk-physics');
+  assert.equal(merged.physics.ai.apiKey, undefined);
+  assert.equal(merged.chemistry.ai.apiKey, undefined);
   assert.equal(merged.physics.defaultPage, defaults.physics.defaultPage);
 
   const options = getDefaultPageOptions('chemistry');

@@ -7,11 +7,14 @@ export const HUB_BRAND_TITLE = '小黄的教室';
 
 export const DEFAULT_AI = {
   apiBase: 'https://api.deepseek.com',
-  apiKey: '',
   model: 'deepseek-v4-flash',
 };
 
-const ALLOWED_MODELS = new Set(['deepseek-v4-flash', 'deepseek-v4-pro']);
+export const ALLOWED_AI_MODELS = ['deepseek-v4-flash', 'deepseek-v4-pro'] as const;
+
+const ALLOWED_MODELS = new Set<string>(ALLOWED_AI_MODELS);
+
+export type AiProviderId = 'openai' | 'deepseek';
 
 export function getSubjectTabMeta(subjectId: string): SubjectCatalogEntry | null {
   return SUBJECT_TAB_CATALOG[subjectId] ?? null;
@@ -62,10 +65,16 @@ export function isValidDefaultPage(subjectId: string, pageId: string): boolean {
   return allowedDefaultPageIds(subjectId).has(pageId);
 }
 
+/**
+ * Persisted AI prefs. `apiKey` is write-only and never populated from storage.
+ * Callers that still need a leftover plaintext key (Electron lab SQLite) must
+ * use `extractLeftoverApiKey` on the raw blob before normalize.
+ */
 export interface SubjectAiSettings {
   apiBase: string;
-  apiKey: string;
   model: string;
+  /** Write-only input; omitted on read / normalize. */
+  apiKey?: string;
 }
 
 export interface SubjectSettingsEntry {
@@ -77,11 +86,87 @@ export interface SubjectSettingsEntry {
 
 export type SubjectSettingsMap = Record<string, SubjectSettingsEntry>;
 
+export type LeftoverAiKey = {
+  subjectId: string;
+  apiKey: string;
+  apiBase: string;
+  model: string;
+};
+
+export function inferProviderFromApiBase(apiBase: unknown): AiProviderId {
+  const base = typeof apiBase === 'string' ? apiBase : '';
+  return /openai/i.test(base) ? 'openai' : 'deepseek';
+}
+
+export function isPlaintextApiKey(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const key = value.trim();
+  if (key.length < 8) return false;
+  if (key.includes('*')) return false;
+  return true;
+}
+
+export function extractLeftoverApiKey(raw: unknown, subjectId: string): string {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return '';
+  const entry = (raw as Record<string, unknown>)[subjectId];
+  if (!entry || typeof entry !== 'object' || Array.isArray(entry)) return '';
+  const ai = (entry as { ai?: unknown }).ai;
+  if (!ai || typeof ai !== 'object' || Array.isArray(ai)) return '';
+  const key = (ai as { apiKey?: unknown }).apiKey;
+  return isPlaintextApiKey(key) ? key.trim() : '';
+}
+
+export function extractLeftoverApiKeys(raw: unknown): LeftoverAiKey[] {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return [];
+  const out: LeftoverAiKey[] = [];
+  for (const [subjectId, entry] of Object.entries(raw as Record<string, unknown>)) {
+    if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+    const ai = (entry as { ai?: unknown }).ai;
+    if (!ai || typeof ai !== 'object' || Array.isArray(ai)) continue;
+    const rec = ai as { apiKey?: unknown; apiBase?: unknown; model?: unknown };
+    if (!isPlaintextApiKey(rec.apiKey)) continue;
+    const model = typeof rec.model === 'string' && ALLOWED_MODELS.has(rec.model)
+      ? rec.model
+      : DEFAULT_AI.model;
+    out.push({
+      subjectId,
+      apiKey: rec.apiKey.trim(),
+      apiBase: typeof rec.apiBase === 'string' && rec.apiBase.trim()
+        ? rec.apiBase.trim()
+        : DEFAULT_AI.apiBase,
+      model,
+    });
+  }
+  return out;
+}
+
+export function stripApiKeysFromSubjectSettings(raw: unknown): SubjectSettingsMap {
+  const normalized = normalizeSubjectSettings(raw);
+  for (const entry of Object.values(normalized)) {
+    if (entry?.ai && 'apiKey' in entry.ai) {
+      delete entry.ai.apiKey;
+    }
+  }
+  return normalized;
+}
+
+/** Strip apiKey from a teacher.settings sync payload (idempotent). */
+export function sanitizeTeacherSettingsPayload(payload: unknown): unknown {
+  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) return payload;
+  const rec = payload as Record<string, unknown>;
+  if (!rec.subjectSettings) return payload;
+  return {
+    ...rec,
+    subjectSettings: stripApiKeysFromSubjectSettings(rec.subjectSettings),
+  };
+}
+
 function normalizeAi(raw: Record<string, unknown> | null | undefined): SubjectAiSettings {
   const model = typeof raw?.model === 'string' ? raw.model : '';
   return {
-    apiBase: typeof raw?.apiBase === 'string' ? raw.apiBase : DEFAULT_AI.apiBase,
-    apiKey: typeof raw?.apiKey === 'string' ? raw.apiKey : '',
+    apiBase: typeof raw?.apiBase === 'string' && raw.apiBase.trim()
+      ? raw.apiBase
+      : DEFAULT_AI.apiBase,
     model: ALLOWED_MODELS.has(model) ? model : DEFAULT_AI.model,
   };
 }
@@ -108,29 +193,35 @@ export function createDefaultSubjectSettings(): SubjectSettingsMap {
 
 export function normalizeSubjectSettings(raw: unknown): SubjectSettingsMap {
   const defaults = createDefaultSubjectSettings();
-  const out = JSON.parse(JSON.stringify(defaults));
+  const out = JSON.parse(JSON.stringify(defaults)) as SubjectSettingsMap;
 
   if (raw && typeof raw === 'object' && !Array.isArray(raw)) {
-    for (const [subjectId, entry] of Object.entries(raw)) {
+    for (const [subjectId, entry] of Object.entries(raw as Record<string, unknown>)) {
       if (!out[subjectId] || !entry || typeof entry !== 'object') continue;
       const base = out[subjectId];
-      if (entry.brand && typeof entry.brand === 'object') {
+      const rec = entry as {
+        brand?: { title?: unknown; iconDataUrl?: unknown };
+        defaultPage?: unknown;
+        ai?: Record<string, unknown>;
+        electronOrder?: unknown;
+      };
+      if (rec.brand && typeof rec.brand === 'object') {
         base.brand = {
-          title: String(entry.brand.title || base.brand.title).slice(0, 80),
-          iconDataUrl: entry.brand.iconDataUrl ?? base.brand.iconDataUrl,
+          title: String(rec.brand.title || base.brand.title).slice(0, 80),
+          iconDataUrl: (rec.brand.iconDataUrl as string | null | undefined) ?? base.brand.iconDataUrl,
         };
       }
       if (
-        typeof entry.defaultPage === 'string' &&
-        isValidDefaultPage(subjectId, entry.defaultPage)
+        typeof rec.defaultPage === 'string' &&
+        isValidDefaultPage(subjectId, rec.defaultPage)
       ) {
-        base.defaultPage = entry.defaultPage;
+        base.defaultPage = rec.defaultPage;
       }
-      if (entry.ai && typeof entry.ai === 'object') {
-        base.ai = normalizeAi({ ...base.ai, ...entry.ai });
+      if (rec.ai && typeof rec.ai === 'object') {
+        base.ai = normalizeAi({ ...base.ai, ...rec.ai });
       }
-      if (subjectId === 'chemistry' && Array.isArray(entry.electronOrder)) {
-        base.electronOrder = entry.electronOrder
+      if (subjectId === 'chemistry' && Array.isArray(rec.electronOrder)) {
+        base.electronOrder = rec.electronOrder
           .map((n: unknown) => Number(n))
           .filter((n: number) => Number.isFinite(n));
       }

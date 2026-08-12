@@ -12,6 +12,7 @@ import { applyTheme } from '../theme/apply.js';
 import { isFeatureEnabled } from '../runtime-config.js';
 import {
   LOCAL_ONLY_HINT,
+  LOCAL_SETTINGS_KEY,
   readLocalThemeId,
   writeLocalThemeId,
 } from '../persistence/local-settings.js';
@@ -21,6 +22,10 @@ import {
   createDefaultSubjectSettings,
   normalizeSubjectSettings,
   defaultSubjectBrandTitle,
+  extractLeftoverApiKeys,
+  inferProviderFromApiBase,
+  sanitizeTeacherSettingsPayload,
+  stripApiKeysFromSubjectSettings,
 } from '@xiaohuang/subject-settings';
 
 export const SETTINGS_CONTEXT = {
@@ -47,6 +52,25 @@ function getSubjectSettingsSlice(settings, subjectId) {
 const ALLOWED_MODELS = new Set(['deepseek-v4-flash', 'deepseek-v4-pro']);
 
 let cachedSettings = null;
+
+/** Leftover plaintext keys seen on teacher.settings hydrate (IndexedDB / pull). */
+let hydratedLeftoverAiKeys = [];
+
+/**
+ * Replace the in-memory settings cache after a cloud pull.
+ * Theme/brand UI must update without waiting for the next drawer open.
+ * apiKey never enters the cache (write-only; migrate separately).
+ * @param {{ theme?: { id?: string }, subjectSettings?: Record<string, unknown> }} next
+ */
+export function hydrateSettingsCache(next) {
+  if (!next || typeof next !== 'object') return cachedSettings;
+  hydratedLeftoverAiKeys = extractLeftoverApiKeys(next.subjectSettings ?? {});
+  cachedSettings = settingsWithLocalTheme({
+    theme: normalizeTheme(next.theme),
+    subjectSettings: stripApiKeysFromSubjectSettings(next.subjectSettings ?? {}),
+  });
+  return cachedSettings;
+}
 
 /** @type {((settings: typeof DEFAULT_SETTINGS) => void | Promise<void>) | null} */
 let onSettingsPersisted = null;
@@ -254,7 +278,7 @@ export async function initSettingsUI({
   let settingsContext = { mode: SETTINGS_CONTEXT.hub, subjectId: null };
 
   setOnSettingsPersisted(async (settings) => {
-    await accountCloud?.enqueueTeacherSettings?.(settings);
+    await accountCloud?.enqueueTeacherSettings?.(sanitizeTeacherSettingsPayload(settings));
   });
 
   function ensureLocalOnlyHint(section) {
@@ -287,7 +311,6 @@ export async function initSettingsUI({
     }
     if (!isHub && isAccountCloudProgram()) {
       ensureLocalOnlyHint(subjectSection);
-      ensureLocalOnlyHint(aiSection);
     }
   }
 
@@ -312,6 +335,124 @@ export async function initSettingsUI({
   const apiKey = $('#aiApiKey');
   const apiModel = $('#aiModel');
   const btnSaveAi = $('#btnSaveAi');
+  const aiCredentialStatus = $('#aiCredentialStatus');
+  const aiCloudOnlyHint = $('#aiCloudOnlyHint');
+
+  /** @type {import('@xiaohuang/subject-settings').LeftoverAiKey[]} */
+  let leftoverAiKeys = [];
+
+  function isOnline() {
+    return typeof navigator === 'undefined' || navigator.onLine !== false;
+  }
+
+  function isLoggedIn() {
+    return accountCloud?.session?.isAuthenticated?.() === true;
+  }
+
+  function formatCredentialStatus(meta) {
+    if (!meta?.configured) return '未配置云端密钥';
+    const updated = meta.updatedAt
+      ? String(meta.updatedAt).slice(0, 10)
+      : '';
+    const parts = [
+      '已配置',
+      [meta.provider, meta.model].filter(Boolean).join(' / '),
+      meta.last4 ? `末四位 ${meta.last4}` : '',
+      updated ? `更新于 ${updated}` : '',
+    ].filter(Boolean);
+    return parts.join(' · ');
+  }
+
+  function renderAiCredentialStatus(meta) {
+    if (!aiCredentialStatus) return;
+    if (!isLoggedIn()) {
+      aiCredentialStatus.hidden = false;
+      aiCredentialStatus.textContent = isOnline()
+        ? '登录后可将密钥保存到云端；本机不保存明文。'
+        : '离线时云端 AI 不可用';
+      return;
+    }
+    if (!isOnline()) {
+      aiCredentialStatus.hidden = false;
+      aiCredentialStatus.textContent = '离线时云端 AI 不可用';
+      return;
+    }
+    aiCredentialStatus.hidden = false;
+    aiCredentialStatus.textContent = formatCredentialStatus(meta);
+  }
+
+  async function refreshAiCredentialStatus() {
+    if (!isLoggedIn() || !accountCloud?.client?.getAiCredential) {
+      renderAiCredentialStatus(null);
+      return;
+    }
+    if (!isOnline()) {
+      renderAiCredentialStatus(null);
+      return;
+    }
+    try {
+      const meta = await accountCloud.client.getAiCredential();
+      renderAiCredentialStatus(meta);
+      if (meta?.configured && meta.model && apiModel && ALLOWED_MODELS.has(meta.model)) {
+        apiModel.value = meta.model;
+      }
+    } catch {
+      renderAiCredentialStatus(null);
+    }
+  }
+
+  function persistStrippedLocalAiKeys(rawSubjectSettings) {
+    const stripped = stripApiKeysFromSubjectSettings(rawSubjectSettings);
+    leftoverAiKeys = [];
+    if (cachedSettings) {
+      cachedSettings.subjectSettings = stripApiKeysFromSubjectSettings(
+        cachedSettings.subjectSettings,
+      );
+    }
+    if (!isAccountCloudProgram()) return stripped;
+    try {
+      const raw = localStorage.getItem(LOCAL_SETTINGS_KEY);
+      const blob = raw ? JSON.parse(raw) : {};
+      if (!blob || typeof blob !== 'object') return stripped;
+      blob.subjectSettings = stripped;
+      localStorage.setItem(LOCAL_SETTINGS_KEY, JSON.stringify(blob));
+    } catch {
+      /* private mode / quota */
+    }
+    return stripped;
+  }
+
+  async function migrateLeftoverAiKeys() {
+    if (leftoverAiKeys.length === 0) return;
+    if (!isLoggedIn()) return;
+    if (!isOnline()) {
+      notify('离线时云端 AI 不可用', false);
+      return;
+    }
+    const first = leftoverAiKeys[0];
+    try {
+      await accountCloud.client.setAiCredential({
+        provider: inferProviderFromApiBase(first.apiBase),
+        model: first.model || DEFAULT_AI.model,
+        apiKey: first.apiKey,
+      });
+      const settings = await loadSettings();
+      persistStrippedLocalAiKeys(settings.subjectSettings);
+      leftoverAiKeys = [];
+      hydratedLeftoverAiKeys = [];
+      if (onSettingsPersisted && cachedSettings) {
+        try {
+          await onSettingsPersisted(cachedSettings);
+        } catch {
+          /* cloud already has the key; enqueue failure is not migrate failure */
+        }
+      }
+      await refreshAiCredentialStatus();
+    } catch (err) {
+      notify('本地密钥未能迁到云端，未删除本机明文', false);
+      throw err;
+    }
+  }
 
   let pendingIconDataUrl = null;
 
@@ -384,7 +525,24 @@ export async function initSettingsUI({
   async function openDrawer() {
     if (drawer?.classList.contains('is-open')) return;
     cachedSettings = null;
-    const settings = await loadSettings();
+    let rawSubjectSettings = {};
+    try {
+      const raw = await settingsApi.get();
+      rawSubjectSettings = raw?.subjectSettings ?? {};
+      leftoverAiKeys = [
+        ...extractLeftoverApiKeys(rawSubjectSettings),
+        ...hydratedLeftoverAiKeys,
+      ];
+      cachedSettings = settingsWithLocalTheme({
+        theme: normalizeTheme(raw.theme),
+        subjectSettings: normalizeSubjectSettings(rawSubjectSettings),
+      });
+    } catch (err) {
+      console.error('加载设置失败:', err);
+      leftoverAiKeys = [];
+      cachedSettings = settingsWithLocalTheme(structuredClone(DEFAULT_SETTINGS));
+    }
+    const settings = cachedSettings;
     syncThemePicker(settings.theme);
     syncSettingsSections();
     accountCloud?.refreshSettingsSection?.();
@@ -400,8 +558,21 @@ export async function initSettingsUI({
         renderDefaultPageOptions(subjectId, resolved);
       }
       if (apiBase) apiBase.value = slice.ai?.apiBase || DEFAULT_AI.apiBase;
-      if (apiKey) apiKey.value = slice.ai?.apiKey || '';
+      if (apiKey) apiKey.value = '';
       if (apiModel) apiModel.value = slice.ai?.model || DEFAULT_AI.model;
+      if (aiCloudOnlyHint) {
+        aiCloudOnlyHint.textContent = isOnline()
+          ? 'API Key 仅保存在云端，本机不保存明文。离线时云端 AI 不可用。'
+          : '离线时云端 AI 不可用';
+      }
+      await refreshAiCredentialStatus();
+      if (leftoverAiKeys.length > 0 && isLoggedIn()) {
+        try {
+          await migrateLeftoverAiKeys();
+        } catch {
+          /* migrateLeftoverAiKeys already notified; do not report success */
+        }
+      }
     }
 
     pendingIconDataUrl = null;
@@ -540,24 +711,37 @@ export async function initSettingsUI({
       notify('不支持的模型', false);
       return;
     }
+    const key = apiKey?.value?.trim() || '';
+    if (apiKey) apiKey.value = '';
     setSaveBusy(btnSaveAi, true, '保存 AI 设置');
     try {
-      const key = apiKey?.value?.trim() || '';
-      const ai = {
-        apiBase: apiBase?.value?.trim() || DEFAULT_AI.apiBase,
-        apiKey: key,
-        model,
-      };
-      await saveSubjectSettingsPatch(subjectId, { ai });
-
-      if (accountCloud?.session?.isAuthenticated?.() && key) {
-        const provider = /openai/i.test(ai.apiBase) ? 'openai' : 'deepseek';
+      if (key) {
+        if (!isLoggedIn()) {
+          notify('请先登录后再保存 API Key（密钥仅存云端）', false);
+          return;
+        }
+        if (!isOnline()) {
+          notify('离线时云端 AI 不可用', false);
+          return;
+        }
         await accountCloud.client.setAiCredential({
-          provider,
+          provider: inferProviderFromApiBase(apiBase?.value),
           model,
           apiKey: key,
         });
-        notify('已保存（含云端凭证）', true);
+      }
+
+      await saveSubjectSettingsPatch(subjectId, {
+        ai: {
+          apiBase: apiBase?.value?.trim() || DEFAULT_AI.apiBase,
+          model,
+        },
+      });
+
+      if (key) {
+        persistStrippedLocalAiKeys(cachedSettings?.subjectSettings ?? {});
+        await refreshAiCredentialStatus();
+        notify('已保存至云端', true);
       } else {
         notify('已保存', true);
       }

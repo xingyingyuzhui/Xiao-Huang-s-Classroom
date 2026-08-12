@@ -53,4 +53,5 @@ test('settings.js does not unconditionally require lab settingsApi in cloud mode
     /fetch\(['"`]\/api\/settings/,
     'settings.js must not fetch lab /api/settings directly',
   );
+  assert.match(settingsSrc, /ensureLocalOnlyHint\(subjectSection\)/);
 });
