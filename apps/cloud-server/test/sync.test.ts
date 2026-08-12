@@ -163,6 +163,44 @@ describe('sync push/pull', () => {
     expect(dupChanges).toHaveLength(1);
   });
 
+  it('rejects null-base create when resource already exists', async () => {
+    const resourceId = 'doc-sync-null-overwrite';
+    const create = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-null-overwrite-create',
+            envelope: makeEnvelope({ workspaceId, resourceId, baseRevision: null }),
+          },
+        ],
+      });
+    expect(create.body.data.applied).toEqual(['op-null-overwrite-create']);
+
+    const overwrite = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-null-overwrite-attempt',
+            envelope: makeEnvelope({
+              workspaceId,
+              resourceId,
+              baseRevision: null,
+              payload: { hijack: true },
+            }),
+          },
+        ],
+      });
+    expect(overwrite.body.data.applied).toEqual([]);
+    expect(overwrite.body.data.conflicts).toHaveLength(1);
+    expect(overwrite.body.data.conflicts[0].operationId).toBe('op-null-overwrite-attempt');
+  });
+
   it('returns conflict when baseRevision does not match server revision', async () => {
     const resourceId = 'doc-sync-conflict';
     const create = await agent
@@ -406,6 +444,208 @@ describe('sync push/pull', () => {
     expect(secondPage.status).toBe(200);
     expect(secondPage.body.data.changes).toHaveLength(1);
     expect(secondPage.body.data.hasMore).toBe(false);
+  });
+
+  it('allows only one concurrent update at the same base revision', async () => {
+    const resourceId = 'doc-sync-race-update';
+    const create = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-race-update-create',
+            envelope: makeEnvelope({ workspaceId, resourceId, baseRevision: null }),
+          },
+        ],
+      });
+    expect(create.body.data.applied).toEqual(['op-race-update-create']);
+
+    const [first, second] = await Promise.all([
+      agent
+        .post('/api/cloud/v1/sync/push')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          workspaceId,
+          operations: [
+            {
+              operationId: 'op-race-update-a',
+              envelope: makeEnvelope({
+                workspaceId,
+                resourceId,
+                baseRevision: 1,
+                revision: 2,
+                payload: { from: 'a' },
+              }),
+            },
+          ],
+        }),
+      agent
+        .post('/api/cloud/v1/sync/push')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          workspaceId,
+          operations: [
+            {
+              operationId: 'op-race-update-b',
+              envelope: makeEnvelope({
+                workspaceId,
+                resourceId,
+                baseRevision: 1,
+                revision: 2,
+                payload: { from: 'b' },
+              }),
+            },
+          ],
+        }),
+    ]);
+
+    const appliedCount =
+      (first.body.data.applied?.length ?? 0) + (second.body.data.applied?.length ?? 0);
+    const conflictCount =
+      (first.body.data.conflicts?.length ?? 0) + (second.body.data.conflicts?.length ?? 0);
+    expect(appliedCount).toBe(1);
+    expect(conflictCount).toBe(1);
+  });
+
+  it('treats concurrent duplicate operationId retries as idempotent', async () => {
+    const resourceId = 'doc-sync-race-opid';
+    const envelope = makeEnvelope({
+      workspaceId,
+      resourceId,
+      payload: { note: 'race' },
+    });
+    const [first, second] = await Promise.all([
+      agent
+        .post('/api/cloud/v1/sync/push')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          workspaceId,
+          operations: [{ operationId: 'op-race-opid', envelope }],
+        }),
+      agent
+        .post('/api/cloud/v1/sync/push')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          workspaceId,
+          operations: [{ operationId: 'op-race-opid', envelope }],
+        }),
+    ]);
+
+    expect(first.body.data.applied).toEqual(['op-race-opid']);
+    expect(second.body.data.applied).toEqual(['op-race-opid']);
+    expect(first.body.data.conflicts).toEqual([]);
+    expect(second.body.data.conflicts).toEqual([]);
+
+    const pull = await agent
+      .get('/api/cloud/v1/sync/pull')
+      .query({ workspaceId })
+      .set('Authorization', `Bearer ${userAToken}`);
+    const matches = pull.body.data.changes.filter(
+      (change: { resourceId: string }) => change.resourceId === resourceId,
+    );
+    expect(matches).toHaveLength(1);
+    expect(matches[0].revision).toBe(1);
+  });
+
+  it('does not append change log entries for conflicts', async () => {
+    const resourceId = 'doc-sync-no-changelog-on-conflict';
+    const create = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-no-changelog-create',
+            envelope: makeEnvelope({ workspaceId, resourceId, baseRevision: null }),
+          },
+        ],
+      });
+    expect(create.body.data.applied).toEqual(['op-no-changelog-create']);
+
+    const beforePull = await agent
+      .get('/api/cloud/v1/sync/pull')
+      .query({ workspaceId })
+      .set('Authorization', `Bearer ${userAToken}`);
+    const beforeCount = beforePull.body.data.changes.filter(
+      (change: { resourceId: string }) => change.resourceId === resourceId,
+    ).length;
+
+    const conflict = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-no-changelog-conflict',
+            envelope: makeEnvelope({
+              workspaceId,
+              resourceId,
+              baseRevision: 99,
+              revision: 2,
+              payload: { stale: true },
+            }),
+          },
+        ],
+      });
+    expect(conflict.body.data.conflicts).toHaveLength(1);
+
+    const afterPull = await agent
+      .get('/api/cloud/v1/sync/pull')
+      .query({ workspaceId })
+      .set('Authorization', `Bearer ${userAToken}`);
+    const afterCount = afterPull.body.data.changes.filter(
+      (change: { resourceId: string }) => change.resourceId === resourceId,
+    ).length;
+    expect(afterCount).toBe(beforeCount);
+  });
+
+  it('allows only one concurrent create for the same resource', async () => {
+    const resourceId = 'doc-sync-race-create';
+    const [first, second] = await Promise.all([
+      agent
+        .post('/api/cloud/v1/sync/push')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          workspaceId,
+          operations: [
+            {
+              operationId: 'op-race-create-a',
+              envelope: makeEnvelope({
+                workspaceId,
+                resourceId,
+                payload: { from: 'a' },
+              }),
+            },
+          ],
+        }),
+      agent
+        .post('/api/cloud/v1/sync/push')
+        .set('Authorization', `Bearer ${userAToken}`)
+        .send({
+          workspaceId,
+          operations: [
+            {
+              operationId: 'op-race-create-b',
+              envelope: makeEnvelope({
+                workspaceId,
+                resourceId,
+                payload: { from: 'b' },
+              }),
+            },
+          ],
+        }),
+    ]);
+
+    const appliedCount =
+      (first.body.data.applied?.length ?? 0) + (second.body.data.applied?.length ?? 0);
+    const conflictCount =
+      (first.body.data.conflicts?.length ?? 0) + (second.body.data.conflicts?.length ?? 0);
+    expect(appliedCount).toBe(1);
+    expect(conflictCount).toBe(1);
   });
 
   it('pulls tombstoned resources with deletedAt set', async () => {

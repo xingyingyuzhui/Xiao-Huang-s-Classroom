@@ -53,6 +53,95 @@ export class SyncRepository {
     return result.rows[0] ?? null;
   }
 
+  async tryInsertResource(
+    accountId: string,
+    workspaceId: string,
+    envelope: SyncEntityEnvelope,
+  ): Promise<number | null> {
+    const deletedAt = envelope.deletedAt ? new Date(envelope.deletedAt) : null;
+    const result = await this.db.query<{ revision: string }>(
+      `INSERT INTO sync_resources (
+         resource_id, workspace_id, account_id, resource_type, schema_version,
+         revision, payload, content_hash, deleted_at
+       ) VALUES ($1, $2, $3, $4, $5, 1, $6, $7, $8)
+       ON CONFLICT (workspace_id, resource_type, resource_id) DO NOTHING
+       RETURNING revision`,
+      [
+        envelope.resourceId,
+        workspaceId,
+        accountId,
+        envelope.resourceType,
+        envelope.schemaVersion,
+        JSON.stringify(envelope.payload),
+        envelope.contentHash,
+        deletedAt,
+      ],
+    );
+    return result.rows[0] ? Number(result.rows[0].revision) : null;
+  }
+
+  async updateResourceCas(
+    workspaceId: string,
+    resourceType: string,
+    resourceId: string,
+    baseRevision: number,
+    envelope: SyncEntityEnvelope,
+  ): Promise<number | null> {
+    const deletedAt = envelope.deletedAt ? new Date(envelope.deletedAt) : null;
+    const result = await this.db.query<{ revision: string }>(
+      `UPDATE sync_resources
+       SET schema_version = $5,
+           revision = revision + 1,
+           payload = $6,
+           content_hash = $7,
+           deleted_at = $8,
+           updated_at = NOW()
+       WHERE workspace_id = $1
+         AND resource_type = $2
+         AND resource_id = $3
+         AND revision = $4
+       RETURNING revision`,
+      [
+        workspaceId,
+        resourceType,
+        resourceId,
+        baseRevision,
+        envelope.schemaVersion,
+        JSON.stringify(envelope.payload),
+        envelope.contentHash,
+        deletedAt,
+      ],
+    );
+    return result.rows[0] ? Number(result.rows[0].revision) : null;
+  }
+
+  async claimOperation(
+    accountId: string,
+    operationId: string,
+    workspaceId: string,
+    contentHash: string,
+  ): Promise<'claimed' | 'duplicate' | 'mismatch'> {
+    const inserted = await this.db.query<{ content_hash: string | null }>(
+      `INSERT INTO sync_operations (account_id, operation_id, workspace_id, status, content_hash)
+       VALUES ($1, $2, $3, 'applied', $4)
+       ON CONFLICT (account_id, operation_id) DO NOTHING
+       RETURNING content_hash`,
+      [accountId, operationId, workspaceId, contentHash],
+    );
+    if (inserted.rows[0]) {
+      return 'claimed';
+    }
+    const existing = await this.findOperation(accountId, operationId);
+    if (!existing) {
+      return 'claimed';
+    }
+    if (existing.content_hash && existing.content_hash !== contentHash) {
+      return 'mismatch';
+    }
+    return 'duplicate';
+  }
+
+  /** @deprecated use tryInsertResource / updateResourceCas */
   async upsertResource(
     accountId: string,
     workspaceId: string,

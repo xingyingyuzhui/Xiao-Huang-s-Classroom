@@ -63,15 +63,15 @@ function toPullChange(row: {
   };
 }
 
-function isConflict(
+function shouldConflict(
   existing: { revision: string } | null,
   envelope: SyncEntityEnvelope,
 ): boolean {
   if (envelope.baseRevision === null) {
-    return false;
+    return existing !== null;
   }
   if (!existing) {
-    return envelope.baseRevision !== 0;
+    return true;
   }
   return envelope.baseRevision !== Number(existing.revision);
 }
@@ -175,14 +175,73 @@ export class SyncService {
           envelope.resourceId,
         );
 
-        if (isConflict(existing, envelope)) {
+        if (shouldConflict(existing, envelope)) {
           conflicts.push(toConflictEntry(operationId, envelope, existing));
           continue;
         }
 
         const verified: SyncEntityEnvelope = { ...envelope, contentHash: expectedHash };
-        const revision = await sync.upsertResource(accountId, workspaceId, verified);
-        await sync.recordOperation(accountId, operationId, workspaceId, 'applied', expectedHash);
+        let revision: number | null = null;
+        if (envelope.baseRevision === null) {
+          revision = await sync.tryInsertResource(accountId, workspaceId, verified);
+          if (revision === null) {
+            const racedOperation = await sync.findOperation(accountId, operationId);
+            if (
+              racedOperation &&
+              (!racedOperation.content_hash || racedOperation.content_hash === expectedHash)
+            ) {
+              applied.push(operationId);
+              continue;
+            }
+            const raced = await sync.findResource(
+              workspaceId,
+              envelope.resourceType,
+              envelope.resourceId,
+            );
+            conflicts.push(toConflictEntry(operationId, envelope, raced));
+            continue;
+          }
+        } else {
+          revision = await sync.updateResourceCas(
+            workspaceId,
+            envelope.resourceType,
+            envelope.resourceId,
+            envelope.baseRevision,
+            verified,
+          );
+          if (revision === null) {
+            const racedOperation = await sync.findOperation(accountId, operationId);
+            if (
+              racedOperation &&
+              (!racedOperation.content_hash || racedOperation.content_hash === expectedHash)
+            ) {
+              applied.push(operationId);
+              continue;
+            }
+            const raced = await sync.findResource(
+              workspaceId,
+              envelope.resourceType,
+              envelope.resourceId,
+            );
+            conflicts.push(toConflictEntry(operationId, envelope, raced));
+            continue;
+          }
+        }
+
+        const recorded = await sync.claimOperation(accountId, operationId, workspaceId, expectedHash);
+        if (recorded === 'duplicate') {
+          applied.push(operationId);
+          continue;
+        }
+        if (recorded === 'mismatch') {
+          rejected.push({
+            operationId,
+            code: 'SYNC_OPERATION_PAYLOAD_MISMATCH',
+            message: '相同操作已用不同载荷提交',
+          });
+          continue;
+        }
+
         await sync.appendChangeLog(
           accountId,
           workspaceId,
