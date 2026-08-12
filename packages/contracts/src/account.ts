@@ -8,6 +8,8 @@ export const accountProfileSchema = z.object({
   displayName: displayNameSchema,
   avatarUrl: z.string().url().max(512).nullable(),
   email: z.string().email().max(254).nullable(),
+  status: z.enum(['active', 'pending_deletion']),
+  pendingDeletionAt: z.string().datetime().nullable(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
@@ -26,6 +28,17 @@ export const accountPasswordChangeSchema = z.object({
 
 export const accountDeletionRequestSchema = z.object({
   confirmDisplayName: displayNameSchema,
+  currentPassword: z.string().min(8).max(128),
+});
+
+export const accountDeletionResponseSchema = z.object({
+  accountId: accountIdSchema,
+  pendingDeletionAt: z.string().datetime(),
+});
+
+export const accountDeletionCancelResponseSchema = z.object({
+  accountId: accountIdSchema,
+  restored: z.literal(true),
 });
 
 export const rememberedAccountCardSchema = z.object({

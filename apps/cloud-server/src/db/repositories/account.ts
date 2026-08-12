@@ -95,4 +95,18 @@ export class AccountRepository {
     );
     return result.rows[0] ?? null;
   }
+
+  async listExpiredPendingDeletion(): Promise<AccountRow[]> {
+    const result = await this.db.query<AccountRow>(
+      `SELECT account_id, display_name, avatar_url, email, status, pending_deletion_at, created_at, updated_at
+       FROM accounts
+       WHERE status = 'pending_deletion' AND pending_deletion_at <= NOW()`,
+    );
+    return result.rows;
+  }
+
+  async hardDelete(accountId: string): Promise<boolean> {
+    const result = await this.db.query(`DELETE FROM accounts WHERE account_id = $1`, [accountId]);
+    return (result.rowCount ?? 0) > 0;
+  }
 }

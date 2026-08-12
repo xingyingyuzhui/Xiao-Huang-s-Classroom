@@ -232,6 +232,33 @@ export class CloudClient {
     return this.request('PATCH', '/account', patch);
   }
 
+  async getAccountProfile(): Promise<{
+    accountId: string;
+    displayName: string;
+    avatarUrl: string | null;
+    email: string | null;
+    status: 'active' | 'pending_deletion';
+    pendingDeletionAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }> {
+    return this.request('GET', '/account');
+  }
+
+  async requestAccountDeletion(
+    confirmDisplayName: string,
+    currentPassword: string,
+  ): Promise<{ accountId: string; pendingDeletionAt: string }> {
+    return this.request('POST', '/account/deletion-request', {
+      confirmDisplayName,
+      currentPassword,
+    });
+  }
+
+  async cancelAccountDeletion(): Promise<{ accountId: string; restored: true }> {
+    return this.request('DELETE', '/account/deletion-request');
+  }
+
   async getAiCredential(): Promise<{
     configured: boolean;
     provider?: string;

@@ -8,6 +8,9 @@ export const AUDIT_EVENTS = {
   CLASS_RESTORE: 'class.restore',
   AI_CREDENTIAL_SET: 'ai.credential_set',
   AI_CREDENTIAL_REMOVE: 'ai.credential_remove',
+  ACCOUNT_DELETION_REQUESTED: 'account.deletion_requested',
+  ACCOUNT_DELETION_CANCELLED: 'account.deletion_cancelled',
+  ACCOUNT_DELETION_COMPLETED: 'account.deletion_completed',
   ADMIN_CLEANUP: 'admin.cleanup',
 } as const;
 

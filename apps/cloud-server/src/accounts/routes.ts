@@ -1,19 +1,26 @@
 import { Router } from 'express';
 import {
+  accountDeletionCancelResponseSchema,
   accountDeletionRequestSchema,
+  accountDeletionResponseSchema,
   accountPasswordChangeSchema,
   accountProfilePatchSchema,
   accountProfileSchema,
 } from '@xiaohuang/contracts';
 import type { DbPool } from '../db/pool.js';
 import { AccountService } from './service.js';
-import { requireAuth, requireFullScope, validateBody } from '../middleware/guards.js';
+import {
+  requireAccountRestoreScope,
+  requireAuth,
+  requireFullScope,
+  validateBody,
+} from '../middleware/guards.js';
 
 export function createAccountsRouter(pool: DbPool): Router {
   const router = Router();
   const accounts = new AccountService(pool);
 
-  router.get('/', requireAuth, requireFullScope, async (req, res, next) => {
+  router.get('/', requireAuth, requireAccountRestoreScope, async (req, res, next) => {
     try {
       const profile = await accounts.getProfile(req.principal!.accountId!);
       res.json({
@@ -63,25 +70,39 @@ export function createAccountsRouter(pool: DbPool): Router {
   router.post(
     '/deletion-request',
     requireAuth,
+    requireFullScope,
     validateBody(accountDeletionRequestSchema),
     async (req, res, next) => {
       try {
-        const body = req.body as { confirmDisplayName: string };
+        const body = req.body as { confirmDisplayName: string; currentPassword: string };
         const data = await accounts.requestDeletion(
           req.principal!.accountId!,
           body.confirmDisplayName,
+          body.currentPassword,
+          { ipAddress: req.ip, requestId: req.requestId },
         );
-        res.json({ success: true, data, requestId: req.requestId });
+        res.json({
+          success: true,
+          data: accountDeletionResponseSchema.parse(data),
+          requestId: req.requestId,
+        });
       } catch (error) {
         next(error);
       }
     },
   );
 
-  router.delete('/deletion-request', requireAuth, async (req, res, next) => {
+  router.delete('/deletion-request', requireAuth, requireAccountRestoreScope, async (req, res, next) => {
     try {
-      const data = await accounts.cancelDeletion(req.principal!.accountId!);
-      res.json({ success: true, data, requestId: req.requestId });
+      const data = await accounts.cancelDeletion(req.principal!.accountId!, {
+        ipAddress: req.ip,
+        requestId: req.requestId,
+      });
+      res.json({
+        success: true,
+        data: accountDeletionCancelResponseSchema.parse(data),
+        requestId: req.requestId,
+      });
     } catch (error) {
       next(error);
     }

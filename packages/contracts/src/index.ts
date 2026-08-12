@@ -45,6 +45,8 @@ export {
   accountProfilePatchSchema,
   accountPasswordChangeSchema,
   accountDeletionRequestSchema,
+  accountDeletionResponseSchema,
+  accountDeletionCancelResponseSchema,
   rememberedAccountCardSchema,
 } from './account.js';
 export type { AccountProfile, RememberedAccountCard } from './account.js';

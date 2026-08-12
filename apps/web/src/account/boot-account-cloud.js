@@ -38,6 +38,8 @@ import { appConfirm } from '../shared/ui/app-dialog.js';
 import { getCurrentSubjectId } from '../subjects/session.js';
 
 const DEVICE_ID_KEY = 'xh-device-id';
+/** @type {boolean} */
+let accountPendingDeletion = false;
 
 /**
  * @typedef {object} AccountCloudBundle
@@ -579,112 +581,230 @@ export async function bootAccountCloud() {
 
     const current = session.getSession();
     if (current && session.isAuthenticated()) {
-      const summary = document.createElement('div');
-      summary.className = 'account-settings-summary';
-      summary.textContent = `已登录：${current.displayName}`;
-      wrap.appendChild(summary);
-
-      const wsHint = document.createElement('p');
-      wsHint.className = 'settings-hint';
-      const ctx = contextStore.getContext();
-      wsHint.textContent =
-        ctx.kind === 'class'
-          ? `当前工作区：班级（${ctx.classId}）`
-          : '当前工作区：个人空间';
-      wrap.appendChild(wsHint);
-
-      const logoutBtn = createButton({
-        label: '退出登录',
-        kind: 'secondary',
-        onClick: () => {
-          void (async () => {
-            const desktopApi = getDesktopAccountApi();
-            try {
-              if (desktopApi?.logout && current) {
-                await desktopApi.logout(current.accountId, deviceId);
-              } else {
-                await client.logout();
-              }
-            } catch {
-              /* local clear still proceeds */
-            }
-            session.clearSession();
-            await switchToGuest();
-            refreshSettingsSection();
-          })();
-        },
-      });
-      wrap.appendChild(logoutBtn.element);
-
-      const pwRow = document.createElement('div');
-      pwRow.className = 'account-password-row';
-      const currentPw = createInput({ placeholder: '当前密码', 'aria-label': '当前密码' });
-      const nextPw = createInput({ placeholder: '新密码（至少 8 位）', 'aria-label': '新密码' });
-      /** @type {HTMLInputElement} */ (currentPw.element).type = 'password';
-      /** @type {HTMLInputElement} */ (nextPw.element).type = 'password';
-      const pwBtn = createButton({
-        label: '修改密码',
-        kind: 'secondary',
-        onClick: async () => {
-          const currentPassword = /** @type {HTMLInputElement} */ (currentPw.element).value;
-          const newPassword = /** @type {HTMLInputElement} */ (nextPw.element).value;
-          if (!currentPassword || newPassword.length < 8) return;
-          pwBtn.update({ disabled: true, loading: true });
-          try {
-            await client.changePassword(currentPassword, newPassword);
-            /** @type {HTMLInputElement} */ (currentPw.element).value = '';
-            /** @type {HTMLInputElement} */ (nextPw.element).value = '';
-          } catch (err) {
-            console.error('[account-cloud] changePassword failed', err);
-          } finally {
-            pwBtn.update({ disabled: false, loading: false });
-          }
-        },
-      });
-      pwRow.append(currentPw.element, nextPw.element, pwBtn.element);
-      wrap.appendChild(pwRow);
-
-      const deviceHost = document.createElement('div');
-      deviceHost.className = 'account-device-list';
-      deviceHost.textContent = '正在加载设备…';
-      wrap.appendChild(deviceHost);
       void (async () => {
+        let profile = null;
+        try {
+          profile = await client.getAccountProfile();
+        } catch (err) {
+          console.error('[account-cloud] getAccountProfile failed', err);
+        }
+
+        wrap.textContent = '';
+        const summary = document.createElement('div');
+        summary.className = 'account-settings-summary';
+        summary.textContent = `已登录：${profile?.displayName ?? current.displayName}`;
+        wrap.appendChild(summary);
+
+        if (profile?.status === 'pending_deletion') {
+          accountPendingDeletion = true;
+          const pendingHint = document.createElement('p');
+          pendingHint.className = 'settings-hint account-danger-hint';
+          const deadline = profile.pendingDeletionAt
+            ? new Date(profile.pendingDeletionAt).toLocaleString()
+            : '30 天内';
+          pendingHint.textContent = `账户已申请删除，将于 ${deadline} 永久清除。30 天内可恢复。`;
+          wrap.appendChild(pendingHint);
+
+          const restoreBtn = createButton({
+            label: '恢复账户',
+            kind: 'primary',
+            onClick: async () => {
+              restoreBtn.update({ disabled: true, loading: true });
+              try {
+                await client.cancelAccountDeletion();
+                const refreshed = await client.refreshSession();
+                if (refreshed) {
+                  session.setSession(refreshed);
+                }
+                refreshSettingsSection();
+              } catch (err) {
+                console.error('[account-cloud] cancelAccountDeletion failed', err);
+              } finally {
+                restoreBtn.update({ disabled: false, loading: false });
+              }
+            },
+          });
+          wrap.appendChild(restoreBtn.element);
+
+          const logoutBtn = createButton({
+            label: '退出登录',
+            kind: 'secondary',
+            onClick: () => {
+              void (async () => {
+                const desktopApi = getDesktopAccountApi();
+                try {
+                  if (desktopApi?.logout && current) {
+                    await desktopApi.logout(current.accountId, deviceId);
+                  } else {
+                    await client.logout();
+                  }
+                } catch {
+                  /* local clear still proceeds */
+                }
+                session.clearSession();
+                await switchToGuest();
+                refreshSettingsSection();
+              })();
+            },
+          });
+          wrap.appendChild(logoutBtn.element);
+          root.appendChild(wrap);
+          return;
+        }
+
+        accountPendingDeletion = false;
+
+        const wsHint = document.createElement('p');
+        wsHint.className = 'settings-hint';
+        const ctx = contextStore.getContext();
+        wsHint.textContent =
+          ctx.kind === 'class'
+            ? `当前工作区：班级（${ctx.classId}）`
+            : '当前工作区：个人空间';
+        wrap.appendChild(wsHint);
+
+        const logoutBtn = createButton({
+          label: '退出登录',
+          kind: 'secondary',
+          onClick: () => {
+            void (async () => {
+              const desktopApi = getDesktopAccountApi();
+              try {
+                if (desktopApi?.logout && current) {
+                  await desktopApi.logout(current.accountId, deviceId);
+                } else {
+                  await client.logout();
+                }
+              } catch {
+                /* local clear still proceeds */
+              }
+              session.clearSession();
+              await switchToGuest();
+              refreshSettingsSection();
+            })();
+          },
+        });
+        wrap.appendChild(logoutBtn.element);
+
+        const pwRow = document.createElement('div');
+        pwRow.className = 'account-password-row';
+        const currentPw = createInput({ placeholder: '当前密码', 'aria-label': '当前密码' });
+        const nextPw = createInput({ placeholder: '新密码（至少 8 位）', 'aria-label': '新密码' });
+        /** @type {HTMLInputElement} */ (currentPw.element).type = 'password';
+        /** @type {HTMLInputElement} */ (nextPw.element).type = 'password';
+        const pwBtn = createButton({
+          label: '修改密码',
+          kind: 'secondary',
+          onClick: async () => {
+            const currentPassword = /** @type {HTMLInputElement} */ (currentPw.element).value;
+            const newPassword = /** @type {HTMLInputElement} */ (nextPw.element).value;
+            if (!currentPassword || newPassword.length < 8) return;
+            pwBtn.update({ disabled: true, loading: true });
+            try {
+              await client.changePassword(currentPassword, newPassword);
+              /** @type {HTMLInputElement} */ (currentPw.element).value = '';
+              /** @type {HTMLInputElement} */ (nextPw.element).value = '';
+            } catch (err) {
+              console.error('[account-cloud] changePassword failed', err);
+            } finally {
+              pwBtn.update({ disabled: false, loading: false });
+            }
+          },
+        });
+        pwRow.append(currentPw.element, nextPw.element, pwBtn.element);
+        wrap.appendChild(pwRow);
+
+        const deviceHost = document.createElement('div');
+        deviceHost.className = 'account-device-list';
+        deviceHost.textContent = '正在加载设备…';
+        wrap.appendChild(deviceHost);
         try {
           const devices = await client.listDevices();
           deviceHost.textContent = '';
           if (!devices.length) {
             deviceHost.textContent = '没有活动设备';
-            return;
-          }
-          for (const device of devices) {
-            const row = document.createElement('div');
-            row.className = 'account-device-row';
-            const label = document.createElement('span');
-            label.textContent = `${device.label}${device.current ? '（本机）' : ''}`;
-            row.appendChild(label);
-            if (!device.current) {
-              const revokeBtn = createButton({
-                label: '远程撤销',
-                kind: 'danger',
-                size: 'sm',
-                onClick: async () => {
-                  const ok = await appConfirm('撤销后该设备需重新登录。', { danger: true });
-                  if (!ok) return;
-                  await client.revokeDevice(device.sessionId);
-                  refreshSettingsSection();
-                },
-              });
-              row.appendChild(revokeBtn.element);
+          } else {
+            for (const device of devices) {
+              const row = document.createElement('div');
+              row.className = 'account-device-row';
+              const label = document.createElement('span');
+              label.textContent = `${device.label}${device.current ? '（本机）' : ''}`;
+              row.appendChild(label);
+              if (!device.current) {
+                const revokeBtn = createButton({
+                  label: '远程撤销',
+                  kind: 'danger',
+                  size: 'sm',
+                  onClick: async () => {
+                    const ok = await appConfirm('撤销后该设备需重新登录。', { danger: true });
+                    if (!ok) return;
+                    await client.revokeDevice(device.sessionId);
+                    refreshSettingsSection();
+                  },
+                });
+                row.appendChild(revokeBtn.element);
+              }
+              deviceHost.appendChild(row);
             }
-            deviceHost.appendChild(row);
           }
         } catch (err) {
           console.error('[account-cloud] listDevices failed', err);
           deviceHost.textContent = '无法加载设备列表';
         }
+
+        const dangerZone = document.createElement('div');
+        dangerZone.className = 'account-danger-zone';
+        const dangerTitle = document.createElement('h4');
+        dangerTitle.className = 'account-danger-title';
+        dangerTitle.textContent = '危险区域';
+        dangerZone.appendChild(dangerTitle);
+        const dangerHint = document.createElement('p');
+        dangerHint.className = 'settings-hint account-danger-hint';
+        dangerHint.textContent =
+          '删除账户后 30 天内可恢复；到期后云端班级、同步数据与 AI 凭据将被永久清除。';
+        dangerZone.appendChild(dangerHint);
+        const deletePw = createInput({
+          placeholder: '当前密码',
+          'aria-label': '删除账户确认密码',
+        });
+        /** @type {HTMLInputElement} */ (deletePw.element).type = 'password';
+        const deleteName = createInput({
+          placeholder: '输入显示名以确认',
+          'aria-label': '删除账户确认显示名',
+        });
+        const deleteBtn = createButton({
+          label: '删除账户',
+          kind: 'danger',
+          onClick: async () => {
+            const currentPassword = /** @type {HTMLInputElement} */ (deletePw.element).value;
+            const confirmDisplayName = /** @type {HTMLInputElement} */ (deleteName.element).value;
+            if (!currentPassword || !confirmDisplayName) return;
+            const ok = await appConfirm(
+              '确定申请删除账户？提交后将立即退出登录，30 天内可恢复。',
+              { danger: true },
+            );
+            if (!ok) return;
+            deleteBtn.update({ disabled: true, loading: true });
+            try {
+              await client.requestAccountDeletion(confirmDisplayName, currentPassword);
+              session.clearSession();
+              await switchToGuest();
+              refreshSettingsSection();
+            } catch (err) {
+              console.error('[account-cloud] requestAccountDeletion failed', err);
+            } finally {
+              deleteBtn.update({ disabled: false, loading: false });
+            }
+          },
+        });
+        dangerZone.append(deletePw.element, deleteName.element, deleteBtn.element);
+        wrap.appendChild(dangerZone);
+        root.appendChild(wrap);
       })();
-    } else {
-      const hint = document.createElement('p');
+      return;
+    }
+
+    const hint = document.createElement('p');
       hint.className = 'settings-hint';
       hint.textContent = '登录后可使用云同步（访客模式仍可离线使用教室）。';
       wrap.appendChild(hint);
@@ -898,8 +1018,11 @@ export async function bootAccountCloud() {
     if (section) section.hidden = false;
     renderAccountBlock(accountRoot);
     const authed = session.isAuthenticated();
-    if (syncBlock) syncBlock.hidden = !authed;
-    if (classBlock) classBlock.hidden = !authed;
+    if (!authed) {
+      accountPendingDeletion = false;
+    }
+    if (syncBlock) syncBlock.hidden = !authed || accountPendingDeletion;
+    if (classBlock) classBlock.hidden = !authed || accountPendingDeletion;
     renderSyncBlock(syncRoot);
     void renderClassBlock(classRoot, guestRoot);
   }

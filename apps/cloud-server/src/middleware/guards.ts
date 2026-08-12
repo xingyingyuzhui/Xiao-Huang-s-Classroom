@@ -30,6 +30,15 @@ export function requireFullScope(req: Request, _res: Response, next: NextFunctio
   next();
 }
 
+export function requireAccountRestoreScope(req: Request, _res: Response, next: NextFunction): void {
+  const scope = req.principal?.scope;
+  if (scope === 'full' || scope === 'account:restore') {
+    next();
+    return;
+  }
+  next(new AppError('FORBIDDEN_TENANT', '当前会话权限不足'));
+}
+
 export function csrfProtect(config: { publicOrigin: string }) {
   return (req: Request, _res: Response, next: NextFunction): void => {
     const origin = req.header('origin');
