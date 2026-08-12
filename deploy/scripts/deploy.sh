@@ -52,14 +52,32 @@ done
 [[ "$ready" == "1" ]]
 
 META="$(curl -sf http://127.0.0.1:3000/api/cloud/v1/meta)" || { echo "ERROR: /meta failed"; exit 1; }
-META_SHA="$(node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.data?.gitSha||''))" "$META")"
+META_SHA="$(
+  if command -v node >/dev/null 2>&1; then
+    node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.data?.gitSha||''))" "$META"
+  elif command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("data",{}).get("gitSha",""), end="")' "$META"
+  else
+    echo "ERROR: need node or python3 to parse /meta" >&2
+    exit 1
+  fi
+)"
 if [[ "$META_SHA" != "$SHA" ]]; then
   echo "ERROR: cloud meta gitSha '$META_SHA' != deploy sha '$SHA'"
   exit 1
 fi
 
 if [[ -f "$RELEASE_DIR/web/version.json" ]]; then
-  WEB_SHA="$(node -e "const m=require(process.argv[1]); process.stdout.write(String(m.gitSha||''))" "$RELEASE_DIR/web/version.json")"
+  WEB_SHA="$(
+    if command -v node >/dev/null 2>&1; then
+      node -e "const m=require(process.argv[1]); process.stdout.write(String(m.gitSha||''))" "$RELEASE_DIR/web/version.json"
+    elif command -v python3 >/dev/null 2>&1; then
+      python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("gitSha",""), end="")' "$RELEASE_DIR/web/version.json"
+    else
+      echo "ERROR: need node or python3 to parse version.json" >&2
+      exit 1
+    fi
+  )"
   if [[ "$WEB_SHA" != "$SHA" ]]; then
     echo "ERROR: web version.json gitSha '$WEB_SHA' != deploy sha '$SHA'"
     exit 1
@@ -67,6 +85,10 @@ if [[ -f "$RELEASE_DIR/web/version.json" ]]; then
 fi
 
 mkdir -p "$DEPLOY_ROOT/releases/current"
+# Prefer atomic symlink swap; if current/web is still a real directory (legacy), replace it.
+if [[ -d "$DEPLOY_ROOT/releases/current/web" && ! -L "$DEPLOY_ROOT/releases/current/web" ]]; then
+  mv "$DEPLOY_ROOT/releases/current/web" "$DEPLOY_ROOT/releases/current/web.bak.$(date +%s)"
+fi
 ln -sfn "$RELEASE_DIR/web" "$DEPLOY_ROOT/releases/current/web.new"
 mv -Tf "$DEPLOY_ROOT/releases/current/web.new" "$DEPLOY_ROOT/releases/current/web"
 

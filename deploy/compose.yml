@@ -38,7 +38,8 @@ services:
       - /tmp
       - /run
       - /var/run/postgresql
-    read_only: true
+    # Named volume must remain writable for postgres entrypoint (find/initdb).
+    read_only: false
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -48,6 +49,10 @@ services:
       - FOWNER
       - SETGID
       - SETUID
+      # Entrypoint runs as root then drops; without DAC_OVERRIDE, find(1) on
+      # the 0700 data dir fails with "Permission denied" and the DB loops.
+      - DAC_OVERRIDE
+      - DAC_READ_SEARCH
     # Never publish 5432 on the host. Cloud-server reaches postgres on the internal net.
     expose:
       - '5432'

@@ -18,12 +18,24 @@ META="$(curl -sf "$META_URL")" || { echo "FAIL: /api/cloud/v1/meta"; exit 1; }
 echo "[verify] /api/cloud/v1/meta ok"
 
 if [[ -n "$EXPECTED_SHA" ]]; then
-  META_SHA="$(node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.data?.gitSha||''))" "$META")"
+  META_SHA="$(
+    if command -v node >/dev/null 2>&1; then
+      node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.data?.gitSha||''))" "$META"
+    else
+      python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("data",{}).get("gitSha",""), end="")' "$META"
+    fi
+  )"
   if [[ "$META_SHA" != "$EXPECTED_SHA" ]]; then
     echo "FAIL: meta gitSha '$META_SHA' != expected '$EXPECTED_SHA'"
     exit 1
   fi
-  SCHEMA="$(node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.data?.schemaVersion||''))" "$META")"
+  SCHEMA="$(
+    if command -v node >/dev/null 2>&1; then
+      node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.data?.schemaVersion||''))" "$META"
+    else
+      python3 -c 'import json,sys; v=json.loads(sys.argv[1]).get("data",{}).get("schemaVersion",""); print("" if v is None else v, end="")' "$META"
+    fi
+  )"
   if [[ -z "$SCHEMA" ]]; then
     echo "FAIL: meta schemaVersion missing"
     exit 1
@@ -33,7 +45,13 @@ fi
 
 if [[ -n "$WEB_VERSION_URL" ]]; then
   WEB="$(curl -sf "$WEB_VERSION_URL")" || { echo "FAIL: web version.json"; exit 1; }
-  WEB_SHA="$(node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.gitSha||''))" "$WEB")"
+  WEB_SHA="$(
+    if command -v node >/dev/null 2>&1; then
+      node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.gitSha||''))" "$WEB"
+    else
+      python3 -c 'import json,sys; print(json.loads(sys.argv[1]).get("gitSha",""), end="")' "$WEB"
+    fi
+  )"
   if [[ -n "$EXPECTED_SHA" && "$WEB_SHA" != "$EXPECTED_SHA" ]]; then
     echo "FAIL: web version.json gitSha '$WEB_SHA' != expected '$EXPECTED_SHA'"
     exit 1
