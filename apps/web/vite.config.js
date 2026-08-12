@@ -1,7 +1,26 @@
 import { defineConfig } from 'vite';
+import fs from 'node:fs';
+import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+function writeReleaseVersionPlugin() {
+  return {
+    name: 'write-release-version',
+    closeBundle() {
+      const outDir = path.resolve(fileURLToPath(new URL('./dist', import.meta.url)));
+      fs.mkdirSync(outDir, { recursive: true });
+      const payload = {
+        gitSha: process.env.GIT_SHA || process.env.VITE_GIT_SHA || 'dev',
+        buildTime: process.env.BUILD_TIME || new Date().toISOString(),
+        appVersion: process.env.APP_VERSION || '0.0.1',
+      };
+      fs.writeFileSync(path.join(outDir, 'version.json'), `${JSON.stringify(payload, null, 2)}\n`);
+    },
+  };
+}
+
 export default defineConfig({
+  plugins: [writeReleaseVersionPlugin()],
   server: {
     host: true,
     port: 5173,

@@ -44,6 +44,26 @@ describe('deploy-contract', () => {
     assert.doesNotMatch(prod, /:latest\b/);
   });
 
+  it('Dockerfiles declare OCI revision labels and bake GIT_SHA env', () => {
+    for (const rel of ['apps/cloud-server/Dockerfile', 'apps/server/Dockerfile']) {
+      const content = read(rel);
+      assert.match(content, /org\.opencontainers\.image\.revision/);
+      assert.match(content, /org\.opencontainers\.image\.created/);
+      assert.match(content, /org\.opencontainers\.image\.version/);
+      assert.match(content, /org\.opencontainers\.image\.source/);
+      assert.match(content, /ENV GIT_SHA=/);
+    }
+  });
+
+  it('deploy workflow is not a placeholder and verifies SHA images', () => {
+    const content = read('.github/workflows/deploy.yml');
+    assert.doesNotMatch(content, /Post-deploy health check placeholder/);
+    assert.match(content, /Release Verify/);
+    assert.match(content, /npm run quality/);
+    assert.match(content, /xiaohuang-cloud-server:\$\{GIT_SHA\}/);
+    assert.match(content, /does not deploy/i);
+  });
+
   it('env.example has required keys', () => {
     const content = read('deploy/env.example');
     const required = [

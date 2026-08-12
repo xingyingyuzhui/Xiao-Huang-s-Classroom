@@ -81,6 +81,9 @@ services:
         required: false
     environment:
       NODE_ENV: production
+      GIT_SHA: ${GIT_SHA:-dev}
+      BUILD_TIME: ${BUILD_TIME:-unknown}
+      APP_VERSION: ${APP_VERSION:-0.0.1}
       DATABASE_URL: postgresql://${POSTGRES_USER:-xiaohuang_cloud}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-xiaohuang_classroom}
       CLOUD_TOKEN_SIGNING_KEY: ${CLOUD_TOKEN_SIGNING_KEY:?set CLOUD_TOKEN_SIGNING_KEY}
       CLOUD_AI_KEK: ${CLOUD_AI_KEK:?set CLOUD_AI_KEK}
@@ -126,6 +129,9 @@ services:
     restart: unless-stopped
     environment:
       NODE_ENV: production
+      GIT_SHA: ${GIT_SHA:-dev}
+      BUILD_TIME: ${BUILD_TIME:-unknown}
+      APP_VERSION: ${APP_VERSION:-0.0.1}
       PORT: '3001'
       CHEM_LAB_BIND: '0.0.0.0'
       CHEM_LAB_DATA_DIR: /data

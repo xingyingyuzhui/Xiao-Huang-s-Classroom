@@ -51,9 +51,25 @@ for i in $(seq 1 30); do
 done
 [[ "$ready" == "1" ]]
 
+META="$(curl -sf http://127.0.0.1:3000/api/cloud/v1/meta)" || { echo "ERROR: /meta failed"; exit 1; }
+META_SHA="$(node -e "const m=JSON.parse(process.argv[1]); process.stdout.write(String(m?.data?.gitSha||''))" "$META")"
+if [[ "$META_SHA" != "$SHA" ]]; then
+  echo "ERROR: cloud meta gitSha '$META_SHA' != deploy sha '$SHA'"
+  exit 1
+fi
+
+if [[ -f "$RELEASE_DIR/web/version.json" ]]; then
+  WEB_SHA="$(node -e "const m=require(process.argv[1]); process.stdout.write(String(m.gitSha||''))" "$RELEASE_DIR/web/version.json")"
+  if [[ "$WEB_SHA" != "$SHA" ]]; then
+    echo "ERROR: web version.json gitSha '$WEB_SHA' != deploy sha '$SHA'"
+    exit 1
+  fi
+fi
+
 mkdir -p "$DEPLOY_ROOT/releases/current"
 ln -sfn "$RELEASE_DIR/web" "$DEPLOY_ROOT/releases/current/web.new"
 mv -Tf "$DEPLOY_ROOT/releases/current/web.new" "$DEPLOY_ROOT/releases/current/web"
 
+echo "$SHA" > "$DEPLOY_ROOT/releases/current/deployed-sha"
 echo "[deploy] complete sha=$SHA"
 echo "[deploy] HTTPS GATE: IP+HTTP is test-only; real passwords/keys/rosters need domain+TLS"

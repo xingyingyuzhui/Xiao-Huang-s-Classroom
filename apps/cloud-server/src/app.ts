@@ -71,6 +71,9 @@ export function createCloudApp(deps: CloudAppDeps): express.Application {
         schemaVersion,
         registrationMode: config.registrationMode,
         publicOrigin: config.publicOrigin,
+        gitSha: process.env.GIT_SHA || 'unknown',
+        buildTime: process.env.BUILD_TIME || 'unknown',
+        appVersion: process.env.APP_VERSION || '0.0.1',
       },
       requestId: req.requestId,
     });

@@ -36,6 +36,10 @@ LABEL org.opencontainers.image.revision="${GIT_SHA}" \
       org.opencontainers.image.source="${SOURCE_REPO}" \
       org.opencontainers.image.title="xiaohuang-lab-server" \
       org.opencontainers.image.description="小黄的教室 local lab API (loopback only)"
+ENV GIT_SHA=${GIT_SHA} \
+    BUILD_TIME=${BUILD_TIME} \
+    APP_VERSION=${APP_VERSION} \
+    SOURCE_REPO=${SOURCE_REPO}
 RUN addgroup -g 1001 labapp && adduser -u 1001 -G labapp -D labapp
 WORKDIR /app
 ENV NODE_ENV=production
