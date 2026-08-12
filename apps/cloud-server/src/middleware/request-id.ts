@@ -18,16 +18,14 @@ export function requestIdMiddleware(req: Request, res: Response, next: NextFunct
   next();
 }
 
-declare global {
-  namespace Express {
-    interface Request {
-      requestId: string;
-      principal?: {
-        accountId: string | null;
-        sessionId?: string;
-        deviceId?: string;
-        scope?: 'full' | 'account:restore';
-      };
-    }
+declare module 'express-serve-static-core' {
+  interface Request {
+    requestId: string;
+    principal?: {
+      accountId: string | null;
+      sessionId?: string;
+      deviceId?: string;
+      scope?: 'full' | 'account:restore';
+    };
   }
 }

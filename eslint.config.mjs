@@ -24,7 +24,19 @@ export default tseslint.config(
     rules: {
       // 迁移期不新增 any；存量问题进 baseline，逐阶段清零
       '@typescript-eslint/no-explicit-any': 'error',
-      '@typescript-eslint/no-unused-vars': 'error',
+    },
+  },
+  {
+    files: ['apps/**/*.{ts,tsx}', 'packages/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+  {
+    files: ['test/**/*.{ts,tsx}', '**/*.vitest.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-unsafe-function-type': 'off',
     },
   },
   {

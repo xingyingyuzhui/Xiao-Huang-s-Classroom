@@ -35,7 +35,7 @@ test('client.js settingsApi uses local fallback when accountCloudProgram is on',
   assert.match(clientSrc, /from '\.\.\/persistence\/local-settings\.js'/);
   assert.match(clientSrc, /readLocalSettings\(/);
   assert.match(clientSrc, /writeLocalSettings\(/);
-  const getBlock = clientSrc.match(/async get\(\)\s*\{([\s\S]*?)\n  \},/);
+  const getBlock = clientSrc.match(/async get\(\)\s*\{([\s\S]*?)\n {2}\},/);
   assert.ok(getBlock, 'settingsApi.get body');
   assert.match(getBlock[1], /usePublicCloudSettings\(\)|accountCloudProgram/);
   assert.match(getBlock[1], /readLocalSettings\(/);

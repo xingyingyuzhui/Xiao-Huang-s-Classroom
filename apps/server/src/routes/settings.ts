@@ -49,10 +49,13 @@ const { normalizeApiBase, normalizeModel } = require('../utils/ai-config') as {
   normalizeApiBase: (url: unknown) => { base: string; rejected: boolean };
   normalizeModel: (model: unknown) => string;
 };
-const { isElectron, isPkg } = require('../paths') as {
-  isElectron: () => boolean;
-  isPkg: () => boolean;
-};
+function isDesktopLabRuntime(): boolean {
+  return (
+    process.env.CHEM_LAB_ELECTRON === '1' ||
+    Boolean(process.versions?.electron) ||
+    Boolean((process as NodeJS.Process & { pkg?: unknown }).pkg)
+  );
+}
 
 /** 组合根注入的 db 查询接口（src/db/sqlite 进程单例）。 */
 export interface SettingsRouterDeps {
@@ -197,7 +200,7 @@ export function createSettingsRouter(deps: SettingsRouterDeps): Router {
     // Electron / pkg / local lab: keep historical keys for offline AI.
     // Public bind (CHEM_LAB_BIND=0.0.0.0) never persists plaintext keys.
     const publicBind = ['0.0.0.0', '::', '*'].includes(String(process.env.CHEM_LAB_BIND || '').trim());
-    if (isElectron() || isPkg() || !publicBind) {
+    if (isDesktopLabRuntime() || !publicBind) {
       for (const subjectId of Object.keys(normalized)) {
         const prevKey = current[subjectId]?.ai?.apiKey;
         const patchAi = (patchSubjects[subjectId] as { ai?: { apiKey?: unknown } } | undefined)?.ai;

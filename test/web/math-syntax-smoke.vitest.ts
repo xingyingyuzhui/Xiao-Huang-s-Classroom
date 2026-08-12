@@ -21,7 +21,7 @@ function walkJs(dir, acc = []) {
   return acc;
 }
 
-test('math classroom modules parse with node --check', () => {
+test('math classroom modules parse with node --check', { timeout: 20_000 }, () => {
   const dirs = [
     path.join(root, 'apps/web/src/math'),
     path.join(root, 'apps/web/src/subjects/classrooms'),

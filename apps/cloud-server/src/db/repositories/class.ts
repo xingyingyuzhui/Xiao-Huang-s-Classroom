@@ -71,14 +71,13 @@ export class ClassRepository {
   ): Promise<ClassRow | null> {
     const sets: string[] = [];
     const values: unknown[] = [classId, accountId];
-    let idx = 3;
     if (patch.name !== undefined) {
-      sets.push(`name = $${idx++}`);
       values.push(patch.name);
+      sets.push(`name = $${values.length}`);
     }
     if (patch.archived !== undefined) {
-      sets.push(`archived = $${idx++}`);
       values.push(patch.archived);
+      sets.push(`archived = $${values.length}`);
     }
     if (sets.length === 0) {
       return this.findById(accountId, classId);

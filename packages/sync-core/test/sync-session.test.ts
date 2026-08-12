@@ -99,6 +99,14 @@ describe('SyncSession network online', () => {
     session.setOnline(true);
     expect(session.startSync(100).started).toBe(true);
   });
+
+  it('refuses to start while offline', () => {
+    const session = new SyncSession({ context: makeContext() });
+    expect(session.startSync(100)).toEqual({ started: false, reason: 'offline' });
+    session.setOnline(true);
+    session.setOnline(true);
+    expect(session.startSync(100).started).toBe(true);
+  });
 });
 
 describe('SyncSession restart recovery', () => {
@@ -241,6 +249,15 @@ describe('SyncSession full happy path', () => {
     expect(
       session.handlePullResponse({
         generation: 1,
+        cursor: { token: 'c-4', sequence: 4 },
+        changes: [],
+        hasMore: true,
+      }),
+    ).toEqual({ handled: true, phase: 'pulling' });
+
+    expect(
+      session.handlePullResponse({
+        generation: 1,
         cursor: { token: 'c-5', sequence: 5 },
         changes: [],
         hasMore: false,
@@ -248,5 +265,71 @@ describe('SyncSession full happy path', () => {
     ).toEqual({ handled: true, phase: 'completed' });
 
     expect(session.cursor.current().sequence).toBe(5);
+  });
+});
+
+describe('SyncSession push result statuses', () => {
+  it('applies and skips rejected operations then pulls', () => {
+    const outbox = new Outbox();
+    outbox.append({
+      operationId: 'op-ok',
+      resourceType: 'graph',
+      resourceId: 'res-1',
+      payload: {},
+      baseRevision: null,
+      createdAt: 1,
+      deletedAt: null,
+    });
+    const session = new SyncSession({ context: makeContext(), outbox, online: true });
+    session.startSync(100);
+    expect(
+      session.handlePushResponse(
+        {
+          generation: 1,
+          results: [
+            { status: 'applied', operationId: 'op-ok' },
+            { status: 'rejected', operationId: 'op-bad', reason: 'schema' },
+          ],
+        },
+        200,
+      ),
+    ).toEqual({ handled: true, phase: 'pulling' });
+    expect(outbox.hasApplied('op-ok')).toBe(true);
+  });
+
+  it('rejects pull when not pulling and updates context generation', () => {
+    const session = makeSession();
+    expect(
+      session.handlePullResponse({
+        generation: 1,
+        cursor: { token: 'c', sequence: 1 },
+        changes: [],
+        hasMore: false,
+      }),
+    ).toEqual({ handled: false, reason: 'wrong-phase' });
+    expect(session.handlePushResponse({ generation: 1, results: [] }, 1)).toEqual({
+      handled: false,
+      reason: 'wrong-phase',
+    });
+
+    session.startSync(100);
+    session.updateContext(makeContext({ generation: 1, classId: 'cls-1' }));
+    session.bumpContextGeneration();
+    expect(session.getContext().generation).toBe(2);
+  });
+});
+
+describe('SyncSession fail and reset', () => {
+  it('ignores fail from idle and resets after a live failure', () => {
+    const session = makeSession();
+    expect(session.fail('nope', 1)).toBe('idle');
+    expect(session.resolveConflict('missing', 'keepLocal', 1)).toBeNull();
+
+    session.startSync(100);
+    expect(session.fail('push exploded', 200)).toBe('failed');
+    expect(session.getPhase()).toBe('failed');
+    session.resetToIdle();
+    expect(session.getPhase()).toBe('idle');
+    expect(session.toSnapshot().lastError).toBeNull();
   });
 });

@@ -109,9 +109,6 @@ test('generation discard: stale expectedGeneration rejects writes', async () => 
     const { LocalResourceService } = await load<{ LocalResourceService: new (opts: object) => any }>(
       'apps/web/src/sync/local-resource-service.ts',
     );
-    const { errorCodeOf } = await load<{ errorCodeOf: (e: unknown) => string }>(
-      'packages/domain-core/src/index.ts',
-    );
 
     const db = await openLocalDatabase({ factory: fake.factory });
     const service = new LocalResourceService({ db, generation: 2 });

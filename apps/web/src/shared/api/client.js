@@ -5,6 +5,7 @@
 
 import { withAiSubject } from './ai-subject.js';
 import { isFeatureEnabled } from '../runtime-config.js';
+import { runCloudAi } from './cloud-ai-bridge.js';
 import {
   readLocalSettings,
   writeLocalSettings,
@@ -227,92 +228,72 @@ export const studentApi = {
 };
 
 /**
+ * @param {string} kind
+ * @param {string} labPath
+ * @param {Record<string, unknown>} payload
+ */
+async function aiCall(kind, labPath, payload) {
+  const body = withAiSubject(payload);
+  if (usePublicCloudSettings()) {
+    return runCloudAi(kind, body);
+  }
+  return request(labPath, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  });
+}
+
+/**
  * AI 相关 API
  */
 export const aiApi = {
   async generate(prompt) {
-    return request('/ai/generate', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject({ prompt })),
-    });
+    return aiCall('generate', '/ai/generate', { prompt });
   },
 
   async reaction(payload) {
-    return request('/ai/reaction', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('reaction', '/ai/reaction', payload);
   },
 
   async labGenerate(prompt) {
-    return request('/ai/lab', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject({ prompt })),
-    });
+    return aiCall('labGenerate', '/ai/lab', { prompt });
   },
 
   async stoich(payload) {
-    return request('/ai/stoich', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('stoich', '/ai/stoich', payload);
   },
 
   async balance(payload) {
-    return request('/ai/balance', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('balance', '/ai/balance', payload);
   },
 
   async tip() {
-    return request('/ai/tip', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject({})),
-    });
+    return aiCall('tip', '/ai/tip', {});
   },
 
   async quizGenerate(payload) {
-    return request('/ai/quiz/generate', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('quizGenerate', '/ai/quiz/generate', payload);
   },
 
   async quizHint(payload) {
-    return request('/ai/quiz/hint', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('quizHint', '/ai/quiz/hint', payload);
   },
 
   async quizExplain(payload) {
-    return request('/ai/quiz/explain', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('quizExplain', '/ai/quiz/explain', payload);
   },
 
   async quizSummary(payload) {
-    return request('/ai/quiz/summary', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('quizSummary', '/ai/quiz/summary', payload);
   },
 
   async quizScore(payload = {}) {
-    return request('/ai/quiz/score', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('quizScore', '/ai/quiz/score', payload);
   },
 
   /** 课堂概念讲解 */
   async lessonExplain(payload) {
-    return request('/ai/lesson/explain', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject(payload)),
-    });
+    return aiCall('lessonExplain', '/ai/lesson/explain', payload);
   },
 
   /**
@@ -320,10 +301,7 @@ export const aiApi = {
    * @param {string} prompt
    */
   async mathFnGenerate(prompt) {
-    return request('/ai/math/function', {
-      method: 'POST',
-      body: JSON.stringify(withAiSubject({ prompt })),
-    });
+    return aiCall('mathFnGenerate', '/ai/math/function', { prompt });
   },
 };
 

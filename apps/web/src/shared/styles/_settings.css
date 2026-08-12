@@ -401,7 +401,7 @@ body.settings-open {
 }
 
 .sync-dot.is-online {
-  background: var(--status-success, #2f9e44);
+  background: var(--accent);
 }
 
 .sync-dot.is-offline {
@@ -413,7 +413,7 @@ body.settings-open {
 }
 
 .sync-panel-error {
-  color: var(--status-danger, #c92a2a);
+  color: var(--danger);
   font-size: 0.9rem;
 }
 
@@ -517,7 +517,7 @@ body.settings-open {
 }
 
 .account-login-error {
-  color: var(--status-danger, #c92a2a);
+  color: var(--danger);
   font-size: 0.9rem;
 }
 

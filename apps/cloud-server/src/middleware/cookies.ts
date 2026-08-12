@@ -17,11 +17,3 @@ export function cookieParser(): RequestHandler {
     next();
   };
 }
-
-declare global {
-  namespace Express {
-    interface Request {
-      cookies?: Record<string, string>;
-    }
-  }
-}

@@ -53,14 +53,13 @@ export class AccountRepository {
   ): Promise<AccountRow | null> {
     const sets: string[] = [];
     const values: unknown[] = [accountId];
-    let idx = 2;
     if (patch.displayName !== undefined) {
-      sets.push(`display_name = $${idx++}`);
       values.push(patch.displayName);
+      sets.push(`display_name = $${values.length}`);
     }
     if (patch.avatarUrl !== undefined) {
-      sets.push(`avatar_url = $${idx++}`);
       values.push(patch.avatarUrl);
+      sets.push(`avatar_url = $${values.length}`);
     }
     if (sets.length === 0) {
       return this.findById(accountId);

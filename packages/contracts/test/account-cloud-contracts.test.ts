@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   accountIdSchema,
+  accountProfilePatchSchema,
   authLoginRequestSchema,
   authSessionSchema,
   syncEntityEnvelopeSchema,
@@ -24,6 +25,11 @@ describe('account cloud branded IDs', () => {
 
   it('operationId is required on sync operations', () => {
     expect(operationIdSchema.safeParse('op-123').success).toBe(true);
+  });
+
+  it('profile patch requires at least one field', () => {
+    expect(accountProfilePatchSchema.safeParse({}).success).toBe(false);
+    expect(accountProfilePatchSchema.safeParse({ displayName: 'Alice' }).success).toBe(true);
   });
 });
 

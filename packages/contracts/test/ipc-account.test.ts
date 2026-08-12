@@ -5,7 +5,9 @@ import {
   accountIpcSessionDataSchema,
   ipcChannelSchema,
   ipcFail,
+  ipcOk,
   ipcRequestSchema,
+  isAccountIpcChannel,
   isAllowedIpcSenderOrigin,
   parseAccountIpcData,
   parseAccountIpcPayload,
@@ -35,6 +37,8 @@ describe('account IPC allowlist', () => {
       false,
     );
     expect(ipcRequestSchema.safeParse({ channel: 'shell:exec', payload: {} }).success).toBe(false);
+    expect(isAccountIpcChannel('account:login')).toBe(true);
+    expect(isAccountIpcChannel('shell:exec')).toBe(false);
   });
 });
 
@@ -150,6 +154,8 @@ describe('trusted cloud origin', () => {
       false,
     );
     expect(parseTrustedCloudOrigin('not-a-url', { packaged: true }).ok).toBe(false);
+    expect(parseTrustedCloudOrigin('   ', { packaged: false }).ok).toBe(false);
+    expect(parseTrustedCloudOrigin('http://localhost:3000', { packaged: false }).ok).toBe(true);
   });
 });
 
@@ -160,5 +166,13 @@ describe('ipcFail sanitization', () => {
     expect(result.error.message.length).toBeLessThanOrEqual(240);
     expect(result.error.message).not.toMatch(/at Error/);
     expect(JSON.stringify(result)).not.toContain('stack');
+  });
+
+  it('fills empty code/message and wraps ok payloads', () => {
+    const failed = ipcFail('', '   ');
+    expect(failed.success).toBe(false);
+    expect(failed.error.code).toBe('INTERNAL_UNKNOWN');
+    expect(failed.error.message).toBe('请求失败');
+    expect(ipcOk({ ok: true })).toEqual({ success: true, data: { ok: true } });
   });
 });

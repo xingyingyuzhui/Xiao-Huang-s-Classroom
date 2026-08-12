@@ -1,10 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import {
-  loadRuntimeConfig,
-  getRuntimeConfig,
-  isFeatureEnabled,
-} from '../../apps/web/src/shared/runtime-config.js';
-import {
   OfflineCapabilityRegistry,
   registerDefaultCapabilities,
 } from '../../apps/web/src/offline/offline-capability-registry.js';

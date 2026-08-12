@@ -42,6 +42,7 @@ describe('Outbox duplicate operation idempotency', () => {
     outbox.append(makeOperation());
     outbox.markApplied('op-1', 200);
     expect(() => outbox.markApplied('op-1', 300)).not.toThrow();
+    expect(() => outbox.markApplied('op-missing', 300)).toThrow(/not pending/);
   });
 });
 
@@ -57,6 +58,7 @@ describe('Outbox tombstone retention', () => {
     expect(outbox.canPhysicallyDeleteTombstone('graph', 'res-1', 1_000, 10_000)).toBe(false);
     expect(outbox.purgeTombstone('graph', 'res-1', 1_000, 10_000)).toBe(false);
     expect(outbox.getTombstone('graph', 'res-1')).not.toBeNull();
+    expect(outbox.canPhysicallyDeleteTombstone('graph', 'missing', 1_000, 10_000)).toBe(false);
   });
 
   it('cannot physically delete tombstone before retention elapses after ack', () => {
@@ -66,6 +68,16 @@ describe('Outbox tombstone retention', () => {
 
     expect(outbox.canPhysicallyDeleteTombstone('graph', 'res-1', 1_000, 1_200)).toBe(false);
     expect(outbox.purgeTombstone('graph', 'res-1', 1_000, 1_200)).toBe(false);
+  });
+
+  it('does not ack a replaced tombstone for an older delete', () => {
+    const outbox = new Outbox();
+    outbox.append(makeOperation({ operationId: 'op-old', deletedAt: 100 }));
+    outbox.append(makeOperation({ operationId: 'op-new', deletedAt: 200 }));
+    outbox.markApplied('op-old', 300);
+    expect(outbox.getTombstone('graph', 'res-1')?.serverAckedAt).toBeNull();
+    outbox.markApplied('op-new', 400);
+    expect(outbox.getTombstone('graph', 'res-1')?.serverAckedAt).toBe(400);
   });
 
   it('allows physical delete after server ack and retention', () => {

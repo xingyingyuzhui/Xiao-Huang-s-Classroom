@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { createFakeTimers } from '../src/fake-timer-raf.js';
-import { createFakeStorage } from '../src/fake-storage.js';
-import { createFakeClock } from '../src/fake-clock.js';
-import { createFakeDocument } from '../src/fake-dom.js';
-import { createFakeFetch } from '../src/fake-fetch.js';
-import { createFakeIndexedDb } from '../src/fake-indexeddb.js';
+import {
+  createFakeClock,
+  createFakeDocument,
+  createFakeFetch,
+  createFakeIndexedDb,
+  createFakeStorage,
+  createFakeTimers,
+  installFakeIndexedDb,
+} from '../src/index.js';
 
 describe('fake-timer-raf', () => {
   it('timer 到期执行一次；clear 后不执行', () => {
@@ -101,7 +104,7 @@ describe('fake-fetch', () => {
 
 describe('fake-indexeddb', () => {
   it('opens database, creates stores, and persists records across reopen', async () => {
-    const { factory } = createFakeIndexedDb();
+    const { factory, reset } = createFakeIndexedDb();
     const db = await openFakeDb(factory, 1);
     const tx = db.transaction('items', 'readwrite');
     tx.objectStore('items').put({ id: 'a', value: 1 });
@@ -114,6 +117,27 @@ describe('fake-indexeddb', () => {
     await transactionDone(readTx);
     expect(row).toEqual({ id: 'a', value: 1 });
     reopened.close();
+    reset();
+  });
+
+  it('installs onto globalThis and lists/deletes databases', async () => {
+    const { factory } = createFakeIndexedDb();
+    expect(factory.cmp(1, 1)).toBe(0);
+    expect(factory.cmp(1, 2)).toBe(-1);
+    const db = await openFakeDb(factory, 1);
+    db.close();
+    expect(await factory.databases()).toEqual([{ name: 'test-db', version: 1 }]);
+    await new Promise<void>((resolve, reject) => {
+      const request = factory.deleteDatabase('test-db');
+      request.onsuccess = () => resolve();
+      request.onerror = () => reject(request.error);
+    });
+    expect(await factory.databases()).toEqual([]);
+
+    const installed = installFakeIndexedDb();
+    expect(globalThis.indexedDB).toBe(installed.factory);
+    installed.restore();
+    expect(globalThis.indexedDB).not.toBe(installed.factory);
   });
 });
 

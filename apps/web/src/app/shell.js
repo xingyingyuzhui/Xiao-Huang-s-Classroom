@@ -14,7 +14,7 @@ import {
   createClassroomRegistry,
   syncClassroomTabChrome,
 } from '../subjects/classrooms/registry.js';
-import { bootAccountCloud } from '../account/boot-account-cloud.js';
+import { loadRuntimeConfig, isFeatureEnabled } from '../shared/runtime-config.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -63,7 +63,13 @@ export async function initApp() {
     syncClassroomTabChrome(null);
   }
 
-  const accountCloud = await bootAccountCloud();
+  await loadRuntimeConfig();
+  /** @type {Awaited<ReturnType<typeof import('../account/boot-account-cloud.js').bootAccountCloud>>} */
+  let accountCloud = null;
+  if (isFeatureEnabled('accountCloudProgram')) {
+    const { bootAccountCloud } = await import('../account/boot-account-cloud.js');
+    accountCloud = await bootAccountCloud();
+  }
 
   const settingsApi = await initSettingsUI({
     getDefaultPageOptions: (subjectId) => classroomRegistry.getDefaultPageOptions(subjectId),

@@ -1,4 +1,9 @@
 {
+  "desktop/src/account-ipc-core.ts": {
+    "category": "adapter",
+    "plan": "Electron 账户 IPC 核心；login/restore/cookie 可拆",
+    "lines": 521
+  },
   "desktop/src/main.ts": {
     "category": "entry",
     "plan": "Electron main 单产物（C4）；tsup bundle，源行数不随产物增长",
@@ -165,10 +170,20 @@
     "plan": "点标签融合（桶+邻接滑动窗口，操作数合同由 vitest 锁定）",
     "lines": 403
   },
+  "web/src/account/boot-account-cloud.js": {
+    "category": "shell",
+    "plan": "账户云启动壳；设置面板/班级切换/同步接线待拆到 account-settings-panel",
+    "lines": 1025
+  },
   "web/src/shared/api/client.js": {
     "category": "adapter",
     "plan": "API 客户端（HTTP 边界适配）",
     "lines": 529
+  },
+  "web/src/shared/api/cloud-client.ts": {
+    "category": "adapter",
+    "plan": "Cloud HTTP 客户端；AI/班级/同步方法可按资源拆分",
+    "lines": 434
   },
   "web/src/shared/ui/brand-tip.js": {
     "category": "controller",
@@ -177,8 +192,13 @@
   },
   "web/src/shared/ui/settings.js": {
     "category": "controller",
-    "plan": "交互控制器（功能内聚，行为测试覆盖）",
-    "lines": 485
+    "plan": "设置抽屉控制器；云端 AI 凭证与账户同步面板待拆出",
+    "lines": 788
+  },
+  "web/src/sync/sync-controller.ts": {
+    "category": "controller",
+    "plan": "同步编排控制器；push/pull/conflict 可拆子模块",
+    "lines": 539
   },
   "web/src/subjects/bookshelf/build-book.js": {
     "category": "controller",

@@ -525,10 +525,9 @@ export async function initSettingsUI({
   async function openDrawer() {
     if (drawer?.classList.contains('is-open')) return;
     cachedSettings = null;
-    let rawSubjectSettings = {};
     try {
       const raw = await settingsApi.get();
-      rawSubjectSettings = raw?.subjectSettings ?? {};
+      const rawSubjectSettings = raw?.subjectSettings ?? {};
       leftoverAiKeys = [
         ...extractLeftoverApiKeys(rawSubjectSettings),
         ...hydratedLeftoverAiKeys,

@@ -1,4 +1,4 @@
-import { describe, test, expect, vi, beforeEach } from 'vitest';
+import { describe, test, expect, vi } from 'vitest';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import root from '../helpers/repo-root.js';

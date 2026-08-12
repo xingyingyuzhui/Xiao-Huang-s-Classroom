@@ -4,6 +4,7 @@
  */
 import { loadRuntimeConfig, isFeatureEnabled } from '../shared/runtime-config.js';
 import { CloudClient, newRequestId } from '../shared/api/cloud-client.js';
+import { setCloudAiChat } from '../shared/api/cloud-ai-bridge.js';
 import { AccountSessionController } from './account-session-controller.js';
 import { RememberedAccountStore } from './remembered-account-store.js';
 import { SyncStatusStore } from '../sync/sync-status-store.js';
@@ -772,7 +773,7 @@ export async function bootAccountCloud() {
                     const caps = await desktopApi.capabilities?.();
                     rememberMe = Boolean(caps?.rememberMeAvailable);
                   } catch {
-                    rememberMe = false;
+                    /* keep false */
                   }
                   const ipcResult = await desktopApi.login({
                     username,
@@ -901,7 +902,7 @@ export async function bootAccountCloud() {
       guestCount = (await resources.listByWorkspace(guestKey)).filter((r) => r.deletedAt == null)
         .length;
     } catch {
-      guestCount = 0;
+      /* keep 0 */
     }
 
     if (guestCount <= 0) {
@@ -934,6 +935,12 @@ export async function bootAccountCloud() {
   }
 
   setRosterPersistHandler((students) => enqueueClassRoster(students));
+  setCloudAiChat((input) => {
+    if (!session.isAuthenticated()) {
+      return Promise.reject(new Error('请先登录后再使用云端 AI'));
+    }
+    return client.chatAi(input);
+  });
 
   unsubSession = session.subscribe(() => {
     void (async () => {
@@ -1010,6 +1017,7 @@ export async function bootAccountCloud() {
       network.dispose();
       syncController?.cancel();
       setRosterPersistHandler(null);
+      setCloudAiChat(null);
       db?.close();
     },
   };

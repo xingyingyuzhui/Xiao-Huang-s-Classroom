@@ -63,4 +63,53 @@ describe('ConflictRegistry', () => {
       reason: 'unsupported-resolution',
     });
   });
+
+  it('resolves lookup and snapshot restore edges', () => {
+    const registry = new ConflictRegistry();
+    expect(registry.resolve('missing', 'keepLocal', 1)).toEqual({
+      resolved: false,
+      reason: 'not-found',
+    });
+    expect(registry.getUnresolvedByResource('graph', 'res-1')).toBeNull();
+
+    registry.register({
+      conflictId: 'c-1',
+      resourceType: 'graph',
+      resourceId: 'res-1',
+      snapshot: { local: 'L', cloud: 'C', base: 'B' },
+      supportsDuplicateLocal: true,
+    });
+    expect(registry.getUnresolvedByResource('graph', 'res-1')?.conflictId).toBe('c-1');
+    expect(registry.resolve('c-1', 'keepCloud', 50).resolved).toBe(true);
+    expect(registry.resolve('c-1', 'keepLocal', 60)).toEqual({
+      resolved: false,
+      reason: 'already-resolved',
+    });
+    expect(registry.getUnresolvedByResource('graph', 'res-1')).toBeNull();
+
+    const restored = ConflictRegistry.fromSnapshot([
+      {
+        conflictId: 'c-open',
+        resourceType: 'settings',
+        resourceId: 'default',
+        snapshot: { local: 1, cloud: 2, base: null },
+        supportsDuplicateLocal: false,
+        resolvedAt: null,
+        resolution: null,
+      },
+      {
+        conflictId: 'c-done',
+        resourceType: 'roster',
+        resourceId: 'default',
+        snapshot: { local: 3, cloud: 4, base: 2 },
+        supportsDuplicateLocal: true,
+        resolvedAt: 9,
+        resolution: 'keepLocal',
+      },
+    ]);
+    expect(restored.list()).toHaveLength(2);
+    expect(restored.listUnresolved()).toHaveLength(1);
+    expect(restored.getUnresolvedByResource('settings', 'default')?.conflictId).toBe('c-open');
+    expect(restored.getUnresolvedByResource('roster', 'default')).toBeNull();
+  });
 });
