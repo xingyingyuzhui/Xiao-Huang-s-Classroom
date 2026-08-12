@@ -4,8 +4,17 @@
  */
 
 import { withAiSubject } from './ai-subject.js';
+import { isFeatureEnabled } from '../runtime-config.js';
+import {
+  readLocalSettings,
+  writeLocalSettings,
+} from '../persistence/local-settings.js';
 
 const API_BASE = '/api';
+
+function usePublicCloudSettings() {
+  return isFeatureEnabled('accountCloudProgram');
+}
 
 /**
  * 通用请求方法
@@ -136,16 +145,25 @@ export const reactionApi = {
  */
 export const settingsApi = {
   /**
-   * 获取设置
+   * 获取设置。
+   * Public cloud: device-local only (no anonymous lab /api/settings).
+   * Electron / flag-off: lab Express on /api.
    */
   async get() {
+    if (usePublicCloudSettings()) {
+      return readLocalSettings();
+    }
     return request('/settings');
   },
 
   /**
-   * 更新设置
+   * 更新设置。
+   * Public cloud writes local device prefs; Electron still hits lab /api.
    */
   async update(settings) {
+    if (usePublicCloudSettings()) {
+      return writeLocalSettings(settings);
+    }
     return request('/settings', {
       method: 'PUT',
       body: JSON.stringify(settings)

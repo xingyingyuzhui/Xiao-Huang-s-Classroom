@@ -9,6 +9,12 @@ import { createToast } from '@xiaohuang/ui';
 import { appConfirm } from './app-dialog.js';
 import { THEME_CATALOG, normalizeTheme, DEFAULT_THEME_ID } from '../theme/catalog.js';
 import { applyTheme } from '../theme/apply.js';
+import { isFeatureEnabled } from '../runtime-config.js';
+import {
+  LOCAL_ONLY_HINT,
+  readLocalThemeId,
+  writeLocalThemeId,
+} from '../persistence/local-settings.js';
 import {
   HUB_BRAND_TITLE,
   DEFAULT_AI,
@@ -58,19 +64,32 @@ const THEME_PREVIEW = {
   pixel: ['#ff6b81', '#dfe6e9', '#1dd1a1'],
 };
 
+function isAccountCloudProgram() {
+  return isFeatureEnabled('accountCloudProgram');
+}
+
+function settingsWithLocalTheme(settings) {
+  const localId = readLocalThemeId();
+  if (!localId) return settings;
+  return {
+    ...settings,
+    theme: normalizeTheme({ ...settings.theme, id: localId }),
+  };
+}
+
 export async function loadSettings() {
   if (cachedSettings) return cachedSettings;
 
   try {
     const settings = await settingsApi.get();
-    cachedSettings = {
+    cachedSettings = settingsWithLocalTheme({
       theme: normalizeTheme(settings.theme),
       subjectSettings: normalizeSubjectSettings(settings.subjectSettings ?? {}),
-    };
+    });
     return cachedSettings;
   } catch (err) {
     console.error('加载设置失败:', err);
-    return structuredClone(DEFAULT_SETTINGS);
+    return settingsWithLocalTheme(structuredClone(DEFAULT_SETTINGS));
   }
 }
 
@@ -238,6 +257,16 @@ export async function initSettingsUI({
     await accountCloud?.enqueueTeacherSettings?.(settings);
   });
 
+  function ensureLocalOnlyHint(section) {
+    if (!section || !isAccountCloudProgram()) return;
+    if (section.querySelector('[data-local-only-hint]')) return;
+    const hint = document.createElement('p');
+    hint.className = 'settings-hint';
+    hint.dataset.localOnlyHint = '1';
+    hint.textContent = LOCAL_ONLY_HINT;
+    section.insertBefore(hint, section.firstChild);
+  }
+
   function syncSettingsSections() {
     const isHub = settingsContext.mode === SETTINGS_CONTEXT.hub;
     const subjectId = settingsContext.subjectId;
@@ -255,6 +284,10 @@ export async function initSettingsUI({
     if (aiSection) aiSection.hidden = isHub || !caps.ai;
     if (defaultPageBlock) {
       defaultPageBlock.hidden = isHub || !caps.defaultPage;
+    }
+    if (!isHub && isAccountCloudProgram()) {
+      ensureLocalOnlyHint(subjectSection);
+      ensureLocalOnlyHint(aiSection);
     }
   }
 
@@ -328,20 +361,18 @@ export async function initSettingsUI({
     /* 先本地换肤（含 chem-theme-change → 书封面），再尝试持久化 */
     applyTheme({ id: nextId });
     syncThemePicker({ id: nextId });
-    try {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('xh-theme-id', nextId);
-      }
-    } catch {
-      /* ignore quota / private mode */
-    }
+    writeLocalThemeId(nextId);
     try {
       await saveSettings({ theme: { id: nextId } });
       notify(`已切换为「${label}」`, true);
     } catch (err) {
-      /* 后端未启动时仍保留本地主题，避免「保存失败」连封面也不换的错觉 */
+      /* 公网云模式不依赖 lab；Electron 后端未启动时仍保留本地主题 */
       console.warn('主题已应用，但未能写入服务器:', err);
-      notify(`已切换为「${label}」（未同步服务器，请确认后端 npm run dev:server 已启动）`, false);
+      if (isAccountCloudProgram()) {
+        notify(`已切换为「${label}」`, true);
+      } else {
+        notify(`已切换为「${label}」（未同步服务器，请确认后端 npm run dev:server 已启动）`, false);
+      }
     }
   }
 
