@@ -3,7 +3,7 @@ import { ResourceRegistry } from '../../apps/web/src/sync/resource-registry.js';
 import { teacherSettingsAdapter, classSettingsAdapter } from '../../apps/web/src/sync/adapters/settings-adapter.js';
 import { studentRosterAdapter } from '../../apps/web/src/sync/adapters/roster-adapter.js';
 import { registerWave1Adapters } from '../../apps/web/src/sync/adapters/index.js';
-import { computePayloadHashSync } from '../../apps/web/src/sync/adapters/hash.js';
+import { computePayloadHash, computePayloadHashSync } from '../../apps/web/src/sync/adapters/hash.js';
 
 describe('Wave 1 resource adapters', () => {
   it('teacherSettingsAdapter has correct resourceType and schemaVersion', () => {
@@ -26,16 +26,23 @@ describe('Wave 1 resource adapters', () => {
     expect(studentRosterAdapter.supportsDuplicateLocal).toBe(true);
   });
 
-  it('computePayloadHashSync produces stable deterministic hash', () => {
+  it('computePayloadHashSync produces stable canonical SHA-256', () => {
     const payload = { a: 1, b: 'hello' };
     const h1 = computePayloadHashSync(payload);
     const h2 = computePayloadHashSync(payload);
+    const h3 = computePayloadHashSync({ b: 'hello', a: 1 });
     expect(h1).toBe(h2);
-    expect(h1).toMatch(/^[0-9a-f]{8}$/);
+    expect(h1).toBe(h3);
+    expect(h1).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 
   it('computePayloadHashSync produces different hash for different payloads', () => {
     expect(computePayloadHashSync({ x: 1 })).not.toBe(computePayloadHashSync({ x: 2 }));
+  });
+
+  it('async WebCrypto hash matches the sync SHA-256 implementation', async () => {
+    const payload = { z: true, a: [2, 1] };
+    expect(await computePayloadHash(payload)).toBe(computePayloadHashSync(payload));
   });
 
   it('registerWave1Adapters registers all 3 types', () => {

@@ -3,11 +3,30 @@ import type { SyncEntityEnvelope, SyncOperation, SyncPullResponse, SyncPushRespo
 import type pg from 'pg';
 import { WorkspaceRepository } from '../db/repositories/workspace.js';
 import { withTenantTransaction } from '../db/tenant.js';
-import { SyncRepository } from './repository.js';
+import { computeContentHash } from './hash.js';
+import { SyncRepository, type PullChangeRow, type SyncResourceRow } from './repository.js';
 
 const DEFAULT_PULL_LIMIT = 100;
 
-type PushOutcome = Pick<SyncPushResponse, 'applied' | 'rejected' | 'conflicts'>;
+type CloudConflict = {
+  resourceType: string;
+  resourceId: string;
+  localSummary: string;
+  cloudSummary: string;
+  baseSummary: string | null;
+  cloudRevision?: number;
+  cloudSchemaVersion?: number;
+  cloudPayload?: unknown;
+  cloudDeletedAt?: string | null;
+};
+
+type PushOutcome = {
+  applied: SyncPushResponse['applied'];
+  rejected: SyncPushResponse['rejected'];
+  conflicts: Array<{ operationId: string; conflict: CloudConflict }>;
+};
+
+type ConflictEntry = PushOutcome['conflicts'][number];
 
 function revisionSummary(revision: number): string {
   return `revision:${revision}`;
@@ -57,6 +76,45 @@ function isConflict(
   return envelope.baseRevision !== Number(existing.revision);
 }
 
+function toConflictEntry(
+  operationId: string,
+  envelope: SyncEntityEnvelope,
+  existing: SyncResourceRow | null,
+): ConflictEntry {
+  const cloudRevision = existing ? Number(existing.revision) : 0;
+  return {
+    operationId,
+    conflict: {
+      resourceType: envelope.resourceType,
+      resourceId: envelope.resourceId,
+      localSummary: revisionSummary(envelope.revision),
+      cloudSummary: revisionSummary(cloudRevision),
+      baseSummary: envelope.baseRevision === null ? null : revisionSummary(envelope.baseRevision),
+      cloudRevision,
+      cloudSchemaVersion: existing?.schema_version ?? envelope.schemaVersion,
+      cloudPayload: existing?.payload ?? null,
+      cloudDeletedAt: existing?.deleted_at?.toISOString() ?? null,
+    },
+  };
+}
+
+/**
+ * Pull de-dupes by resource within the cursor page and returns the latest state
+ * in range (simpler than snapshot-per-changelog). Cursor still advances by the
+ * last consumed changelog sequence so no rows are skipped.
+ */
+function dedupeLatestInPage(page: PullChangeRow[]): PullChangeRow[] {
+  const latest = new Map<string, PullChangeRow>();
+  for (const row of page) {
+    const key = `${row.resource_type}\0${row.resource_id}`;
+    const prev = latest.get(key);
+    if (!prev || Number(row.sequence) >= Number(prev.sequence)) {
+      latest.set(key, row);
+    }
+  }
+  return [...latest.values()].sort((a, b) => Number(a.sequence) - Number(b.sequence));
+}
+
 export class SyncService {
   constructor(private readonly pool: pg.Pool) {}
 
@@ -86,8 +144,27 @@ export class SyncService {
           continue;
         }
 
+        const expectedHash = computeContentHash(envelope.payload);
+        if (envelope.contentHash !== expectedHash) {
+          rejected.push({
+            operationId,
+            code: 'SYNC_HASH_MISMATCH',
+            message: '内容哈希与载荷不一致',
+          });
+          continue;
+        }
+
         const existingOperation = await sync.findOperation(accountId, operationId);
         if (existingOperation) {
+          const storedHash = existingOperation.content_hash;
+          if (storedHash && storedHash !== expectedHash) {
+            rejected.push({
+              operationId,
+              code: 'SYNC_OPERATION_PAYLOAD_MISMATCH',
+              message: '相同操作已用不同载荷提交',
+            });
+            continue;
+          }
           applied.push(operationId);
           continue;
         }
@@ -99,22 +176,13 @@ export class SyncService {
         );
 
         if (isConflict(existing, envelope)) {
-          conflicts.push({
-            operationId,
-            conflict: {
-              resourceType: envelope.resourceType,
-              resourceId: envelope.resourceId,
-              localSummary: revisionSummary(envelope.revision),
-              cloudSummary: revisionSummary(existing ? Number(existing.revision) : 0),
-              baseSummary:
-                envelope.baseRevision === null ? null : revisionSummary(envelope.baseRevision),
-            },
-          });
+          conflicts.push(toConflictEntry(operationId, envelope, existing));
           continue;
         }
 
-        const revision = await sync.upsertResource(accountId, workspaceId, envelope);
-        await sync.recordOperation(accountId, operationId, workspaceId, 'applied');
+        const verified: SyncEntityEnvelope = { ...envelope, contentHash: expectedHash };
+        const revision = await sync.upsertResource(accountId, workspaceId, verified);
+        await sync.recordOperation(accountId, operationId, workspaceId, 'applied', expectedHash);
         await sync.appendChangeLog(
           accountId,
           workspaceId,
@@ -149,14 +217,13 @@ export class SyncService {
       const rows = await sync.pullChanges(workspaceId, afterSequence, limit + 1);
       const hasMore = rows.length > limit;
       const page = rows.slice(0, limit);
-
       const lastSequence =
         page.length > 0 ? Number(page[page.length - 1]!.sequence) : afterSequence;
 
       return {
         cursor: String(lastSequence),
         sequence: lastSequence,
-        changes: page.map(toPullChange),
+        changes: dedupeLatestInPage(page).map(toPullChange),
         hasMore,
       };
     });

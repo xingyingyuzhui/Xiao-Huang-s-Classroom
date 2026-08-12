@@ -20,6 +20,7 @@ export type SyncOperationRow = {
   operation_id: string;
   workspace_id: string;
   status: string;
+  content_hash: string | null;
   created_at: Date;
 };
 
@@ -88,7 +89,7 @@ export class SyncRepository {
 
   async findOperation(accountId: string, operationId: string): Promise<SyncOperationRow | null> {
     const result = await this.db.query<SyncOperationRow>(
-      `SELECT account_id, operation_id, workspace_id, status, created_at
+      `SELECT account_id, operation_id, workspace_id, status, content_hash, created_at
        FROM sync_operations
        WHERE account_id = $1 AND operation_id = $2`,
       [accountId, operationId],
@@ -101,11 +102,12 @@ export class SyncRepository {
     operationId: string,
     workspaceId: string,
     status: string,
+    contentHash: string,
   ): Promise<void> {
     await this.db.query(
-      `INSERT INTO sync_operations (account_id, operation_id, workspace_id, status)
-       VALUES ($1, $2, $3, $4)`,
-      [accountId, operationId, workspaceId, status],
+      `INSERT INTO sync_operations (account_id, operation_id, workspace_id, status, content_hash)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [accountId, operationId, workspaceId, status, contentHash],
     );
   }
 

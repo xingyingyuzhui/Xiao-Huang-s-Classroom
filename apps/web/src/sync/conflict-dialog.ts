@@ -9,6 +9,15 @@ export type ConflictDialogOptions = {
 function summarize(value: unknown): string {
   if (value == null) return '（无）';
   if (typeof value === 'string') return value.length > 80 ? value.slice(0, 80) + '…' : value;
+  if (typeof value === 'object' && value !== null && 'payload' in value) {
+    const side = value as { payload: unknown; revision?: number | null; summary?: string };
+    if (typeof side.summary === 'string' && side.summary.length > 0) {
+      const rev = side.revision != null ? ` · rev ${side.revision}` : '';
+      return `${side.summary}${rev}`;
+    }
+    const payload = summarize(side.payload);
+    return side.revision != null ? `${payload} · rev ${side.revision}` : payload;
+  }
   try {
     const json = JSON.stringify(value);
     return json.length > 80 ? json.slice(0, 80) + '…' : json;

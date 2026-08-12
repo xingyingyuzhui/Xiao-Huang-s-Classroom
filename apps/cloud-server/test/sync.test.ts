@@ -11,6 +11,7 @@ import {
   type PgTestEnv,
 } from './helpers/pg-test-container.js';
 import { loginTestAccount, seedTestAccount } from './helpers/auth-fixtures.js';
+import { computeContentHash } from '../src/sync/hash.js';
 
 function makeEnvelope(input: {
   workspaceId: string;
@@ -20,7 +21,9 @@ function makeEnvelope(input: {
   revision?: number;
   payload?: unknown;
   deletedAt?: string | null;
+  contentHash?: string;
 }) {
+  const payload = input.payload ?? { functions: [] };
   return {
     resourceType: input.resourceType ?? 'math-graph-document',
     resourceId: input.resourceId,
@@ -28,8 +31,8 @@ function makeEnvelope(input: {
     schemaVersion: 1,
     revision: input.revision ?? 1,
     baseRevision: input.baseRevision ?? null,
-    payload: input.payload ?? { functions: [] },
-    contentHash: 'sha256:abcd12345678',
+    payload,
+    contentHash: input.contentHash ?? computeContentHash(payload),
     deletedAt: input.deletedAt ?? null,
   };
 }
@@ -200,6 +203,137 @@ describe('sync push/pull', () => {
     expect(conflict.body.data.conflicts).toHaveLength(1);
     expect(conflict.body.data.conflicts[0].operationId).toBe('op-sync-conflict-update');
     expect(conflict.body.data.conflicts[0].conflict.cloudSummary).toBe('revision:1');
+    expect(conflict.body.data.conflicts[0].conflict.cloudRevision).toBe(1);
+    expect(conflict.body.data.conflicts[0].conflict.cloudPayload).toEqual({ functions: [] });
+  });
+
+  it('rejects content hash mismatch', async () => {
+    const push = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-sync-hash-mismatch',
+            envelope: makeEnvelope({
+              workspaceId,
+              resourceId: 'doc-hash-mismatch',
+              payload: { note: 'tampered' },
+              contentHash: 'sha256:0000000000000000000000000000000000000000000000000000000000000000',
+            }),
+          },
+        ],
+      });
+    expect(push.status).toBe(200);
+    expect(push.body.data.applied).toEqual([]);
+    expect(push.body.data.rejected).toHaveLength(1);
+    expect(push.body.data.rejected[0].operationId).toBe('op-sync-hash-mismatch');
+    expect(push.body.data.rejected[0].code).toBe('SYNC_HASH_MISMATCH');
+  });
+
+  it('rejects duplicate operationId with a different payload', async () => {
+    const firstEnvelope = makeEnvelope({
+      workspaceId,
+      resourceId: 'doc-op-payload',
+      payload: { note: 'first' },
+    });
+    const first = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [{ operationId: 'op-sync-payload-mismatch', envelope: firstEnvelope }],
+      });
+    expect(first.status).toBe(200);
+    expect(first.body.data.applied).toEqual(['op-sync-payload-mismatch']);
+
+    const second = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-sync-payload-mismatch',
+            envelope: makeEnvelope({
+              workspaceId,
+              resourceId: 'doc-op-payload',
+              payload: { note: 'different' },
+            }),
+          },
+        ],
+      });
+    expect(second.status).toBe(200);
+    expect(second.body.data.applied).toEqual([]);
+    expect(second.body.data.rejected).toHaveLength(1);
+    expect(second.body.data.rejected[0].code).toBe('SYNC_OPERATION_PAYLOAD_MISMATCH');
+  });
+
+  it('pull de-dupes the same resource within a cursor page', async () => {
+    const dedupeWorkspace = (
+      await new ClassService(pgEnv.pool).ensurePersonalWorkspace(userAAccountId, 'biology')
+    ).id;
+    const resourceId = 'doc-dedupe';
+    const first = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId: dedupeWorkspace,
+        operations: [
+          {
+            operationId: 'op-dedupe-1',
+            envelope: makeEnvelope({
+              workspaceId: dedupeWorkspace,
+              resourceId,
+              resourceType: 'biology-note',
+              payload: { n: 1 },
+            }),
+          },
+        ],
+      });
+    expect(first.body.data.applied).toEqual(['op-dedupe-1']);
+
+    const second = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId: dedupeWorkspace,
+        operations: [
+          {
+            operationId: 'op-dedupe-2',
+            envelope: makeEnvelope({
+              workspaceId: dedupeWorkspace,
+              resourceId,
+              resourceType: 'biology-note',
+              baseRevision: 1,
+              revision: 2,
+              payload: { n: 2 },
+            }),
+          },
+        ],
+      });
+    expect(second.body.data.applied).toEqual(['op-dedupe-2']);
+
+    const pull = await agent
+      .get('/api/cloud/v1/sync/pull')
+      .query({ workspaceId: dedupeWorkspace })
+      .set('Authorization', `Bearer ${userAToken}`);
+    const matches = pull.body.data.changes.filter(
+      (change: { resourceId: string }) => change.resourceId === resourceId,
+    );
+    expect(matches).toHaveLength(1);
+    expect(matches[0].payload).toEqual({ n: 2 });
+    expect(matches[0].revision).toBe(2);
+  });
+
+  it('rejects a stale cursor', async () => {
+    const pull = await agent
+      .get('/api/cloud/v1/sync/pull')
+      .query({ workspaceId, cursor: 'not-a-cursor' })
+      .set('Authorization', `Bearer ${userAToken}`);
+    expect(pull.status).toBeGreaterThanOrEqual(400);
+    expect(pull.body.error.code).toBe('SYNC_CURSOR_STALE');
   });
 
   it('isolates sync data across tenants', async () => {

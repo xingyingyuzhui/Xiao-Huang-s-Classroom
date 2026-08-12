@@ -17,6 +17,7 @@ export const MIGRATION_MANIFEST: MigrationEntry[] = [
   { version: 10, filename: '0010_identity_sessions.sql', owner: 'auth' },
   { version: 20, filename: '0020_classes_workspaces.sql', owner: 'sync' },
   { version: 21, filename: '0021_sync_resources.sql', owner: 'sync' },
+  { version: 22, filename: '0022_sync_operation_hash.sql', owner: 'sync' },
   { version: 30, filename: '0030_ai_credentials.sql', owner: 'ai' },
   { version: 31, filename: '0031_audit_log.sql', owner: 'ai' },
   { version: 32, filename: '0032_session_expiry.sql', owner: 'auth' },
