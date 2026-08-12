@@ -2,6 +2,8 @@ import type pg from 'pg';
 import { AppError } from '@xiaohuang/domain-core';
 import { encryptApiKey, decryptApiKey } from './encryption.js';
 import { AiCredentialRepository } from '../db/repositories/ai-credential.js';
+import { callProviderChat, type ChatMessage } from './providers.js';
+import { releaseQuota, reserveQuota, type QuotaSnapshot } from './quota.js';
 
 export type CredentialMetadata = {
   provider: string;
@@ -22,13 +24,25 @@ export type QuotaCheckResult = {
   monthly: { used: number; limit: number };
 };
 
+export type ChatProxyInput = {
+  messages: ChatMessage[];
+  temperature?: number;
+  maxTokens?: number;
+};
+
+export type ChatProxyResult = {
+  text: string;
+  model: string;
+};
+
 export class AiService {
   private readonly repo: AiCredentialRepository;
 
   constructor(
-    pool: pg.Pool,
+    private readonly pool: pg.Pool,
     private readonly kek: Buffer,
     private readonly kekVersion: number,
+    private readonly fetchImpl?: typeof fetch,
   ) {
     this.repo = new AiCredentialRepository(pool);
   }
@@ -75,20 +89,37 @@ export class AiService {
     };
   }
 
+  /** @deprecated use reserveQuota; kept for callers that only need a snapshot. */
   async checkAndDecrementQuota(accountId: string): Promise<QuotaCheckResult> {
-    const check = await this.repo.checkQuota(accountId);
-    if (!check.allowed) {
-      const code = check.daily.used >= check.daily.limit
-        ? 'QUOTA_DAILY_EXCEEDED' as const
-        : 'QUOTA_MONTHLY_EXCEEDED' as const;
-      throw new AppError(code, '用量已达上限');
+    const snapshot = await reserveQuota(this.pool, accountId);
+    return { allowed: true, ...snapshot };
+  }
+
+  async chat(accountId: string, input: ChatProxyInput): Promise<ChatProxyResult> {
+    let reserved: QuotaSnapshot | null = null;
+    try {
+      reserved = await reserveQuota(this.pool, accountId);
+      const cred = await this.decryptCredential(accountId);
+      const result = await callProviderChat({
+        provider: cred.provider,
+        model: cred.model,
+        apiKey: cred.apiKey,
+        messages: input.messages,
+        fetchImpl: this.fetchImpl ?? globalThis.fetch,
+        ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
+        ...(input.maxTokens !== undefined ? { maxTokens: input.maxTokens } : {}),
+      });
+      return { text: result.text, model: result.model };
+    } catch (error) {
+      if (reserved) {
+        try {
+          await releaseQuota(this.pool, accountId);
+        } catch {
+          /* release is best-effort; do not mask the original error */
+        }
+      }
+      throw error;
     }
-    await this.repo.incrementUsage(accountId);
-    return {
-      allowed: true,
-      daily: { used: check.daily.used + 1, limit: check.daily.limit },
-      monthly: { used: check.monthly.used + 1, limit: check.monthly.limit },
-    };
   }
 
   async decryptCredential(accountId: string): Promise<{ provider: string; model: string; apiKey: string }> {

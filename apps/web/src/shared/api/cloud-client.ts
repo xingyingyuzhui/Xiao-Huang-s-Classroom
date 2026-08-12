@@ -173,6 +173,56 @@ export class CloudClient {
     return this.request<ClassRecord>('DELETE', `/classes/${encodeURIComponent(classId)}`);
   }
 
+  async copyClass(
+    classId: string,
+    name: string,
+    includeProgress = false,
+  ): Promise<ClassRecord> {
+    return this.request<ClassRecord>('POST', `/classes/${encodeURIComponent(classId)}/copy`, {
+      name,
+      includeProgress,
+    });
+  }
+
+  async restoreClass(classId: string): Promise<ClassRecord> {
+    return this.request<ClassRecord>('POST', `/classes/${encodeURIComponent(classId)}/restore`);
+  }
+
+  async listTrashClasses(): Promise<ClassRecord[]> {
+    return this.request<ClassRecord[]>('GET', '/trash/classes');
+  }
+
+  async listDevices(): Promise<
+    Array<{
+      sessionId: string;
+      deviceId: string;
+      label: string;
+      lastSeenAt: string;
+      createdAt: string;
+      current: boolean;
+    }>
+  > {
+    return this.request('GET', '/devices');
+  }
+
+  async revokeDevice(sessionId: string): Promise<{ revoked: boolean; current?: boolean }> {
+    return this.request('DELETE', `/devices/${encodeURIComponent(sessionId)}`);
+  }
+
+  async changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean }> {
+    return this.request('POST', '/account/password/change', {
+      currentPassword,
+      newPassword,
+    });
+  }
+
+  async patchProfile(patch: {
+    displayName?: string;
+    avatarUrl?: string | null;
+  }): Promise<{ displayName: string; avatarUrl: string | null }> {
+    return this.request('PATCH', '/account', patch);
+  }
+
   async getAiCredential(): Promise<{
     configured: boolean;
     provider?: string;
@@ -206,6 +256,14 @@ export class CloudClient {
     monthly: { used: number; limit: number };
   }> {
     return this.request('GET', '/ai/usage');
+  }
+
+  async chatAi(input: {
+    messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>;
+    temperature?: number;
+    maxTokens?: number;
+  }): Promise<{ text: string; model: string }> {
+    return this.request('POST', '/ai/chat', input);
   }
 
   async syncPush(

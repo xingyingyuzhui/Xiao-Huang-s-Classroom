@@ -21,6 +21,8 @@ const STATUS_BY_CODE: Partial<Record<ErrorCode, number>> = {
   CREDENTIAL_INVALID: 400,
   QUOTA_DAILY_EXCEEDED: 429,
   QUOTA_MONTHLY_EXCEEDED: 429,
+  AI_REQUEST: 502,
+  AI_TIMEOUT: 504,
 };
 
 export function httpStatusForError(code: ErrorCode): number {

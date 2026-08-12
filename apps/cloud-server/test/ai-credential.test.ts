@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll, afterEach, vi } from 'vitest';
 import crypto from 'node:crypto';
 import request from 'supertest';
 import { createCloudApp } from '../src/app.js';
 import { loadCloudConfig } from '../src/config.js';
 import { migrateToLatest } from '../src/db/migrate.js';
 import { encryptApiKey, decryptApiKey } from '../src/ai/encryption.js';
+import { reserveQuota } from '../src/ai/quota.js';
 import {
   startPgTestEnv,
   stopPgTestEnv,
@@ -36,6 +37,7 @@ describe('ai credential routes', () => {
   let agent: ReturnType<typeof request.agent>;
   let tokenA: string;
   let tokenB: string;
+  let accountIdA: string;
 
   beforeAll(async () => {
     pgEnv = await startPgTestEnv();
@@ -46,11 +48,12 @@ describe('ai credential routes', () => {
     app = createCloudApp({ config, pool: pgEnv.pool });
     agent = request.agent(app);
 
-    await seedTestAccount(pgEnv.pool, {
+    const seededA = await seedTestAccount(pgEnv.pool, {
       username: 'ai_user_a',
       password: 'password123',
       displayName: 'User A',
     });
+    accountIdA = seededA.accountId;
     await seedTestAccount(pgEnv.pool, {
       username: 'ai_user_b',
       password: 'password456',
@@ -66,6 +69,10 @@ describe('ai credential routes', () => {
 
   afterAll(async () => {
     await stopPgTestEnv(pgEnv);
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('returns configured:false when no credential set', async () => {
@@ -156,5 +163,119 @@ describe('ai credential routes', () => {
   it('requires auth', async () => {
     const res = await agent.get('/api/cloud/v1/ai/credential');
     expect(res.status).toBe(401);
+  });
+
+  it('quiz and lesson endpoints are stubbed 501', async () => {
+    const quiz = await agent
+      .post('/api/cloud/v1/ai/quiz')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({});
+    expect(quiz.status).toBe(501);
+    const lesson = await agent
+      .post('/api/cloud/v1/ai/lesson')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({});
+    expect(lesson.status).toBe(501);
+  });
+
+  it('proxies chat, returns model text only, and never echoes the key', async () => {
+    const secret = 'sk-proxy-secret-key-AAAA';
+    await agent
+      .put('/api/cloud/v1/ai/credential')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ provider: 'deepseek', model: 'deepseek-v4-flash', apiKey: secret });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init?: RequestInit) => {
+        const headers = init?.headers as Record<string, string>;
+        expect(headers.Authorization).toBe(`Bearer ${secret}`);
+        return {
+          ok: true,
+          json: async () => ({
+            model: 'deepseek-v4-flash',
+            choices: [{ message: { content: '  云端回复  ' } }],
+          }),
+        };
+      }),
+    );
+
+    const res = await agent
+      .post('/api/cloud/v1/ai/chat')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ messages: [{ role: 'user', content: '你好' }] });
+    expect(res.status).toBe(200);
+    expect(res.body.data.text).toBe('云端回复');
+    expect(res.body.data.model).toBe('deepseek-v4-flash');
+    expect(JSON.stringify(res.body)).not.toContain(secret);
+    expect(JSON.stringify(res.body)).not.toContain('sk-proxy');
+  });
+
+  it('releases quota when the provider fails', async () => {
+    await agent
+      .put('/api/cloud/v1/ai/credential')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ provider: 'deepseek', model: 'deepseek-v4-flash', apiKey: 'sk-fail-key-12345678' });
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => ({
+        ok: false,
+        json: async () => ({ error: { message: 'upstream down' } }),
+      })),
+    );
+
+    const before = await agent
+      .get('/api/cloud/v1/ai/usage')
+      .set('Authorization', `Bearer ${tokenA}`);
+    const usedBefore = before.body.data.daily.used as number;
+
+    const res = await agent
+      .post('/api/cloud/v1/ai/chat')
+      .set('Authorization', `Bearer ${tokenA}`)
+      .send({ messages: [{ role: 'user', content: 'hi' }] });
+    expect(res.status).toBe(502);
+
+    const after = await agent
+      .get('/api/cloud/v1/ai/usage')
+      .set('Authorization', `Bearer ${tokenA}`);
+    expect(after.body.data.daily.used).toBe(usedBefore);
+  });
+
+  it('atomic reserve: second sequential call is rejected at limit=1', async () => {
+    await pgEnv.pool.query(
+      `INSERT INTO ai_quota (account_id, daily_limit, monthly_limit)
+       VALUES ($1, 1, 2000)
+       ON CONFLICT (account_id) DO UPDATE SET daily_limit = 1`,
+      [accountIdA],
+    );
+    await pgEnv.pool.query(`DELETE FROM ai_usage WHERE account_id = $1`, [accountIdA]);
+
+    const first = await reserveQuota(pgEnv.pool, accountIdA);
+    expect(first.daily.used).toBe(1);
+    await expect(reserveQuota(pgEnv.pool, accountIdA)).rejects.toMatchObject({
+      code: 'QUOTA_DAILY_EXCEEDED',
+    });
+  });
+
+  it('atomic reserve: parallel callers cannot both pass a limit of 1', async () => {
+    await pgEnv.pool.query(
+      `INSERT INTO ai_quota (account_id, daily_limit, monthly_limit)
+       VALUES ($1, 1, 2000)
+       ON CONFLICT (account_id) DO UPDATE SET daily_limit = 1`,
+      [accountIdA],
+    );
+    await pgEnv.pool.query(`DELETE FROM ai_usage WHERE account_id = $1`, [accountIdA]);
+
+    const results = await Promise.allSettled([
+      reserveQuota(pgEnv.pool, accountIdA),
+      reserveQuota(pgEnv.pool, accountIdA),
+    ]);
+    const ok = results.filter((r) => r.status === 'fulfilled');
+    const denied = results.filter(
+      (r) => r.status === 'rejected' && (r.reason as { code?: string })?.code === 'QUOTA_DAILY_EXCEEDED',
+    );
+    expect(ok).toHaveLength(1);
+    expect(denied).toHaveLength(1);
   });
 });

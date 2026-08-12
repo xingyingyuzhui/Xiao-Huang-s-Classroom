@@ -1,11 +1,32 @@
 /**
  * AI 路由组合根：保持 /api/ai 前缀与既有接口路径不变。
  * 具体领域接口分别维护在 ai/ 子目录。
+ *
+ * Public web (CHEM_LAB_BIND=0.0.0.0, not Electron/pkg): refuse all /api/ai.
+ * Keys must not be sent to lab; use POST /api/cloud/v1/ai/chat instead.
+ * Electron / pkg may keep local provider keys for offline classroom AI.
  */
 
 const express = require('express');
+const { isElectron, isPkg } = require('../paths');
 
 const router = express.Router();
+
+function isPublicLabDeployment() {
+  if (isElectron() || isPkg()) return false;
+  const bind = String(process.env.CHEM_LAB_BIND || '').trim();
+  return bind === '0.0.0.0' || bind === '::' || bind === '*';
+}
+
+function refusePublicAi(_req, res, next) {
+  if (!isPublicLabDeployment()) return next();
+  res.status(403).json({
+    success: false,
+    message: '公网请使用云端 AI（需登录）。实验室进程不接收或保存 API Key。',
+  });
+}
+
+router.use(refusePublicAi);
 router.use(require('./ai/molecules')({ callDeepSeekChat: require('../services/ai/chat-service').callDeepSeekChat }));
 router.use(
   require('./ai/quiz')({

@@ -3,6 +3,7 @@ const { normalizeApiBase, normalizeModel } = require('../../utils/ai-config');
 const {
   normalizeSubjectSettings,
   readSubjectAiFromMap,
+  extractLeftoverApiKey,
 } = require('@xiaohuang/subject-settings');
 const {
   reserveGlobalAiCall,
@@ -23,7 +24,10 @@ function readSettingValue(key) {
 function readSubjectAiSettings(subjectId = 'chemistry') {
   const raw = readSettingValue('subjectSettings');
   const map = normalizeSubjectSettings(raw && typeof raw === 'object' ? raw : {});
-  return readSubjectAiFromMap(map, subjectId);
+  const ai = readSubjectAiFromMap(map, subjectId);
+  // Electron offline: historical keys remain in lab SQLite; normalize never round-trips them.
+  const leftover = extractLeftoverApiKey(raw && typeof raw === 'object' ? raw : {}, subjectId);
+  return { ...ai, apiKey: leftover };
 }
 
 /** 读取本地设置、预约全局额度并调用模型。 */
