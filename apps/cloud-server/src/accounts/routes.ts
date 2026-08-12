@@ -79,7 +79,10 @@ export function createAccountsRouter(pool: DbPool): Router {
           req.principal!.accountId!,
           body.confirmDisplayName,
           body.currentPassword,
-          { ipAddress: req.ip, requestId: req.requestId },
+          {
+            ...(typeof req.ip === 'string' ? { ipAddress: req.ip } : {}),
+            requestId: req.requestId,
+          },
         );
         res.json({
           success: true,
@@ -95,7 +98,7 @@ export function createAccountsRouter(pool: DbPool): Router {
   router.delete('/deletion-request', requireAuth, requireAccountRestoreScope, async (req, res, next) => {
     try {
       const data = await accounts.cancelDeletion(req.principal!.accountId!, {
-        ipAddress: req.ip,
+        ...(typeof req.ip === 'string' ? { ipAddress: req.ip } : {}),
         requestId: req.requestId,
       });
       res.json({
