@@ -321,18 +321,21 @@ export class SyncController {
 
   async resolveConflict(conflictId: string, resolution: ConflictResolution): Promise<void> {
     const stored = this.deps.conflictStore.get(conflictId);
-    if (!stored) return;
+    if (!stored || stored.resolution != null) return;
 
     if (resolution === 'duplicateLocal' && !stored.supportsDuplicateLocal) {
       return;
     }
 
+    const nextOperationId =
+      this.deps.createOperationId?.() ??
+      `op_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+
     if (this.deps.localResources) {
-      await this.deps.localResources.applyConflictResolution({
+      await this.deps.localResources.resolveConflictAtomically({
         conflict: stored,
         resolution,
-        createOperationId:
-          this.deps.createOperationId ?? (() => `op_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`),
+        nextOperationId,
       });
     }
 

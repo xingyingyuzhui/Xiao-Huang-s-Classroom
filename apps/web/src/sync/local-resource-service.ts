@@ -2,12 +2,23 @@ import { AppError } from '@xiaohuang/domain-core';
 import type { ConflictResolution } from '@xiaohuang/sync-core';
 import {
   idbTransactionComplete,
+  STORE_META,
   STORE_OUTBOX,
   STORE_RESOURCES,
 } from '../shared/persistence/indexeddb/idb-primitives.js';
-import { OutboxRepository } from '../shared/persistence/indexeddb/outbox-repository.js';
+import {
+  appendOutboxInTransaction,
+  OutboxRepository,
+  patchOutboxInTransaction,
+  type OutboxEntry,
+} from '../shared/persistence/indexeddb/outbox-repository.js';
 import { ResourceRepository } from '../shared/persistence/indexeddb/resource-repository.js';
 import type { ResourceRecord } from '../shared/persistence/indexeddb/resource-repository.js';
+import {
+  readConflictMeta,
+  resolveConflictRecords,
+  writeConflictMetaInTransaction,
+} from './conflict-store.js';
 import type { ConflictSideSnapshot, StoredConflict } from './conflict-store.js';
 
 export type LocalResourceWriteInput = {
@@ -20,6 +31,7 @@ export type LocalResourceWriteInput = {
   localOnly: boolean;
   operationId?: string;
   baseRevision?: number | null;
+  basePayload?: unknown | null;
   deletedAt?: number | null;
   now?: number;
 };
@@ -97,13 +109,14 @@ export class LocalResourceService {
     });
 
     if (!input.localOnly && input.operationId) {
-      this.outbox.appendInTransaction(tx, {
+      appendOutboxInTransaction(tx, {
         operationId: input.operationId,
         workspaceId: input.workspaceId,
         resourceType: input.resourceType,
         resourceId: input.resourceId,
         payload: input.payload,
         baseRevision: input.baseRevision ?? null,
+        basePayload: input.basePayload ?? null,
         createdAt: timestamp,
         deletedAt: input.deletedAt ?? null,
         schemaVersion: input.schemaVersion,
@@ -134,18 +147,15 @@ export class LocalResourceService {
   }
 
   /**
-   * Persist a conflict resolution into IndexedDB + outbox.
-   * keepLocal: new op based on latest cloud revision.
-   * keepCloud: replace local resource with cloud snapshot and ack the old op.
-   * duplicateLocal: only when the adapter supports it.
+   * Resolve a sync conflict atomically across resources, outbox, and conflict meta.
    */
-  async applyConflictResolution(input: {
+  async resolveConflictAtomically(input: {
     conflict: StoredConflict;
     resolution: ConflictResolution;
-    createOperationId: () => string;
+    nextOperationId: string;
     now?: number;
   }): Promise<void> {
-    const { conflict, resolution } = input;
+    const { conflict, resolution, nextOperationId } = input;
     const timestamp = input.now ?? this.now();
     const local = asSide(conflict.snapshot.local);
     const cloud = asSide(conflict.snapshot.cloud);
@@ -159,8 +169,34 @@ export class LocalResourceService {
       );
     }
 
+    if (conflict.resolution != null) {
+      return;
+    }
+
+    let oldOutbox: OutboxEntry | null = null;
+    if (conflict.operationId) {
+      oldOutbox = await this.outbox.get(conflict.operationId);
+      if (!oldOutbox) {
+        throw new AppError(
+          'PERSISTENCE_WRITE',
+          `Outbox operation not found: ${conflict.operationId}`,
+          'outbox',
+        );
+      }
+    }
+
+    const existingConflicts = await readConflictMeta(this.db);
+    const alreadyResolved = existingConflicts.find(
+      (entry) => entry.conflictId === conflict.conflictId && entry.resolution != null,
+    );
+    if (alreadyResolved) {
+      return;
+    }
+
+    const tx = this.db.transaction([STORE_RESOURCES, STORE_OUTBOX, STORE_META], 'readwrite');
+
     if (resolution === 'keepCloud') {
-      await this.replaceResource({
+      this.resources.putInTransaction(tx, {
         workspaceId: conflict.workspaceId,
         resourceType: conflict.resourceType,
         resourceId: conflict.resourceId,
@@ -168,57 +204,71 @@ export class LocalResourceService {
         revision: cloud.revision ?? 0,
         payload: cloud.payload,
         localOnly: false,
+        updatedAt: timestamp,
         deletedAt: cloud.deletedAt ?? null,
-        now: timestamp,
       });
-      if (conflict.operationId) {
-        await this.outbox.markApplied(conflict.operationId, timestamp);
-      }
-      return;
-    }
-
-    if (resolution === 'keepLocal') {
-      if (conflict.operationId) {
-        await this.outbox.updateStatuses([
+      if (oldOutbox) {
+        patchOutboxInTransaction(
+          tx,
+          conflict.operationId,
           { operationId: conflict.operationId, status: 'applied', appliedAt: timestamp },
-        ]);
+          oldOutbox,
+        );
       }
-      await this.write(
-        {
-          workspaceId: conflict.workspaceId,
-          resourceType: conflict.resourceType,
-          resourceId: conflict.resourceId,
-          schemaVersion,
-          revision: (cloud.revision ?? 0) + 1,
-          payload: local.payload,
-          localOnly: false,
-          operationId: input.createOperationId(),
-          baseRevision: cloud.revision,
-          deletedAt: local.deletedAt ?? null,
-          now: timestamp,
-        },
-        this.generation,
-      );
-      return;
-    }
-
-    const duplicateId = `${conflict.resourceId}~dup-${timestamp.toString(36)}`;
-    await this.replaceResource({
-      workspaceId: conflict.workspaceId,
-      resourceType: conflict.resourceType,
-      resourceId: conflict.resourceId,
-      schemaVersion,
-      revision: cloud.revision ?? 0,
-      payload: cloud.payload,
-      localOnly: false,
-      deletedAt: cloud.deletedAt ?? null,
-      now: timestamp,
-    });
-    if (conflict.operationId) {
-      await this.outbox.markApplied(conflict.operationId, timestamp);
-    }
-    await this.write(
-      {
+    } else if (resolution === 'keepLocal') {
+      this.resources.putInTransaction(tx, {
+        workspaceId: conflict.workspaceId,
+        resourceType: conflict.resourceType,
+        resourceId: conflict.resourceId,
+        schemaVersion,
+        revision: (cloud.revision ?? 0) + 1,
+        payload: local.payload,
+        localOnly: false,
+        updatedAt: timestamp,
+        deletedAt: local.deletedAt ?? null,
+      });
+      if (oldOutbox) {
+        patchOutboxInTransaction(
+          tx,
+          conflict.operationId,
+          { operationId: conflict.operationId, status: 'applied', appliedAt: timestamp },
+          oldOutbox,
+        );
+      }
+      appendOutboxInTransaction(tx, {
+        operationId: nextOperationId,
+        workspaceId: conflict.workspaceId,
+        resourceType: conflict.resourceType,
+        resourceId: conflict.resourceId,
+        payload: local.payload,
+        baseRevision: cloud.revision ?? null,
+        basePayload: cloud.payload ?? null,
+        createdAt: timestamp,
+        deletedAt: local.deletedAt ?? null,
+        schemaVersion,
+      });
+    } else {
+      this.resources.putInTransaction(tx, {
+        workspaceId: conflict.workspaceId,
+        resourceType: conflict.resourceType,
+        resourceId: conflict.resourceId,
+        schemaVersion,
+        revision: cloud.revision ?? 0,
+        payload: cloud.payload,
+        localOnly: false,
+        updatedAt: timestamp,
+        deletedAt: cloud.deletedAt ?? null,
+      });
+      if (oldOutbox) {
+        patchOutboxInTransaction(
+          tx,
+          conflict.operationId,
+          { operationId: conflict.operationId, status: 'applied', appliedAt: timestamp },
+          oldOutbox,
+        );
+      }
+      const duplicateId = `${conflict.resourceId}~dup-${timestamp.toString(36)}`;
+      this.resources.putInTransaction(tx, {
         workspaceId: conflict.workspaceId,
         resourceType: conflict.resourceType,
         resourceId: duplicateId,
@@ -226,13 +276,44 @@ export class LocalResourceService {
         revision: 0,
         payload: local.payload,
         localOnly: false,
-        operationId: input.createOperationId(),
-        baseRevision: null,
+        updatedAt: timestamp,
         deletedAt: local.deletedAt ?? null,
-        now: timestamp,
-      },
-      this.generation,
+      });
+      appendOutboxInTransaction(tx, {
+        operationId: nextOperationId,
+        workspaceId: conflict.workspaceId,
+        resourceType: conflict.resourceType,
+        resourceId: duplicateId,
+        payload: local.payload,
+        baseRevision: null,
+        basePayload: null,
+        createdAt: timestamp,
+        deletedAt: local.deletedAt ?? null,
+        schemaVersion,
+      });
+    }
+
+    writeConflictMetaInTransaction(
+      tx,
+      resolveConflictRecords(existingConflicts, conflict.conflictId, resolution, timestamp),
     );
+
+    await idbTransactionComplete(tx);
+  }
+
+  /** @deprecated Use resolveConflictAtomically */
+  async applyConflictResolution(input: {
+    conflict: StoredConflict;
+    resolution: ConflictResolution;
+    createOperationId: () => string;
+    now?: number;
+  }): Promise<void> {
+    await this.resolveConflictAtomically({
+      conflict: input.conflict,
+      resolution: input.resolution,
+      nextOperationId: input.createOperationId(),
+      now: input.now,
+    });
   }
 }
 

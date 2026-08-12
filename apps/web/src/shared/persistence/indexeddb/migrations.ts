@@ -7,12 +7,14 @@ import {
   idbRequest,
   idbTransactionComplete,
   STORE_META,
+  STORE_OUTBOX,
   STORE_RESOURCES,
 } from './idb-primitives.js';
 import { computeContentHashSync } from './hash.js';
 import { buildScopedKey, guestWorkspaceId } from './workspace-keys.js';
 import type { ResourceRecord } from './resource-repository.js';
 import { putResourceInTransaction } from './resource-repository.js';
+import type { OutboxEntry } from './outbox-repository.js';
 
 export const GRAPH_STORAGE_KEY = 'xiaohuang:math:graph-document:v2';
 
@@ -169,6 +171,25 @@ async function migrationMathGraphDocumentPostcondition(ctx: MigrationContext): P
   return migrated.schemaVersion === GRAPH_DOCUMENT_VERSION;
 }
 
+async function backfillOutboxBasePayload(ctx: MigrationContext): Promise<void> {
+  const tx = ctx.db.transaction(STORE_OUTBOX, 'readwrite');
+  const store = tx.objectStore(STORE_OUTBOX);
+  const entries = await idbRequest<OutboxEntry[]>(store.getAll());
+  for (const entry of entries) {
+    if (!('basePayload' in entry) || entry.basePayload === undefined) {
+      store.put({ ...entry, basePayload: null });
+    }
+  }
+  await idbTransactionComplete(tx);
+}
+
+async function outboxBasePayloadPostcondition(ctx: MigrationContext): Promise<boolean> {
+  const tx = ctx.db.transaction(STORE_OUTBOX, 'readonly');
+  const entries = await idbRequest<OutboxEntry[]>(tx.objectStore(STORE_OUTBOX).getAll());
+  await idbTransactionComplete(tx);
+  return entries.every((entry) => 'basePayload' in entry && entry.basePayload !== undefined);
+}
+
 export const DATA_MIGRATIONS: DataMigration[] = [
   {
     version: 1,
@@ -176,6 +197,12 @@ export const DATA_MIGRATIONS: DataMigration[] = [
     run: migrateMathGraphDocument,
     postcondition: migrationMathGraphDocumentPostcondition,
     finalize: finalizeMathGraphDocument,
+  },
+  {
+    version: 2,
+    marker: 'outbox-base-payload-null',
+    run: backfillOutboxBasePayload,
+    postcondition: outboxBasePayloadPostcondition,
   },
 ];
 

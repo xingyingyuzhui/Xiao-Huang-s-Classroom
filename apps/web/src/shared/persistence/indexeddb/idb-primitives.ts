@@ -1,7 +1,7 @@
 import { AppError } from '@xiaohuang/domain-core';
 
 export const LOCAL_DB_NAME = 'xiaohuang-classroom-local';
-export const LOCAL_DB_VERSION = 1;
+export const LOCAL_DB_VERSION = 2;
 
 export const STORE_META = 'meta';
 export const STORE_RESOURCES = 'resources';

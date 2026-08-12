@@ -21,6 +21,53 @@ type ConflictMetaRecord = {
   records: StoredConflict[];
 };
 
+export { META_KEY };
+
+export async function readConflictMeta(db: IDBDatabase): Promise<StoredConflict[]> {
+  const tx = db.transaction(STORE_META, 'readonly');
+  const record = await idbRequest<ConflictMetaRecord | undefined>(
+    tx.objectStore(STORE_META).get(META_KEY),
+  );
+  await idbTransactionComplete(tx);
+  return (record?.records ?? []).map(asStored);
+}
+
+export function readConflictMetaInTransaction(
+  tx: IDBTransaction,
+): Promise<StoredConflict[]> {
+  return idbRequest<ConflictMetaRecord | undefined>(
+    tx.objectStore(STORE_META).get(META_KEY),
+  ).then((record) => (record?.records ?? []).map(asStored));
+}
+
+export function writeConflictMetaInTransaction(
+  tx: IDBTransaction,
+  records: StoredConflict[],
+): void {
+  tx.objectStore(STORE_META).put({
+    key: META_KEY,
+    records,
+  } satisfies ConflictMetaRecord);
+}
+
+export function resolveConflictRecords(
+  records: StoredConflict[],
+  conflictId: string,
+  resolution: ConflictResolution,
+  resolvedAt: number,
+): StoredConflict[] {
+  return records.map((conflict) => {
+    if (conflict.conflictId !== conflictId || conflict.resolution != null) {
+      return conflict;
+    }
+    return {
+      ...conflict,
+      resolution,
+      resolvedAt,
+    };
+  });
+}
+
 function asStored(conflict: ConflictRecord | StoredConflict): StoredConflict {
   const extra = conflict as StoredConflict;
   return {

@@ -13,6 +13,7 @@ export type OutboxEntry = {
   resourceId: string;
   payload: unknown;
   baseRevision: number | null;
+  basePayload: unknown | null;
   createdAt: number;
   deletedAt: number | null;
   status: OutboxStatus;
@@ -29,6 +30,7 @@ export type OutboxAppendInput = {
   resourceId: string;
   payload: unknown;
   baseRevision: number | null;
+  basePayload?: unknown | null;
   createdAt: number;
   deletedAt?: number | null;
   schemaVersion?: number;
@@ -55,10 +57,29 @@ function isOutboxStatus(value: unknown): value is OutboxStatus {
 function normalizeEntry(entry: OutboxEntry): OutboxEntry {
   return {
     ...entry,
+    basePayload: entry.basePayload ?? null,
     status: isOutboxStatus(entry.status) ? entry.status : 'pending',
     appliedAt: entry.appliedAt ?? null,
     deletedAt: entry.deletedAt ?? null,
   };
+}
+
+export function patchOutboxInTransaction(
+  tx: IDBTransaction,
+  operationId: string,
+  patch: OutboxStatusPatch,
+  existing: OutboxEntry,
+): void {
+  if (existing.status === 'applied' && patch.status === 'applied') {
+    return;
+  }
+  tx.objectStore(STORE_OUTBOX).put({
+    ...existing,
+    status: patch.status,
+    appliedAt: patch.status === 'applied' ? (patch.appliedAt ?? Date.now()) : existing.appliedAt,
+    rejectedCode: patch.rejectedCode ?? existing.rejectedCode ?? null,
+    rejectedMessage: patch.rejectedMessage ?? existing.rejectedMessage ?? null,
+  });
 }
 
 export function appendOutboxInTransaction(tx: IDBTransaction, input: OutboxAppendInput): void {
@@ -69,6 +90,7 @@ export function appendOutboxInTransaction(tx: IDBTransaction, input: OutboxAppen
     resourceId: input.resourceId,
     payload: input.payload,
     baseRevision: input.baseRevision,
+    basePayload: input.basePayload ?? null,
     createdAt: input.createdAt,
     deletedAt: input.deletedAt ?? null,
     status: 'pending',
