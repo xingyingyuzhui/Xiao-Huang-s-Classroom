@@ -230,10 +230,10 @@ export class SyncService {
         }
 
         const verified: SyncEntityEnvelope = { ...envelope, contentHash: expectedHash };
-        let revision: number | null = null;
+        let revision: number;
         if (envelope.baseRevision === null) {
-          revision = await sync.tryInsertResource(accountId, workspaceId, verified);
-          if (revision === null) {
+          const inserted = await sync.tryInsertResource(accountId, workspaceId, verified);
+          if (inserted === null) {
             const racedOperation = await sync.findOperation(accountId, operationId);
             if (
               racedOperation &&
@@ -250,15 +250,16 @@ export class SyncService {
             conflicts.push(toConflictEntry(operationId, envelope, raced));
             continue;
           }
+          revision = inserted;
         } else {
-          revision = await sync.updateResourceCas(
+          const updated = await sync.updateResourceCas(
             workspaceId,
             envelope.resourceType,
             envelope.resourceId,
             envelope.baseRevision,
             verified,
           );
-          if (revision === null) {
+          if (updated === null) {
             const racedOperation = await sync.findOperation(accountId, operationId);
             if (
               racedOperation &&
@@ -275,6 +276,7 @@ export class SyncService {
             conflicts.push(toConflictEntry(operationId, envelope, raced));
             continue;
           }
+          revision = updated;
         }
 
         const recorded = await sync.claimOperation(accountId, operationId, workspaceId, expectedHash);

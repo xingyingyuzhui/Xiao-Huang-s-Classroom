@@ -105,7 +105,6 @@ describe('atomic conflict resolution', () => {
           if (name !== STORE_RESOURCES) {
             return store;
           }
-          const originalPut = store.put.bind(store);
           store.put = (() => {
             throw new DOMException('Injected resource write failure', 'AbortError');
           }) as typeof store.put;
