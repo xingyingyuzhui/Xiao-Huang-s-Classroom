@@ -5,6 +5,7 @@
 
 import { studentApi } from '../../shared/api/client.js';
 import { appConfirm, appPrompt } from '../../shared/ui/app-dialog.js';
+import { subscribeRoster } from '../../sync/roster-store.js';
 const $ = (sel) => document.querySelector(sel);
 
 /** @type {Array<{id:string,name:string}>} */
@@ -197,6 +198,9 @@ function spinToWinner() {
 }
 
 export function initRollcall() {
+  subscribeRoster(() => {
+    void loadStudents();
+  });
   $('#btnRollcallSpin')?.addEventListener('click', spinToWinner);
   $('#btnRollcallAgain')?.addEventListener('click', spinToWinner);
 

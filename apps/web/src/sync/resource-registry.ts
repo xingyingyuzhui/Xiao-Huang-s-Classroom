@@ -5,6 +5,7 @@ export type ResourceTypeConfig = {
   supportsDuplicateLocal: boolean;
   summarize: (payload: unknown) => string;
   computeHash: (payload: unknown) => string;
+  parse?: (payload: unknown) => unknown;
 };
 
 export class ResourceRegistry {

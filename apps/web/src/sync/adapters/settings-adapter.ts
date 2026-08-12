@@ -1,3 +1,7 @@
+import {
+  classSettingsPayloadSchema,
+  teacherSettingsPayloadSchema,
+} from '@xiaohuang/contracts';
 import type { ResourceTypeConfig } from '../resource-registry.js';
 import { computePayloadHashSync } from './hash.js';
 
@@ -8,6 +12,7 @@ export const teacherSettingsAdapter: ResourceTypeConfig = {
   supportsDuplicateLocal: false,
   summarize: () => '教师设置',
   computeHash: computePayloadHashSync,
+  parse: (payload) => teacherSettingsPayloadSchema.parse(payload ?? {}),
 };
 
 export const classSettingsAdapter: ResourceTypeConfig = {
@@ -20,4 +25,5 @@ export const classSettingsAdapter: ResourceTypeConfig = {
     return name ? `班级设置: ${name}` : '班级设置';
   },
   computeHash: computePayloadHashSync,
+  parse: (payload) => classSettingsPayloadSchema.parse(payload ?? {}),
 };

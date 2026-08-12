@@ -1,5 +1,5 @@
 import { AppError } from '@xiaohuang/domain-core';
-import { idbRequest, idbTransactionComplete, STORE_RESOURCES } from './database.js';
+import { idbRequest, idbTransactionComplete, STORE_RESOURCES } from './idb-primitives.js';
 import { computeContentHashSync } from './hash.js';
 import { buildScopedKey } from './workspace-keys.js';
 

@@ -1,5 +1,5 @@
 import { AppError } from '@xiaohuang/domain-core';
-import { idbRequest, idbTransactionComplete, STORE_CURSORS } from './database.js';
+import { idbRequest, idbTransactionComplete, STORE_CURSORS } from './idb-primitives.js';
 
 export type SyncCursorRecord = {
   workspaceId: string;

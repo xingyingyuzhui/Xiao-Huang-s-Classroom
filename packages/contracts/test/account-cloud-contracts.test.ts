@@ -11,6 +11,8 @@ import {
   aiCredentialUpsertSchema,
   subjectSettingsSchema,
   operationIdSchema,
+  teacherSettingsPayloadSchema,
+  classRosterPayloadSchema,
 } from '../src/index.js';
 
 describe('account cloud branded IDs', () => {
@@ -138,6 +140,29 @@ describe('AI credential metadata', () => {
         apiKey: 'sk-test-key-12345678',
       }).success,
     ).toBe(true);
+  });
+});
+
+describe('wave1 resource payloads', () => {
+  it('teacher.settings accepts theme and nested subject map', () => {
+    const ok = teacherSettingsPayloadSchema.safeParse({
+      theme: { id: 'blackboard' },
+      subjectSettings: { chemistry: { brand: { title: '化学' } } },
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('class.roster requires id and name', () => {
+    expect(
+      classRosterPayloadSchema.safeParse({
+        students: [{ id: 'stu_1', name: '小黄' }],
+      }).success,
+    ).toBe(true);
+    expect(
+      classRosterPayloadSchema.safeParse({
+        students: [{ id: 'stu_1' }],
+      }).success,
+    ).toBe(false);
   });
 });
 

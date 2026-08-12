@@ -8,7 +8,7 @@ import {
   idbTransactionComplete,
   STORE_META,
   STORE_RESOURCES,
-} from './database.js';
+} from './idb-primitives.js';
 import { computeContentHashSync } from './hash.js';
 import { buildScopedKey, guestWorkspaceId } from './workspace-keys.js';
 import type { ResourceRecord } from './resource-repository.js';

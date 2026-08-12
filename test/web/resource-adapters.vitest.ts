@@ -53,4 +53,10 @@ describe('Wave 1 resource adapters', () => {
     expect(registry.has('class.roster')).toBe(true);
     expect(registry.listRegistered()).toHaveLength(3);
   });
+
+  it('wave1 adapters parse valid payloads and reject empty roster ids', () => {
+    expect(teacherSettingsAdapter.parse?.({ theme: { id: 'default' } })).toBeTruthy();
+    expect(classSettingsAdapter.parse?.({ className: '一班' })).toBeTruthy();
+    expect(() => studentRosterAdapter.parse?.({ students: [{ id: '', name: 'A' }] })).toThrow();
+  });
 });

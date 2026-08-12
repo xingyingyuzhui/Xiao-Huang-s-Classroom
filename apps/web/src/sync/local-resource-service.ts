@@ -4,7 +4,7 @@ import {
   idbTransactionComplete,
   STORE_OUTBOX,
   STORE_RESOURCES,
-} from '../shared/persistence/indexeddb/database.js';
+} from '../shared/persistence/indexeddb/idb-primitives.js';
 import { OutboxRepository } from '../shared/persistence/indexeddb/outbox-repository.js';
 import { ResourceRepository } from '../shared/persistence/indexeddb/resource-repository.js';
 import type { ResourceRecord } from '../shared/persistence/indexeddb/resource-repository.js';

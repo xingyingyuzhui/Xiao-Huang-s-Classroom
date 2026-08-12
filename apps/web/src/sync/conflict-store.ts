@@ -1,5 +1,5 @@
 import type { ConflictRecord, ConflictResolution } from '@xiaohuang/sync-core';
-import { idbRequest, idbTransactionComplete, STORE_META } from '../shared/persistence/indexeddb/database.js';
+import { idbRequest, idbTransactionComplete, STORE_META } from '../shared/persistence/indexeddb/idb-primitives.js';
 
 export type ConflictSideSnapshot = {
   payload: unknown;

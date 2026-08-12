@@ -9,6 +9,13 @@ import {
   readLocalSettings,
   writeLocalSettings,
 } from '../persistence/local-settings.js';
+import {
+  addRosterStudent,
+  getRosterStudents,
+  importRosterNames,
+  removeRosterStudent,
+  updateRosterStudent,
+} from '../../sync/roster-store.js';
 
 const API_BASE = '/api';
 
@@ -176,27 +183,43 @@ export const settingsApi = {
  */
 export const studentApi = {
   async getList() {
+    if (usePublicCloudSettings()) {
+      return getRosterStudents();
+    }
     return request('/students');
   },
   async add(name) {
+    if (usePublicCloudSettings()) {
+      return addRosterStudent(name);
+    }
     return request('/students', {
       method: 'POST',
       body: JSON.stringify({ name }),
     });
   },
   async importNames(names, mode = 'append') {
+    if (usePublicCloudSettings()) {
+      return importRosterNames(names, mode === 'replace' ? 'replace' : 'append');
+    }
     return request('/students/import', {
       method: 'POST',
       body: JSON.stringify({ names, mode }),
     });
   },
   async update(id, name) {
+    if (usePublicCloudSettings()) {
+      return updateRosterStudent(id, name);
+    }
     return request(`/students/${encodeURIComponent(id)}`, {
       method: 'PUT',
       body: JSON.stringify({ name }),
     });
   },
   async remove(id) {
+    if (usePublicCloudSettings()) {
+      await removeRosterStudent(id);
+      return { ok: true };
+    }
     return request(`/students/${encodeURIComponent(id)}`, {
       method: 'DELETE',
     });

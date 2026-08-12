@@ -1,3 +1,4 @@
+import { classRosterPayloadSchema } from '@xiaohuang/contracts';
 import type { ResourceTypeConfig } from '../resource-registry.js';
 import { computePayloadHashSync } from './hash.js';
 
@@ -12,4 +13,5 @@ export const studentRosterAdapter: ResourceTypeConfig = {
     return `学生名单 (${count}人)`;
   },
   computeHash: computePayloadHashSync,
+  parse: (payload) => classRosterPayloadSchema.parse(payload ?? { students: [] }),
 };

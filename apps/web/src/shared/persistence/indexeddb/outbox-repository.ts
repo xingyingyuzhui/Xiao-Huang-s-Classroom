@@ -1,5 +1,5 @@
 import { AppError } from '@xiaohuang/domain-core';
-import { idbRequest, idbTransactionComplete, STORE_OUTBOX } from './database.js';
+import { idbRequest, idbTransactionComplete, STORE_OUTBOX } from './idb-primitives.js';
 
 export const OUTBOX_STATUSES = ['pending', 'inflight', 'applied', 'rejected', 'conflict'] as const;
 export type OutboxStatus = (typeof OUTBOX_STATUSES)[number];

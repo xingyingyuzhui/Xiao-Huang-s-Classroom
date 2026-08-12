@@ -4,6 +4,7 @@
 
 import { aiApi, studentApi } from '../../shared/api/client.js';
 import { showAppBubble } from '../../shared/ui/brand-tip.js';
+import { subscribeRoster } from '../../sync/roster-store.js';
 import { MATH_CLASSROOM_TOPICS, MATH_DIFFICULTIES, MATH_GRADES, getMathTopic } from './topics.js';
 import { escapeHtml, renderRichMathText } from './render-rich.js';
 
@@ -519,6 +520,9 @@ function bindOnce() {
   const root = $('#panel-math-ai');
   if (!root || root.dataset.mathClassroomBound) return;
   root.dataset.mathClassroomBound = '1';
+  subscribeRoster(() => {
+    if (currentSection === 'rollcall') void loadStudents();
+  });
 
   $('#btnMathExplain')?.addEventListener('click', () => void runExplain());
   $('#btnMathExplainOpenLab')?.addEventListener('click', () => {

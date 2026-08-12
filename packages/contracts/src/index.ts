@@ -76,6 +76,17 @@ export {
 } from './sync.js';
 export type { SyncEntityEnvelope, SyncOperation, SyncPushResponse, SyncPullResponse } from './sync.js';
 export {
+  teacherSettingsPayloadSchema,
+  classSettingsPayloadSchema,
+  classRosterStudentSchema,
+  classRosterPayloadSchema,
+} from './sync-resources.js';
+export type {
+  TeacherSettingsPayload,
+  ClassSettingsPayload,
+  ClassRosterPayload,
+} from './sync-resources.js';
+export {
   aiProviderKindSchema,
   aiCredentialMetadataSchema,
   aiCredentialUpsertSchema,
@@ -88,5 +99,44 @@ export { subjectSettingsSchema, subjectSettingEntrySchema } from './settings.js'
 export type { SubjectSettings } from './settings.js';
 export { subjectManifestSchema } from './subject.js';
 export type { SubjectManifest } from './subject.js';
-export { ipcChannelSchema, ipcRequestSchema } from './ipc.js';
-export type { IpcChannel } from './ipc.js';
+export {
+  ipcChannelSchema,
+  ipcRequestSchema,
+  ACCOUNT_IPC_CHANNELS,
+  FORBIDDEN_IPC_ORIGIN_KEYS,
+  accountIpcEmptyInputSchema,
+  accountIpcLoginInputSchema,
+  accountIpcAccountIdInputSchema,
+  accountIpcRefreshInputSchema,
+  accountIpcLogoutInputSchema,
+  accountIpcRestoreInputSchema,
+  accountIpcRevokeRemoteInputSchema,
+  accountIpcSavedCardSchema,
+  accountIpcSessionDataSchema,
+  accountIpcRefreshDataSchema,
+  accountIpcOkDataSchema,
+  accountIpcCapabilitiesDataSchema,
+  accountIpcRestoreDataSchema,
+  ipcErrorPayloadSchema,
+  ipcFailureResultSchema,
+  isAccountIpcChannel,
+  payloadHasForbiddenOriginField,
+  parseAccountIpcPayload,
+  parseAccountIpcData,
+  ipcFail,
+  ipcOk,
+  parseTrustedCloudOrigin,
+  isAllowedIpcSenderOrigin,
+} from './ipc.js';
+export type {
+  IpcChannel,
+  AccountIpcChannel,
+  IpcFailureResult,
+  IpcResult,
+  AccountIpcLoginInput,
+  AccountIpcSessionData,
+  AccountIpcSavedCard,
+  AccountIpcCapabilities,
+  TrustedCloudOriginOptions,
+  TrustedCloudOriginResult,
+} from './ipc.js';
