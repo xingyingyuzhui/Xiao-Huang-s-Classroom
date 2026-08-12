@@ -32,6 +32,7 @@ import { showLoginDialog } from './login-dialog.js';
 import { showConflictDialog } from '../sync/conflict-dialog.js';
 import { applyWave1Change, stripSecretsFromSettings } from '../sync/apply-wave1.js';
 import { clearRoster, setRosterPersistHandler } from '../sync/roster-store.js';
+import { createSubjectContextController } from './subject-context-controller.js';
 import { createButton, createInput } from '@xiaohuang/ui';
 import { appConfirm } from '../shared/ui/app-dialog.js';
 import { getCurrentSubjectId } from '../subjects/session.js';
@@ -70,11 +71,11 @@ function getOrCreateDeviceId() {
   return id;
 }
 
-function currentSubjectId() {
+function bootstrapSubjectId() {
   try {
-    return getCurrentSubjectId() || 'chemistry';
+    return getCurrentSubjectId();
   } catch {
-    return 'chemistry';
+    return null;
   }
 }
 
@@ -139,7 +140,7 @@ export async function bootAccountCloud() {
   const conflictStore = new ConflictStore();
   const contextStore = new WorkspaceContextStore({
     deviceId,
-    initialSubjectId: currentSubjectId(),
+    initialSubjectId: bootstrapSubjectId() ?? 'chemistry',
   });
   const registry = new ResourceRegistry();
   registerWave1Adapters(registry);
@@ -311,6 +312,9 @@ export async function bootAccountCloud() {
     console.error('[account-cloud] IndexedDB unavailable; sync disabled', err);
   }
 
+  /** @type {import('./subject-context-controller.js').ReturnType<typeof createSubjectContextController> | null} */
+  let subjectContext = null;
+
   /** @type {(() => void) | null} */
   let unsubSession = null;
   /** @type {(() => void) | null} */
@@ -325,13 +329,14 @@ export async function bootAccountCloud() {
       localResources?.setGeneration(next.generation);
       return next;
     }
-    return switcher.switch(next, contextStore.getGeneration());
+    return switcher.switch(next, next.generation);
   }
 
   async function switchToGuest() {
+    await subjectContext?.deactivateSubject();
     syncController?.cancel();
     client.abortInflight();
-    const subjectId = currentSubjectId();
+    const subjectId = contextStore.getContext().subjectId;
     await switchWorkspace({
       mode: 'guest',
       accountId: null,
@@ -352,66 +357,6 @@ export async function bootAccountCloud() {
       refreshSettingsSection();
     });
   };
-
-  async function ensureAuthenticatedPersonalWorkspace() {
-    const subjectId = currentSubjectId();
-    const current = session.getSession();
-    if (!current || !session.isAuthenticated()) {
-      throw new Error('未登录');
-    }
-    const ws = await client.ensurePersonalWorkspace(subjectId);
-    await switchWorkspace({
-      mode: 'authenticated',
-      accountId: current.accountId,
-      classId: null,
-      subjectId: ws.subjectId,
-      workspaceId: ws.id,
-      kind: 'personal',
-      deviceId,
-      generation: contextStore.getGeneration(),
-    });
-    return ws;
-  }
-
-  /**
-   * @param {string | null} classId
-   */
-  async function switchToClass(classId) {
-    const subjectId = currentSubjectId();
-    const current = session.getSession();
-    if (!current || !session.isAuthenticated()) return;
-
-    const ctx = contextStore.getContext();
-    if (classId == null && ctx.mode === 'authenticated' && ctx.kind === 'personal') {
-      await refreshPendingCount();
-      refreshSettingsSection();
-      return;
-    }
-    if (classId != null && ctx.classId === classId && ctx.kind === 'class') {
-      await refreshPendingCount();
-      refreshSettingsSection();
-      return;
-    }
-
-    if (classId == null) {
-      await ensureAuthenticatedPersonalWorkspace();
-    } else {
-      const ws = await client.ensureClassWorkspace(classId, subjectId);
-      await switchWorkspace({
-        mode: 'authenticated',
-        accountId: current.accountId,
-        classId,
-        subjectId: ws.subjectId,
-        workspaceId: ws.id,
-        kind: 'class',
-        deviceId,
-        generation: contextStore.getGeneration(),
-      });
-    }
-    await refreshPendingCount();
-    await hydrateWave1FromLocal();
-    refreshSettingsSection();
-  }
 
   async function hydrateWave1FromLocal() {
     if (!resources) {
@@ -476,10 +421,25 @@ export async function bootAccountCloud() {
     }
   }
 
+  subjectContext = createSubjectContextController({
+    contextStore,
+    switcher,
+    switchWorkspace,
+    session,
+    client,
+    syncController,
+    statusStore,
+    deviceId,
+    hydrateWave1FromLocal,
+    refreshPendingCount,
+    refreshSettingsSection,
+  });
+
   /**
    * @param {unknown} payload
    */
   async function enqueueTeacherSettings(payload) {
+    subjectContext?.assertWritable();
     if (!localResources || !session.isAuthenticated()) return;
     const ctx = contextStore.getContext();
     if (ctx.mode !== 'authenticated' || !ctx.workspaceId.startsWith('ws_')) return;
@@ -509,6 +469,7 @@ export async function bootAccountCloud() {
    * @param {Array<{ id: string, name: string }>} students
    */
   async function enqueueClassRoster(students) {
+    subjectContext?.assertWritable();
     if (!localResources || !session.isAuthenticated()) return;
     const ctx = contextStore.getContext();
     if (ctx.mode !== 'authenticated' || !ctx.workspaceId.startsWith('ws_')) return;
@@ -539,12 +500,13 @@ export async function bootAccountCloud() {
    */
   async function copyGuestDataToClass(targetClassName) {
     if (!resources || !localResources) return;
-    const subjectId = currentSubjectId();
+    const subjectId = subjectContext?.getActiveSubjectId();
+    if (!subjectId) return;
     const guestKey = guestWorkspaceKey(subjectId);
     const guestRecords = await resources.listByWorkspace(guestKey);
 
     const created = await client.createClass(targetClassName);
-    await switchToClass(created.id);
+    await subjectContext?.switchClass(created.id);
 
     const ctx = contextStore.getContext();
     for (const record of guestRecords) {
@@ -592,7 +554,10 @@ export async function bootAccountCloud() {
       }
     }
     try {
-      await ensureAuthenticatedPersonalWorkspace();
+      const activeSubject = subjectContext?.getActiveSubjectId();
+      if (activeSubject) {
+        await subjectContext.activateSubject(activeSubject);
+      }
       await refreshClassList();
       await refreshPendingCount();
     } catch (err) {
@@ -864,7 +829,7 @@ export async function bootAccountCloud() {
       trash: trashList,
       activeClassId: contextStore.getContext().classId,
       onSwitch: (classId) => {
-        void switchToClass(classId);
+        void subjectContext?.switchClass(classId);
       },
       onCreate: async (name) => {
         await client.createClass(name);
@@ -879,7 +844,7 @@ export async function bootAccountCloud() {
       onDelete: async (classId) => {
         await client.deleteClass(classId);
         if (contextStore.getContext().classId === classId) {
-          await switchToClass(null);
+          await subjectContext?.switchClass(null);
         }
         await refreshClassList();
         refreshSettingsSection();
@@ -896,7 +861,12 @@ export async function bootAccountCloud() {
       return;
     }
 
-    const guestKey = guestWorkspaceKey(currentSubjectId());
+    const activeSubject = subjectContext?.getActiveSubjectId();
+    if (!activeSubject) {
+      if (guestRoot) guestRoot.textContent = '';
+      return;
+    }
+    const guestKey = guestWorkspaceKey(activeSubject);
     let guestCount = 0;
     try {
       guestCount = (await resources.listByWorkspace(guestKey)).filter((r) => r.deletedAt == null)
@@ -934,7 +904,10 @@ export async function bootAccountCloud() {
     void renderClassBlock(classRoot, guestRoot);
   }
 
-  setRosterPersistHandler((students) => enqueueClassRoster(students));
+  setRosterPersistHandler((students) => {
+    subjectContext?.assertWritable();
+    return enqueueClassRoster(students);
+  });
   setCloudAiChat((input) => {
     if (!session.isAuthenticated()) {
       return Promise.reject(new Error('请先登录后再使用云端 AI'));
@@ -985,7 +958,10 @@ export async function bootAccountCloud() {
   } else if (session.isAuthenticated()) {
     void (async () => {
       try {
-        await ensureAuthenticatedPersonalWorkspace();
+        const activeSubject = subjectContext?.getActiveSubjectId();
+        if (activeSubject) {
+          await subjectContext.activateSubject(activeSubject);
+        }
         await refreshClassList();
         await refreshPendingCount();
       } catch (err) {
@@ -1010,6 +986,9 @@ export async function bootAccountCloud() {
     offlineCaps,
     enqueueTeacherSettings,
     refreshSettingsSection,
+    activateSubject: (subjectId) => subjectContext.activateSubject(subjectId),
+    deactivateSubject: () => subjectContext.deactivateSubject(),
+    switchClass: (classId) => subjectContext.switchClass(classId),
     dispose() {
       unsubSession?.();
       unsubStatus?.();

@@ -109,6 +109,7 @@ export async function initApp() {
 
   subjectHub.setRevealHubHandler(() => {
     shellMode = 'returning';
+    void accountCloud?.deactivateSubject?.();
     setCurrentSubjectId(null);
     setLabSubjectDataset(null);
     activeClassroom?.leave();
@@ -133,6 +134,7 @@ export async function initApp() {
   function showHub() {
     labEnterSeq += 1;
     shellMode = 'hub';
+    void accountCloud?.deactivateSubject?.();
     setCurrentSubjectId(null);
     setLabSubjectDataset(null);
     activeClassroom?.leave();
@@ -148,6 +150,7 @@ export async function initApp() {
     const id = getCurrentSubjectId() || 'chemistry';
     labEnterSeq += 1;
     shellMode = 'returning';
+    void accountCloud?.deactivateSubject?.();
     subjectHub.playReturnFromLab({
       subjectId: id,
       onDone: () => {
@@ -185,6 +188,16 @@ export async function initApp() {
     const seq = ++labEnterSeq;
     shellMode = 'entering';
     setCurrentSubjectId(id);
+
+    if (accountCloud) {
+      const workspaceResult = await accountCloud.activateSubject(id);
+      if (!workspaceResult.ok && seq === labEnterSeq) {
+        accountCloud.statusStore?.update({
+          phase: 'failed',
+          lastError: '云端工作区切换失败，同步可能不可用',
+        });
+      }
+    }
 
     if (activeClassroom && activeClassroom !== classroom) {
       activeClassroom.leave();

@@ -153,12 +153,21 @@ export class CloudClient {
     return result;
   }
 
-  async ensurePersonalWorkspace(subjectId: string): Promise<PersonalWorkspace> {
-    return this.request<PersonalWorkspace>('POST', '/workspaces/personal', { subjectId });
+  async ensurePersonalWorkspace(subjectId: string, signal?: AbortSignal): Promise<PersonalWorkspace> {
+    return this.request<PersonalWorkspace>('POST', '/workspaces/personal', { subjectId }, signal);
   }
 
-  async ensureClassWorkspace(classId: string, subjectId: string): Promise<PersonalWorkspace> {
-    return this.request<PersonalWorkspace>('POST', '/workspaces/class', { classId, subjectId });
+  async ensureClassWorkspace(
+    classId: string,
+    subjectId: string,
+    signal?: AbortSignal,
+  ): Promise<PersonalWorkspace> {
+    return this.request<PersonalWorkspace>(
+      'POST',
+      '/workspaces/class',
+      { classId, subjectId },
+      signal,
+    );
   }
 
   async listClasses(): Promise<ClassRecord[]> {
