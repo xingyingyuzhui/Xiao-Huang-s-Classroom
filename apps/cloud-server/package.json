@@ -8,6 +8,7 @@
   "scripts": {
     "build": "tsup",
     "start": "node dist/server.js",
+    "migrate": "node dist/migrate.js",
     "dev": "node --watch dist/server.js",
     "predev": "npm run build",
     "test": "vitest run",

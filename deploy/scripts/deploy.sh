@@ -1,42 +1,59 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEPLOY_ROOT="/opt/xiaohuang-classroom"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+
 SHA="${1:?Usage: deploy.sh <git-sha>}"
 RELEASE_DIR="$DEPLOY_ROOT/releases/$SHA"
-SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+export GIT_SHA="$SHA"
+export CLOUD_IMAGE_TAG="${CLOUD_IMAGE_TAG:-$SHA}"
+export LAB_IMAGE_TAG="${LAB_IMAGE_TAG:-$SHA}"
+export BUILD_TIME="${BUILD_TIME:-$(date -u +%Y-%m-%dT%H:%M:%SZ)}"
+export APP_VERSION="${APP_VERSION:-0.0.1}"
+export SOURCE_REPO="${SOURCE_REPO:-https://github.com/xingyingyuzhui/Xiao-Huang-s-Classroom}"
 
-echo "[deploy] Starting deployment of $SHA"
+echo "[deploy] starting $SHA cloud=$CLOUD_IMAGE_TAG lab=$LAB_IMAGE_TAG"
 
-# Pre-flight
-[ -f "$DEPLOY_ROOT/secrets/.env" ] || { echo "ERROR: secrets/.env not found"; exit 1; }
-[ -d "$RELEASE_DIR" ] || { echo "ERROR: release dir $RELEASE_DIR not found"; exit 1; }
+[ -f "$ENV_FILE" ] || { echo "ERROR: secrets env file missing"; exit 1; }
+[ -d "$RELEASE_DIR/web" ] || { echo "ERROR: web release missing: $RELEASE_DIR/web"; exit 1; }
 
-# Backup database before migration
 "$SCRIPT_DIR/backup-postgres.sh" "pre-deploy-$SHA"
+"$SCRIPT_DIR/backup-lab-sqlite.sh" "pre-deploy-$SHA"
 
-# Build and pull images
-docker compose -f "$DEPLOY_ROOT/compose.yml" build --pull
-docker compose -f "$DEPLOY_ROOT/compose.yml" pull postgres
+if [[ "${DEPLOY_BUILD:-0}" == "1" ]]; then
+  echo "[deploy] building images"
+  compose build --pull
+fi
 
-# Run migrations (one-shot container)
-docker compose -f "$DEPLOY_ROOT/compose.yml" run --rm cloud-server node dist/server.js --migrate-only
+echo "[deploy] ensuring postgres"
+compose up -d postgres
 
-# Deploy cloud server
-docker compose -f "$DEPLOY_ROOT/compose.yml" up -d cloud-server
+echo "[deploy] migrating (node dist/migrate.js)"
+compose run --rm cloud-server node dist/migrate.js
 
-# Health check (30s timeout)
+echo "[deploy] starting services"
+compose up -d postgres cloud-server lab-server
+
+ready=0
 for i in $(seq 1 30); do
-    if curl -sf http://127.0.0.1:3000/readyz > /dev/null 2>&1; then
-        echo "[deploy] Cloud server ready"
-        break
-    fi
-    [ "$i" -eq 30 ] && { echo "ERROR: readyz failed after 30s"; exit 1; }
-    sleep 1
+  if curl -sf http://127.0.0.1:3000/readyz > /dev/null 2>&1; then
+    echo "[deploy] cloud-server ready"
+    ready=1
+    break
+  fi
+  sleep 1
+  if [[ "$i" -eq 30 ]]; then
+    echo "ERROR: readyz failed after 30s"
+    exit 1
+  fi
 done
+[[ "$ready" == "1" ]]
 
-# Switch web symlink atomically
-ln -sfn "$RELEASE_DIR/web" "$DEPLOY_ROOT/current/web.new"
-mv -Tf "$DEPLOY_ROOT/current/web.new" "$DEPLOY_ROOT/current/web"
+mkdir -p "$DEPLOY_ROOT/releases/current"
+ln -sfn "$RELEASE_DIR/web" "$DEPLOY_ROOT/releases/current/web.new"
+mv -Tf "$DEPLOY_ROOT/releases/current/web.new" "$DEPLOY_ROOT/releases/current/web"
 
-echo "[deploy] Deployment $SHA complete"
+echo "[deploy] complete sha=$SHA"
+echo "[deploy] HTTPS GATE: IP+HTTP is test-only; real passwords/keys/rosters need domain+TLS"

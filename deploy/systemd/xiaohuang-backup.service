@@ -1,0 +1,15 @@
+[Unit]
+Description=Xiaohuang classroom daily database backup
+OnFailure=xiaohuang-backup-alert.service
+
+[Service]
+Type=oneshot
+User=xiaohuang
+Group=xiaohuang
+Environment=DEPLOY_ROOT=/opt/xiaohuang-classroom
+Environment=RETAIN_DAYS=14
+# Set BACKUP_OFFSITE_DIR for a 30-day copy. Do not store AI KEK next to dumps.
+ExecStart=/opt/xiaohuang-classroom/deploy/scripts/backup-daily.sh daily
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7

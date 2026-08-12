@@ -58,11 +58,21 @@ describe('public nginx API allowlist', () => {
       /location\s+\/api\/\s*\{[^}]*proxy_pass\s+http:\/\/127\.0\.0\.1:3001/s,
       'public location /api/ must not proxy_pass to lab :3001',
     );
+    assert.doesNotMatch(
+      conf,
+      /proxy_pass\s+http:\/\/127\.0\.0\.1:3001/,
+      'nginx must not proxy anything to lab :3001 on the public edge',
+    );
     const api = locs['/api/'];
     assert.ok(api, 'location /api/ must exist so unmatched /api/* do not fall through to SPA');
     assert.doesNotMatch(api, /proxy_pass/);
     assert.doesNotMatch(api, /3001/);
     assert.match(api, /return\s+40[14]\b/, 'unmatched public /api/* must 404 or 401');
+  });
+
+  it('documents the HTTPS gate', () => {
+    assert.match(conf, /HTTPS GATE/);
+    assert.match(conf, /test-only/);
   });
 
   it('keeps SPA location /', () => {

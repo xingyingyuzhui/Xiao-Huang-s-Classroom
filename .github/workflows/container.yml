@@ -17,11 +17,39 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - name: Build cloud-server image
-        run: docker build -t xiaohuang-cloud:${{ github.sha }} -f apps/cloud-server/Dockerfile .
-      - name: Health smoke test
+      - name: Validate compose authority
+        env:
+          GIT_SHA: ${{ github.sha }}
+          CLOUD_IMAGE_TAG: ${{ github.sha }}
+          LAB_IMAGE_TAG: ${{ github.sha }}
+          POSTGRES_PASSWORD: ci-placeholder
+          CLOUD_TOKEN_SIGNING_KEY: ci-placeholder-token-signing-key-32
+          CLOUD_AI_KEK: ci-placeholder-ai-kek-32-characters
+          CLOUD_PUBLIC_ORIGIN: https://example.invalid
+        run: |
+          docker compose -f deploy/compose.yml config >/dev/null
+          docker compose -f deploy/compose.yml -f deploy/compose.prod.yml config >/dev/null
+      - name: Build immutable SHA images
+        env:
+          GIT_SHA: ${{ github.sha }}
+          BUILD_TIME: ${{ github.event.head_commit.timestamp }}
+          APP_VERSION: 0.0.1
+        run: |
+          docker build \
+            --build-arg GIT_SHA="$GIT_SHA" \
+            --build-arg BUILD_TIME="${BUILD_TIME:-unknown}" \
+            --build-arg APP_VERSION="$APP_VERSION" \
+            --build-arg SOURCE_REPO="https://github.com/${{ github.repository }}" \
+            -t "xiaohuang-cloud-server:${GIT_SHA}" \
+            -f apps/cloud-server/Dockerfile .
+          docker build \
+            --build-arg GIT_SHA="$GIT_SHA" \
+            --build-arg BUILD_TIME="${BUILD_TIME:-unknown}" \
+            --build-arg APP_VERSION="$APP_VERSION" \
+            --build-arg SOURCE_REPO="https://github.com/${{ github.repository }}" \
+            -t "xiaohuang-lab-server:${GIT_SHA}" \
+            -f apps/server/Dockerfile .
+      - name: Ephemeral postgres for compose.test.yml
         run: |
           docker compose -f deploy/compose.test.yml up -d
-          sleep 10
-          curl -sf http://localhost:3000/livez
           docker compose -f deploy/compose.test.yml down

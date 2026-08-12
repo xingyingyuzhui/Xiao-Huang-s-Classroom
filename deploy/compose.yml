@@ -1,3 +1,29 @@
+# Base compose — single service authority for local/CI/prod.
+# Production differences live in compose.prod.yml (image tags, host paths).
+# Usage:
+#   Local/CI build:  docker compose -f deploy/compose.yml config
+#   Production:      docker compose --env-file /opt/xiaohuang-classroom/secrets/.env \
+#                      -f deploy/compose.yml -f deploy/compose.prod.yml up -d
+#
+# HTTPS GATE: IP+HTTP is test-only. Real passwords, keys, rosters, WeChat,
+# avatars, and auto-update require a domain + TLS.
+
+x-app-security: &app-security
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  read_only: true
+  tmpfs:
+    - /tmp:size=64m,mode=1777
+  init: true
+  stop_grace_period: 20s
+  logging: &json-logs
+    driver: json-file
+    options:
+      max-size: '10m'
+      max-file: '5'
+
 services:
   postgres:
     image: postgres:16-alpine
@@ -7,24 +33,48 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB:-xiaohuang_classroom}
     volumes:
-      - cloud_pg_data:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql/data
+    tmpfs:
+      - /tmp
+      - /run
+      - /var/run/postgresql
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - FOWNER
+      - SETGID
+      - SETUID
+    # Never publish 5432 on the host. Cloud-server reaches postgres on the internal net.
+    expose:
+      - '5432'
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-xiaohuang_cloud} -d ${POSTGRES_DB:-xiaohuang_classroom}']
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 10s
+    mem_limit: 512m
+    cpus: '0.50'
+    pids_limit: 256
+    logging: *json-logs
     networks:
       - internal
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
 
   cloud-server:
+    <<: *app-security
     build:
       context: ..
       dockerfile: apps/cloud-server/Dockerfile
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+        APP_VERSION: ${APP_VERSION:-0.0.1}
+        SOURCE_REPO: ${SOURCE_REPO:-https://github.com/xingyingyuzhui/Xiao-Huang-s-Classroom}
+    image: xiaohuang-cloud-server:${GIT_SHA:-dev}
     restart: unless-stopped
     env_file:
       - path: ${ENV_FILE:-./secrets/.env}
@@ -37,24 +87,42 @@ services:
       CLOUD_PUBLIC_ORIGIN: ${CLOUD_PUBLIC_ORIGIN:?set CLOUD_PUBLIC_ORIGIN}
       CLOUD_REGISTRATION_MODE: ${CLOUD_REGISTRATION_MODE:-closed}
       CLOUD_BODY_LIMIT_BYTES: ${CLOUD_BODY_LIMIT_BYTES:-2097152}
+      CLOUD_TRUST_PROXY: ${CLOUD_TRUST_PROXY:-1}
     ports:
       - '127.0.0.1:3000:3000'
+    user: '1001:1001'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/livez').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 15s
+    mem_limit: 768m
+    cpus: '1.0'
+    pids_limit: 256
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - internal
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 2G
 
   lab-server:
+    <<: *app-security
     build:
       context: ..
       dockerfile: apps/server/Dockerfile
-    image: xiaohuang-lab-server:latest
+      args:
+        GIT_SHA: ${GIT_SHA:-dev}
+        BUILD_TIME: ${BUILD_TIME:-unknown}
+        APP_VERSION: ${APP_VERSION:-0.0.1}
+        SOURCE_REPO: ${SOURCE_REPO:-https://github.com/xingyingyuzhui/Xiao-Huang-s-Classroom}
+    image: xiaohuang-lab-server:${GIT_SHA:-dev}
     restart: unless-stopped
     environment:
       NODE_ENV: production
@@ -64,20 +132,35 @@ services:
       OPEN_BROWSER: '0'
     ports:
       - '127.0.0.1:3001:3001'
+    user: '1001:1001'
     volumes:
-      - lab_sqlite_data:/data
+      - labdata:/data
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3001/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 20s
+    mem_limit: 512m
+    cpus: '0.50'
+    pids_limit: 256
     networks:
       - internal
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
 
 networks:
   internal:
     driver: bridge
+    internal: false
 
 volumes:
-  cloud_pg_data:
-  lab_sqlite_data:
+  # Explicit names match the live host (compose project directory `deploy`).
+  pgdata:
+    name: deploy_pgdata
+  labdata:
+    name: deploy_labdata

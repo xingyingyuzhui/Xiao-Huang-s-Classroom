@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1
 FROM node:20-alpine AS builder
 WORKDIR /app
 COPY package*.json turbo.json tsconfig.base.json ./
@@ -25,6 +26,16 @@ RUN npm prune --omit=dev --workspace=@xiaohuang/server --include-workspace-root 
     packages/*/node_modules
 
 FROM node:20-alpine
+ARG GIT_SHA=unknown
+ARG BUILD_TIME=unknown
+ARG APP_VERSION=0.0.1
+ARG SOURCE_REPO=https://github.com/xingyingyuzhui/Xiao-Huang-s-Classroom
+LABEL org.opencontainers.image.revision="${GIT_SHA}" \
+      org.opencontainers.image.created="${BUILD_TIME}" \
+      org.opencontainers.image.version="${APP_VERSION}" \
+      org.opencontainers.image.source="${SOURCE_REPO}" \
+      org.opencontainers.image.title="xiaohuang-lab-server" \
+      org.opencontainers.image.description="小黄的教室 local lab API (loopback only)"
 RUN addgroup -g 1001 labapp && adduser -u 1001 -G labapp -D labapp
 WORKDIR /app
 ENV NODE_ENV=production
@@ -42,5 +53,7 @@ COPY --from=builder /app/apps/server ./apps/server
 RUN mkdir -p /data && chown -R labapp:labapp /data /app
 USER labapp
 EXPOSE 3001
+HEALTHCHECK --interval=15s --timeout=3s --start-period=20s --retries=5 \
+  CMD node -e "fetch('http://127.0.0.1:3001/api/health').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 WORKDIR /app/apps/server
 CMD ["node", "src/index.js"]

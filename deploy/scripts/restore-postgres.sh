@@ -1,36 +1,41 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEPLOY_ROOT="/opt/xiaohuang-classroom"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# shellcheck source=lib.sh
+source "$SCRIPT_DIR/lib.sh"
+
 BACKUP_FILE="${1:?Usage: restore-postgres.sh <backup-file>}"
 
-[ -f "$BACKUP_FILE" ] || { echo "ERROR: backup file not found: $BACKUP_FILE"; exit 1; }
+[ -f "$BACKUP_FILE" ] || { echo "ERROR: backup file not found"; exit 1; }
 
-# Verify checksum if available
 if [ -f "$BACKUP_FILE.sha256" ]; then
-    echo "[restore] Verifying checksum..."
-    sha256sum -c "$BACKUP_FILE.sha256" || { echo "ERROR: checksum mismatch"; exit 1; }
+  echo "[restore] verifying checksum"
+  expected="$(tr -d ' \t\n' < "$BACKUP_FILE.sha256")"
+  actual="$(sha256sum "$BACKUP_FILE" | awk '{print $1}')"
+  if [[ "$expected" != "$actual" ]]; then
+    echo "ERROR: checksum mismatch"
+    exit 1
+  fi
 fi
 
-# List contents for verification
-echo "[restore] Backup contents:"
-docker compose -f "$DEPLOY_ROOT/compose.yml" exec -T postgres \
-    pg_restore --list < "$BACKUP_FILE" | head -20
+echo "[restore] archive is readable custom format (TOC only; no row dump)"
+compose exec -T postgres pg_restore --list < "$BACKUP_FILE" > /dev/null
 
-echo ""
-read -rp "[restore] Proceed with restore? (yes/no): " CONFIRM
-[ "$CONFIRM" = "yes" ] || { echo "Aborted."; exit 0; }
+if [[ "${RESTORE_CONFIRM:-}" != "yes" ]]; then
+  echo "[restore] set RESTORE_CONFIRM=yes to apply this dump (stops cloud-server)"
+  exit 1
+fi
 
-# Stop cloud-server to avoid writes during restore
-docker compose -f "$DEPLOY_ROOT/compose.yml" stop cloud-server
+echo "[restore] stopping cloud-server"
+compose stop cloud-server
 
-# Restore
-echo "[restore] Restoring from $BACKUP_FILE..."
-docker compose -f "$DEPLOY_ROOT/compose.yml" exec -T postgres \
-    pg_restore --clean --if-exists -U "${POSTGRES_USER:-xiaohuang_cloud}" -d "${POSTGRES_DB:-xiaohuang_classroom}" \
-    < "$BACKUP_FILE"
+echo "[restore] restoring"
+compose exec -T postgres \
+  pg_restore --clean --if-exists --no-owner --no-acl \
+    -U "${POSTGRES_USER:-xiaohuang_cloud}" \
+    -d "${POSTGRES_DB:-xiaohuang_classroom}" \
+  < "$BACKUP_FILE"
 
-# Restart cloud-server
-docker compose -f "$DEPLOY_ROOT/compose.yml" up -d cloud-server
-
-echo "[restore] Restore complete, cloud-server restarted"
+compose up -d cloud-server
+echo "[restore] complete"

@@ -1,0 +1,7 @@
+[Unit]
+Description=Alert when Xiaohuang backup fails
+# Install a local notifier here (mail, ntfy, journal marker). Do not log dump contents.
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'logger -t xiaohuang-backup "BACKUP FAILED — check journalctl -u xiaohuang-backup.service"'
