@@ -1,7 +1,10 @@
 import type { Request, Response, NextFunction } from 'express';
 import type { CloudConfig } from '../config.js';
 import { verifyAccessToken } from '../auth/tokens.js';
-import { SessionRepository } from '../db/repositories/session.js';
+import {
+  SessionRepository,
+  isSessionActiveAndUnexpired,
+} from '../db/repositories/session.js';
 import type { DbPool } from '../db/pool.js';
 
 export type AuthPrincipal = {
@@ -31,7 +34,11 @@ export function createAuthPrincipalMiddleware(config: CloudConfig, pool: DbPool)
     }
 
     const session = await sessions.findById(claims.sessionId);
-    if (!session || session.status !== 'active' || session.account_id !== claims.accountId) {
+    if (
+      !session ||
+      session.account_id !== claims.accountId ||
+      !isSessionActiveAndUnexpired(session)
+    ) {
       req.principal = { accountId: null };
       next();
       return;

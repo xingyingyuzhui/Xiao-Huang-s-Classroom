@@ -22,11 +22,11 @@ describe('postgres migrations — happy path', () => {
     const first = await migrateToLatest(pgEnv.pool);
     expect(first.ok).toBe(true);
     if (first.ok) {
-      expect(first.applied).toContain(31);
-      expect(first.to).toBe(31);
+      expect(first.applied).toContain(32);
+      expect(first.to).toBe(32);
     }
     const version = await getSchemaVersion(pgEnv.pool);
-    expect(version).toBe(31);
+    expect(version).toBe(32);
   });
 
   it('is idempotent on second run', async () => {

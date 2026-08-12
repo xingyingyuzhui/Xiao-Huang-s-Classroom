@@ -3,7 +3,7 @@
  *
  * 0010–0019 auth/accounts/devices（Agent B）
  * 0020–0029 classes/workspaces/sync（Agent C）
- * 0030–0039 ai/audit（Agent F）
+ * 0030–0039 ai/audit（Agent F）；0032 session expiry is auth-owned
  */
 export type MigrationEntry = {
   version: number;
@@ -19,6 +19,7 @@ export const MIGRATION_MANIFEST: MigrationEntry[] = [
   { version: 21, filename: '0021_sync_resources.sql', owner: 'sync' },
   { version: 30, filename: '0030_ai_credentials.sql', owner: 'ai' },
   { version: 31, filename: '0031_audit_log.sql', owner: 'ai' },
+  { version: 32, filename: '0032_session_expiry.sql', owner: 'auth' },
 ];
 
 export const MAX_MIGRATION_VERSION = MIGRATION_MANIFEST.reduce(

@@ -15,6 +15,13 @@ const passwordSchema = z.string().min(8).max(128);
 
 const displayNameSchema = z.string().min(1).max(120);
 
+/** Short client-type label; not unbounded user-entered device nicknames. */
+export const authDeviceLabelSchema = z
+  .string()
+  .min(1)
+  .max(32)
+  .regex(/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,31}$/, 'deviceLabel contains invalid characters');
+
 export const registrationModeSchema = z.enum(['closed', 'invite', 'public']);
 
 export const authRegisterRequestSchema = z.object({
@@ -22,12 +29,15 @@ export const authRegisterRequestSchema = z.object({
   password: passwordSchema,
   displayName: displayNameSchema,
   inviteCode: z.string().min(1).max(64).optional(),
+  deviceId: deviceIdSchema.optional(),
+  deviceLabel: authDeviceLabelSchema.optional(),
 });
 
 export const authLoginRequestSchema = z.object({
   username: usernameSchema,
   password: passwordSchema,
-  deviceLabel: z.string().min(1).max(120),
+  deviceLabel: authDeviceLabelSchema,
+  deviceId: deviceIdSchema.optional(),
 });
 
 export const authRefreshRequestSchema = z.object({
@@ -35,7 +45,7 @@ export const authRefreshRequestSchema = z.object({
 });
 
 export const authLogoutRequestSchema = z.object({
-  deviceId: deviceIdSchema,
+  deviceId: deviceIdSchema.optional(),
   allDevices: z.boolean().optional(),
 });
 

@@ -31,6 +31,7 @@ export {
   deviceSessionSchema,
   deviceRevokeRequestSchema,
   registrationModeSchema,
+  authDeviceLabelSchema,
 } from './auth.js';
 export type {
   AuthRegisterRequest,

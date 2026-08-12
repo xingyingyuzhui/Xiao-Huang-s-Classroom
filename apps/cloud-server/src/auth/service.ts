@@ -6,7 +6,10 @@ import { AccountRepository } from '../db/repositories/account.js';
 import { IdentityRepository, normalizeUsername } from '../db/repositories/identity.js';
 import {
   SessionRepository,
+  isSessionActiveAndUnexpired,
   newTokenFamilyId,
+  sessionExpiresAt,
+  type SessionRow,
 } from '../db/repositories/session.js';
 import {
   PasswordCredentialRepository,
@@ -18,6 +21,7 @@ import {
 import { signAccessToken } from './tokens.js';
 
 const INVALID_CREDENTIALS_MESSAGE = '用户名或密码不正确';
+const KNOWN_DEVICE_LABELS = ['Web', 'Desktop', 'Mobile'] as const;
 
 let dummyPasswordHash: Promise<string> | null = null;
 
@@ -28,12 +32,23 @@ async function dummyPasswordHashValue(): Promise<string> {
   return dummyPasswordHash;
 }
 
+export function normalizeDeviceLabel(raw: string): (typeof KNOWN_DEVICE_LABELS)[number] {
+  const trimmed = raw.trim().slice(0, 32);
+  const exact = KNOWN_DEVICE_LABELS.find((label) => label.toLowerCase() === trimmed.toLowerCase());
+  if (exact) return exact;
+  const lower = trimmed.toLowerCase();
+  if (/(desktop|electron)/i.test(lower)) return 'Desktop';
+  if (/(mobile|android|ios|iphone|ipad)/i.test(lower)) return 'Mobile';
+  return 'Web';
+}
+
 export type AuthSessionPayload = {
   accountId: string;
   sessionId: string;
   deviceId: string;
   accessToken: string;
   accessTokenExpiresAt: string;
+  refreshExpiresAt: string;
 };
 
 export class AuthService {
@@ -64,9 +79,8 @@ export class AuthService {
       throw new AppError('AUTH_REGISTRATION_CLOSED', '当前未开放注册');
     }
     if (this.config.registrationMode === 'invite') {
-      if (!input.inviteCode?.trim()) {
-        throw new AppError('AUTH_FEATURE_DISABLED', '需要有效的邀请码');
-      }
+      // Invite store / hash / expiry is not implemented; reject all attempts.
+      throw new AppError('AUTH_FEATURE_DISABLED', '邀请注册暂不可用');
     }
 
     const normalized = normalizeUsername(input.username);
@@ -156,6 +170,11 @@ export class AuthService {
       throw new AppError('AUTH_SESSION_EXPIRED', '会话已过期，请重新登录');
     }
 
+    if (!isSessionActiveAndUnexpired(session)) {
+      await this.sessions.revokeSession(session.session_id, session.account_id);
+      throw new AppError('AUTH_SESSION_EXPIRED', '会话已过期，请重新登录');
+    }
+
     if (session.device_id !== deviceId) {
       throw new AppError('AUTH_SESSION_EXPIRED', '会话已过期，请重新登录');
     }
@@ -178,6 +197,80 @@ export class AuthService {
       throw new AppError('AUTH_SESSION_EXPIRED', '会话已过期，请重新登录');
     }
 
+    return this.issueTokens(rotated, scope, newRefresh);
+  }
+
+  async logout(input: {
+    accountId?: string;
+    sessionId?: string;
+    refreshToken?: string;
+    allDevices?: boolean;
+  }): Promise<void> {
+    if (input.allDevices) {
+      let accountId = input.accountId;
+      if (!accountId && input.refreshToken) {
+        const session = await this.sessions.findByRefreshHash(hashRefreshToken(input.refreshToken));
+        accountId = session?.account_id;
+      }
+      if (accountId) {
+        await this.sessions.revokeAllForAccount(accountId);
+      }
+      return;
+    }
+    if (input.accountId && input.sessionId) {
+      await this.sessions.revokeSession(input.sessionId, input.accountId);
+      return;
+    }
+    if (input.refreshToken) {
+      const session = await this.sessions.findByRefreshHash(hashRefreshToken(input.refreshToken));
+      if (session) {
+        await this.sessions.revokeSession(session.session_id, session.account_id);
+      }
+    }
+  }
+
+  private async createSessionForAccount(input: {
+    accountId: string;
+    deviceId: string;
+    deviceLabel: string;
+    scope: 'full' | 'account:restore';
+  }): Promise<{ session: AuthSessionPayload; refreshToken: string }> {
+    const refreshToken = generateRefreshToken();
+    const refreshHash = hashRefreshToken(refreshToken);
+    const familyId = newTokenFamilyId();
+    const expiresAt = sessionExpiresAt();
+    const label = normalizeDeviceLabel(input.deviceLabel);
+
+    const client = await this.pool.connect();
+    let row: SessionRow;
+    try {
+      await client.query('BEGIN');
+      const sessions = new SessionRepository(client);
+      await sessions.revokeActiveForAccountDevice(input.accountId, input.deviceId);
+      row = await sessions.createSession({
+        accountId: input.accountId,
+        deviceId: input.deviceId,
+        label,
+        refreshTokenHash: refreshHash,
+        tokenFamilyId: familyId,
+        expiresAt,
+      });
+      await client.query('COMMIT');
+    } catch (error) {
+      await client.query('ROLLBACK');
+      throw error;
+    } finally {
+      client.release();
+    }
+
+    return this.issueTokens(row, input.scope, refreshToken);
+  }
+
+  private async issueTokens(
+    session: SessionRow,
+    scope: 'full' | 'account:restore',
+    refreshToken: string,
+  ): Promise<{ session: AuthSessionPayload; refreshToken: string }> {
     const { token, expiresAt } = await signAccessToken(this.config, {
       accountId: session.account_id,
       sessionId: session.session_id,
@@ -192,55 +285,7 @@ export class AuthService {
         deviceId: session.device_id,
         accessToken: token,
         accessTokenExpiresAt: expiresAt.toISOString(),
-      },
-      refreshToken: newRefresh,
-    };
-  }
-
-  async logout(input: {
-    accountId: string;
-    sessionId: string;
-    allDevices?: boolean;
-  }): Promise<void> {
-    if (input.allDevices) {
-      await this.sessions.revokeAllForAccount(input.accountId);
-      return;
-    }
-    await this.sessions.revokeSession(input.sessionId, input.accountId);
-  }
-
-  private async createSessionForAccount(input: {
-    accountId: string;
-    deviceId: string;
-    deviceLabel: string;
-    scope: 'full' | 'account:restore';
-  }): Promise<{ session: AuthSessionPayload; refreshToken: string }> {
-    const refreshToken = generateRefreshToken();
-    const refreshHash = hashRefreshToken(refreshToken);
-    const familyId = newTokenFamilyId();
-
-    const session = await this.sessions.createSession({
-      accountId: input.accountId,
-      deviceId: input.deviceId,
-      label: input.deviceLabel,
-      refreshTokenHash: refreshHash,
-      tokenFamilyId: familyId,
-    });
-
-    const { token, expiresAt } = await signAccessToken(this.config, {
-      accountId: input.accountId,
-      sessionId: session.session_id,
-      deviceId: input.deviceId,
-      scope: input.scope,
-    });
-
-    return {
-      session: {
-        accountId: input.accountId,
-        sessionId: session.session_id,
-        deviceId: input.deviceId,
-        accessToken: token,
-        accessTokenExpiresAt: expiresAt.toISOString(),
+        refreshExpiresAt: session.expires_at.toISOString(),
       },
       refreshToken,
     };

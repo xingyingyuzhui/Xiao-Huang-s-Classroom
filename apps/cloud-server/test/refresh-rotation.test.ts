@@ -55,5 +55,17 @@ describe('refresh token rotation', () => {
 
     expect(oldReuse.status).toBe(401);
     expect(oldReuse.body.error.code).toBe('AUTH_REFRESH_REUSE');
+
+    const setCookie = firstRefresh.headers['set-cookie'];
+    const cookieHeader = Array.isArray(setCookie) ? setCookie.join('; ') : String(setCookie ?? '');
+    const refreshMatch = cookieHeader.match(/xh_refresh=([^;]+)/);
+    expect(refreshMatch).toBeTruthy();
+
+    const afterReuse = await agent
+      .post('/api/cloud/v1/auth/refresh')
+      .set('Origin', 'https://cloud.test.local')
+      .set('Cookie', `xh_refresh=${refreshMatch![1]}`)
+      .send({ deviceId: login.deviceId });
+    expect(afterReuse.status).toBe(401);
   });
 });

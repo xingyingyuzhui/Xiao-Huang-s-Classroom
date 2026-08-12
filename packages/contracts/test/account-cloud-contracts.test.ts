@@ -30,14 +30,22 @@ describe('auth contracts', () => {
     const ok = authLoginRequestSchema.safeParse({
       username: 'teacher',
       password: 'password123',
-      deviceLabel: 'MacBook',
+      deviceLabel: 'Web',
+      deviceId: 'dev_web_stable_01',
     });
     expect(ok.success).toBe(true);
+
+    const withoutDevice = authLoginRequestSchema.safeParse({
+      username: 'teacher',
+      password: 'password123',
+      deviceLabel: 'Web',
+    });
+    expect(withoutDevice.success).toBe(true);
 
     const bad = authLoginRequestSchema.safeParse({
       username: 'te@cher!',
       password: 'short',
-      deviceLabel: 'x',
+      deviceLabel: 'x'.repeat(40),
     });
     expect(bad.success).toBe(false);
   });

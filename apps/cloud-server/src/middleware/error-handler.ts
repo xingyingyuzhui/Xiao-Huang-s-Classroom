@@ -18,11 +18,11 @@ export function errorHandler(config: CloudConfig) {
       });
       return;
     }
-    const message =
+    const rawMessage =
       err instanceof Error ? redactSecrets(err.message, config) : 'Internal server error';
-    if (config.nodeEnv !== 'production') {
-      console.error('[cloud-server]', requestId, err);
-    }
+    console.error('[cloud-server]', requestId, err);
+    const message =
+      config.nodeEnv === 'production' ? 'Internal server error' : rawMessage;
     res.status(500).json({
       success: false,
       error: { code: 'INTERNAL_ERROR', message },
