@@ -3,7 +3,8 @@
   "entries": {
     "initial": "index.html",
     "mathGraph": "src/math/graph/index.js",
-    "mathClassroomKatexOnly": "src/math/classroom/entry.js"
+    "mathClassroomKatexOnly": "src/math/classroom/entry.js",
+    "accountCloud": "src/account/boot-account-cloud.js"
   },
   "routes": {
     "initial": {
@@ -665,6 +666,18 @@
       "incrementalRawKb": 2350.4853515625,
       "incrementalGzipKb": 1187.1875,
       "incrementalAssetCount": 63
+    },
+    "accountCloud": {
+      "requests": [
+        {
+          "family": "boot-account-cloud",
+          "kind": "js",
+          "file": "assets/boot-account-cloud-iZZ0mmBN.js"
+        }
+      ],
+      "incrementalRawKb": 150.8828125,
+      "incrementalGzipKb": 41.9208984375,
+      "incrementalAssetCount": 1
     }
   },
   "chunks": {

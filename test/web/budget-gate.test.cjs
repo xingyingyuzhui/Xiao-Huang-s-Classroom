@@ -78,6 +78,7 @@ function makeDist(opts = {}) {
     'entry-AAAAAAAA.js': text(size('entry', 10)),
     'tex-AAAAAAAA.js': text(size('tex', 1)),
     'tex-AAAAAAAA.css': text(size('texCss', 5)),
+    'account-AAAAAAAA.js': text(size('account', 15)),
   };
   for (const [name, content] of Object.entries(assets)) {
     fs.writeFileSync(path.join(dir, 'assets', name), content);
@@ -106,6 +107,12 @@ function makeDist(opts = {}) {
       isDynamicEntry: true,
       imports: classroomImports,
     },
+    'src/account/boot-account-cloud.js': {
+      file: 'assets/account-AAAAAAAA.js',
+      src: 'src/account/boot-account-cloud.js',
+      isDynamicEntry: true,
+      imports: [],
+    },
     '_tex-AAAAAAAA.js': {
       file: 'assets/tex-AAAAAAAA.js',
       name: 'tex',
@@ -118,7 +125,7 @@ function makeDist(opts = {}) {
 }
 
 /** 与当前 fixture 请求集合一致的 baseline（比较通过；测试可覆盖再改坏） */
-function makeBaseline({ initial, mathGraph, classroom } = {}) {
+function makeBaseline({ initial, mathGraph, classroom, accountCloud } = {}) {
   const req = (list) =>
     (list || []).map((s) => {
       const [family, kind] = s.split(':');
@@ -130,6 +137,7 @@ function makeBaseline({ initial, mathGraph, classroom } = {}) {
       initial: 'index.html',
       mathGraph: 'src/math/graph/index.js',
       mathClassroomKatexOnly: 'src/math/classroom/entry.js',
+      accountCloud: 'src/account/boot-account-cloud.js',
     },
     routes: {
       initial: { requests: req(initial || ['index:js', 'index:css', 'three:js']) },
@@ -137,6 +145,7 @@ function makeBaseline({ initial, mathGraph, classroom } = {}) {
       mathClassroomKatexOnly: {
         requests: req(classroom || ['entry:js', 'tex:js', 'tex:css', 'katex:js']),
       },
+      accountCloud: { requests: req(accountCloud || ['account:js']) },
     },
     chunks: {},
     total: { rawKb: 0, gzipKb: 0 },
@@ -459,6 +468,33 @@ test('baseline 比较：当前新增未声明 family 必须失败', () => {
 });
 
 // ── 真实 dist ────────────────────────────────────────────────────────────────
+
+test('stale hash 文件不计入 total/index；当前 manifest 超限仍失败', () => {
+  const { dir } = makeDist({ sizes: { index: 30 } });
+  // 旧 hash：体积巨大但不在当前 manifest
+  fs.writeFileSync(path.join(dir, 'assets', 'index-OLDOLDOLD.js'), text(900));
+  const base = writeBaselineFile(makeBaseline());
+  try {
+    const reportPath = path.join(dir, 'report.json');
+    const r = runBudget(dir, { baseline: base, args: ['--report-json', reportPath] });
+    assert.ok(r.ok, `含 stale 文件仍应通过: ${r.out.slice(0, 400)}`);
+    const report = JSON.parse(fs.readFileSync(reportPath, 'utf8'));
+    assert.ok(report.total.rawKb < 200, `stale index 不得计入 total: ${report.total.rawKb}`);
+    assert.ok((report.chunks.index?.rawKb ?? 0) < 100, 'stale index 不得计入 index 聚合');
+  } finally {
+    cleanup(dir, path.dirname(base));
+  }
+
+  const over = makeDist({ sizes: { index: 700 } });
+  const overBase = writeBaselineFile(makeBaseline());
+  try {
+    const r = runBudget(over.dir, { baseline: overBase });
+    assert.ok(!r.ok, '当前 manifest 引用文件超限必须失败');
+    assert.match(r.out, /index raw:/);
+  } finally {
+    cleanup(over.dir, path.dirname(overBase));
+  }
+});
 
 test('真实 dist（已构建时）整体通过且 KaTeX-only 不含 JSXGraph', () => {
   const dist = path.join(root, 'apps/web/dist');

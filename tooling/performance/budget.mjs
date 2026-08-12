@@ -47,6 +47,24 @@ if (!fs.existsSync(manifestPath)) {
 }
 const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 
+/** Files referenced by the current Vite manifest (stale hashed assets must be ignored). */
+function activeFileSetFromManifest(man) {
+  const files = new Set();
+  for (const value of Object.values(man)) {
+    if (!value || typeof value !== 'object') continue;
+    if (typeof value.file === 'string') files.add(value.file);
+    for (const css of value.css || []) {
+      if (typeof css === 'string') files.add(css);
+    }
+    for (const asset of value.assets || []) {
+      if (typeof asset === 'string') files.add(asset);
+    }
+  }
+  return files;
+}
+
+const activeFiles = activeFileSetFromManifest(manifest);
+
 const reportOnly = process.argv.includes('--report-json');
 const reportArgIdx = process.argv.indexOf('--report-json');
 const reportTarget = reportArgIdx >= 0 ? process.argv[reportArgIdx + 1] : null;
@@ -140,13 +158,17 @@ function requireEntry(key, expectDynamic) {
   return v;
 }
 
-/** 全部 dist JS 资产按 family 聚合（chunk 级字节预算；index 聚合语义沿用旧工具：JS only） */
+/** 当前 manifest 引用的 JS 资产按 family 聚合（chunk 级字节预算；忽略 stale hash） */
 function chunkAggregates() {
   const byFamily = new Map();
   const assetsDir = path.join(distDir, 'assets');
+  if (!fs.existsSync(assetsDir)) {
+    return byFamily;
+  }
   for (const name of fs.readdirSync(assetsDir)) {
     if (!name.endsWith('.js')) continue;
     const file = `assets/${name}`;
+    if (!activeFiles.has(file)) continue;
     const family = familyOf(null, null, file);
     const agg = byFamily.get(family) || { rawKb: 0, gzipKb: 0, files: 0 };
     agg.rawKb += rawKb(file);
@@ -282,9 +304,14 @@ function applyThresholds(report) {
   // 路径级
   for (const [routeName, routeCfg] of Object.entries(budget.routes || {})) {
     const r = report.routes[routeName];
-    const raw = routeName === 'initial' ? r.rawKb : r.incrementalRawKb;
-    const gzip = routeName === 'initial' ? r.gzipKb : r.incrementalGzipKb;
-    const count = routeName === 'initial' ? r.assetCount : r.incrementalAssetCount;
+    if (!r) {
+      violations.push(`报告缺少路径 ${routeName}`);
+      continue;
+    }
+    const absolute = routeName === 'initial';
+    const raw = absolute ? r.rawKb : r.incrementalRawKb;
+    const gzip = absolute ? r.gzipKb : r.incrementalGzipKb;
+    const count = absolute ? r.assetCount : r.incrementalAssetCount;
     const rawMax = routeCfg.rawMaxKb ?? routeCfg.incrementalRawMaxKb;
     const gzipMax = routeCfg.gzipMaxKb ?? routeCfg.incrementalGzipMaxKb;
     const routeV = [];
@@ -325,6 +352,7 @@ function buildReport() {
   const initial = closure(entries.initial);
   const graph = closure(entries.mathGraph);
   const classroom = closure(entries.mathClassroomKatexOnly);
+  const accountCloud = entries.accountCloud ? closure(entries.accountCloud) : [];
   const initialFiles = new Set(initial.map((r) => r.file));
   const incremental = (requests) => requests.filter((r) => !initialFiles.has(r.file));
 
@@ -339,21 +367,25 @@ function buildReport() {
     chunks[family] = { rawKb: agg.rawKb, gzipKb: agg.gzipKb, files: agg.files };
   }
 
-  // total = 全部 JS + CSS（字体等资源资产不重复计为 bundle 字节）
+  // total = 当前 manifest 引用的 JS + CSS（忽略 stale hash；字体等不计）
   let totalJsCssRaw = 0;
   let totalJsCssGzip = 0;
-  for (const name of fs.readdirSync(path.join(distDir, 'assets'))) {
-    if (!/\.(js|css)$/.test(name)) continue;
-    const file = `assets/${name}`;
+  for (const file of activeFiles) {
+    if (!/\.(js|css)$/.test(file)) continue;
+    if (!fs.existsSync(diskPath(file))) {
+      throw new Error(`[budget] manifest 引用缺失文件：${file}`);
+    }
     totalJsCssRaw += rawKb(file);
     totalJsCssGzip += gzipKb(file);
   }
 
   const gIncr = incremental(graph);
   const cIncr = incremental(classroom);
+  const aIncr = incremental(accountCloud);
   const iSum = sum(initial);
   const gSum = sum(gIncr);
   const cSum = sum(cIncr);
+  const aSum = sum(aIncr);
 
   return {
     formatVersion: 1,
@@ -377,6 +409,16 @@ function buildReport() {
         incrementalGzipKb: cSum.gzipKb,
         incrementalAssetCount: cIncr.length,
       },
+      ...(entries.accountCloud
+        ? {
+            accountCloud: {
+              requests: aIncr,
+              incrementalRawKb: aSum.rawKb,
+              incrementalGzipKb: aSum.gzipKb,
+              incrementalAssetCount: aIncr.length,
+            },
+          }
+        : {}),
     },
     chunks,
     total: { rawKb: totalJsCssRaw, gzipKb: totalJsCssGzip },
@@ -388,6 +430,9 @@ function main() {
   requireEntry(budget.entries.initial, false);
   requireEntry(budget.entries.mathGraph, true);
   requireEntry(budget.entries.mathClassroomKatexOnly, true);
+  if (budget.entries.accountCloud) {
+    requireEntry(budget.entries.accountCloud, true);
+  }
 
   const report = buildReport();
 

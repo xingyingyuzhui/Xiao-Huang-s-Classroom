@@ -3,7 +3,8 @@
   "entries": {
     "initial": "index.html",
     "mathGraph": "src/math/graph/index.js",
-    "mathClassroomKatexOnly": "src/math/classroom/entry.js"
+    "mathClassroomKatexOnly": "src/math/classroom/entry.js",
+    "accountCloud": "src/account/boot-account-cloud.js"
   },
   "vendors": ["jsxgraph", "katex", "three"],
   "splitTransforms": {
@@ -55,6 +56,12 @@
       "maxAssetCount": 64,
       "forbiddenChunks": ["jsxgraph"],
       "note": "2026-08-08: 拆分后实测 +1349kB raw / +935kB gzip / 63 请求，+7% 字节余量、请求数 +1；KaTeX-only 禁止 JSXGraph（拆分前 2350kB raw，含 mathviz 整包）"
+    },
+    "accountCloud": {
+      "incrementalRawMaxKb": 160,
+      "incrementalGzipMaxKb": 45,
+      "maxAssetCount": 8,
+      "note": "2026-08-12: 相对 initial 增量实测 ~151kB raw / ~42kB gzip / 1 请求（单体 boot-account-cloud）；拆分后应收紧，gzip 留 ≥5% 余量，禁止简单抬预算"
     }
   },
   "totalRawMaxKb": 3263,
