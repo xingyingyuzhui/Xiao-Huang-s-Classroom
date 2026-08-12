@@ -16,6 +16,8 @@ import { app, BrowserWindow, shell, screen, Menu, dialog } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';
 import path from 'node:path';
 import fs from 'node:fs';
+import { AuthVault } from './auth-vault.js';
+import { registerAccountIpc } from './account-ipc.js';
 
 // ───────────────────────── startup 状态机（JS 权威源，tsup bundle 进产物） ─────────────────────────
 
@@ -298,6 +300,7 @@ function createWindow(url: string): Promise<void> {
       nodeIntegration: false,
       contextIsolation: true,
       sandbox: true,
+      preload: path.join(__dirname, 'preload-account.js'),
       zoomFactor: initialZoom,
       // 跟随系统高 DPI（默认 true；显式写出避免被改）
       // Windows 4K 下由 OS scaleFactor 处理物理像素
@@ -386,6 +389,12 @@ if (!gotLock) {
 
   app.whenReady().then(() => {
     buildAppMenu();
+    const cloudOrigin =
+      process.env.XIAOHUANG_CLOUD_ORIGIN ||
+      process.env.CLOUD_PUBLIC_ORIGIN ||
+      'http://127.0.0.1:3000';
+    const vault = new AuthVault(app.getPath('userData'));
+    registerAccountIpc(vault, cloudOrigin);
     return bootstrap();
   });
 

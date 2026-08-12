@@ -12,6 +12,7 @@ import { createAuthRouter } from './auth/routes.js';
 import { createAccountsRouter } from './accounts/routes.js';
 import { createDevicesRouter } from './devices/routes.js';
 import { createClassesRouter, createTrashRouter } from './classes/routes.js';
+import { createWorkspacesRouter } from './workspaces/routes.js';
 import { createSyncRouter } from './sync/routes.js';
 import { createAiRouter } from './ai/routes.js';
 import { createAdminRouter } from './audit/routes.js';
@@ -81,6 +82,7 @@ export function createCloudApp(deps: CloudAppDeps): express.Application {
   v1.use('/devices', createDevicesRouter(pool));
   v1.use('/classes', createClassesRouter(pool));
   v1.use('/trash', createTrashRouter(pool));
+  v1.use('/workspaces', createWorkspacesRouter(pool));
   v1.use('/sync', createSyncRouter(pool));
   v1.use('/ai', createAiRouter(config, pool));
   v1.use('/admin', createAdminRouter(pool));

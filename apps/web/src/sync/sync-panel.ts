@@ -9,8 +9,8 @@ export type SyncPanelOptions = {
 
 const PHASE_LABELS: Record<SyncStatus['phase'], string> = {
   idle: '就绪',
-  pushing: '正在上传…',
-  pulling: '正在下载…',
+  pushing: '正在上传本地更改…',
+  pulling: '正在拉取云端更改…',
   completed: '同步完成',
   failed: '同步失败',
   cancelled: '同步已取消',
@@ -53,11 +53,15 @@ export function renderSyncPanel(container: HTMLElement, options: SyncPanelOption
   phaseEl.textContent = PHASE_LABELS[status.phase];
   wrapper.appendChild(phaseEl);
 
-  // Pending count
   if (status.pendingCount > 0) {
     const pendingEl = document.createElement('div');
     pendingEl.className = 'sync-panel-pending';
-    pendingEl.textContent = `${status.pendingCount} 项待同步`;
+    pendingEl.textContent = `${status.pendingCount} 项待上传`;
+    wrapper.appendChild(pendingEl);
+  } else if (status.phase === 'idle' || status.phase === 'completed') {
+    const pendingEl = document.createElement('div');
+    pendingEl.className = 'sync-panel-pending';
+    pendingEl.textContent = '没有待上传的更改';
     wrapper.appendChild(pendingEl);
   }
 

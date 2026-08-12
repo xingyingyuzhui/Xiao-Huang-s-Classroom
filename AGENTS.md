@@ -29,6 +29,7 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 - Feature work after establishing main should land on branches rather than committing straight to main.
 - Intro-page cursor floaters should be subject-specific (chemistry element symbols, math numerals, biology leaf-like, physics-themed)—not one shared leaf effect for all.
 - Subject intro chrome: no center close X; secondary action labeled「返回大厅」; avoid generic「N 个模块」meta wording.
+- Settings「账户与同步」must be a real product surface (visible login + cloud push then pull to completion, session surviving refresh)—not a local-only status stub that looks like the guest product.
 
 ## Learned Workspace Facts
 
@@ -39,6 +40,8 @@ Treat `apps/server/data/`（及 `apps/server/src/data/`）as user data. Treat `a
 - Chemistry lab work prioritizes a state-driven engine with chemistry logic separated from rendering; experiments should be configuration-driven rather than one-off page stacks.
 - Chemistry web modules: feature packages under `apps/web/src/chemistry/{periodic-table,molecule,molar,electron,battle,ai-classroom,chem,shared}/`; classroom mount/partials under `apps/web/src/subjects/classrooms/`.
 - Math web modules: `apps/web/src/math/{graph,plane,trig,sequence,solid,classroom,shared}/`; classroom shell `subjects/classrooms/math-classroom.js`. **Board theme/lifecycle contract:** `apps/web/src/math/AGENTS.md`（`math-theme.js` + `board-lifecycle.js`；换肤 `chem-theme-change`；禁止 border-soft 当网格）。**表达式：** `@xiaohuang/math-expr`（前后端共用，勿再复制白名单）。
+- Account/cloud sync stack: API and Postgres in `apps/cloud-server` (proxied under `/api/cloud/`, including personal/class workspaces); state machine in `packages/sync-core`; web boot/UI via `apps/web/src/account/boot-account-cloud.js` and settings (login, sync panel, class switcher), gated by `accountCloudProgram`; IndexedDB outbox/cursor under `apps/web/src/shared/persistence/indexeddb/` and `apps/web/src/sync/` (localStorage only for small device prefs—no auth tokens).
+- Production web + lab API + cloud-server ship as Docker images built locally and rsynced (host has no Node); nginx serves static web, proxies `/api/cloud/` to cloud-server and other `/api/` to `apps/server` (Express/SQLite).
 
 ## 统一工程体系（2026-08-07 迁移后）
 

@@ -9,6 +9,7 @@ import { defineConfig } from 'tsup';
 export default defineConfig({
   entry: {
     main: 'src/main.ts',
+    'preload-account': 'src/preload-account.ts',
   },
   format: ['cjs'],
   dts: false,

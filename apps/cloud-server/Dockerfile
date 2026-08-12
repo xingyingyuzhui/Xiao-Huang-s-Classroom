@@ -11,6 +11,7 @@ RUN addgroup -g 1001 cloudapp && adduser -u 1001 -G cloudapp -D cloudapp
 WORKDIR /app
 ENV NODE_ENV=production
 COPY --from=builder /app/apps/cloud-server/dist ./dist
+COPY --from=builder /app/apps/cloud-server/src/db/migrations ./dist/migrations
 COPY --from=builder /app/apps/cloud-server/package.json ./
 COPY --from=builder /app/node_modules ./node_modules
 USER cloudapp

@@ -42,6 +42,14 @@ const ALLOWED_MODELS = new Set(['deepseek-v4-flash', 'deepseek-v4-pro']);
 
 let cachedSettings = null;
 
+/** @type {((settings: typeof DEFAULT_SETTINGS) => void | Promise<void>) | null} */
+let onSettingsPersisted = null;
+
+/** @param {((settings: any) => void | Promise<void>) | null} fn */
+export function setOnSettingsPersisted(fn) {
+  onSettingsPersisted = fn;
+}
+
 const THEME_PREVIEW = {
   default: ['#3b82f6', '#f0f4f8', '#ffffff'],
   stationery: ['#c23b22', '#f2e9dc', '#1f6f6a'],
@@ -77,6 +85,13 @@ export async function saveSettings(patch) {
         cachedSettings.subjectSettings = normalizeSubjectSettings(
           deepMergeSubjectSettings(cachedSettings.subjectSettings, patch.subjectSettings),
         );
+      }
+    }
+    if (onSettingsPersisted && cachedSettings) {
+      try {
+        await onSettingsPersisted(cachedSettings);
+      } catch (syncErr) {
+        console.warn('设置已保存，但入队云同步失败:', syncErr);
       }
     }
     return true;
@@ -192,6 +207,7 @@ export async function initSettingsUI({
   getDefaultPageOptions = () => [],
   resolveDefaultPage,
   getClassroomCapabilities = () => ({ brand: false, defaultPage: false, ai: false }),
+  accountCloud = null,
 } = {}) {
   const $ = (sel) => document.querySelector(sel);
 
@@ -201,6 +217,7 @@ export async function initSettingsUI({
   const btnClose = $('#btnSettingsClose');
 
   const themeSection = $('#settingsThemeSection');
+  const accountSection = $('#settingsAccountSection');
   const subjectSection = $('#settingsSubjectSection');
   const brandBlock = $('#settingsBrandBlock');
   const brandIconPreview = $('#brandIconPreview');
@@ -217,6 +234,10 @@ export async function initSettingsUI({
   /** @type {{ mode: 'hub' | 'lab', subjectId: string | null }} */
   let settingsContext = { mode: SETTINGS_CONTEXT.hub, subjectId: null };
 
+  setOnSettingsPersisted(async (settings) => {
+    await accountCloud?.enqueueTeacherSettings?.(settings);
+  });
+
   function syncSettingsSections() {
     const isHub = settingsContext.mode === SETTINGS_CONTEXT.hub;
     const subjectId = settingsContext.subjectId;
@@ -226,6 +247,7 @@ export async function initSettingsUI({
         : { brand: false, defaultPage: false, ai: false };
 
     if (themeSection) themeSection.hidden = false;
+    if (accountSection) accountSection.hidden = !accountCloud;
     if (subjectSection) {
       subjectSection.hidden = isHub || (!caps.brand && !caps.defaultPage);
     }
@@ -334,6 +356,7 @@ export async function initSettingsUI({
     const settings = await loadSettings();
     syncThemePicker(settings.theme);
     syncSettingsSections();
+    accountCloud?.refreshSettingsSection?.();
 
     const subjectId = settingsContext.subjectId;
     if (subjectId && settingsContext.mode === SETTINGS_CONTEXT.lab) {
@@ -378,8 +401,14 @@ export async function initSettingsUI({
   backdrop?.addEventListener('click', closeDrawer);
   document.addEventListener('keydown', (e) => {
     if (e.key !== 'Escape' || !drawer?.classList.contains('is-open')) return;
-    // 顶层 app-dialog / ui-dialog 打开时 Esc 只关确认框，不连带关设置抽屉
-    if (document.querySelector('.app-dialog-root.is-open, .ui-dialog:not([hidden])')) return;
+    // 顶层 app-dialog / ui-dialog / 账户登录·冲突层打开时 Esc 只关顶层，不连带关设置抽屉
+    if (
+      document.querySelector(
+        '.app-dialog-root.is-open, .ui-dialog:not([hidden]), .account-login-overlay, .conflict-dialog-overlay',
+      )
+    ) {
+      return;
+    }
     closeDrawer();
   });
 
@@ -482,13 +511,25 @@ export async function initSettingsUI({
     }
     setSaveBusy(btnSaveAi, true, '保存 AI 设置');
     try {
+      const key = apiKey?.value?.trim() || '';
       const ai = {
         apiBase: apiBase?.value?.trim() || DEFAULT_AI.apiBase,
-        apiKey: apiKey?.value?.trim() || '',
+        apiKey: key,
         model,
       };
       await saveSubjectSettingsPatch(subjectId, { ai });
-      notify('已保存', true);
+
+      if (accountCloud?.session?.isAuthenticated?.() && key) {
+        const provider = /openai/i.test(ai.apiBase) ? 'openai' : 'deepseek';
+        await accountCloud.client.setAiCredential({
+          provider,
+          model,
+          apiKey: key,
+        });
+        notify('已保存（含云端凭证）', true);
+      } else {
+        notify('已保存', true);
+      }
     } catch (err) {
       notify('保存失败: ' + err.message, false);
     } finally {

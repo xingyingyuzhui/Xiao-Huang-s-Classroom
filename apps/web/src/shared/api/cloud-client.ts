@@ -1,42 +1,162 @@
 import { AppError } from '@xiaohuang/domain-core';
-import type { SyncPushResponse, SyncPullResponse, SyncOperation } from '@xiaohuang/contracts';
+import type {
+  SyncPushResponse,
+  SyncPullResponse,
+  SyncOperation,
+  ClassRecord,
+} from '@xiaohuang/contracts';
 
 export type CloudClientConfig = {
+  /** Base URL including `/api/cloud/v1` (no trailing slash). */
   baseUrl: string;
   getAccessToken: () => string | null;
   onUnauthorized?: () => void;
 };
 
+export type CloudLoginResult = {
+  accountId: string;
+  displayName: string;
+  accessToken: string;
+  expiresAt: number;
+  sessionId: string;
+  deviceId: string;
+  avatarUrl: string | null;
+};
+
+export type PersonalWorkspace = {
+  id: string;
+  classId: string | null;
+  accountId: string;
+  subjectId: string;
+  kind: 'personal' | 'class';
+};
+
+function joinUrl(base: string, path: string): string {
+  const b = base.replace(/\/+$/, '');
+  const p = path.startsWith('/') ? path : `/${path}`;
+  return `${b}${p}`;
+}
+
+/** HTTP 公网非 secure context 下 crypto.randomUUID 可能不可用。 */
+export function newRequestId(): string {
+  const c = globalThis.crypto as Crypto | undefined;
+  if (c && typeof c.randomUUID === 'function') {
+    return c.randomUUID();
+  }
+  if (c && typeof c.getRandomValues === 'function') {
+    const bytes = new Uint8Array(16);
+    c.getRandomValues(bytes);
+    bytes[6] = (bytes[6]! & 0x0f) | 0x40;
+    bytes[8] = (bytes[8]! & 0x3f) | 0x80;
+    const hex = [...bytes].map((b) => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  }
+  return `req_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
 export class CloudClient {
   constructor(private config: CloudClientConfig) {}
+
+  async login(username: string, password: string, deviceLabel = 'Web'): Promise<CloudLoginResult> {
+    const json = await this.requestRaw<{
+      session: {
+        accountId: string;
+        sessionId: string;
+        deviceId: string;
+        accessTokenExpiresAt: string;
+      };
+      accessToken: string;
+    }>('POST', '/auth/login', { username, password, deviceLabel }, { auth: false });
+
+    const expiresAt = Date.parse(json.session.accessTokenExpiresAt);
+    let displayName = username;
+    let avatarUrl: string | null = null;
+    try {
+      const profile = await this.request<{ displayName: string; avatarUrl: string | null }>(
+        'GET',
+        '/account',
+        undefined,
+        undefined,
+        json.accessToken,
+      );
+      displayName = profile.displayName || username;
+      avatarUrl = profile.avatarUrl ?? null;
+    } catch {
+      /* profile optional at first login */
+    }
+
+    return {
+      accountId: json.session.accountId,
+      displayName,
+      accessToken: json.accessToken,
+      expiresAt: Number.isFinite(expiresAt) ? expiresAt : Date.now() + 15 * 60_000,
+      sessionId: json.session.sessionId,
+      deviceId: json.session.deviceId,
+      avatarUrl,
+    };
+  }
+
+  async ensurePersonalWorkspace(subjectId: string): Promise<PersonalWorkspace> {
+    return this.request<PersonalWorkspace>('POST', '/workspaces/personal', { subjectId });
+  }
+
+  async ensureClassWorkspace(classId: string, subjectId: string): Promise<PersonalWorkspace> {
+    return this.request<PersonalWorkspace>('POST', '/workspaces/class', { classId, subjectId });
+  }
+
+  async listClasses(): Promise<ClassRecord[]> {
+    return this.request<ClassRecord[]>('GET', '/classes');
+  }
+
+  async createClass(name: string): Promise<ClassRecord> {
+    return this.request<ClassRecord>('POST', '/classes', { name });
+  }
+
+  async deleteClass(classId: string): Promise<ClassRecord> {
+    return this.request<ClassRecord>('DELETE', `/classes/${encodeURIComponent(classId)}`);
+  }
+
+  async getAiCredential(): Promise<{
+    configured: boolean;
+    provider?: string;
+    model?: string;
+    last4?: string;
+    updatedAt?: string;
+  }> {
+    return this.request('GET', '/ai/credential');
+  }
+
+  async setAiCredential(input: {
+    provider: 'openai' | 'deepseek';
+    model: string;
+    apiKey: string;
+  }): Promise<{
+    configured: boolean;
+    provider: string;
+    model: string;
+    last4: string;
+    updatedAt: string;
+  }> {
+    return this.request('PUT', '/ai/credential', input);
+  }
+
+  async removeAiCredential(): Promise<{ removed: boolean }> {
+    return this.request('DELETE', '/ai/credential');
+  }
+
+  async getAiUsage(): Promise<{
+    daily: { used: number; limit: number };
+    monthly: { used: number; limit: number };
+  }> {
+    return this.request('GET', '/ai/usage');
+  }
 
   async syncPush(
     workspaceId: string,
     operations: SyncOperation[],
     signal?: AbortSignal,
   ): Promise<SyncPushResponse> {
-    return this.request<SyncPushResponse>(
-      'POST',
-      `/api/v2/sync/${encodeURIComponent(workspaceId)}/push`,
-      { workspaceId, operations },
-      signal,
-    );
-  }
-
-  async login(
-    username: string,
-    password: string,
-  ): Promise<{ accountId: string; displayName: string; accessToken: string; expiresAt: number }> {
-    const res = await fetch(`${this.config.baseUrl}/api/v2/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Request-Id': crypto.randomUUID() },
-      body: JSON.stringify({ username, password }),
-    });
-    const json = (await res.json()) as { success: boolean; data?: { accountId: string; displayName: string; accessToken: string; expiresAt: number }; error?: { code: string; message: string } };
-    if (!json.success || !json.data) {
-      throw new AppError((json.error?.code ?? 'AUTH_FAILED') as never, json.error?.message ?? 'Login failed');
-    }
-    return json.data;
+    return this.request<SyncPushResponse>('POST', '/sync/push', { workspaceId, operations }, signal);
   }
 
   async syncPull(
@@ -45,12 +165,11 @@ export class CloudClient {
     limit?: number,
     signal?: AbortSignal,
   ): Promise<SyncPullResponse> {
-    return this.request<SyncPullResponse>(
-      'POST',
-      `/api/v2/sync/${encodeURIComponent(workspaceId)}/pull`,
-      { workspaceId, cursor, limit },
-      signal,
-    );
+    const params = new URLSearchParams();
+    params.set('workspaceId', workspaceId);
+    if (cursor != null) params.set('cursor', cursor);
+    if (limit != null) params.set('limit', String(limit));
+    return this.request<SyncPullResponse>('GET', `/sync/pull?${params.toString()}`, undefined, signal);
   }
 
   private async request<T>(
@@ -58,35 +177,59 @@ export class CloudClient {
     path: string,
     body?: unknown,
     signal?: AbortSignal,
+    tokenOverride?: string,
   ): Promise<T> {
-    const token = this.config.getAccessToken();
-    const requestId = crypto.randomUUID();
+    const opts: { signal?: AbortSignal; tokenOverride?: string; auth?: boolean } = {
+      auth: true,
+    };
+    if (signal) opts.signal = signal;
+    if (tokenOverride) opts.tokenOverride = tokenOverride;
+    return this.requestRaw<T>(method, path, body, opts);
+  }
+
+  private async requestRaw<T>(
+    method: string,
+    path: string,
+    body?: unknown,
+    opts: { signal?: AbortSignal; tokenOverride?: string; auth?: boolean } = {},
+  ): Promise<T> {
+    const auth = opts.auth !== false;
+    const token = opts.tokenOverride ?? (auth ? this.config.getAccessToken() : null);
+    const requestId = newRequestId();
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       'X-Request-Id': requestId,
     };
     if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
+      headers.Authorization = `Bearer ${token}`;
     }
 
-    const res = await fetch(`${this.config.baseUrl}${path}`, {
+    const res = await fetch(joinUrl(this.config.baseUrl, path), {
       method,
       headers,
+      credentials: 'include',
       ...(body != null ? { body: JSON.stringify(body) } : {}),
-      ...(signal ? { signal } : {}),
+      ...(opts.signal ? { signal: opts.signal } : {}),
     });
+
+    const json = (await res.json().catch(() => null)) as {
+      success: boolean;
+      data?: T;
+      error?: { code: string; message: string };
+      requestId: string;
+    } | null;
 
     if (res.status === 401) {
       this.config.onUnauthorized?.();
-      throw new AppError('AUTH_SESSION_EXPIRED', 'Unauthorized');
+      const code = (json?.error?.code ?? 'AUTH_SESSION_EXPIRED') as never;
+      const message = json?.error?.message ?? '登录已失效，请重新登录';
+      throw new AppError(code, message);
     }
 
-    const json = (await res.json()) as { success: boolean; data?: T; error?: { code: string; message: string }; requestId: string };
-
-    if (!json.success || !json.data) {
-      const code = json.error?.code ?? 'INTERNAL_UNKNOWN';
-      const message = json.error?.message ?? `HTTP ${res.status}`;
-      throw new AppError(code as never, message);
+    if (!json || !json.success || json.data === undefined) {
+      const code = (json?.error?.code ?? 'INTERNAL_UNKNOWN') as never;
+      const message = json?.error?.message ?? `HTTP ${res.status}`;
+      throw new AppError(code, message);
     }
 
     return json.data;

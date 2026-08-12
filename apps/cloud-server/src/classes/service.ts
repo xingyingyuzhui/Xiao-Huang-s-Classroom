@@ -154,4 +154,26 @@ export class ClassService {
       };
     });
   }
+
+  async ensureClassWorkspace(accountId: string, classId: string, subjectId: string) {
+    return withTenantTransaction(this.pool, accountId, async (client) => {
+      const classes = new ClassRepository(client);
+      const existing = await classes.findById(classId);
+      if (!existing || existing.account_id !== accountId) {
+        throw new AppError('CLASS_NOT_FOUND', '班级不存在');
+      }
+      if (existing.deleted_at) {
+        throw new AppError('CLASS_TRASHED', '班级已在废纸篓中');
+      }
+      const workspaces = new WorkspaceRepository(client);
+      const row = await workspaces.ensureClassWorkspace(accountId, classId, subjectId);
+      return {
+        id: row.workspace_id,
+        classId: row.class_id,
+        accountId: row.account_id,
+        subjectId: row.subject_id,
+        kind: row.kind,
+      };
+    });
+  }
 }

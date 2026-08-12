@@ -50,9 +50,34 @@ services:
           cpus: '1.0'
           memory: 2G
 
+  lab-server:
+    build:
+      context: ..
+      dockerfile: apps/server/Dockerfile
+    image: xiaohuang-lab-server:latest
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: '3001'
+      CHEM_LAB_BIND: '0.0.0.0'
+      CHEM_LAB_DATA_DIR: /data
+      OPEN_BROWSER: '0'
+    ports:
+      - '127.0.0.1:3001:3001'
+    volumes:
+      - lab_sqlite_data:/data
+    networks:
+      - internal
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+
 networks:
   internal:
     driver: bridge
 
 volumes:
   cloud_pg_data:
+  lab_sqlite_data:

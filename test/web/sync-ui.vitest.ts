@@ -244,7 +244,7 @@ describe('renderSyncPanel', () => {
       onViewConflicts: () => {},
     });
 
-    expect((container as any).textContent).toContain('5 项待同步');
+    expect((container as any).textContent).toContain('5 项待上传');
     const btn = findBySelector(container, '.ui-btn');
     expect(btn).toBeTruthy();
     expect((btn as any).textContent).toContain('同步');

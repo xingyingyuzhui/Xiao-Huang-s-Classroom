@@ -362,3 +362,162 @@
 body.settings-open {
   overflow: hidden;
 }
+
+/* 账户与同步（feature flag） */
+.account-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.account-settings-summary {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.account-remembered-card {
+  font-size: 0.92rem;
+  color: var(--text-secondary);
+}
+
+.sync-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.sync-panel-online {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+}
+
+.sync-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: var(--text-secondary);
+}
+
+.sync-dot.is-online {
+  background: var(--status-success, #2f9e44);
+}
+
+.sync-dot.is-offline {
+  background: var(--text-secondary);
+}
+
+.sync-panel-phase {
+  font-weight: 700;
+}
+
+.sync-panel-error {
+  color: var(--status-danger, #c92a2a);
+  font-size: 0.9rem;
+}
+
+.class-switcher {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.class-switcher-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.class-switcher-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border: var(--ui-stroke) solid var(--border-soft);
+  border-radius: 10px;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.class-switcher-item.is-active {
+  border-color: var(--border-ink);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-weight: 700;
+}
+
+.class-switcher-create,
+.guest-copy-flow {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.guest-copy-prompt,
+.guest-copy-note {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.guest-copy-skip {
+  align-self: flex-start;
+  border: 0;
+  background: transparent;
+  color: var(--text-secondary);
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.account-login-overlay,
+.conflict-dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 12000;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--text-primary) 35%, transparent);
+  padding: 1rem;
+}
+
+.account-login-panel,
+.conflict-dialog-panel {
+  width: min(420px, 100%);
+  background: var(--card-elevated);
+  border: var(--ui-stroke) solid var(--border-ink);
+  border-radius: 14px;
+  box-shadow: var(--shadow-print);
+  padding: 1.1rem 1.2rem 1.25rem;
+}
+
+.account-login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.account-login-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-weight: 600;
+}
+
+.account-login-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
+}
+
+.account-login-error {
+  color: var(--status-danger, #c92a2a);
+  font-size: 0.9rem;
+}
+

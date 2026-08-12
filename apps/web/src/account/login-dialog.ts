@@ -5,6 +5,7 @@ export type LoginDialogResult = {
   displayName: string;
   accessToken: string;
   expiresAt: number;
+  avatarUrl?: string | null;
 } | null;
 
 export async function showLoginDialog(cloudClient: CloudClient): Promise<LoginDialogResult> {
@@ -88,10 +89,21 @@ export async function showLoginDialog(cloudClient: CloudClient): Promise<LoginDi
       try {
         const result = await cloudClient.login(username, password);
         finish(result);
-      } catch {
+      } catch (e) {
         loginBtn.disabled = false;
         loginBtn.textContent = '登录';
-        errorEl.textContent = '用户名或密码错误';
+        const code = e && typeof e === 'object' && 'code' in e ? String((e as { code?: string }).code) : '';
+        const message =
+          e && typeof e === 'object' && 'message' in e ? String((e as { message?: string }).message) : '';
+        if (code === 'AUTH_INVALID_CREDENTIALS' || /密码|凭据|credential/i.test(message)) {
+          errorEl.textContent = '用户名或密码错误';
+        } else if (code === 'VALIDATION_SCHEMA') {
+          errorEl.textContent = '登录请求无效，请刷新页面后重试';
+        } else if (code === 'AUTH_RATE_LIMITED') {
+          errorEl.textContent = '尝试过多，请稍后再试';
+        } else {
+          errorEl.textContent = message ? `登录失败：${message}` : '登录失败，请检查网络后重试';
+        }
         errorEl.hidden = false;
       }
     });

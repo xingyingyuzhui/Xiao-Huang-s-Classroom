@@ -1,0 +1,54 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - internal
+
+  cloud-server:
+    image: xiaohuang-cloud-server:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - /opt/xiaohuang-classroom/secrets/.env
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  lab-server:
+    image: xiaohuang-lab-server:latest
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    environment:
+      NODE_ENV: production
+      PORT: "3001"
+      CHEM_LAB_BIND: "0.0.0.0"
+      CHEM_LAB_DATA_DIR: /data
+      OPEN_BROWSER: "0"
+    volumes:
+      - labdata:/data
+    networks:
+      - internal
+
+volumes:
+  pgdata:
+  labdata:
+
+networks:
+  internal:
+    driver: bridge

@@ -22,7 +22,6 @@ export function renderClassSwitcher(container: HTMLElement, options: ClassSwitch
   list.setAttribute('role', 'listbox');
   list.setAttribute('aria-label', '班级列表');
 
-  // Personal space option
   const personalLi = document.createElement('li');
   personalLi.className = 'class-switcher-item';
   personalLi.setAttribute('role', 'option');
@@ -31,10 +30,12 @@ export function renderClassSwitcher(container: HTMLElement, options: ClassSwitch
   const personalLabel = document.createElement('span');
   personalLabel.textContent = '个人空间';
   personalLi.appendChild(personalLabel);
-  personalLi.addEventListener('click', () => onSwitch(null));
+  personalLi.addEventListener('click', () => {
+    if (activeClassId == null) return;
+    onSwitch(null);
+  });
   list.appendChild(personalLi);
 
-  // Class rows
   for (const cls of classes) {
     const li = document.createElement('li');
     li.className = 'class-switcher-item';
@@ -48,7 +49,10 @@ export function renderClassSwitcher(container: HTMLElement, options: ClassSwitch
     nameSpan.textContent = cls.name;
     li.appendChild(nameSpan);
 
-    li.addEventListener('click', () => onSwitch(cls.id));
+    li.addEventListener('click', () => {
+      if (cls.id === activeClassId) return;
+      onSwitch(cls.id);
+    });
 
     const deleteBtn = createButton({
       label: '删除',
@@ -63,6 +67,9 @@ export function renderClassSwitcher(container: HTMLElement, options: ClassSwitch
       },
     });
     deleteBtn.element.classList.add('class-switcher-delete');
+    deleteBtn.element.addEventListener('click', (event) => {
+      event.stopPropagation();
+    });
     li.appendChild(deleteBtn.element);
 
     list.appendChild(li);
@@ -70,7 +77,6 @@ export function renderClassSwitcher(container: HTMLElement, options: ClassSwitch
 
   wrapper.appendChild(list);
 
-  // Create new class
   const createRow = document.createElement('div');
   createRow.className = 'class-switcher-create';
 
@@ -83,7 +89,13 @@ export function renderClassSwitcher(container: HTMLElement, options: ClassSwitch
     onClick: async () => {
       const name = (nameInput.element as HTMLInputElement).value.trim();
       if (!name) return;
-      await onCreate(name);
+      createBtn.update({ disabled: true, loading: true });
+      try {
+        await onCreate(name);
+        (nameInput.element as HTMLInputElement).value = '';
+      } finally {
+        createBtn.update({ disabled: false, loading: false });
+      }
     },
   });
   createRow.appendChild(createBtn.element);

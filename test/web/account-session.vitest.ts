@@ -69,6 +69,40 @@ describe('AccountSessionController', () => {
     expect(ctrl.getAccessToken()).toBe('tok123');
   });
 
+  it('persists session to provided storage and hydrates', () => {
+    const storage = createFakeStorage();
+    const first = new AccountSessionController(storage);
+    const session = {
+      accountId: 'a1',
+      displayName: 'Test',
+      accessToken: 'tok',
+      expiresAt: Date.now() + 60_000,
+      avatarUrl: null,
+    };
+    first.setSession(session);
+    const second = new AccountSessionController(storage);
+    expect(second.isAuthenticated()).toBe(true);
+    expect(second.getAccessToken()).toBe('tok');
+    second.clearSession();
+    expect(storage.getItem('xh-account-session') == null).toBe(true);
+  });
+
+  it('does not hydrate expired stored session', () => {
+    const storage = createFakeStorage();
+    storage.setItem(
+      'xh-account-session',
+      JSON.stringify({
+        accountId: 'a1',
+        displayName: 'Test',
+        accessToken: 'tok',
+        expiresAt: Date.now() - 1000,
+        avatarUrl: null,
+      }),
+    );
+    const ctrl = new AccountSessionController(storage);
+    expect(ctrl.getSession()).toBeNull();
+  });
+
   it('unsubscribe stops notifications', () => {
     const listener = vi.fn();
     const unsub = ctrl.subscribe(listener);

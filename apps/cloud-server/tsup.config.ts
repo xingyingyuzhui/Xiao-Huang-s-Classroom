@@ -8,6 +8,7 @@ export default defineConfig({
   target: 'node20',
   outDir: 'dist',
   external: ['pg', 'express'],
+  noExternal: [/^@xiaohuang\//],
   banner: {
     js: "import { createRequire } from 'module'; const require = createRequire(import.meta.url);",
   },

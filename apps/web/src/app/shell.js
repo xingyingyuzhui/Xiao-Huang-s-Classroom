@@ -14,6 +14,7 @@ import {
   createClassroomRegistry,
   syncClassroomTabChrome,
 } from '../subjects/classrooms/registry.js';
+import { bootAccountCloud } from '../account/boot-account-cloud.js';
 
 const $ = (sel) => document.querySelector(sel);
 
@@ -62,6 +63,8 @@ export async function initApp() {
     syncClassroomTabChrome(null);
   }
 
+  const accountCloud = await bootAccountCloud();
+
   const settingsApi = await initSettingsUI({
     getDefaultPageOptions: (subjectId) => classroomRegistry.getDefaultPageOptions(subjectId),
     getClassroomCapabilities: (subjectId) =>
@@ -69,7 +72,10 @@ export async function initApp() {
     resolveDefaultPage: (subjectId, stored) =>
       classroomRegistry.resolveDefaultPage(subjectId, stored),
     onDefaultPageChange: () => {},
+    accountCloud,
   });
+
+  accountCloud?.refreshSettingsSection?.();
 
   function syncSettingsContext() {
     if (shellMode === 'hub' || shellMode === 'returning') {
