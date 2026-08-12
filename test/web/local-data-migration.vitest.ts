@@ -64,7 +64,7 @@ test('migrates legacy math graph document localStorage key into guest/default/ma
     const pending = await outbox.listPending(workspaceId);
     assert.equal(pending.length, 0);
 
-    assert.equal(await getDataMigrationVersion(db), 1);
+    assert.equal(await getDataMigrationVersion(db), 2);
     db.close();
 
     const reopened = await openLocalDatabase({ factory: fake.factory, legacyStorage, now: () => 1_700_000_000_001 });
