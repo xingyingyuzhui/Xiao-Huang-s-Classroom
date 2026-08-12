@@ -5,6 +5,7 @@ import type { DbPool } from '../db/pool.js';
 import { ClassService } from '../classes/service.js';
 import { requireAuth, requireFullScope, validateBody } from '../middleware/guards.js';
 
+/** Guest never hits these routes (requireAuth). Explicit copy is the only guest→cloud path. */
 const ensurePersonalBodySchema = z.object({
   subjectId: z.string().min(1).max(64),
 });

@@ -166,7 +166,7 @@ describe('classes and workspaces', () => {
 
     const visibleToB = await withTenantTransaction(pgEnv.pool, userAAccountId, async (client) => {
       const workspaces = new WorkspaceRepository(client);
-      return workspaces.findPersonal(userAAccountId, 'chemistry');
+      return workspaces.findPersonal({ accountId: userAAccountId, subjectId: 'chemistry' });
     });
 
     const hiddenFromB = await withTenantTransaction(
@@ -174,7 +174,7 @@ describe('classes and workspaces', () => {
       'acct_nonexistent_tenant',
       async (client) => {
         const workspaces = new WorkspaceRepository(client);
-        return workspaces.findPersonal(userAAccountId, 'chemistry');
+        return workspaces.findPersonal({ accountId: userAAccountId, subjectId: 'chemistry' });
       },
     );
 
@@ -189,7 +189,13 @@ describe('classes and workspaces', () => {
 
     await withTenantTransaction(pgEnv.pool, userAAccountId, async (client) => {
       const workspaces = new WorkspaceRepository(client);
-      await workspaces.ensureClassWorkspace(userAAccountId, classId, 'math');
+      await workspaces.ensureClassWorkspace({
+        accountId: userAAccountId,
+        classId,
+        subjectId: 'math',
+        mode: 'authenticated',
+        generation: 0,
+      });
     });
 
     await service.deleteClass(userAAccountId, classId);

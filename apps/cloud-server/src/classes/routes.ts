@@ -88,7 +88,10 @@ export function createClassesRouter(pool: DbPool): Router {
 
   router.delete('/:id', requireAuth, requireFullScope, async (req, res, next) => {
     try {
-      const record = await classes.deleteClass(req.principal!.accountId!, req.params.id!);
+      const record = await classes.deleteClass(req.principal!.accountId!, req.params.id!, {
+        requestId: req.requestId,
+        ipAddress: req.ip,
+      });
       res.json({
         success: true,
         data: classRecordSchema.parse(record),
@@ -101,7 +104,10 @@ export function createClassesRouter(pool: DbPool): Router {
 
   router.post('/:id/restore', requireAuth, requireFullScope, async (req, res, next) => {
     try {
-      const record = await classes.restoreClass(req.principal!.accountId!, req.params.id!);
+      const record = await classes.restoreClass(req.principal!.accountId!, req.params.id!, {
+        requestId: req.requestId,
+        ipAddress: req.ip,
+      });
       res.json({
         success: true,
         data: classRecordSchema.parse(record),

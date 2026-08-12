@@ -22,7 +22,10 @@ describe('postgres migrations — happy path', () => {
     const first = await migrateToLatest(pgEnv.pool);
     expect(first.ok).toBe(true);
     if (first.ok) {
+      expect(first.applied).toContain(22);
+      expect(first.applied).toContain(23);
       expect(first.applied).toContain(32);
+      expect(first.applied.indexOf(22)).toBeLessThan(first.applied.indexOf(23));
       expect(first.to).toBe(32);
     }
     const version = await getSchemaVersion(pgEnv.pool);

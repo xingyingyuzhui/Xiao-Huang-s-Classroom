@@ -1,12 +1,19 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
+import request from 'supertest';
+import { createCloudApp } from '../src/app.js';
+import { loadCloudConfig } from '../src/config.js';
 import { migrateToLatest } from '../src/db/migrate.js';
 import { AuditService } from '../src/audit/service.js';
 import { CleanupService } from '../src/audit/cleanup.js';
+import { ClassService } from '../src/classes/service.js';
+import { AUDIT_EVENTS } from '../src/audit/events.js';
 import {
   startPgTestEnv,
   stopPgTestEnv,
+  testCloudEnv,
   type PgTestEnv,
 } from './helpers/pg-test-container.js';
+import { loginTestAccount, seedTestAccount } from './helpers/auth-fixtures.js';
 
 describe('audit & cleanup', () => {
   let pgEnv: PgTestEnv;
@@ -77,4 +84,60 @@ describe('audit & cleanup', () => {
       expect(second).toBe(0);
     });
   });
+
+  describe('admin cleanup authorization', () => {
+    it('rejects a normal authenticated user', async () => {
+      await seedTestAccount(pgEnv.pool, {
+        username: 'audit_cleanup_user',
+        password: 'password123',
+        displayName: 'Cleanup User',
+        deviceId: 'dev_audit_cleanup',
+        deviceLabel: 'Cleanup Device',
+      });
+      const config = loadCloudConfig(testCloudEnv(pgEnv.databaseUrl));
+      const app = createCloudApp({ config, pool: pgEnv.pool });
+      const agent = request.agent(app);
+      const login = await loginTestAccount(agent, {
+        username: 'audit_cleanup_user',
+        password: 'password123',
+        deviceId: 'dev_audit_cleanup',
+      });
+
+      const res = await agent
+        .post('/api/cloud/v1/admin/cleanup')
+        .set('Authorization', `Bearer ${login.accessToken}`);
+      expect([403, 404]).toContain(res.status);
+    });
+  });
+
+  describe('class delete/restore audit', () => {
+    it('records metadata-only class delete and restore events', async () => {
+      const account = await seedTestAccount(pgEnv.pool, {
+        username: 'audit_class_user',
+        password: 'password123',
+        displayName: 'Audit Class User',
+        deviceId: 'dev_audit_class',
+        deviceLabel: 'Audit Class Device',
+      });
+      const classes = new ClassService(pgEnv.pool);
+      const created = await classes.createClass(account.accountId, 'Audited class');
+      await classes.deleteClass(account.accountId, created.id, { requestId: 'req_class_del' });
+      await classes.restoreClass(account.accountId, created.id, { requestId: 'req_class_rst' });
+
+      const deleted = await pgEnv.pool.query(
+        `SELECT event_type, detail FROM audit_log WHERE request_id = 'req_class_del'`,
+      );
+      expect(deleted.rows).toHaveLength(1);
+      expect(deleted.rows[0].event_type).toBe(AUDIT_EVENTS.CLASS_DELETE);
+      expect(deleted.rows[0].detail).toEqual({ classId: created.id });
+      expect(JSON.stringify(deleted.rows[0].detail)).not.toMatch(/password|token|roster/i);
+
+      const restored = await pgEnv.pool.query(
+        `SELECT event_type, detail FROM audit_log WHERE request_id = 'req_class_rst'`,
+      );
+      expect(restored.rows).toHaveLength(1);
+      expect(restored.rows[0].event_type).toBe(AUDIT_EVENTS.CLASS_RESTORE);
+    });
+  });
 });
+

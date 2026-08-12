@@ -1,5 +1,6 @@
 import type { DbPool } from '../db/pool.js';
 
+/** Global cleanup — invoke only from admin/scheduler routes, never user APIs. */
 export class CleanupService {
   constructor(private readonly pool: DbPool) {}
 

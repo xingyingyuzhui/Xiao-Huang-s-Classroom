@@ -43,12 +43,12 @@ export class ClassRepository {
     return result.rows;
   }
 
-  async findById(classId: string): Promise<ClassRow | null> {
+  async findById(accountId: string, classId: string): Promise<ClassRow | null> {
     const result = await this.db.query<ClassRow>(
       `SELECT class_id, account_id, name, archived, deleted_at, revision, created_at, updated_at
        FROM classes
-       WHERE class_id = $1`,
-      [classId],
+       WHERE class_id = $1 AND account_id = $2`,
+      [classId, accountId],
     );
     return result.rows[0] ?? null;
   }
@@ -81,7 +81,7 @@ export class ClassRepository {
       values.push(patch.archived);
     }
     if (sets.length === 0) {
-      return this.findById(classId);
+      return this.findById(accountId, classId);
     }
     sets.push('revision = revision + 1');
     sets.push('updated_at = NOW()');
@@ -95,6 +95,7 @@ export class ClassRepository {
     return result.rows[0] ?? null;
   }
 
+  /** Soft-delete; restore is allowed for 30 days, then cleanup may hard-delete. */
   async softDelete(classId: string, accountId: string): Promise<ClassRow | null> {
     const result = await this.db.query<ClassRow>(
       `UPDATE classes

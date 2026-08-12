@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { AppError } from '@xiaohuang/domain-core';
 import {
   authLoginRequestSchema,
   authLogoutRequestSchema,
@@ -8,6 +9,8 @@ import {
 } from '@xiaohuang/contracts';
 import type { CloudConfig } from '../config.js';
 import type { DbPool } from '../db/pool.js';
+import { AuditService } from '../audit/service.js';
+import { AUDIT_EVENTS } from '../audit/events.js';
 import { AuthService } from './service.js';
 import {
   REFRESH_COOKIE_NAME,
@@ -24,6 +27,7 @@ import {
 export function createAuthRouter(config: CloudConfig, pool: DbPool): Router {
   const router = Router();
   const auth = new AuthService(pool, config);
+  const audit = new AuditService(pool);
   const csrf = csrfProtect(config);
   const limitLogin = loginRateLimit();
   const limitRefresh = refreshRateLimit();
@@ -87,6 +91,13 @@ export function createAuthRouter(config: CloudConfig, pool: DbPool): Router {
           deviceId?: string;
         };
         const result = await auth.login(body);
+        await audit.log({
+          accountId: result.session.accountId,
+          eventType: AUDIT_EVENTS.AUTH_LOGIN_SUCCESS,
+          detail: { deviceId: result.session.deviceId },
+          requestId: req.requestId,
+          ipAddress: req.ip,
+        });
         const refreshExpiresAt = new Date(result.session.refreshExpiresAt);
         res
           .cookie(REFRESH_COOKIE_NAME, result.refreshToken, refreshCookieOptions(config, refreshExpiresAt))
@@ -104,6 +115,15 @@ export function createAuthRouter(config: CloudConfig, pool: DbPool): Router {
             requestId: req.requestId,
           });
       } catch (error) {
+        if (error instanceof AppError && error.code === 'AUTH_INVALID_CREDENTIALS') {
+          await audit.log({
+            accountId: null,
+            eventType: AUDIT_EVENTS.AUTH_LOGIN_FAIL,
+            detail: { reason: 'invalid_credentials' },
+            requestId: req.requestId,
+            ipAddress: req.ip,
+          });
+        }
         next(error);
       }
     },
@@ -144,6 +164,15 @@ export function createAuthRouter(config: CloudConfig, pool: DbPool): Router {
             requestId: req.requestId,
           });
       } catch (error) {
+        if (error instanceof AppError && error.code === 'AUTH_REFRESH_REUSE') {
+          await audit.log({
+            accountId: null,
+            eventType: AUDIT_EVENTS.AUTH_REFRESH_REUSE,
+            detail: { deviceId: (req.body as { deviceId?: string }).deviceId ?? null },
+            requestId: req.requestId,
+            ipAddress: req.ip,
+          });
+        }
         next(error);
       }
     },
