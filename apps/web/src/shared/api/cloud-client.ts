@@ -1,10 +1,20 @@
 import { AppError } from '@xiaohuang/domain-core';
-import type {
-  SyncPushResponse,
-  SyncPullResponse,
-  SyncOperation,
-  ClassRecord,
+import {
+  accountDeletionCancelResponseSchema,
+  accountDeletionResponseSchema,
+  accountProfileSchema,
+  authSessionSchema,
+  classRecordSchema,
+  classSubjectWorkspaceSchema,
+  deviceSessionSchema,
+  syncPullResponseSchema,
+  syncPushResponseSchema,
+  type SyncPushResponse,
+  type SyncPullResponse,
+  type SyncOperation,
+  type ClassRecord,
 } from '@xiaohuang/contracts';
+import { z } from 'zod';
 
 export type CloudDeviceLabel = 'Web' | 'Desktop' | 'Mobile';
 
@@ -36,6 +46,44 @@ export type PersonalWorkspace = {
   kind: 'personal' | 'class';
 };
 
+const authAccessDataSchema = z.object({
+  session: authSessionSchema,
+  accessToken: z.string().min(1),
+});
+
+const aiCredentialMetaSchema = z.object({
+  configured: z.boolean(),
+  provider: z.string().min(1).max(64).optional(),
+  model: z.string().min(1).max(128).optional(),
+  last4: z.string().length(4).optional(),
+  updatedAt: z.string().datetime().optional(),
+});
+
+const aiCredentialSetSchema = z.object({
+  configured: z.boolean(),
+  provider: z.string().min(1).max(64),
+  model: z.string().min(1).max(128),
+  last4: z.string().length(4),
+  updatedAt: z.string().datetime(),
+});
+
+const aiUsageSchema = z.object({
+  daily: z.object({ used: z.number().int().nonnegative(), limit: z.number().int().nonnegative() }),
+  monthly: z.object({ used: z.number().int().nonnegative(), limit: z.number().int().nonnegative() }),
+});
+
+const aiChatSchema = z.object({
+  text: z.string(),
+  model: z.string().min(1),
+});
+
+const okSchema = z.object({ ok: z.boolean() });
+const removedSchema = z.object({ removed: z.boolean() });
+const revokeSchema = z.object({
+  revoked: z.boolean(),
+  current: z.boolean().optional(),
+});
+
 function joinUrl(base: string, path: string): string {
   const b = base.replace(/\/+$/, '');
   const p = path.startsWith('/') ? path : `/${path}`;
@@ -66,6 +114,18 @@ type RequestOpts = {
   skipRefresh?: boolean;
 };
 
+function parseData<T>(raw: unknown, schema: z.ZodType<T>, requestId: string): T {
+  const parsed = schema.safeParse(raw);
+  if (!parsed.success) {
+    throw new AppError(
+      'NETWORK_RESPONSE_INVALID',
+      `响应不符合合同 (${requestId || 'unknown'})`,
+      'cloud-client',
+    );
+  }
+  return parsed.data;
+}
+
 export class CloudClient {
   private refreshInflight: Promise<CloudLoginResult | null> | null = null;
   private readonly pendingAborts = new Set<AbortController>();
@@ -91,15 +151,7 @@ export class CloudClient {
     deviceLabel: CloudDeviceLabel = 'Web',
   ): Promise<CloudLoginResult> {
     const deviceId = this.config.getDeviceId?.();
-    const json = await this.requestRaw<{
-      session: {
-        accountId: string;
-        sessionId: string;
-        deviceId: string;
-        accessTokenExpiresAt: string;
-      };
-      accessToken: string;
-    }>(
+    const json = await this.requestRaw(
       'POST',
       '/auth/login',
       {
@@ -109,6 +161,7 @@ export class CloudClient {
         ...(deviceId ? { deviceId } : {}),
       },
       { auth: false, skipRefresh: true },
+      authAccessDataSchema,
     );
 
     const result = await this.hydrateLoginResult(json);
@@ -129,6 +182,7 @@ export class CloudClient {
           ...(allDevices ? { allDevices: true } : {}),
         },
         { auth: true, skipRefresh: true },
+        z.unknown(),
       );
     } catch {
       /* local session is cleared by caller regardless */
@@ -138,15 +192,13 @@ export class CloudClient {
   async refreshSession(): Promise<CloudLoginResult | null> {
     const deviceId = this.config.getDeviceId?.();
     if (!deviceId) return null;
-    const json = await this.requestRaw<{
-      session: {
-        accountId: string;
-        sessionId: string;
-        deviceId: string;
-        accessTokenExpiresAt: string;
-      };
-      accessToken: string;
-    }>('POST', '/auth/refresh', { deviceId }, { auth: false, skipRefresh: true });
+    const json = await this.requestRaw(
+      'POST',
+      '/auth/refresh',
+      { deviceId },
+      { auth: false, skipRefresh: true },
+      authAccessDataSchema,
+    );
     const result = await this.hydrateLoginResult(json);
     this.memoryAccessToken = result.accessToken;
     this.config.onRefreshed?.(result);
@@ -154,7 +206,13 @@ export class CloudClient {
   }
 
   async ensurePersonalWorkspace(subjectId: string, signal?: AbortSignal): Promise<PersonalWorkspace> {
-    return this.request<PersonalWorkspace>('POST', '/workspaces/personal', { subjectId }, signal);
+    return this.request(
+      'POST',
+      '/workspaces/personal',
+      { subjectId },
+      signal,
+      classSubjectWorkspaceSchema,
+    );
   }
 
   async ensureClassWorkspace(
@@ -162,24 +220,31 @@ export class CloudClient {
     subjectId: string,
     signal?: AbortSignal,
   ): Promise<PersonalWorkspace> {
-    return this.request<PersonalWorkspace>(
+    return this.request(
       'POST',
       '/workspaces/class',
       { classId, subjectId },
       signal,
+      classSubjectWorkspaceSchema,
     );
   }
 
   async listClasses(): Promise<ClassRecord[]> {
-    return this.request<ClassRecord[]>('GET', '/classes');
+    return this.request('GET', '/classes', undefined, undefined, z.array(classRecordSchema));
   }
 
   async createClass(name: string): Promise<ClassRecord> {
-    return this.request<ClassRecord>('POST', '/classes', { name });
+    return this.request('POST', '/classes', { name }, undefined, classRecordSchema);
   }
 
   async deleteClass(classId: string): Promise<ClassRecord> {
-    return this.request<ClassRecord>('DELETE', `/classes/${encodeURIComponent(classId)}`);
+    return this.request(
+      'DELETE',
+      `/classes/${encodeURIComponent(classId)}`,
+      undefined,
+      undefined,
+      classRecordSchema,
+    );
   }
 
   async copyClass(
@@ -187,111 +252,106 @@ export class CloudClient {
     name: string,
     includeProgress = false,
   ): Promise<ClassRecord> {
-    return this.request<ClassRecord>('POST', `/classes/${encodeURIComponent(classId)}/copy`, {
-      name,
-      includeProgress,
-    });
+    return this.request(
+      'POST',
+      `/classes/${encodeURIComponent(classId)}/copy`,
+      { name, includeProgress },
+      undefined,
+      classRecordSchema,
+    );
   }
 
   async restoreClass(classId: string): Promise<ClassRecord> {
-    return this.request<ClassRecord>('POST', `/classes/${encodeURIComponent(classId)}/restore`);
+    return this.request(
+      'POST',
+      `/classes/${encodeURIComponent(classId)}/restore`,
+      undefined,
+      undefined,
+      classRecordSchema,
+    );
   }
 
   async listTrashClasses(): Promise<ClassRecord[]> {
-    return this.request<ClassRecord[]>('GET', '/trash/classes');
+    return this.request('GET', '/trash/classes', undefined, undefined, z.array(classRecordSchema));
   }
 
-  async listDevices(): Promise<
-    Array<{
-      sessionId: string;
-      deviceId: string;
-      label: string;
-      lastSeenAt: string;
-      createdAt: string;
-      current: boolean;
-    }>
-  > {
-    return this.request('GET', '/devices');
+  async listDevices(): Promise<Array<z.infer<typeof deviceSessionSchema>>> {
+    return this.request('GET', '/devices', undefined, undefined, z.array(deviceSessionSchema));
   }
 
   async revokeDevice(sessionId: string): Promise<{ revoked: boolean; current?: boolean }> {
-    return this.request('DELETE', `/devices/${encodeURIComponent(sessionId)}`);
+    return this.request(
+      'DELETE',
+      `/devices/${encodeURIComponent(sessionId)}`,
+      undefined,
+      undefined,
+      revokeSchema,
+    );
   }
 
   async changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean }> {
-    return this.request('POST', '/account/password/change', {
-      currentPassword,
-      newPassword,
-    });
+    return this.request(
+      'POST',
+      '/account/password/change',
+      { currentPassword, newPassword },
+      undefined,
+      okSchema,
+    );
   }
 
   async patchProfile(patch: {
     displayName?: string;
     avatarUrl?: string | null;
   }): Promise<{ displayName: string; avatarUrl: string | null }> {
-    return this.request('PATCH', '/account', patch);
+    const profile = await this.request('PATCH', '/account', patch, undefined, accountProfileSchema);
+    return { displayName: profile.displayName, avatarUrl: profile.avatarUrl };
   }
 
-  async getAccountProfile(): Promise<{
-    accountId: string;
-    displayName: string;
-    avatarUrl: string | null;
-    email: string | null;
-    status: 'active' | 'pending_deletion';
-    pendingDeletionAt: string | null;
-    createdAt: string;
-    updatedAt: string;
-  }> {
-    return this.request('GET', '/account');
+  async getAccountProfile(): Promise<z.infer<typeof accountProfileSchema>> {
+    return this.request('GET', '/account', undefined, undefined, accountProfileSchema);
   }
 
   async requestAccountDeletion(
     confirmDisplayName: string,
     currentPassword: string,
   ): Promise<{ accountId: string; pendingDeletionAt: string }> {
-    return this.request('POST', '/account/deletion-request', {
-      confirmDisplayName,
-      currentPassword,
-    });
+    return this.request(
+      'POST',
+      '/account/deletion-request',
+      { confirmDisplayName, currentPassword },
+      undefined,
+      accountDeletionResponseSchema,
+    );
   }
 
   async cancelAccountDeletion(): Promise<{ accountId: string; restored: true }> {
-    return this.request('DELETE', '/account/deletion-request');
+    return this.request(
+      'DELETE',
+      '/account/deletion-request',
+      undefined,
+      undefined,
+      accountDeletionCancelResponseSchema,
+    );
   }
 
-  async getAiCredential(): Promise<{
-    configured: boolean;
-    provider?: string;
-    model?: string;
-    last4?: string;
-    updatedAt?: string;
-  }> {
-    return this.request('GET', '/ai/credential');
+  async getAiCredential(): Promise<z.infer<typeof aiCredentialMetaSchema>> {
+    return this.request('GET', '/ai/credential', undefined, undefined, aiCredentialMetaSchema);
   }
 
   async setAiCredential(input: {
     provider: 'openai' | 'deepseek';
     model: string;
     apiKey: string;
-  }): Promise<{
-    configured: boolean;
-    provider: string;
-    model: string;
-    last4: string;
-    updatedAt: string;
-  }> {
-    return this.request('PUT', '/ai/credential', input);
+  }): Promise<z.infer<typeof aiCredentialSetSchema>> {
+    return this.request('PUT', '/ai/credential', input, undefined, aiCredentialSetSchema);
   }
 
   async removeAiCredential(): Promise<{ removed: boolean }> {
-    return this.request('DELETE', '/ai/credential');
+    return this.request('DELETE', '/ai/credential', undefined, undefined, removedSchema);
   }
 
-  async getAiUsage(): Promise<{
-    daily: { used: number; limit: number };
-    monthly: { used: number; limit: number };
-  }> {
-    return this.request('GET', '/ai/usage');
+  async getAiUsage(): Promise<z.infer<typeof aiUsageSchema>> {
+    return this.request('GET', '/ai/usage', undefined, undefined, aiUsageSchema);
   }
 
   async chatAi(input: {
@@ -299,7 +359,7 @@ export class CloudClient {
     temperature?: number;
     maxTokens?: number;
   }): Promise<{ text: string; model: string }> {
-    return this.request('POST', '/ai/chat', input);
+    return this.request('POST', '/ai/chat', input, undefined, aiChatSchema);
   }
 
   async syncPush(
@@ -307,7 +367,13 @@ export class CloudClient {
     operations: SyncOperation[],
     signal?: AbortSignal,
   ): Promise<SyncPushResponse> {
-    return this.request<SyncPushResponse>('POST', '/sync/push', { workspaceId, operations }, signal);
+    return this.request(
+      'POST',
+      '/sync/push',
+      { workspaceId, operations },
+      signal,
+      syncPushResponseSchema,
+    );
   }
 
   async syncPull(
@@ -320,27 +386,28 @@ export class CloudClient {
     params.set('workspaceId', workspaceId);
     if (cursor != null) params.set('cursor', cursor);
     if (limit != null) params.set('limit', String(limit));
-    return this.request<SyncPullResponse>('GET', `/sync/pull?${params.toString()}`, undefined, signal);
+    return this.request(
+      'GET',
+      `/sync/pull?${params.toString()}`,
+      undefined,
+      signal,
+      syncPullResponseSchema,
+    );
   }
 
-  private async hydrateLoginResult(json: {
-    session: {
-      accountId: string;
-      sessionId: string;
-      deviceId: string;
-      accessTokenExpiresAt: string;
-    };
-    accessToken: string;
-  }): Promise<CloudLoginResult> {
+  private async hydrateLoginResult(
+    json: z.infer<typeof authAccessDataSchema>,
+  ): Promise<CloudLoginResult> {
     const expiresAt = Date.parse(json.session.accessTokenExpiresAt);
     let displayName = json.session.accountId;
     let avatarUrl: string | null = null;
     try {
-      const profile = await this.requestRaw<{ displayName: string; avatarUrl: string | null }>(
+      const profile = await this.requestRaw(
         'GET',
         '/account',
         undefined,
         { auth: true, skipRefresh: true, tokenOverride: json.accessToken },
+        accountProfileSchema,
       );
       displayName = profile.displayName || displayName;
       avatarUrl = profile.avatarUrl ?? null;
@@ -362,16 +429,13 @@ export class CloudClient {
   private async request<T>(
     method: string,
     path: string,
-    body?: unknown,
-    signal?: AbortSignal,
-    tokenOverride?: string,
+    body: unknown | undefined,
+    signal: AbortSignal | undefined,
+    schema: z.ZodType<T>,
   ): Promise<T> {
-    const opts: RequestOpts = {
-      auth: true,
-    };
+    const opts: RequestOpts = { auth: true };
     if (signal) opts.signal = signal;
-    if (tokenOverride) opts.tokenOverride = tokenOverride;
-    return this.requestRaw<T>(method, path, body, opts);
+    return this.requestRaw(method, path, body, opts, schema);
   }
 
   private currentAccessToken(): string | null {
@@ -392,8 +456,9 @@ export class CloudClient {
   private async requestRaw<T>(
     method: string,
     path: string,
-    body?: unknown,
-    opts: RequestOpts = {},
+    body: unknown | undefined,
+    opts: RequestOpts,
+    schema: z.ZodType<T>,
   ): Promise<T> {
     const auth = opts.auth !== false;
     const token = opts.tokenOverride ?? (auth ? this.currentAccessToken() : null);
@@ -433,7 +498,7 @@ export class CloudClient {
 
     const json = (await res.json().catch(() => null)) as {
       success: boolean;
-      data?: T;
+      data?: unknown;
       error?: { code: string; message: string };
       requestId: string;
     } | null;
@@ -442,11 +507,17 @@ export class CloudClient {
       if (!opts.skipRefresh && this.config.getDeviceId?.()) {
         const refreshed = await this.singleFlightRefresh();
         if (refreshed) {
-          return this.requestRaw<T>(method, path, body, {
-            ...opts,
-            skipRefresh: true,
-            tokenOverride: refreshed.accessToken,
-          });
+          return this.requestRaw(
+            method,
+            path,
+            body,
+            {
+              ...opts,
+              skipRefresh: true,
+              tokenOverride: refreshed.accessToken,
+            },
+            schema,
+          );
         }
       }
       this.memoryAccessToken = null;
@@ -464,6 +535,6 @@ export class CloudClient {
       throw new AppError(code, message);
     }
 
-    return json.data;
+    return parseData(json.data, schema, json.requestId || requestId);
   }
 }

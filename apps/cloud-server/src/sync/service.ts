@@ -4,7 +4,9 @@ import type pg from 'pg';
 import { WorkspaceRepository } from '../db/repositories/workspace.js';
 import { withTenantTransaction } from '../db/tenant.js';
 import { computeContentHash } from './hash.js';
+import { consumeSyncPushQuota } from './rate-limit.js';
 import { SyncRepository, type PullChangeRow, type SyncResourceRow } from './repository.js';
+import { syncStorageLimitsFromEnv, validateSyncEnvelope } from './resource-validation.js';
 
 const DEFAULT_PULL_LIMIT = 100;
 
@@ -14,10 +16,10 @@ type CloudConflict = {
   localSummary: string;
   cloudSummary: string;
   baseSummary: string | null;
-  cloudRevision?: number;
-  cloudSchemaVersion?: number;
-  cloudPayload?: unknown;
-  cloudDeletedAt?: string | null;
+  cloudRevision: number;
+  cloudSchemaVersion: number;
+  cloudPayload: unknown;
+  cloudDeletedAt: string | null;
 };
 
 type PushOutcome = {
@@ -119,6 +121,17 @@ export class SyncService {
   constructor(private readonly pool: pg.Pool) {}
 
   async push(accountId: string, workspaceId: string, operations: SyncOperation[]): Promise<PushOutcome> {
+    const limits = syncStorageLimitsFromEnv();
+    if (operations.length > limits.maxOperationsPerPush) {
+      throw new AppError(
+        'SYNC_PAYLOAD_TOO_LARGE',
+        `单次同步操作数超过限制 (${operations.length} > ${limits.maxOperationsPerPush})`,
+      );
+    }
+    if (!consumeSyncPushQuota(accountId, limits.maxPushRequestsPerMinute)) {
+      throw new AppError('SYNC_RATE_LIMITED', '同步请求过于频繁，请稍后再试');
+    }
+
     return withTenantTransaction(this.pool, accountId, async (client) => {
       const sync = new SyncRepository(client);
       const workspaces = new WorkspaceRepository(client);
@@ -128,9 +141,14 @@ export class SyncService {
         throw new AppError('FORBIDDEN_WORKSPACE', '工作区不存在或无权访问');
       }
 
+      const workspaceResourceCount = await sync.countResourcesInWorkspace(workspaceId);
+      const accountBytes = await sync.sumPayloadBytesForAccount(accountId);
+
       const applied: string[] = [];
       const rejected: PushOutcome['rejected'] = [];
       const conflicts: PushOutcome['conflicts'] = [];
+      let pendingCreates = 0;
+      let pendingBytes = 0;
 
       for (const operation of operations) {
         const { operationId, envelope } = operation;
@@ -140,6 +158,16 @@ export class SyncService {
             operationId,
             code: 'FORBIDDEN_WORKSPACE',
             message: '操作工作区不匹配',
+          });
+          continue;
+        }
+
+        const validation = validateSyncEnvelope(envelope);
+        if (validation) {
+          rejected.push({
+            operationId,
+            code: validation.code,
+            message: validation.message,
           });
           continue;
         }
@@ -177,6 +205,27 @@ export class SyncService {
 
         if (shouldConflict(existing, envelope)) {
           conflicts.push(toConflictEntry(operationId, envelope, existing));
+          continue;
+        }
+
+        if (!existing) {
+          if (workspaceResourceCount + pendingCreates >= limits.maxResourcesPerWorkspace) {
+            rejected.push({
+              operationId,
+              code: 'SYNC_WORKSPACE_LIMIT',
+              message: '工作区资源数量已达上限',
+            });
+            continue;
+          }
+        }
+
+        const payloadBytes = Buffer.byteLength(JSON.stringify(envelope.payload ?? null), 'utf8');
+        if (accountBytes + pendingBytes + payloadBytes > limits.maxBytesPerAccount) {
+          rejected.push({
+            operationId,
+            code: 'SYNC_ACCOUNT_QUOTA',
+            message: '账户同步数据总量已达上限',
+          });
           continue;
         }
 
@@ -250,6 +299,10 @@ export class SyncService {
           revision,
           operationId,
         );
+        if (!existing) {
+          pendingCreates += 1;
+        }
+        pendingBytes += payloadBytes;
         applied.push(operationId);
       }
 

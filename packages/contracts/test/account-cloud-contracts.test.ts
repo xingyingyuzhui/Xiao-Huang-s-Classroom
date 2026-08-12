@@ -27,6 +27,68 @@ describe('account cloud branded IDs', () => {
     expect(operationIdSchema.safeParse('op-123').success).toBe(true);
   });
 
+  it('wave1 registry rejects unknown types and validates roster payload', async () => {
+    const {
+      getSyncResourceRegistration,
+      listSyncResourceTypes,
+      measurePayloadBytes,
+    } = await import('../src/sync-resource-registry.js');
+    expect(listSyncResourceTypes()).toEqual([
+      'teacher.settings',
+      'class.settings',
+      'class.roster',
+    ]);
+    expect(getSyncResourceRegistration('math-graph-document')).toBeUndefined();
+    const roster = getSyncResourceRegistration('class.roster');
+    expect(roster?.payloadSchema.safeParse({ students: [] }).success).toBe(true);
+    expect(roster?.payloadSchema.safeParse({ students: 'bad' }).success).toBe(false);
+    expect(measurePayloadBytes({ a: 1 })).toBeGreaterThan(0);
+  });
+
+  it('push conflict schema requires cloud snapshot fields', () => {
+    const ok = syncPushResponseSchema.safeParse({
+      applied: [],
+      rejected: [],
+      conflicts: [
+        {
+          operationId: 'op-1',
+          conflict: {
+            resourceType: 'teacher.settings',
+            resourceId: 'default',
+            localSummary: 'revision:1',
+            cloudSummary: 'revision:2',
+            baseSummary: null,
+            cloudRevision: 2,
+            cloudSchemaVersion: 1,
+            cloudPayload: {},
+            cloudDeletedAt: null,
+          },
+        },
+      ],
+      requestId: 'req',
+    });
+    expect(ok.success).toBe(true);
+
+    const missingCloud = syncPushResponseSchema.safeParse({
+      applied: [],
+      rejected: [],
+      conflicts: [
+        {
+          operationId: 'op-1',
+          conflict: {
+            resourceType: 'teacher.settings',
+            resourceId: 'default',
+            localSummary: 'revision:1',
+            cloudSummary: 'revision:2',
+            baseSummary: null,
+          },
+        },
+      ],
+      requestId: 'req',
+    });
+    expect(missingCloud.success).toBe(false);
+  });
+
   it('profile patch requires at least one field', () => {
     expect(accountProfilePatchSchema.safeParse({}).success).toBe(false);
     expect(accountProfilePatchSchema.safeParse({ displayName: 'Alice' }).success).toBe(true);
@@ -110,6 +172,10 @@ describe('sync contracts', () => {
             localSummary: 'local v3',
             cloudSummary: 'cloud v4',
             baseSummary: 'base v2',
+            cloudRevision: 4,
+            cloudSchemaVersion: 1,
+            cloudPayload: { functions: [] },
+            cloudDeletedAt: null,
           },
         },
       ],

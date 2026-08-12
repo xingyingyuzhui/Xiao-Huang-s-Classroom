@@ -238,4 +238,22 @@ export class SyncRepository {
     );
     return result.rows;
   }
+
+  async countResourcesInWorkspace(workspaceId: string): Promise<number> {
+    const result = await this.db.query<{ count: string }>(
+      `SELECT COUNT(*)::text AS count FROM sync_resources WHERE workspace_id = $1`,
+      [workspaceId],
+    );
+    return Number(result.rows[0]?.count ?? 0);
+  }
+
+  async sumPayloadBytesForAccount(accountId: string): Promise<number> {
+    const result = await this.db.query<{ total: string | null }>(
+      `SELECT COALESCE(SUM(octet_length(payload::text)), 0)::text AS total
+       FROM sync_resources
+       WHERE account_id = $1`,
+      [accountId],
+    );
+    return Number(result.rows[0]?.total ?? 0);
+  }
 }

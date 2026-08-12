@@ -1,6 +1,7 @@
 import { SyncSession } from '@xiaohuang/sync-core';
 import type { ConflictResolution, SyncContext } from '@xiaohuang/sync-core';
 import { AppError } from '@xiaohuang/domain-core';
+import type { SyncPushResponse } from '@xiaohuang/contracts';
 import type { CloudClient } from '../shared/api/cloud-client.js';
 import { computeContentHash } from '../shared/persistence/indexeddb/hash.js';
 import type { OutboxStatusPatch } from '../shared/persistence/indexeddb/outbox-repository.js';
@@ -46,20 +47,7 @@ export type SyncControllerDeps = {
   createOperationId?: () => string;
 };
 
-type PushConflict = {
-  operationId: string;
-  conflict: {
-    resourceType: string;
-    resourceId: string;
-    localSummary: string;
-    cloudSummary: string;
-    baseSummary: string | null;
-    cloudRevision?: number;
-    cloudSchemaVersion?: number;
-    cloudPayload?: unknown;
-    cloudDeletedAt?: string | null;
-  };
-};
+type PushConflict = SyncPushResponse['conflicts'][number];
 
 function syncKindFromContext(kind: string): SyncContext['kind'] {
   if (kind === 'personal') return 'account';
@@ -207,7 +195,7 @@ export class SyncController {
 
         appliedIds.push(...(pushResponse.applied ?? []));
         rejected = pushResponse.rejected ?? [];
-        conflicts = (pushResponse.conflicts ?? []) as PushConflict[];
+        conflicts = pushResponse.conflicts ?? [];
 
         // Persist applied acks even if later ops in the batch conflict or the in-memory machine throws.
         await this.persistPushOutcomes(outboxOps, appliedIds, rejected, conflicts);

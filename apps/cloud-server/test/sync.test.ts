@@ -23,9 +23,9 @@ function makeEnvelope(input: {
   deletedAt?: string | null;
   contentHash?: string;
 }) {
-  const payload = input.payload ?? { functions: [] };
+  const payload = input.payload ?? { subjectSettings: {} };
   return {
-    resourceType: input.resourceType ?? 'math-graph-document',
+    resourceType: input.resourceType ?? 'teacher.settings',
     resourceId: input.resourceId,
     workspaceId: input.workspaceId,
     schemaVersion: 1,
@@ -102,7 +102,7 @@ describe('sync push/pull', () => {
             envelope: makeEnvelope({
               workspaceId,
               resourceId: 'doc-sync-1',
-              payload: { functions: [{ expr: 'x^2' }] },
+              payload: { subjectSettings: { chemistry: { theme: 'lab' } } },
             }),
           },
         ],
@@ -120,7 +120,9 @@ describe('sync push/pull', () => {
     expect(pull.status).toBe(200);
     expect(pull.body.data.changes).toHaveLength(1);
     expect(pull.body.data.changes[0].resourceId).toBe('doc-sync-1');
-    expect(pull.body.data.changes[0].payload).toEqual({ functions: [{ expr: 'x^2' }] });
+    expect(pull.body.data.changes[0].payload).toEqual({
+      subjectSettings: { chemistry: { theme: 'lab' } },
+    });
     expect(pull.body.data.changes[0].revision).toBe(1);
     expect(pull.body.data.hasMore).toBe(false);
   });
@@ -129,7 +131,7 @@ describe('sync push/pull', () => {
     const envelope = makeEnvelope({
       workspaceId,
       resourceId: 'doc-sync-dup',
-      payload: { note: 'first' },
+      payload: { subjectSettings: { note: 'first' } },
     });
     const first = await agent
       .post('/api/cloud/v1/sync/push')
@@ -161,6 +163,63 @@ describe('sync push/pull', () => {
       (change: { resourceId: string }) => change.resourceId === 'doc-sync-dup',
     );
     expect(dupChanges).toHaveLength(1);
+  });
+
+  it('rejects unknown resource types', async () => {
+    const payload = { note: 'x' };
+    const push = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-unknown-type',
+            envelope: {
+              resourceType: 'math-graph-document',
+              resourceId: 'doc-unknown',
+              workspaceId,
+              schemaVersion: 1,
+              revision: 1,
+              baseRevision: null,
+              payload,
+              contentHash: computeContentHash(payload),
+              deletedAt: null,
+            },
+          },
+        ],
+      });
+    expect(push.status).toBe(200);
+    expect(push.body.data.applied).toEqual([]);
+    expect(push.body.data.rejected[0].code).toBe('SYNC_UNKNOWN_RESOURCE');
+  });
+
+  it('rejects invalid payload for registered type', async () => {
+    const payload = { students: 'not-an-array' };
+    const push = await agent
+      .post('/api/cloud/v1/sync/push')
+      .set('Authorization', `Bearer ${userAToken}`)
+      .send({
+        workspaceId,
+        operations: [
+          {
+            operationId: 'op-bad-roster',
+            envelope: {
+              resourceType: 'class.roster',
+              resourceId: 'roster-bad',
+              workspaceId,
+              schemaVersion: 1,
+              revision: 1,
+              baseRevision: null,
+              payload,
+              contentHash: computeContentHash(payload),
+              deletedAt: null,
+            },
+          },
+        ],
+      });
+    expect(push.status).toBe(200);
+    expect(push.body.data.rejected[0].code).toBe('VALIDATION_SCHEMA');
   });
 
   it('rejects null-base create when resource already exists', async () => {
@@ -242,7 +301,7 @@ describe('sync push/pull', () => {
     expect(conflict.body.data.conflicts[0].operationId).toBe('op-sync-conflict-update');
     expect(conflict.body.data.conflicts[0].conflict.cloudSummary).toBe('revision:1');
     expect(conflict.body.data.conflicts[0].conflict.cloudRevision).toBe(1);
-    expect(conflict.body.data.conflicts[0].conflict.cloudPayload).toEqual({ functions: [] });
+    expect(conflict.body.data.conflicts[0].conflict.cloudPayload).toEqual({ subjectSettings: {} });
   });
 
   it('rejects content hash mismatch', async () => {
@@ -274,7 +333,7 @@ describe('sync push/pull', () => {
     const firstEnvelope = makeEnvelope({
       workspaceId,
       resourceId: 'doc-op-payload',
-      payload: { note: 'first' },
+      payload: { subjectSettings: { note: 'first' } },
     });
     const first = await agent
       .post('/api/cloud/v1/sync/push')
@@ -297,7 +356,7 @@ describe('sync push/pull', () => {
             envelope: makeEnvelope({
               workspaceId,
               resourceId: 'doc-op-payload',
-              payload: { note: 'different' },
+              payload: { subjectSettings: { note: 'different' } },
             }),
           },
         ],
@@ -324,8 +383,8 @@ describe('sync push/pull', () => {
             envelope: makeEnvelope({
               workspaceId: dedupeWorkspace,
               resourceId,
-              resourceType: 'biology-note',
-              payload: { n: 1 },
+              resourceType: 'class.roster',
+              payload: { students: [{ id: 's1', name: 'A' }] },
             }),
           },
         ],
@@ -343,10 +402,10 @@ describe('sync push/pull', () => {
             envelope: makeEnvelope({
               workspaceId: dedupeWorkspace,
               resourceId,
-              resourceType: 'biology-note',
+              resourceType: 'class.roster',
               baseRevision: 1,
               revision: 2,
-              payload: { n: 2 },
+              payload: { students: [{ id: 's1', name: 'B' }] },
             }),
           },
         ],
@@ -361,7 +420,7 @@ describe('sync push/pull', () => {
       (change: { resourceId: string }) => change.resourceId === resourceId,
     );
     expect(matches).toHaveLength(1);
-    expect(matches[0].payload).toEqual({ n: 2 });
+    expect(matches[0].payload).toEqual({ students: [{ id: 's1', name: 'B' }] });
     expect(matches[0].revision).toBe(2);
   });
 
@@ -415,8 +474,8 @@ describe('sync push/pull', () => {
               envelope: makeEnvelope({
                 workspaceId: paginationWorkspace,
                 resourceId: `doc-page-${index}`,
-                resourceType: 'chemistry-note',
-                payload: { page: index },
+                resourceType: 'class.settings',
+                payload: { className: `Page ${index}` },
               }),
             },
           ],
@@ -476,7 +535,7 @@ describe('sync push/pull', () => {
                 resourceId,
                 baseRevision: 1,
                 revision: 2,
-                payload: { from: 'a' },
+                payload: { subjectSettings: { from: 'a' } },
               }),
             },
           ],
@@ -494,7 +553,7 @@ describe('sync push/pull', () => {
                 resourceId,
                 baseRevision: 1,
                 revision: 2,
-                payload: { from: 'b' },
+                payload: { subjectSettings: { from: 'b' } },
               }),
             },
           ],
@@ -514,7 +573,7 @@ describe('sync push/pull', () => {
     const envelope = makeEnvelope({
       workspaceId,
       resourceId,
-      payload: { note: 'race' },
+      payload: { subjectSettings: { note: 'race' } },
     });
     const [first, second] = await Promise.all([
       agent
@@ -617,7 +676,7 @@ describe('sync push/pull', () => {
               envelope: makeEnvelope({
                 workspaceId,
                 resourceId,
-                payload: { from: 'a' },
+                payload: { subjectSettings: { from: 'a' } },
               }),
             },
           ],
@@ -633,7 +692,7 @@ describe('sync push/pull', () => {
               envelope: makeEnvelope({
                 workspaceId,
                 resourceId,
-                payload: { from: 'b' },
+                payload: { subjectSettings: { from: 'b' } },
               }),
             },
           ],
@@ -665,9 +724,9 @@ describe('sync push/pull', () => {
             envelope: makeEnvelope({
               workspaceId: tombstoneWorkspace,
               resourceId: 'doc-tombstone',
-              resourceType: 'physics-lab',
+              resourceType: 'class.roster',
               deletedAt,
-              payload: {},
+              payload: { students: [] },
             }),
           },
         ],

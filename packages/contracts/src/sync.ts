@@ -31,13 +31,20 @@ export const syncOperationSchema = z.object({
 
 export type SyncOperation = z.infer<typeof syncOperationSchema>;
 
-const conflictSummarySchema = z.object({
+export const syncConflictSnapshotSchema = z.object({
   resourceType: resourceTypeSchema,
   resourceId: resourceIdSchema,
   localSummary: z.string().max(256),
   cloudSummary: z.string().max(256),
   baseSummary: z.string().max(256).nullable(),
+  cloudRevision: revisionSchema,
+  cloudSchemaVersion: z.number().int().positive(),
+  cloudPayload: z.unknown(),
+  cloudDeletedAt: z.string().datetime().nullable(),
 });
+
+/** @deprecated Use syncConflictSnapshotSchema */
+const conflictSummarySchema = syncConflictSnapshotSchema;
 
 export const syncPushRequestSchema = z.object({
   workspaceId: workspaceIdSchema,

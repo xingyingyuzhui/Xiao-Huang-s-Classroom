@@ -24,15 +24,10 @@ export function createSyncRouter(pool: DbPool): Router {
       try {
         const body = req.body as { workspaceId: string; operations: SyncOperation[] };
         const result = await sync.push(req.principal!.accountId!, body.workspaceId, body.operations);
-        const parsed = syncPushResponseSchema.parse({
+        const data = syncPushResponseSchema.parse({
           ...result,
           requestId: req.requestId,
         });
-        // Re-attach cloud snapshots stripped by the summary-only contract schema.
-        const data = {
-          ...parsed,
-          conflicts: result.conflicts,
-        };
         res.json({
           success: true,
           data,

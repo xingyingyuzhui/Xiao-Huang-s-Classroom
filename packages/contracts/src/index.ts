@@ -74,9 +74,18 @@ export {
   syncPullRequestSchema,
   syncPullChangeSchema,
   syncPullResponseSchema,
+  syncConflictSnapshotSchema,
   conflictResolutionSchema,
 } from './sync.js';
 export type { SyncEntityEnvelope, SyncOperation, SyncPushResponse, SyncPullResponse } from './sync.js';
+export {
+  WAVE1_SYNC_RESOURCE_REGISTRY,
+  SYNC_STORAGE_LIMITS,
+  getSyncResourceRegistration,
+  listSyncResourceTypes,
+  measurePayloadBytes,
+} from './sync-resource-registry.js';
+export type { SyncResourceRegistration } from './sync-resource-registry.js';
 export {
   teacherSettingsPayloadSchema,
   classSettingsPayloadSchema,

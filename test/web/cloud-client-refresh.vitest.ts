@@ -40,7 +40,16 @@ describe('CloudClient refresh single-flight', () => {
       }
       return jsonResponse(200, {
         success: true,
-        data: { displayName: 'Teacher', avatarUrl: null },
+        data: {
+          accountId: 'acct_1',
+          displayName: 'Teacher',
+          avatarUrl: null,
+          email: null,
+          status: 'active',
+          pendingDeletionAt: null,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
         requestId: 'p',
       });
     });
@@ -64,6 +73,7 @@ describe('CloudClient refresh single-flight', () => {
 
   test('concurrent 401s refresh once and replay both requests', async () => {
     let refreshCalls = 0;
+    const now = new Date().toISOString();
     fetchMock.mockImplementation(
       async (url: string, init?: { headers?: Record<string, string> }) => {
         const path = String(url);
@@ -87,14 +97,33 @@ describe('CloudClient refresh single-flight', () => {
         if (path.includes('/account') && auth === 'Bearer new-token') {
           return jsonResponse(200, {
             success: true,
-            data: { displayName: 'Teacher', avatarUrl: null },
+            data: {
+              accountId: 'acct_1',
+              displayName: 'Teacher',
+              avatarUrl: null,
+              email: null,
+              status: 'active',
+              pendingDeletionAt: null,
+              createdAt: now,
+              updatedAt: now,
+            },
             requestId: 'r2',
           });
         }
-        if (auth === 'Bearer new-token') {
+        if (path.includes('/classes') && auth === 'Bearer new-token') {
           return jsonResponse(200, {
             success: true,
-            data: { ok: true },
+            data: [],
+            requestId: 'ok',
+          });
+        }
+        if (path.includes('/ai/usage') && auth === 'Bearer new-token') {
+          return jsonResponse(200, {
+            success: true,
+            data: {
+              daily: { used: 0, limit: 100 },
+              monthly: { used: 0, limit: 1000 },
+            },
             requestId: 'ok',
           });
         }
@@ -118,8 +147,11 @@ describe('CloudClient refresh single-flight', () => {
 
     const [a, b] = await Promise.all([client.listClasses(), client.getAiUsage()]);
 
-    expect(a).toEqual({ ok: true });
-    expect(b).toEqual({ ok: true });
+    expect(a).toEqual([]);
+    expect(b).toEqual({
+      daily: { used: 0, limit: 100 },
+      monthly: { used: 0, limit: 1000 },
+    });
     expect(refreshCalls).toBe(1);
     expect(onRefreshed).toHaveBeenCalledTimes(1);
     expect(onUnauth).not.toHaveBeenCalled();
