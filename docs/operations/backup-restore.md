@@ -2,41 +2,42 @@
 
 ## Backup Strategy
 
-- **Automatic**: Every deploy runs `backup-postgres.sh pre-deploy-<sha>` before migrations.
-- **Manual**: `./deploy/scripts/backup-postgres.sh manual` for ad-hoc backups.
-- **Retention**: 7 daily backups kept locally. Older dumps auto-pruned.
-- **Format**: pg_dump custom format with SHA-256 checksum.
+- **Daily:** systemd timer → `deploy/scripts/backup-daily.sh` (postgres + lab SQLite).
+- **Pre-deploy:** `backup-postgres.sh pre-deploy-<sha>` and `backup-lab-sqlite.sh` from `deploy.sh`.
+- **Format:** `pg_dump --format=custom --compress=6` + SHA-256. Lab SQLite is a tar of `/data`.
+- **Retention:** local 7–30 days (`RETAIN_DAYS`, default 14, clamped). Optional `BACKUP_OFFSITE_DIR` for a 30-day copy. Keep AI KEK off that path.
+- **Failure:** timer `OnFailure=` logs an alert; the job does not overwrite the last successful dump (atomic temp → rename).
+- **PII:** scripts log sizes and hashes only. They do not print table contents, account names, or env secrets.
 
 ## Creating a Backup
 
 ```bash
 ./deploy/scripts/backup-postgres.sh <label>
-# Output: /opt/xiaohuang-classroom/backups/postgres/<timestamp>-<label>.dump
+./deploy/scripts/backup-lab-sqlite.sh <label>
+# or
+./deploy/scripts/backup-daily.sh daily
 ```
+
+Output:
+
+- `/opt/xiaohuang-classroom/backups/postgres/<timestamp>-<label>.dump`
+- `/opt/xiaohuang-classroom/backups/postgres/<timestamp>-<label>.dump.sha256`
 
 ## Restoring from Backup
 
 ```bash
-./deploy/scripts/restore-postgres.sh /opt/xiaohuang-classroom/backups/postgres/<file>.dump
+RESTORE_CONFIRM=yes ./deploy/scripts/restore-postgres.sh \
+  /opt/xiaohuang-classroom/backups/postgres/<file>.dump
 ```
 
-The script will:
-1. Verify SHA-256 checksum
-2. Show backup contents (`pg_restore --list`)
-3. Prompt for confirmation
-4. Stop cloud-server, restore, restart
+The script verifies SHA-256, checks `pg_restore --list` (TOC only), stops cloud-server, restores, and starts cloud-server again.
 
 ## Monthly Drill
 
-Run monthly to verify backup integrity:
+1. `backup-postgres.sh drill-test`
+2. Start a **temporary** `postgres:16-alpine` (not the production volume).
+3. `pg_restore --no-owner --no-acl` into the temp instance.
+4. Compare counts only: `cloud_schema_migrations` max(version) / row count, accounts, classes, workspaces. Do not dump PII into logs.
+5. Destroy the temp instance.
 
-```bash
-# 1. Create a fresh backup
-./deploy/scripts/backup-postgres.sh drill-test
-
-# 2. Verify the dump is readable
-docker compose -f /opt/xiaohuang-classroom/compose.yml exec -T postgres \
-    pg_restore --list < /opt/xiaohuang-classroom/backups/postgres/<latest>.dump
-
-# 3. Optionally restore to a test database to verify data
-```
+Phase 0 drill evidence (do not delete that dump): `docs/engineering/account-cloud-release-baseline.md`.
