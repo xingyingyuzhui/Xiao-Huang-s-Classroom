@@ -312,7 +312,7 @@ export class LocalResourceService {
       conflict: input.conflict,
       resolution: input.resolution,
       nextOperationId: input.createOperationId(),
-      now: input.now,
+      ...(input.now !== undefined ? { now: input.now } : {}),
     });
   }
 }

@@ -279,7 +279,7 @@ export class CloudClient {
     return this.request('GET', '/devices', undefined, undefined, z.array(deviceSessionSchema));
   }
 
-  async revokeDevice(sessionId: string): Promise<{ revoked: boolean; current?: boolean }> {
+  async revokeDevice(sessionId: string): Promise<z.infer<typeof revokeSchema>> {
     return this.request(
       'DELETE',
       `/devices/${encodeURIComponent(sessionId)}`,

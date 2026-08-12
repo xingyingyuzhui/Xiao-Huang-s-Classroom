@@ -66,7 +66,7 @@ function normalizeEntry(entry: OutboxEntry): OutboxEntry {
 
 export function patchOutboxInTransaction(
   tx: IDBTransaction,
-  operationId: string,
+  _operationId: string,
   patch: OutboxStatusPatch,
   existing: OutboxEntry,
 ): void {
