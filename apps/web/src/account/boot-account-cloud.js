@@ -29,7 +29,10 @@ import {
 import { renderSyncPanel } from '../sync/sync-panel.js';
 import { showLoginDialog } from './login-dialog.js';
 import { showConflictDialog } from '../sync/conflict-dialog.js';
-import { createButton } from '@xiaohuang/ui';
+import { applyWave1Change, stripSecretsFromSettings } from '../sync/apply-wave1.js';
+import { clearRoster, setRosterPersistHandler } from '../sync/roster-store.js';
+import { createButton, createInput } from '@xiaohuang/ui';
+import { appConfirm } from '../shared/ui/app-dialog.js';
 import { getCurrentSubjectId } from '../subjects/session.js';
 
 const DEVICE_ID_KEY = 'xh-device-id';
@@ -76,6 +79,43 @@ function currentSubjectId() {
 
 function newOperationId() {
   return `op_${newRequestId().replace(/-/g, '')}`;
+}
+
+/**
+ * @typedef {{
+ *   login: Function,
+ *   restoreSession?: Function,
+ *   logout?: Function,
+ *   removeCard?: Function,
+ *   capabilities?: Function,
+ * }} DesktopAccountApi
+ */
+
+/** @returns {DesktopAccountApi | null} */
+function getDesktopAccountApi() {
+  const api = /** @type {DesktopAccountApi | undefined} */ (globalThis.xiaohuangAccount);
+  if (!api || typeof api.login !== 'function') return null;
+  return api;
+}
+
+/**
+ * @param {Record<string, unknown>} ipcResult
+ * @param {string} fallbackDeviceId
+ */
+function mapDesktopSession(ipcResult, fallbackDeviceId) {
+  const expiresAt =
+    typeof ipcResult.expiresAt === 'number'
+      ? ipcResult.expiresAt
+      : Date.parse(String(ipcResult.expiresAt ?? ''));
+  return {
+    accountId: String(ipcResult.accountId || ''),
+    displayName: String(ipcResult.displayName || ipcResult.accountId || ''),
+    accessToken: String(ipcResult.accessToken || ''),
+    expiresAt: Number.isFinite(expiresAt) ? expiresAt : Date.now() + 15 * 60_000,
+    sessionId: String(ipcResult.sessionId || 'sess_desktop'),
+    deviceId: String(ipcResult.deviceId || fallbackDeviceId),
+    avatarUrl: typeof ipcResult.avatarUrl === 'string' ? ipcResult.avatarUrl : null,
+  };
 }
 
 /**
@@ -148,6 +188,8 @@ export async function bootAccountCloud() {
   let switcher = null;
   /** @type {Array<import('@xiaohuang/contracts').ClassRecord>} */
   let classList = [];
+  /** @type {Array<import('@xiaohuang/contracts').ClassRecord>} */
+  let trashList = [];
   /** @type {boolean} */
   let guestCopyDismissed = false;
 
@@ -209,15 +251,31 @@ export async function bootAccountCloud() {
       applyPulledChanges: async (changes) => {
         const ctx = contextStore.getContext();
         for (const change of changes) {
+          const config = registry.get(change.resourceType);
+          let payload = change.payload;
+          if (config?.parse) {
+            try {
+              payload = config.parse(change.payload);
+            } catch (err) {
+              console.error('[account-cloud] skip invalid pulled resource', change.resourceType, err);
+              continue;
+            }
+          }
           await resources.put({
             workspaceId: ctx.workspaceId,
             resourceType: change.resourceType,
             resourceId: change.resourceId,
-            schemaVersion: registry.get(change.resourceType)?.schemaVersion ?? 1,
+            schemaVersion: config?.schemaVersion ?? 1,
             revision: change.revision,
-            payload: change.payload,
+            payload,
             localOnly: false,
             updatedAt: Date.now(),
+            deletedAt: change.deletedAt,
+          });
+          applyWave1Change({
+            resourceType: change.resourceType,
+            resourceId: change.resourceId,
+            payload,
             deletedAt: change.deletedAt,
           });
         }
@@ -245,6 +303,7 @@ export async function bootAccountCloud() {
       },
       onSwitched: (ctx) => {
         localResources?.setGeneration(ctx.generation);
+        void hydrateWave1FromLocal();
       },
     });
   } catch (err) {
@@ -283,6 +342,7 @@ export async function bootAccountCloud() {
       generation: contextStore.getGeneration(),
     });
     classList = [];
+    trashList = [];
   }
 
   handleUnauthorized = () => {
@@ -348,7 +408,40 @@ export async function bootAccountCloud() {
       });
     }
     await refreshPendingCount();
+    await hydrateWave1FromLocal();
     refreshSettingsSection();
+  }
+
+  async function hydrateWave1FromLocal() {
+    if (!resources) {
+      clearRoster({ persist: false });
+      return;
+    }
+    const ctx = contextStore.getContext();
+    try {
+      const settings = await resources.get(ctx.workspaceId, 'teacher.settings', 'default');
+      if (settings && settings.deletedAt == null) {
+        applyWave1Change({
+          resourceType: 'teacher.settings',
+          resourceId: 'default',
+          payload: settings.payload,
+          deletedAt: null,
+        });
+      }
+      const roster = await resources.get(ctx.workspaceId, 'class.roster', 'default');
+      if (roster && roster.deletedAt == null) {
+        applyWave1Change({
+          resourceType: 'class.roster',
+          resourceId: 'default',
+          payload: roster.payload,
+          deletedAt: null,
+        });
+      } else {
+        clearRoster({ persist: false });
+      }
+    } catch (err) {
+      console.error('[account-cloud] hydrate wave1 failed', err);
+    }
   }
 
   async function refreshPendingCount() {
@@ -365,6 +458,7 @@ export async function bootAccountCloud() {
   async function refreshClassList() {
     if (!session.isAuthenticated()) {
       classList = [];
+      trashList = [];
       return;
     }
     try {
@@ -372,6 +466,12 @@ export async function bootAccountCloud() {
     } catch (err) {
       console.error('[account-cloud] listClasses failed', err);
       classList = [];
+    }
+    try {
+      trashList = await client.listTrashClasses();
+    } catch (err) {
+      console.error('[account-cloud] listTrash failed', err);
+      trashList = [];
     }
   }
 
@@ -394,7 +494,36 @@ export async function bootAccountCloud() {
         resourceId: 'default',
         schemaVersion: 1,
         revision: existing?.revision ?? 0,
-        payload,
+        payload: stripSecretsFromSettings(payload),
+        localOnly: false,
+        operationId: newOperationId(),
+        baseRevision: existing?.revision ?? null,
+      },
+      ctx.generation,
+    );
+    await refreshPendingCount();
+  }
+
+  /**
+   * @param {Array<{ id: string, name: string }>} students
+   */
+  async function enqueueClassRoster(students) {
+    if (!localResources || !session.isAuthenticated()) return;
+    const ctx = contextStore.getContext();
+    if (ctx.mode !== 'authenticated' || !ctx.workspaceId.startsWith('ws_')) return;
+
+    const existing = resources
+      ? await resources.get(ctx.workspaceId, 'class.roster', 'default')
+      : null;
+
+    await localResources.write(
+      {
+        workspaceId: ctx.workspaceId,
+        resourceType: 'class.roster',
+        resourceId: 'default',
+        schemaVersion: 1,
+        revision: existing?.revision ?? 0,
+        payload: { students },
         localOnly: false,
         operationId: newOperationId(),
         baseRevision: existing?.revision ?? null,
@@ -503,8 +632,13 @@ export async function bootAccountCloud() {
         kind: 'secondary',
         onClick: () => {
           void (async () => {
+            const desktopApi = getDesktopAccountApi();
             try {
-              await client.logout();
+              if (desktopApi?.logout && current) {
+                await desktopApi.logout(current.accountId, deviceId);
+              } else {
+                await client.logout();
+              }
             } catch {
               /* local clear still proceeds */
             }
@@ -515,56 +649,142 @@ export async function bootAccountCloud() {
         },
       });
       wrap.appendChild(logoutBtn.element);
+
+      const pwRow = document.createElement('div');
+      pwRow.className = 'account-password-row';
+      const currentPw = createInput({ placeholder: '当前密码', 'aria-label': '当前密码' });
+      const nextPw = createInput({ placeholder: '新密码（至少 8 位）', 'aria-label': '新密码' });
+      /** @type {HTMLInputElement} */ (currentPw.element).type = 'password';
+      /** @type {HTMLInputElement} */ (nextPw.element).type = 'password';
+      const pwBtn = createButton({
+        label: '修改密码',
+        kind: 'secondary',
+        onClick: async () => {
+          const currentPassword = /** @type {HTMLInputElement} */ (currentPw.element).value;
+          const newPassword = /** @type {HTMLInputElement} */ (nextPw.element).value;
+          if (!currentPassword || newPassword.length < 8) return;
+          pwBtn.update({ disabled: true, loading: true });
+          try {
+            await client.changePassword(currentPassword, newPassword);
+            /** @type {HTMLInputElement} */ (currentPw.element).value = '';
+            /** @type {HTMLInputElement} */ (nextPw.element).value = '';
+          } catch (err) {
+            console.error('[account-cloud] changePassword failed', err);
+          } finally {
+            pwBtn.update({ disabled: false, loading: false });
+          }
+        },
+      });
+      pwRow.append(currentPw.element, nextPw.element, pwBtn.element);
+      wrap.appendChild(pwRow);
+
+      const deviceHost = document.createElement('div');
+      deviceHost.className = 'account-device-list';
+      deviceHost.textContent = '正在加载设备…';
+      wrap.appendChild(deviceHost);
+      void (async () => {
+        try {
+          const devices = await client.listDevices();
+          deviceHost.textContent = '';
+          if (!devices.length) {
+            deviceHost.textContent = '没有活动设备';
+            return;
+          }
+          for (const device of devices) {
+            const row = document.createElement('div');
+            row.className = 'account-device-row';
+            const label = document.createElement('span');
+            label.textContent = `${device.label}${device.current ? '（本机）' : ''}`;
+            row.appendChild(label);
+            if (!device.current) {
+              const revokeBtn = createButton({
+                label: '远程撤销',
+                kind: 'danger',
+                size: 'sm',
+                onClick: async () => {
+                  const ok = await appConfirm('撤销后该设备需重新登录。', { danger: true });
+                  if (!ok) return;
+                  await client.revokeDevice(device.sessionId);
+                  refreshSettingsSection();
+                },
+              });
+              row.appendChild(revokeBtn.element);
+            }
+            deviceHost.appendChild(row);
+          }
+        } catch (err) {
+          console.error('[account-cloud] listDevices failed', err);
+          deviceHost.textContent = '无法加载设备列表';
+        }
+      })();
     } else {
       const hint = document.createElement('p');
       hint.className = 'settings-hint';
       hint.textContent = '登录后可使用云同步（访客模式仍可离线使用教室）。';
       wrap.appendChild(hint);
 
-      const last = remembered.getLastUsed();
-      if (last) {
-        const card = document.createElement('div');
-        card.className = 'account-remembered-card';
-        card.textContent = `上次使用：${last.displayName}`;
-        wrap.appendChild(card);
+      const cards = remembered.list();
+      if (cards.length) {
+        const cardList = document.createElement('div');
+        cardList.className = 'account-remembered-list';
+        for (const card of cards) {
+          const row = document.createElement('div');
+          row.className = 'account-remembered-card';
+          const label = document.createElement('span');
+          label.textContent = card.displayName;
+          row.appendChild(label);
+          const forgetBtn = createButton({
+            label: '移除本机卡片',
+            kind: 'ghost',
+            size: 'sm',
+            onClick: () => {
+              void (async () => {
+                const desktopApi = getDesktopAccountApi();
+                try {
+                  if (desktopApi?.removeCard) {
+                    await desktopApi.removeCard(card.accountId);
+                  }
+                } catch (err) {
+                  console.error('[account-cloud] removeCard failed', err);
+                }
+                remembered.forget(card.accountId);
+                refreshSettingsSection();
+              })();
+            },
+          });
+          row.appendChild(forgetBtn.element);
+          cardList.appendChild(row);
+        }
+        wrap.appendChild(cardList);
       }
 
       const loginBtn = createButton({
         label: '登录',
         kind: 'primary',
         onClick: async () => {
-          const desktopApi = /** @type {{ login?: Function } | undefined} */ (
-            globalThis.xiaohuangAccount
-          );
+          const desktopApi = getDesktopAccountApi();
           /** @type {{ login: (u: string, p: string) => Promise<any> }} */
-          const loginTarget =
-            desktopApi && typeof desktopApi.login === 'function'
-              ? {
-                  login: async (username, password) => {
-                    const ipcResult = await desktopApi.login({
-                      username,
-                      password,
-                      deviceId,
-                      deviceLabel: 'Desktop',
-                    });
-                    const expiresAt =
-                      typeof ipcResult.expiresAt === 'number'
-                        ? ipcResult.expiresAt
-                        : Date.parse(String(ipcResult.expiresAt));
-                    return {
-                      accountId: ipcResult.accountId,
-                      displayName: ipcResult.displayName,
-                      accessToken: ipcResult.accessToken,
-                      expiresAt: Number.isFinite(expiresAt)
-                        ? expiresAt
-                        : Date.now() + 15 * 60_000,
-                      sessionId: 'sess_desktop',
-                      deviceId: ipcResult.deviceId || deviceId,
-                      avatarUrl: ipcResult.avatarUrl ?? null,
-                    };
-                  },
-                }
-              : client;
+          const loginTarget = desktopApi
+            ? {
+                login: async (username, password) => {
+                  let rememberMe = false;
+                  try {
+                    const caps = await desktopApi.capabilities?.();
+                    rememberMe = Boolean(caps?.rememberMeAvailable);
+                  } catch {
+                    rememberMe = false;
+                  }
+                  const ipcResult = await desktopApi.login({
+                    username,
+                    password,
+                    deviceId,
+                    deviceLabel: 'Desktop',
+                    rememberMe,
+                  });
+                  return mapDesktopSession(ipcResult, deviceId);
+                },
+              }
+            : client;
 
           const result = await showLoginDialog(/** @type {any} */ (loginTarget));
           if (!result) return;
@@ -602,7 +822,11 @@ export async function bootAccountCloud() {
           });
           return;
         }
-        void syncController.startSync().then(() => refreshPendingCount());
+        void syncController.startSync().then(async () => {
+          await refreshPendingCount();
+          await hydrateWave1FromLocal();
+          refreshSettingsSection();
+        });
       },
       onViewConflicts: () => {
         const conflicts = conflictStore.listUnresolved();
@@ -636,6 +860,7 @@ export async function bootAccountCloud() {
 
     renderClassSwitcher(root, {
       classes: classList,
+      trash: trashList,
       activeClassId: contextStore.getContext().classId,
       onSwitch: (classId) => {
         void switchToClass(classId);
@@ -645,11 +870,21 @@ export async function bootAccountCloud() {
         await refreshClassList();
         refreshSettingsSection();
       },
+      onCopy: async (classId, name) => {
+        await client.copyClass(classId, name);
+        await refreshClassList();
+        refreshSettingsSection();
+      },
       onDelete: async (classId) => {
         await client.deleteClass(classId);
         if (contextStore.getContext().classId === classId) {
           await switchToClass(null);
         }
+        await refreshClassList();
+        refreshSettingsSection();
+      },
+      onRestore: async (classId) => {
+        await client.restoreClass(classId);
         await refreshClassList();
         refreshSettingsSection();
       },
@@ -698,6 +933,8 @@ export async function bootAccountCloud() {
     void renderClassBlock(classRoot, guestRoot);
   }
 
+  setRosterPersistHandler((students) => enqueueClassRoster(students));
+
   unsubSession = session.subscribe(() => {
     void (async () => {
       if (session.isAuthenticated()) {
@@ -714,6 +951,18 @@ export async function bootAccountCloud() {
 
   if (!session.getAccessToken()) {
     void (async () => {
+      const desktopApi = getDesktopAccountApi();
+      if (desktopApi?.restoreSession) {
+        try {
+          const restored = await desktopApi.restoreSession(undefined, deviceId);
+          if (restored?.restored && restored.accessToken) {
+            await afterLoginSuccess(mapDesktopSession(restored, deviceId));
+            return;
+          }
+        } catch (err) {
+          console.error('[account-cloud] desktop restore failed', err);
+        }
+      }
       try {
         const restored = await client.refreshSession();
         if (restored) {
@@ -760,6 +1009,7 @@ export async function bootAccountCloud() {
       unsubNetwork();
       network.dispose();
       syncController?.cancel();
+      setRosterPersistHandler(null);
       db?.close();
     },
   };

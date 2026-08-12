@@ -4,14 +4,18 @@ import { appConfirm } from '../shared/ui/app-dialog.js';
 
 export type ClassSwitcherOptions = {
   classes: ClassRecord[];
+  trash?: ClassRecord[];
   activeClassId: string | null;
   onSwitch: (classId: string | null) => void;
   onCreate: (name: string) => Promise<void>;
   onDelete: (classId: string) => Promise<void>;
+  onCopy?: (classId: string, name: string) => Promise<void>;
+  onRestore?: (classId: string) => Promise<void>;
 };
 
 export function renderClassSwitcher(container: HTMLElement, options: ClassSwitcherOptions): void {
-  const { classes, activeClassId, onSwitch, onCreate, onDelete } = options;
+  const { classes, trash = [], activeClassId, onSwitch, onCreate, onDelete, onCopy, onRestore } =
+    options;
   container.textContent = '';
 
   const wrapper = document.createElement('div');
@@ -72,6 +76,28 @@ export function renderClassSwitcher(container: HTMLElement, options: ClassSwitch
     });
     li.appendChild(deleteBtn.element);
 
+    if (onCopy) {
+      const copyBtn = createButton({
+        label: '复制',
+        kind: 'ghost',
+        size: 'sm',
+        onClick: async () => {
+          const name = `${cls.name} 副本`;
+          copyBtn.update({ disabled: true, loading: true });
+          try {
+            await onCopy(cls.id, name);
+          } finally {
+            copyBtn.update({ disabled: false, loading: false });
+          }
+        },
+      });
+      copyBtn.element.classList.add('class-switcher-copy');
+      copyBtn.element.addEventListener('click', (event) => {
+        event.stopPropagation();
+      });
+      li.appendChild(copyBtn.element);
+    }
+
     list.appendChild(li);
   }
 
@@ -101,5 +127,39 @@ export function renderClassSwitcher(container: HTMLElement, options: ClassSwitch
   createRow.appendChild(createBtn.element);
 
   wrapper.appendChild(createRow);
+
+  if (onRestore && trash.length > 0) {
+    const trashTitle = document.createElement('p');
+    trashTitle.className = 'settings-hint';
+    trashTitle.textContent = '回收站（30 天内可恢复）';
+    wrapper.appendChild(trashTitle);
+
+    const trashList = document.createElement('ul');
+    trashList.className = 'class-switcher-list class-switcher-trash';
+    for (const cls of trash) {
+      const li = document.createElement('li');
+      li.className = 'class-switcher-item';
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = cls.name;
+      li.appendChild(nameSpan);
+      const restoreBtn = createButton({
+        label: '恢复',
+        kind: 'secondary',
+        size: 'sm',
+        onClick: async () => {
+          restoreBtn.update({ disabled: true, loading: true });
+          try {
+            await onRestore(cls.id);
+          } finally {
+            restoreBtn.update({ disabled: false, loading: false });
+          }
+        },
+      });
+      li.appendChild(restoreBtn.element);
+      trashList.appendChild(li);
+    }
+    wrapper.appendChild(trashList);
+  }
+
   container.appendChild(wrapper);
 }
